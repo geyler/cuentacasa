@@ -26,7 +26,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string>('');
   
-  // Spotlight Focus state for active keyboard input
+  // Active focused field state
   const [focusedField, setFocusedField] = useState<'concept' | 'amount' | null>(null);
 
   const conceptRef = useRef<HTMLInputElement>(null);
@@ -48,11 +48,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         setError('');
       }
 
-      // Auto-focus first input & activate spotlight blur immediately on open!
+      // Auto-focus first input on open
       setFocusedField('concept');
       const timer = setTimeout(() => {
         conceptRef.current?.focus();
-      }, 80);
+      }, 100);
       return () => clearTimeout(timer);
     } else {
       setFocusedField(null);
@@ -118,15 +118,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: isFocused ? 'rgba(0, 0, 0, 0.88)' : 'rgba(0, 0, 0, 0.65)',
-      backdropFilter: isFocused ? 'blur(10px)' : 'blur(4px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.70)',
+      backdropFilter: 'blur(8px)',
       zIndex: 110,
       display: 'flex',
-      alignItems: isFocused ? 'flex-start' : 'center',
+      alignItems: 'center',
       justifyContent: 'center',
-      padding: isFocused ? '16px 16px 0 16px' : '16px',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    }} className="no-print" onClick={isFocused ? handleDismissKeyboard : onClose}>
+      padding: '16px'
+    }} className="no-print" onClick={onClose}>
       
       <div 
         onClick={e => e.stopPropagation()}
@@ -137,12 +136,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           width: '100%',
           maxWidth: '460px',
           padding: '24px',
-          boxShadow: isFocused ? '0 20px 50px rgba(0,0,0,0.8)' : 'var(--md-shadow-elevation-3)',
+          boxShadow: 'var(--md-shadow-elevation-3)',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          marginTop: isFocused ? '10px' : '0'
+          position: 'relative'
         }}
       >
         {/* Header */}
@@ -150,9 +148,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          opacity: isFocused ? 0.3 : 1,
-          filter: isFocused ? 'blur(1px)' : 'none',
-          transition: 'all 0.3s ease'
+          opacity: isFocused ? 0.6 : 1,
+          transition: 'opacity 0.2s ease'
         }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
             {editingTransaction ? 'Editar' : 'Registrar'} {type === 'ingreso' ? 'Ingreso' : 'Gasto'}
@@ -179,10 +176,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface-container-high)',
           padding: '4px',
           borderRadius: '14px',
-          opacity: isFocused ? 0.3 : 1,
-          filter: isFocused ? 'blur(1px)' : 'none',
-          pointerEvents: isFocused ? 'none' : 'auto',
-          transition: 'all 0.3s ease'
+          opacity: isFocused ? 0.6 : 1,
+          transition: 'opacity 0.2s ease'
         }}>
           <button
             type="button"
@@ -234,28 +229,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           
-          {/* Detalle / Titulo (Spotlight Input Field 1) */}
+          {/* Detalle / Titulo Input Field 1 */}
           <div style={{
-            position: 'relative',
-            zIndex: focusedField === 'concept' ? 100 : 1,
-            transform: focusedField === 'concept' ? 'scale(1.04)' : 'scale(1)',
-            opacity: focusedField !== null && focusedField !== 'concept' ? 0.2 : 1,
-            filter: focusedField !== null && focusedField !== 'concept' ? 'blur(3px)' : 'none',
-            pointerEvents: focusedField !== null && focusedField !== 'concept' ? 'none' : 'auto',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            opacity: focusedField !== null && focusedField !== 'concept' ? 0.4 : 1,
+            transition: 'opacity 0.2s ease'
           }}>
             
-            {/* Top Toolbar when focused */}
-            {focusedField === 'concept' && (
+            {focusedField === 'concept' ? (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '6px',
-                animation: 'fadeIn 0.2s ease'
+                marginBottom: '6px'
               }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Keyboard size={14} /> Foco Total: Detalle del {type === 'ingreso' ? 'Ingreso' : 'Gasto'}
+                  <Keyboard size={14} /> Detalle del {type === 'ingreso' ? 'Ingreso' : 'Gasto'}
                 </span>
                 <button
                   type="button"
@@ -267,24 +255,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '4px 10px',
+                    padding: '3px 8px',
                     borderRadius: '9999px',
                     border: 'none',
                     backgroundColor: 'var(--md-sys-color-primary)',
                     color: 'var(--md-sys-color-on-primary)',
                     fontSize: '0.75rem',
                     fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: 'var(--md-shadow-elevation-2)'
+                    cursor: 'pointer'
                   }}
                 >
-                  <span>Siguiente (Monto)</span>
-                  <ArrowRight size={14} />
+                  <span>Siguiente</span>
+                  <ArrowRight size={13} />
                 </button>
               </div>
-            )}
-
-            {focusedField !== 'concept' && (
+            ) : (
               <label style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>
                 Detalle / Título * (3 a 120 caracteres)
               </label>
@@ -310,22 +295,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               autoFocus
               style={{
                 width: '100%',
-                padding: '14px',
-                borderRadius: '14px',
+                padding: '12px 14px',
+                borderRadius: '12px',
                 border: focusedField === 'concept' 
                   ? '2px solid var(--md-sys-color-primary)' 
                   : '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: focusedField === 'concept'
-                  ? 'var(--md-sys-color-surface-container)'
-                  : 'var(--md-sys-color-surface)',
+                backgroundColor: 'var(--md-sys-color-surface)',
                 color: 'var(--md-sys-color-on-surface)',
-                fontSize: '1.05rem',
-                fontWeight: 700,
+                fontSize: '1rem',
+                fontWeight: 600,
                 outline: 'none',
                 boxShadow: focusedField === 'concept'
-                  ? '0 0 0 6px rgba(0, 99, 155, 0.3), 0 10px 30px rgba(0,0,0,0.5)'
+                  ? '0 0 0 4px rgba(0, 99, 155, 0.25)'
                   : 'none',
-                transition: 'all 0.25s ease'
+                transition: 'all 0.2s ease'
               }}
             />
             <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'right', marginTop: '2px' }}>
@@ -333,28 +316,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
           </div>
 
-          {/* Monto (Spotlight Input Field 2 - LAST INPUT) */}
+          {/* Monto Input Field 2 (LAST INPUT) */}
           <div style={{
-            position: 'relative',
-            zIndex: focusedField === 'amount' ? 100 : 1,
-            transform: focusedField === 'amount' ? 'scale(1.04)' : 'scale(1)',
-            opacity: focusedField !== null && focusedField !== 'amount' ? 0.2 : 1,
-            filter: focusedField !== null && focusedField !== 'amount' ? 'blur(3px)' : 'none',
-            pointerEvents: focusedField !== null && focusedField !== 'amount' ? 'none' : 'auto',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            opacity: focusedField !== null && focusedField !== 'amount' ? 0.4 : 1,
+            transition: 'opacity 0.2s ease'
           }}>
             
-            {/* Top Toolbar when focused */}
-            {focusedField === 'amount' && (
+            {focusedField === 'amount' ? (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '6px',
-                animation: 'fadeIn 0.2s ease'
+                marginBottom: '6px'
               }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Keyboard size={14} /> Foco Total: Monto ($)
+                  <Keyboard size={14} /> Monto ($)
                 </span>
                 <button
                   type="button"
@@ -363,24 +339,21 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '4px 10px',
+                    padding: '3px 8px',
                     borderRadius: '9999px',
                     border: 'none',
                     backgroundColor: 'var(--md-sys-color-primary)',
                     color: 'var(--md-sys-color-on-primary)',
                     fontSize: '0.75rem',
                     fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: 'var(--md-shadow-elevation-2)'
+                    cursor: 'pointer'
                   }}
                 >
-                  <Check size={14} />
-                  <span>Aceptar y Desdifuminar</span>
+                  <Check size={13} />
+                  <span>Listo</span>
                 </button>
               </div>
-            )}
-
-            {focusedField !== 'amount' && (
+            ) : (
               <label style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>
                 Monto ($) *
               </label>
@@ -397,7 +370,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  // Stop form submit, accept input value, remove spotlight blur overlay!
+                  // Stop form submit, accept input value, remove active focus
                   amountRef.current?.blur();
                   setFocusedField(null);
                 }
@@ -405,32 +378,28 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               required
               style={{
                 width: '100%',
-                padding: '14px',
-                borderRadius: '14px',
+                padding: '12px 14px',
+                borderRadius: '12px',
                 border: focusedField === 'amount' 
                   ? '2px solid var(--md-sys-color-primary)' 
                   : '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: focusedField === 'amount'
-                  ? 'var(--md-sys-color-surface-container)'
-                  : 'var(--md-sys-color-surface)',
+                backgroundColor: 'var(--md-sys-color-surface)',
                 color: 'var(--md-sys-color-on-surface)',
-                fontSize: '1.35rem',
+                fontSize: '1.25rem',
                 fontWeight: 800,
                 outline: 'none',
                 boxShadow: focusedField === 'amount'
-                  ? '0 0 0 6px rgba(0, 99, 155, 0.3), 0 10px 30px rgba(0,0,0,0.5)'
+                  ? '0 0 0 4px rgba(0, 99, 155, 0.25)'
                   : 'none',
-                transition: 'all 0.25s ease'
+                transition: 'all 0.2s ease'
               }}
             />
           </div>
 
           {/* Photo Attachment */}
           <div style={{
-            opacity: isFocused ? 0.2 : 1,
-            filter: isFocused ? 'blur(3px)' : 'none',
-            pointerEvents: isFocused ? 'none' : 'auto',
-            transition: 'all 0.3s ease'
+            opacity: isFocused ? 0.5 : 1,
+            transition: 'opacity 0.2s ease'
           }}>
             <label style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>
               Foto (Opcional)
@@ -502,10 +471,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             display: 'flex',
             gap: '10px',
             marginTop: '6px',
-            opacity: isFocused ? 0.2 : 1,
-            filter: isFocused ? 'blur(3px)' : 'none',
-            pointerEvents: isFocused ? 'none' : 'auto',
-            transition: 'all 0.3s ease'
+            opacity: isFocused ? 0.6 : 1,
+            transition: 'opacity 0.2s ease'
           }}>
             <button
               type="button"

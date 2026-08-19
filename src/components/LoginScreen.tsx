@@ -23,13 +23,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isFocused, setIsFocused] = useState(true);
+  const [isFocused, setIsFocused] = useState(false);
 
   const passwordRef = useRef<HTMLInputElement>(null);
   const pinRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setIsFocused(true);
     const timer = setTimeout(() => {
       if (mode === 'pin') {
         pinRef.current?.focus();
@@ -104,32 +103,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
-      backgroundColor: 'var(--md-sys-color-surface)',
-      position: 'relative'
+      backgroundColor: 'var(--md-sys-color-surface)'
     }}>
-      
-      {/* Background Spotlight Blur Overlay when input focused */}
-      {isFocused && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          zIndex: 5,
-          transition: 'all 0.3s ease'
-        }} />
-      )}
-
       <div className="md-card" style={{
         maxWidth: '420px',
         width: '100%',
         padding: '36px 28px',
         textAlign: 'center',
-        boxShadow: isFocused ? '0 20px 50px rgba(0,0,0,0.8)' : 'var(--md-shadow-elevation-3)',
-        position: 'relative',
-        zIndex: 10,
-        transition: 'all 0.3s ease',
-        transform: isFocused ? 'scale(1.02)' : 'scale(1)'
+        boxShadow: 'var(--md-shadow-elevation-3)',
+        transition: 'all 0.2s ease'
       }}>
         
         {/* App Icon */}
@@ -185,6 +167,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 placeholder="••••"
                 value={pin}
                 onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 onChange={e => {
                   const val = e.target.value.replace(/\D/g, '').slice(0, 4);
                   setPin(val);
@@ -195,7 +178,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   width: '180px',
                   padding: '12px',
                   borderRadius: '14px',
-                  border: isFocused ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline)',
+                  border: isFocused ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                   backgroundColor: 'var(--md-sys-color-surface-container)',
                   color: 'var(--md-sys-color-on-surface)',
                   fontSize: '1.8rem',
@@ -203,8 +186,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   textAlign: 'center',
                   outline: 'none',
                   margin: '0 auto',
-                  boxShadow: isFocused ? '0 0 0 6px rgba(0, 99, 155, 0.3)' : 'none',
-                  transition: 'all 0.25s ease'
+                  boxShadow: isFocused ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none',
+                  transition: 'all 0.2s ease'
                 }}
               />
             </div>
@@ -260,6 +243,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
                   required
                   autoFocus
                   style={{
@@ -271,8 +255,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     color: 'var(--md-sys-color-on-surface)',
                     fontSize: '1rem',
                     outline: 'none',
-                    boxShadow: isFocused ? '0 0 0 6px rgba(0, 99, 155, 0.3)' : 'none',
-                    transition: 'all 0.25s ease'
+                    boxShadow: isFocused ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none',
+                    transition: 'all 0.2s ease'
                   }}
                 />
                 <button
