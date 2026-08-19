@@ -70,31 +70,45 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.7)',
-      backdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.70)',
+      backdropFilter: 'blur(8px)',
       zIndex: 110,
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-end',
       justifyContent: 'center',
-      padding: '16px'
-    }} className="no-print">
+      padding: '0'
+    }} className="no-print" onClick={onClose}>
       
-      <div style={{
-        backgroundColor: 'var(--md-sys-color-surface-container)',
-        color: 'var(--md-sys-color-on-surface)',
-        borderRadius: 'var(--radius-xl)',
-        width: '100%',
-        maxWidth: '840px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: 'var(--md-shadow-elevation-3)',
-        padding: '24px',
-        border: '1px solid var(--md-sys-color-surface-variant)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px'
-      }}>
-        
+      <div 
+        onClick={e => e.stopPropagation()}
+        style={{
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          color: 'var(--md-sys-color-on-surface)',
+          borderTopLeftRadius: '28px',
+          borderTopRightRadius: '28px',
+          borderBottomLeftRadius: '0px',
+          borderBottomRightRadius: '0px',
+          width: '100%',
+          maxWidth: '840px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: 'var(--md-shadow-elevation-4)',
+          padding: '14px 24px 28px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}
+      >
+        {/* Material Design Drag Handle */}
+        <div style={{
+          width: '36px',
+          height: '4px',
+          borderRadius: '9999px',
+          backgroundColor: 'var(--md-sys-color-outline-variant)',
+          margin: '0 auto 4px auto',
+          opacity: 0.8
+        }} />
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

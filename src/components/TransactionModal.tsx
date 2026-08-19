@@ -31,6 +31,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const conceptRef = useRef<HTMLInputElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -58,6 +59,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setFocusedField(null);
     }
   }, [editingTransaction, initialType, isOpen]);
+
+  // Submit form on Enter key when NO input is actively focused
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && focusedField === null) {
+        e.preventDefault();
+        if (formRef.current) {
+          formRef.current.requestSubmit();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, focusedField]);
 
   if (!isOpen) return null;
 
@@ -122,9 +140,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       backdropFilter: 'blur(8px)',
       zIndex: 110,
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-end',
       justifyContent: 'center',
-      padding: '16px'
+      padding: '0'
     }} className="no-print" onClick={onClose}>
       
       <div 
@@ -132,17 +150,32 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderRadius: '24px',
+          borderTopLeftRadius: '28px',
+          borderTopRightRadius: '28px',
+          borderBottomLeftRadius: '0px',
+          borderBottomRightRadius: '0px',
           width: '100%',
-          maxWidth: '460px',
-          padding: '24px',
-          boxShadow: 'var(--md-shadow-elevation-3)',
+          maxWidth: '480px',
+          padding: '14px 24px 28px 24px',
+          boxShadow: 'var(--md-shadow-elevation-4)',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
-          position: 'relative'
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          animation: 'slideUpModal 0.25s cubic-bezier(0.2, 0, 0, 1)'
         }}
       >
+        {/* Material Design Drag Handle */}
+        <div style={{
+          width: '36px',
+          height: '4px',
+          borderRadius: '9999px',
+          backgroundColor: 'var(--md-sys-color-outline-variant)',
+          margin: '0 auto 4px auto',
+          opacity: 0.8
+        }} />
+
         {/* Header */}
         <div style={{
           display: 'flex',
@@ -227,7 +260,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <form ref={formRef} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           
           {/* Detalle / Titulo Input Field 1 */}
           <div style={{
@@ -488,7 +521,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               style={{ flex: 1, padding: '12px' }}
             >
               <CheckCircle2 size={18} />
-              <span>Guardar</span>
+              <span>Guardar (Enter)</span>
             </button>
           </div>
 
