@@ -1,12 +1,13 @@
-const CACHE_NAME = 'cuenta-casa-v1';
+const CACHE_NAME = 'cuenta-casa-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
-  '/icons/icon-192.svg',
-  '/icons/icon-512.svg'
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/maskable-512.png'
 ];
 
-// Install event - Cache static assets
+// Install event - Cache core static app shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -15,7 +16,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - Clean up old caches
+// Activate event - Immediately claim clients and purge old cache versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -30,38 +31,43 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - Cache first, fallback to network and update cache
+// Fetch event - NETWORK FIRST for UI & assets (ensures fresh Vercel code online), CACHE FALLBACK when offline
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch background update for cache
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {/* Offline fallback */});
-        return cachedResponse;
-      }
+  const url = new URL(event.request.url);
 
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+  // NEVER cache API requests like /api/sync
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Network-First strategy for pages, scripts, and styles
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        // If network succeeds and is valid, update the cache in background
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
         }
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+        return networkResponse;
+      })
+      .catch(() => {
+        // If offline (network fails), serve from cache
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // If navigating offline and page not found, return root offline app shell
+          if (event.request.mode === 'navigate') {
+            return caches.match('/');
+          }
         });
-        return response;
-      }).catch(() => {
-        // If navigating to page offline, return root page
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
-        }
-      });
-    })
+      })
   );
 });

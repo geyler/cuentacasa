@@ -1,4 +1,5 @@
 import { getRawDatabase, saveRawDatabase } from './storage';
+import { Transaction, RawDatabase } from '@/types';
 
 export interface SyncStatus {
   isOnline: boolean;
@@ -14,26 +15,60 @@ export function getPendingSyncCount(): number {
 
 export async function syncDatabaseWithCloud(): Promise<{ success: boolean; syncedCount: number; message: string }> {
   const db = getRawDatabase();
-  const pending = db.transactions.filter(t => !t.synced);
   
-  if (pending.length === 0) {
-    return { success: true, syncedCount: 0, message: 'Todos los datos ya están alineados con la nube.' };
+  if (!navigator.onLine) {
+    return {
+      success: false,
+      syncedCount: 0,
+      message: 'Sin conexión a internet. Los datos permanecerán guardados localmente.'
+    };
   }
 
-  // Simulate cloud sync HTTP push/pull
-  await new Promise(resolve => setTimeout(resolve, 1200));
+  try {
+    const res = await fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      body: JSON.stringify({
+        transactions: db.transactions
+      })
+    });
 
-  // Mark all pending transactions as synced
-  db.transactions = db.transactions.map(t => ({
-    ...t,
-    synced: true
-  }));
-  
-  saveRawDatabase(db);
+    if (!res.ok) {
+      throw new Error(`HTTP error ${res.status}`);
+    }
 
-  return {
-    success: true,
-    syncedCount: pending.length,
-    message: `¡Se alinearon ${pending.length} registros exitosamente con la nube!`
-  };
+    const data = await res.json();
+    if (data.success && Array.isArray(data.transactions)) {
+      const mergedTransactions: Transaction[] = data.transactions.map((t: Transaction) => ({
+        ...t,
+        synced: true
+      }));
+
+      const updatedDb: RawDatabase = {
+        ...db,
+        transactions: mergedTransactions,
+        lastSync: new Date().toISOString()
+      };
+
+      saveRawDatabase(updatedDb);
+
+      return {
+        success: true,
+        syncedCount: mergedTransactions.length,
+        message: `Sincronización completa. ${mergedTransactions.length} registros alineados entre dispositivos.`
+      };
+    } else {
+      throw new Error(data.message || 'Error en respuesta del servidor');
+    }
+  } catch (error) {
+    console.error('Error sincronizando con la nube:', error);
+    return {
+      success: false,
+      syncedCount: 0,
+      message: 'No se pudo contactar al servidor de alineación cloud.'
+    };
+  }
 }

@@ -1,27 +1,58 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, ShieldCheck, Loader2 } from 'lucide-react';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
 }
 
-const CORRECT_PASS = 'Del1Al9#';
+const FALLBACK_PASS = process.env.NEXT_PUBLIC_APP_PASSWORD || 'Del1Al9#';
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === CORRECT_PASS) {
+    setError('');
+    setLoading(true);
+
+    try {
+      if (navigator.onLine) {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          onLoginSuccess();
+          return;
+        } else {
+          setError(data.message || 'Contraseña incorrecta. Verifique e intente nuevamente.');
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Fallback a validación local por falta de conexión:', err);
+    }
+
+    // Offline / Local fallback check
+    if (password === FALLBACK_PASS) {
       setError('');
       onLoginSuccess();
     } else {
       setError('Contraseña incorrecta. Verifique e intente nuevamente.');
     }
+    setLoading(false);
   };
 
   return (
@@ -124,11 +155,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
           <button
             type="submit"
+            disabled={loading}
             className="md-btn md-btn-primary"
             style={{ width: '100%', padding: '14px', marginTop: '6px', fontSize: '1rem' }}
           >
-            <KeyRound size={18} />
-            <span>Iniciar Sesión</span>
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <KeyRound size={18} />}
+            <span>{loading ? 'Verificando...' : 'Iniciar Sesión'}</span>
           </button>
 
         </form>

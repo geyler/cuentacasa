@@ -37,6 +37,7 @@ export interface FinancialSummary {
 export interface RawDatabase {
   version: string;
   lastUpdated: string;
+  lastSync?: string;
   transactions: Transaction[];
   settings: {
     currency: string;

@@ -68,9 +68,27 @@ export default function Home() {
     }
     setAuthLoaded(true);
 
+    // Auto sync function
+    const autoSync = async () => {
+      if (navigator.onLine) {
+        try {
+          await syncDatabaseWithCloud();
+          loadDatabase();
+        } catch (e) {
+          console.error('AutoSync failed:', e);
+        }
+      }
+    };
+
+    // Auto sync on mount if online
+    autoSync();
+
     // Online/Offline Listeners
     setIsOnline(navigator.onLine);
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      autoSync();
+    };
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
@@ -173,7 +191,7 @@ export default function Home() {
     setIsTxModalOpen(true);
   };
 
-  const handleSaveTransaction = (txData: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveTransaction = async (txData: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingTx) {
       updateTransaction({
         ...editingTx,
@@ -183,11 +201,21 @@ export default function Home() {
       addTransaction(txData);
     }
     loadDatabase();
+
+    if (navigator.onLine) {
+      await syncDatabaseWithCloud();
+      loadDatabase();
+    }
   };
 
-  const handleDeleteTransaction = (id: string) => {
+  const handleDeleteTransaction = async (id: string) => {
     deleteTransaction(id);
     loadDatabase();
+
+    if (navigator.onLine) {
+      await syncDatabaseWithCloud();
+      loadDatabase();
+    }
   };
 
   if (!authLoaded) return null;
