@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Eye, EyeOff, KeyRound, ShieldCheck, Loader2, Hash, LogOut } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -23,6 +23,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(true);
+
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const pinRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIsFocused(true);
+    const timer = setTimeout(() => {
+      if (mode === 'pin') {
+        pinRef.current?.focus();
+      } else {
+        passwordRef.current?.focus();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [mode]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,14 +104,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
-      backgroundColor: 'var(--md-sys-color-surface)'
+      backgroundColor: 'var(--md-sys-color-surface)',
+      position: 'relative'
     }}>
+      
+      {/* Background Spotlight Blur Overlay when input focused */}
+      {isFocused && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 5,
+          transition: 'all 0.3s ease'
+        }} />
+      )}
+
       <div className="md-card" style={{
         maxWidth: '420px',
         width: '100%',
         padding: '36px 28px',
         textAlign: 'center',
-        boxShadow: 'var(--md-shadow-elevation-3)'
+        boxShadow: isFocused ? '0 20px 50px rgba(0,0,0,0.8)' : 'var(--md-shadow-elevation-3)',
+        position: 'relative',
+        zIndex: 10,
+        transition: 'all 0.3s ease',
+        transform: isFocused ? 'scale(1.02)' : 'scale(1)'
       }}>
         
         {/* App Icon */}
@@ -145,25 +179,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 PIN Rápido del Día
               </label>
               <input
+                ref={pinRef}
                 type="password"
                 maxLength={4}
                 placeholder="••••"
                 value={pin}
-                onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                onFocus={() => setIsFocused(true)}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                  setPin(val);
+                }}
                 required
                 autoFocus
                 style={{
                   width: '180px',
                   padding: '12px',
                   borderRadius: '14px',
-                  border: '2px solid var(--md-sys-color-primary)',
+                  border: isFocused ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline)',
                   backgroundColor: 'var(--md-sys-color-surface-container)',
                   color: 'var(--md-sys-color-on-surface)',
                   fontSize: '1.8rem',
                   letterSpacing: '0.4rem',
                   textAlign: 'center',
                   outline: 'none',
-                  margin: '0 auto'
+                  margin: '0 auto',
+                  boxShadow: isFocused ? '0 0 0 6px rgba(0, 99, 155, 0.3)' : 'none',
+                  transition: 'all 0.25s ease'
                 }}
               />
             </div>
@@ -213,21 +254,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               </label>
               <div style={{ position: 'relative' }}>
                 <input
+                  ref={passwordRef}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
                   required
                   autoFocus
                   style={{
                     width: '100%',
-                    padding: '12px 42px 12px 14px',
+                    padding: '14px 42px 14px 14px',
                     borderRadius: '14px',
-                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    border: isFocused ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface-container)',
                     color: 'var(--md-sys-color-on-surface)',
                     fontSize: '1rem',
-                    outline: 'none'
+                    outline: 'none',
+                    boxShadow: isFocused ? '0 0 0 6px rgba(0, 99, 155, 0.3)' : 'none',
+                    transition: 'all 0.25s ease'
                   }}
                 />
                 <button
