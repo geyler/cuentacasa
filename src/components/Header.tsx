@@ -170,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
             }}
           >
             <FileText size={15} />
-            <span className="hidden-mobile">Factura</span>
+            <span className="hidden-mobile">Por Fechas</span>
           </button>
         </nav>
 
