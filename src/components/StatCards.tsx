@@ -8,16 +8,21 @@ import { TrendingUp, TrendingDown, Wallet, PiggyBank, PieChart } from 'lucide-re
 interface StatCardsProps {
   summary: FinancialSummary;
   currency?: string;
+  showBalance?: boolean;
 }
 
-export const StatCards: React.FC<StatCardsProps> = ({ summary, currency = '$' }) => {
+export const StatCards: React.FC<StatCardsProps> = ({ 
+  summary, 
+  currency = '$',
+  showBalance = true 
+}) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
       {/* 4 Primary Metric Cards Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         gap: '16px'
       }}>
         
@@ -43,8 +48,8 @@ export const StatCards: React.FC<StatCardsProps> = ({ summary, currency = '$' })
               <Wallet size={20} />
             </div>
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, margin: '14px 0 6px 0', letterSpacing: '-0.02em' }}>
-            {formatCurrency(summary.netBalance, currency)}
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '14px 0 6px 0', letterSpacing: '-0.02em' }}>
+            {formatCurrency(summary.netBalance, currency, showBalance)}
           </div>
           <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
             Total acumulado de entradas - salidas
@@ -71,8 +76,8 @@ export const StatCards: React.FC<StatCardsProps> = ({ summary, currency = '$' })
               <TrendingUp size={20} color="var(--md-sys-color-income)" />
             </div>
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-income)' }}>
-            + {formatCurrency(summary.totalIncome, currency)}
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-income)' }}>
+            + {formatCurrency(summary.totalIncome, currency, showBalance)}
           </div>
           <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
             Pagos por webs, ventas y salarios
@@ -99,8 +104,8 @@ export const StatCards: React.FC<StatCardsProps> = ({ summary, currency = '$' })
               <TrendingDown size={20} color="var(--md-sys-color-expense)" />
             </div>
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-expense)' }}>
-            - {formatCurrency(summary.totalExpense, currency)}
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-expense)' }}>
+            - {formatCurrency(summary.totalExpense, currency, showBalance)}
           </div>
           <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
             Comida, pan, arroz, servicios, etc.
@@ -125,8 +130,8 @@ export const StatCards: React.FC<StatCardsProps> = ({ summary, currency = '$' })
               <PiggyBank size={20} color="var(--md-sys-color-primary)" />
             </div>
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-on-surface)' }}>
-            {summary.savingsRate}%
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-on-surface)' }}>
+            {showBalance ? `${summary.savingsRate}%` : '•••%'}
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
             {summary.savingsRate >= 0 ? 'Retenido como fondo de casa' : 'Deficit contable acumulado'}
@@ -162,7 +167,7 @@ export const StatCards: React.FC<StatCardsProps> = ({ summary, currency = '$' })
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', fontWeight: 600 }}>
                       <span style={{ color: 'var(--md-sys-color-on-surface)' }}>{category}</span>
                       <span style={{ color: 'var(--md-sys-color-expense)' }}>
-                        {formatCurrency(amount, currency)} ({percentage}%)
+                        {formatCurrency(amount, currency, showBalance)} ({percentage}%)
                       </span>
                     </div>
                     {/* Progress Bar */}

@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { AppTab } from '@/types';
 import { 
   Home, 
   Receipt, 
@@ -12,18 +13,28 @@ import {
   Sun, 
   Moon, 
   Download,
-  Plus
+  Plus,
+  Eye,
+  EyeOff,
+  LogOut,
+  Menu,
+  X,
+  PlusCircle,
+  Smartphone
 } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'dashboard' | 'transactions' | 'reports';
-  setActiveTab: (tab: 'dashboard' | 'transactions' | 'reports') => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
   isOnline: boolean;
   pendingSyncCount: number;
   onSync: () => void;
   isSyncing: boolean;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  showBalance: boolean;
+  toggleShowBalance: () => void;
+  onLogout: () => void;
   onOpenRawDb: () => void;
   onOpenNewTransaction: (type?: 'ingreso' | 'gasto') => void;
   onInstallPwa?: () => void;
@@ -39,11 +50,16 @@ export const Header: React.FC<HeaderProps> = ({
   isSyncing,
   theme,
   toggleTheme,
+  showBalance,
+  toggleShowBalance,
+  onLogout,
   onOpenRawDb,
   onOpenNewTransaction,
   onInstallPwa,
   canInstallPwa
 }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <header style={{
       backgroundColor: 'var(--md-sys-color-surface-container)',
@@ -54,139 +70,124 @@ export const Header: React.FC<HeaderProps> = ({
       backdropFilter: 'blur(10px)',
       boxShadow: 'var(--md-shadow-elevation-1)'
     }} className="no-print">
+      
+      {/* Top Bar */}
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '12px 20px',
+        padding: '10px 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
         gap: '12px'
       }}>
         
-        {/* Brand logo & Offline Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #003B63 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#FFF',
-            boxShadow: '0 4px 12px rgba(0,99,155,0.3)'
-          }}>
-            <Home size={24} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Brand logo & Offline Pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => setActiveTab('quick')}
+            style={{
+              background: 'none',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              padding: 0
+            }}
+          >
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #003B63 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFF'
+            }}>
+              <Home size={20} />
+            </div>
+            <div style={{ textAlign: 'left' }}>
               <h1 style={{ 
-                fontSize: '1.25rem', 
-                fontWeight: 700, 
+                fontSize: '1.1rem', 
+                fontWeight: 800, 
                 letterSpacing: '-0.02em',
                 color: 'var(--md-sys-color-on-surface)'
               }}>
                 Cuenta Casa
               </h1>
-              {/* Online/Offline Status Pill */}
               <span style={{
-                fontSize: '0.72rem',
+                fontSize: '0.65rem',
                 fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '9999px',
+                color: isOnline ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                backgroundColor: isOnline ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-expense-container)',
-                color: isOnline ? 'var(--md-sys-color-on-income-container)' : 'var(--md-sys-color-on-expense-container)'
+                gap: '3px'
               }}>
-                {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-                {isOnline ? 'ONLINE' : '100% OFFLINE'}
+                {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
+                {isOnline ? 'ONLINE' : 'OFFLINE'}
               </span>
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Control Contable PWA • Base de datos cruda local
-            </p>
-          </div>
+          </button>
         </div>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Desktop Quick Actions & Privacy Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           
-          {/* Quick Add Buttons */}
-          <button 
-            onClick={() => onOpenNewTransaction('gasto')}
+          {/* Privacy Switch (Mostrar Saldo) */}
+          <button
+            onClick={toggleShowBalance}
+            title={showBalance ? 'Ocultar Saldos (Modo Privado)' : 'Mostrar Saldos'}
             style={{
-              padding: '8px 14px',
+              padding: '6px 12px',
               borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: 'var(--md-sys-color-expense-container)',
-              color: 'var(--md-sys-color-on-expense-container)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              backgroundColor: showBalance ? 'var(--md-sys-color-surface-container-high)' : 'var(--md-sys-color-expense-container)',
+              color: showBalance ? 'var(--md-sys-color-on-surface)' : 'var(--md-sys-color-on-expense-container)',
+              fontSize: '0.78rem',
               fontWeight: 700,
-              fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '6px'
             }}
           >
-            <Plus size={16} /> Gasto
-          </button>
-
-          <button 
-            onClick={() => onOpenNewTransaction('ingreso')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: 'var(--md-sys-color-income-container)',
-              color: 'var(--md-sys-color-on-income-container)',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Plus size={16} /> Ingreso
+            {showBalance ? <Eye size={15} /> : <EyeOff size={15} />}
+            <span className="hidden-mobile">{showBalance ? 'Saldo Visible' : 'Saldo Oculto'}</span>
           </button>
 
           {/* Sync Button */}
           <button
             onClick={onSync}
             disabled={isSyncing}
-            title={pendingSyncCount > 0 ? `${pendingSyncCount} cambios pendientes por alinear` : 'Nube Alineada'}
+            title={pendingSyncCount > 0 ? `${pendingSyncCount} cambios pendientes` : 'Sincronizado'}
             style={{
               position: 'relative',
-              padding: '8px 12px',
-              borderRadius: '12px',
+              padding: '6px 10px',
+              borderRadius: '10px',
               border: '1px solid var(--md-sys-color-outline-variant)',
               backgroundColor: 'var(--md-sys-color-surface-container-high)',
               color: 'var(--md-sys-color-on-surface)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.82rem',
-              fontWeight: 600
+              gap: '4px',
+              fontSize: '0.78rem'
             }}
           >
-            <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
-            <span>Alinear</span>
+            <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
             {pendingSyncCount > 0 && (
               <span style={{
                 position: 'absolute',
-                top: '-5px',
-                right: '-5px',
+                top: '-4px',
+                right: '-4px',
                 backgroundColor: 'var(--md-sys-color-expense)',
                 color: '#FFF',
-                fontSize: '0.65rem',
+                fontSize: '0.6rem',
                 fontWeight: 800,
-                width: '18px',
-                height: '18px',
+                width: '16px',
+                height: '16px',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -197,69 +198,75 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          {/* Raw DB File Viewer Button */}
-          <button
-            onClick={onOpenRawDb}
-            title="Ver/Editar Archivo de Base de Datos Cruda (JSON)"
-            style={{
-              padding: '8px 12px',
-              borderRadius: '12px',
-              border: '1px solid var(--md-sys-color-primary)',
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.82rem',
-              fontWeight: 700
-            }}
-          >
-            <Database size={16} />
-            <span>DB Cruda</span>
-          </button>
-
-          {/* PWA Install Button if available */}
-          {canInstallPwa && onInstallPwa && (
-            <button
-              onClick={onInstallPwa}
-              title="Instalar WebAPK / PWA en tu dispositivo"
-              style={{
-                padding: '8px 12px',
-                borderRadius: '12px',
-                border: 'none',
-                backgroundColor: '#1A73E8',
-                color: '#FFFFFF',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.82rem',
-                fontWeight: 700
-              }}
-            >
-              <Download size={16} />
-              <span>Instalar WebAPK</span>
-            </button>
-          )}
-
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            title="Cambiar Tema (Claro / Oscuro)"
             style={{
-              padding: '8px',
-              borderRadius: '12px',
+              padding: '6px 10px',
+              borderRadius: '10px',
               border: '1px solid var(--md-sys-color-outline-variant)',
               backgroundColor: 'var(--md-sys-color-surface-container-high)',
               color: 'var(--md-sys-color-on-surface)',
+              cursor: 'pointer'
+            }}
+          >
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+
+          {/* DB Cruda Modal Button */}
+          <button
+            onClick={onOpenRawDb}
+            title="Ver/Editar JSON Crudo"
+            style={{
+              padding: '6px 10px',
+              borderRadius: '10px',
+              border: '1px solid var(--md-sys-color-primary)',
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              color: 'var(--md-sys-color-on-primary-container)',
+              fontSize: '0.78rem',
+              fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              gap: '4px'
             }}
           >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+            <Database size={15} />
+            <span className="hidden-mobile">DB</span>
+          </button>
+
+          {/* Logout Button */}
+          <button
+            onClick={onLogout}
+            title="Cerrar Sesión"
+            style={{
+              padding: '6px 10px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: 'var(--md-sys-color-expense-container)',
+              color: 'var(--md-sys-color-on-expense-container)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <LogOut size={16} />
+          </button>
+
+          {/* Mobile Menu Toggle Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{
+              padding: '6px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'none',
+              color: 'var(--md-sys-color-on-surface)',
+              cursor: 'pointer'
+            }}
+            className="mobile-only-btn"
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
 
         </div>
@@ -269,68 +276,93 @@ export const Header: React.FC<HeaderProps> = ({
       <nav style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '0 20px',
+        padding: '0 16px',
         display: 'flex',
-        gap: '8px',
+        gap: '4px',
+        overflowX: 'auto',
         borderTop: '1px solid var(--md-sys-color-surface-variant)'
       }}>
         <button
+          onClick={() => setActiveTab('quick')}
+          style={{
+            padding: '10px 14px',
+            border: 'none',
+            background: 'none',
+            borderBottom: activeTab === 'quick' ? '3px solid var(--md-sys-color-primary)' : '3px solid transparent',
+            color: activeTab === 'quick' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+            fontWeight: activeTab === 'quick' ? 700 : 500,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <Home size={16} /> Inicio Rápido
+        </button>
+
+        <button
           onClick={() => setActiveTab('dashboard')}
           style={{
-            padding: '12px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
             borderBottom: activeTab === 'dashboard' ? '3px solid var(--md-sys-color-primary)' : '3px solid transparent',
             color: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
             fontWeight: activeTab === 'dashboard' ? 700 : 500,
-            fontSize: '0.92rem',
+            fontSize: '0.85rem',
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '6px'
           }}
         >
-          <Home size={18} /> Resumen General
+          <Receipt size={16} /> Dashboard
         </button>
 
         <button
           onClick={() => setActiveTab('transactions')}
           style={{
-            padding: '12px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
             borderBottom: activeTab === 'transactions' ? '3px solid var(--md-sys-color-primary)' : '3px solid transparent',
             color: activeTab === 'transactions' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
             fontWeight: activeTab === 'transactions' ? 700 : 500,
-            fontSize: '0.92rem',
+            fontSize: '0.85rem',
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '6px'
           }}
         >
-          <Receipt size={18} /> Movimientos
+          <Receipt size={16} /> Movimientos
         </button>
 
         <button
           onClick={() => setActiveTab('reports')}
           style={{
-            padding: '12px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
             borderBottom: activeTab === 'reports' ? '3px solid var(--md-sys-color-primary)' : '3px solid transparent',
             color: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
             fontWeight: activeTab === 'reports' ? 700 : 500,
-            fontSize: '0.92rem',
+            fontSize: '0.85rem',
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '6px'
           }}
         >
-          <FileText size={18} /> Facturación y Reportes
+          <FileText size={16} /> Facturación
         </button>
       </nav>
+
     </header>
   );
 };

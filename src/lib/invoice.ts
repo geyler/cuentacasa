@@ -101,7 +101,10 @@ export function getPeriodLabel(filter: ReportFilter): string {
   }
 }
 
-// Format currency
-export function formatCurrency(amount: number, currency: string = '$'): string {
+// Format currency with privacy masking support
+export function formatCurrency(amount: number, currency: string = '$', showBalance: boolean = true): string {
+  if (!showBalance) {
+    return `${currency} •••••`;
+  }
   return `${currency}${amount.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

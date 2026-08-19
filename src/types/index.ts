@@ -16,6 +16,7 @@ export interface Transaction {
 }
 
 export type ReportPeriod = 'mensual' | 'quincenal' | 'semanal' | 'personalizado';
+export type AppTab = 'quick' | 'dashboard' | 'transactions' | 'reports';
 
 export interface ReportFilter {
   period: ReportPeriod;
@@ -42,5 +43,6 @@ export interface RawDatabase {
     appName: string;
     autoSync: boolean;
     syncUrl?: string;
+    showBalance?: boolean;
   };
 }

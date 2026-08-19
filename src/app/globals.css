@@ -150,18 +150,18 @@ body {
 /* Floating Action Button (FAB) */
 .fab {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
+  bottom: 24px;
+  right: 24px;
   z-index: 90;
   border-radius: 20px;
-  padding: 16px 24px;
+  padding: 14px 20px;
   background: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
   box-shadow: var(--md-shadow-elevation-3);
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: none;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -170,6 +170,33 @@ body {
 .fab:hover {
   transform: scale(1.05);
   box-shadow: var(--md-shadow-elevation-3);
+}
+
+/* Mobile Responsive Helpers */
+.mobile-only-btn {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .hidden-mobile {
+    display: none !important;
+  }
+  .mobile-only-btn {
+    display: inline-flex !important;
+  }
+  .md-card {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+  .fab span {
+    display: none;
+  }
+  .fab {
+    padding: 16px !important;
+    border-radius: 50% !important;
+    bottom: 20px !important;
+    right: 20px !important;
+  }
 }
 
 /* Print Styles for Facturas / Reports */
