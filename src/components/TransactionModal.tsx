@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Transaction, TransactionType } from '@/types';
 import { fileToBase64 } from '@/lib/storage';
-import { X, Camera, Trash2, CheckCircle2, Check, Keyboard, ArrowRight } from 'lucide-react';
+import { X, Camera, Trash2, CheckCircle2, Check, Keyboard, ArrowRight, Loader2 } from 'lucide-react';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -25,6 +25,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [amount, setAmount] = useState<string>('');
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   
   // Active focused field state
   const [focusedField, setFocusedField] = useState<'concept' | 'amount' | null>(null);
@@ -48,6 +49,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         setPhotoUrl(undefined);
         setError('');
       }
+      setIsSaving(false);
 
       // Auto-focus first input on open
       setFocusedField('concept');
@@ -57,12 +59,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       return () => clearTimeout(timer);
     } else {
       setFocusedField(null);
+      setIsSaving(false);
     }
   }, [editingTransaction, initialType, isOpen]);
 
-  // Submit form on Enter key when NO input is actively focused
+  // Submit form on Enter key ONLY when NO input is actively focused
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isSaving) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' && focusedField === null) {
@@ -75,14 +78,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, focusedField]);
+  }, [isOpen, focusedField, isSaving]);
 
   if (!isOpen) return null;
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       try {
-        const base64 = await fileToBase64(e.target.files[0]);
+        // Automatically resizes and compresses image to max 400x400 JPEG
+        const base64 = await fileToBase64(e.target.files[0], 400, 400);
         setPhotoUrl(base64);
       } catch (err) {
         console.error('Error reading photo:', err);
@@ -113,21 +117,25 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       return;
     }
 
+    setIsSaving(true);
+
     // Auto-generate date in background (ISO YYYY-MM-DD)
     const currentDate = new Date().toISOString().split('T')[0];
     const categoryName = type === 'ingreso' ? 'Ingreso' : 'Gasto';
 
-    onSave({
-      type,
-      concept: trimmedConcept,
-      category: categoryName,
-      amount: parsedAmount,
-      date: editingTransaction ? editingTransaction.date : currentDate,
-      notes: '',
-      photoUrl
-    });
-
-    onClose();
+    setTimeout(() => {
+      onSave({
+        type,
+        concept: trimmedConcept,
+        category: categoryName,
+        amount: parsedAmount,
+        date: editingTransaction ? editingTransaction.date : currentDate,
+        notes: '',
+        photoUrl
+      });
+      setIsSaving(false);
+      onClose();
+    }, 250);
   };
 
   const isFocused = focusedField !== null;
@@ -163,9 +171,30 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           gap: '16px',
           maxHeight: '90vh',
           overflowY: 'auto',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.2, 0, 0, 1)'
+          position: 'relative'
         }}
       >
+        {/* Saving Loader Overlay */}
+        {isSaving && (
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
+            borderRadius: '28px 28px 0 0',
+            zIndex: 50,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            color: '#FFF'
+          }}>
+            <Loader2 size={36} className="animate-spin" color="var(--md-sys-color-primary)" />
+            <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>Guardando transacción...</span>
+          </div>
+        )}
+
         {/* Material Design Drag Handle */}
         <div style={{
           width: '36px',
@@ -403,7 +432,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  // Stop form submit, accept input value, remove active focus
+                  // Stop form submit, accept input value, remove active focus so no input is selected
                   amountRef.current?.blur();
                   setFocusedField(null);
                 }
@@ -435,7 +464,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             transition: 'opacity 0.2s ease'
           }}>
             <label style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>
-              Foto (Opcional)
+              Foto (Opcional - Max 400x400px)
             </label>
 
             {photoUrl ? (
@@ -510,6 +539,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <button
               type="button"
               onClick={onClose}
+              disabled={isSaving}
               className="md-btn md-btn-secondary"
               style={{ flex: 1, padding: '12px' }}
             >
@@ -517,11 +547,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </button>
             <button
               type="submit"
+              disabled={isSaving}
               className={`md-btn ${type === 'ingreso' ? 'md-btn-income' : 'md-btn-expense'}`}
               style={{ flex: 1, padding: '12px' }}
             >
-              <CheckCircle2 size={18} />
-              <span>Guardar (Enter)</span>
+              {isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+              <span>{isSaving ? 'Guardando...' : 'Guardar'}</span>
             </button>
           </div>
 

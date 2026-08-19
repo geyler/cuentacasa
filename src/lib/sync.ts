@@ -14,7 +14,7 @@ export function getPendingSyncCount(): number {
   return pendingTxs + pendingDeletes;
 }
 
-export async function syncDatabaseWithCloud(): Promise<{ success: boolean; syncedCount: number; message: string }> {
+export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ success: boolean; syncedCount: number; message: string }> {
   const db = getRawDatabase();
   
   if (!navigator.onLine) {
@@ -22,6 +22,19 @@ export async function syncDatabaseWithCloud(): Promise<{ success: boolean; synce
       success: false,
       syncedCount: 0,
       message: 'Sin conexión a internet. Los datos permanecerán guardados localmente.'
+    };
+  }
+
+  const pendingCount = getPendingSyncCount();
+  const lastSyncTime = db.lastSync ? new Date(db.lastSync).getTime() : 0;
+  const timeSinceLastSync = Date.now() - lastSyncTime;
+
+  // Optimize Vercel requests: skip redundant request if no changes and synced recently (< 5 mins) unless forced
+  if (!force && pendingCount === 0 && timeSinceLastSync < 5 * 60 * 1000) {
+    return {
+      success: true,
+      syncedCount: db.transactions.length,
+      message: 'La base de datos está al día.'
     };
   }
 
