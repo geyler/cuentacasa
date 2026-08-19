@@ -26,6 +26,7 @@ import { Plus } from 'lucide-react';
 export default function Home() {
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isPinUnlocked, setIsPinUnlocked] = useState<boolean>(false);
   const [authLoaded, setAuthLoaded] = useState<boolean>(false);
 
   // Database & App state
@@ -59,13 +60,25 @@ export default function Home() {
   useEffect(() => {
     loadDatabase();
 
-    // Check session auth persistently
+    // Check session auth & daily PIN unlock
     const localAuth = localStorage.getItem('cuentacasa_auth');
     const sessionAuth = sessionStorage.getItem('cuentacasa_auth');
-    if (localAuth === 'true' || sessionAuth === 'true') {
+    const hasMasterAuth = localAuth === 'true' || sessionAuth === 'true';
+
+    if (hasMasterAuth) {
       setIsAuthenticated(true);
+      const localPin = localStorage.getItem('cuentacasa_pin');
+      const lastUnlock = localStorage.getItem('cuentacasa_last_pin_unlock');
+      const today = new Date().toISOString().split('T')[0];
+
+      if (localPin && localPin.length === 4) {
+        setIsPinUnlocked(lastUnlock === today);
+      } else {
+        setIsPinUnlocked(true);
+      }
     } else {
       setIsAuthenticated(false);
+      setIsPinUnlocked(false);
     }
     setAuthLoaded(true);
 
@@ -125,16 +138,32 @@ export default function Home() {
     };
   }, [loadDatabase]);
 
-  const handleLoginSuccess = () => {
+  const handleMasterLoginSuccess = () => {
     localStorage.setItem('cuentacasa_auth', 'true');
     sessionStorage.setItem('cuentacasa_auth', 'true');
     setIsAuthenticated(true);
+
+    const localPin = localStorage.getItem('cuentacasa_pin');
+    const lastUnlock = localStorage.getItem('cuentacasa_last_pin_unlock');
+    const today = new Date().toISOString().split('T')[0];
+
+    if (localPin && localPin.length === 4) {
+      setIsPinUnlocked(lastUnlock === today);
+    } else {
+      setIsPinUnlocked(true);
+    }
+  };
+
+  const handlePinUnlockSuccess = () => {
+    setIsPinUnlocked(true);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('cuentacasa_auth');
     sessionStorage.removeItem('cuentacasa_auth');
+    localStorage.removeItem('cuentacasa_last_pin_unlock');
     setIsAuthenticated(false);
+    setIsPinUnlocked(false);
   };
 
   const toggleTheme = () => {
@@ -223,9 +252,27 @@ export default function Home() {
 
   if (!authLoaded) return null;
 
-  // Enforce Password Login Screen
+  // Enforce Master Password Login Screen (on initial setup or after Logout)
   if (!isAuthenticated) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <LoginScreen 
+        mode="master" 
+        onMasterLoginSuccess={handleMasterLoginSuccess} 
+        onPinUnlockSuccess={handlePinUnlockSuccess} 
+      />
+    );
+  }
+
+  // Enforce Daily 4-Digit PIN Unlock (once per calendar day if PIN is configured)
+  if (!isPinUnlocked) {
+    return (
+      <LoginScreen 
+        mode="pin" 
+        onMasterLoginSuccess={handleMasterLoginSuccess} 
+        onPinUnlockSuccess={handlePinUnlockSuccess}
+        onLogoutRequested={handleLogout}
+      />
+    );
   }
 
   if (!db) return null;

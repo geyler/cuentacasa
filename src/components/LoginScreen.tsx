@@ -1,31 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, KeyRound, ShieldCheck, Loader2, Hash, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, KeyRound, ShieldCheck, Loader2, Hash, LogOut } from 'lucide-react';
 
 interface LoginScreenProps {
-  onLoginSuccess: () => void;
+  mode: 'master' | 'pin';
+  onMasterLoginSuccess: () => void;
+  onPinUnlockSuccess: () => void;
+  onLogoutRequested?: () => void;
 }
 
 const FALLBACK_PASS = process.env.NEXT_PUBLIC_APP_PASSWORD || 'Del1Al9#';
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [mode, setMode] = useState<'password' | 'pin'>('password');
+export const LoginScreen: React.FC<LoginScreenProps> = ({ 
+  mode, 
+  onMasterLoginSuccess, 
+  onPinUnlockSuccess,
+  onLogoutRequested
+}) => {
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
-  const [savedPin, setSavedPin] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const localPin = localStorage.getItem('cuentacasa_pin');
-    if (localPin && localPin.length === 4) {
-      setSavedPin(localPin);
-      setMode('pin');
-    }
-  }, []);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,14 +42,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         const data = await res.json();
 
         if (res.ok && data.success) {
-          if (rememberMe) {
-            localStorage.setItem('cuentacasa_auth', 'true');
-          }
+          localStorage.setItem('cuentacasa_auth', 'true');
           sessionStorage.setItem('cuentacasa_auth', 'true');
-          onLoginSuccess();
+          onMasterLoginSuccess();
           return;
         } else {
-          setError(data.message || 'Contraseña incorrecta. Verifique e intente nuevamente.');
+          setError(data.message || 'Contraseña maestra incorrecta.');
           setLoading(false);
           return;
         }
@@ -63,25 +58,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
     // Offline / Local fallback check
     if (password === FALLBACK_PASS) {
-      if (rememberMe) {
-        localStorage.setItem('cuentacasa_auth', 'true');
-      }
+      localStorage.setItem('cuentacasa_auth', 'true');
       sessionStorage.setItem('cuentacasa_auth', 'true');
       setError('');
-      onLoginSuccess();
+      onMasterLoginSuccess();
     } else {
-      setError('Contraseña incorrecta. Verifique e intente nuevamente.');
+      setError('Contraseña maestra incorrecta.');
     }
     setLoading(false);
   };
 
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const savedPin = localStorage.getItem('cuentacasa_pin');
     if (savedPin && pin === savedPin) {
-      localStorage.setItem('cuentacasa_auth', 'true');
-      sessionStorage.setItem('cuentacasa_auth', 'true');
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('cuentacasa_last_pin_unlock', today);
       setError('');
-      onLoginSuccess();
+      onPinUnlockSuccess();
     } else {
       setError('PIN de 4 dígitos incorrecto.');
     }
@@ -124,7 +118,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           Cuenta Casa
         </h1>
         <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px', marginBottom: '24px' }}>
-          {mode === 'pin' ? 'Ingrese su PIN rápido de 4 dígitos para acceder' : 'Acceso protegido. Introduzca su contraseña para continuar.'}
+          {mode === 'pin' 
+            ? 'Desbloqueo diario. Ingrese su PIN de 4 dígitos para acceder hoy.' 
+            : 'Acceso inicial. Introduzca la contraseña maestra para continuar.'}
         </p>
 
         {error && (
@@ -141,12 +137,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {/* PIN MODE FORM */}
-        {mode === 'pin' && savedPin && (
+        {/* PIN UNLOCK MODE */}
+        {mode === 'pin' && (
           <form onSubmit={handlePinSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ textAlign: 'center' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '8px', display: 'block' }}>
-                PIN Rápido (4 dígitos)
+                PIN Rápido del Día
               </label>
               <input
                 type="password"
@@ -179,34 +175,41 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               style={{ width: '100%', padding: '14px', marginTop: '6px', fontSize: '1rem' }}
             >
               <KeyRound size={18} />
-              <span>Desbloquear con PIN</span>
+              <span>Desbloquear Hoy</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => { setMode('password'); setError(''); }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--md-sys-color-primary)',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                marginTop: '8px'
-              }}
-            >
-              Usar contraseña completa en su lugar
-            </button>
+            {onLogoutRequested && (
+              <button
+                type="button"
+                onClick={onLogoutRequested}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--md-sys-color-on-surface-variant)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginTop: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <LogOut size={14} />
+                <span>Cerrar sesión por completo (Usar contraseña maestra)</span>
+              </button>
+            )}
           </form>
         )}
 
-        {/* MASTER PASSWORD MODE FORM */}
-        {mode === 'password' && (
+        {/* MASTER PASSWORD MODE */}
+        {mode === 'master' && (
           <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
             <div style={{ position: 'relative', textAlign: 'left' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '6px', display: 'block' }}>
-                Contraseña de Acceso
+                Contraseña Maestra
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -246,20 +249,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </div>
             </div>
 
-            {/* Remember Me Checkbox */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--md-sys-color-primary)' }}
-              />
-              <label htmlFor="rememberMe" style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer' }}>
-                Recordar sesión en este dispositivo (no pedir contraseña al reabrir)
-              </label>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
@@ -270,29 +259,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               <span>{loading ? 'Verificando...' : 'Iniciar Sesión'}</span>
             </button>
 
-            {savedPin && (
-              <button
-                type="button"
-                onClick={() => { setMode('pin'); setError(''); }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--md-sys-color-primary)',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  marginTop: '8px'
-                }}
-              >
-                Volver al PIN Rápido
-              </button>
-            )}
-
           </form>
         )}
 
         <div style={{ marginTop: '24px', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-          Sesión persistente habilitada • Datos 100% seguros
+          {mode === 'pin' ? 'PIN local de 1 verificación diaria' : 'Acceso seguro a base de datos'}
         </div>
 
       </div>
