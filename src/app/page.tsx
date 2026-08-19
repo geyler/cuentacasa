@@ -14,20 +14,21 @@ import { syncDatabaseWithCloud, getPendingSyncCount } from '@/lib/sync';
 import { LoginScreen } from '@/components/LoginScreen';
 import { QuickEntryView } from '@/components/QuickEntryView';
 import { Header } from '@/components/Header';
+import { SettingsModal } from '@/components/SettingsModal';
 import { StatCards } from '@/components/StatCards';
 import { TransactionList } from '@/components/TransactionList';
 import { ReportView } from '@/components/ReportView';
 import { TransactionModal } from '@/components/TransactionModal';
 import { RawDbModal } from '@/components/RawDbModal';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
-import { Plus, ArrowUpRight, ArrowDownRight, EyeOff } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 export default function Home() {
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authLoaded, setAuthLoaded] = useState<boolean>(false);
 
-  // Database state
+  // Database & App state
   const [db, setDb] = useState<RawDatabase | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('quick');
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -40,6 +41,7 @@ export default function Home() {
   const [modalTxType, setModalTxType] = useState<TransactionType>('gasto');
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [isRawDbModalOpen, setIsRawDbModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // PWA install states
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -57,10 +59,12 @@ export default function Home() {
   useEffect(() => {
     loadDatabase();
 
-    // Check session auth
+    // Check session auth strictly
     const sessionAuth = sessionStorage.getItem('cuentacasa_auth');
     if (sessionAuth === 'true') {
       setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
     }
     setAuthLoaded(true);
 
@@ -188,7 +192,7 @@ export default function Home() {
 
   if (!authLoaded) return null;
 
-  // 1. Password Guard Screen
+  // Enforce Password Login Screen
   if (!isAuthenticated) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
@@ -202,31 +206,21 @@ export default function Home() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Header */}
+      {/* Compact Header */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        isOnline={isOnline}
-        pendingSyncCount={pendingCount}
-        onSync={handleSync}
-        isSyncing={isSyncing}
-        theme={theme}
-        toggleTheme={toggleTheme}
         showBalance={showBalance}
         toggleShowBalance={toggleShowBalance}
-        onLogout={handleLogout}
-        onOpenRawDb={() => setIsRawDbModalOpen(true)}
-        onOpenNewTransaction={handleOpenAddTx}
-        onInstallPwa={handleInstallPwa}
-        canInstallPwa={!!deferredPrompt}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* Main Container */}
+      {/* Main Content Area */}
       <main style={{
-        maxWidth: '1200px',
+        maxWidth: '1000px',
         width: '100%',
         margin: '0 auto',
-        padding: activeTab === 'quick' ? '12px 16px' : '20px 16px 100px 16px',
+        padding: activeTab === 'quick' ? '8px 16px' : '16px 16px 90px 16px',
         flex: 1
       }}>
 
@@ -239,68 +233,30 @@ export default function Home() {
           />
         )}
 
-        {/* Tab 1: Resumen General / Dashboard */}
+        {/* Tab 1: Dashboard Contable */}
         {activeTab === 'dashboard' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
-            {/* Quick Banner & Actions */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                  Administración Contable
-                </h2>
-                <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
-                  Resumen general ({transactions.length} movimientos cargados)
-                  {!showBalance && <span style={{ marginLeft: '8px', color: 'var(--md-sys-color-expense)', fontWeight: 700 }}>• Saldos Ocultos</span>}
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => handleOpenAddTx('gasto')}
-                  className="md-btn md-btn-expense"
-                  style={{ padding: '8px 14px', fontSize: '0.85rem' }}
-                >
-                  <ArrowDownRight size={16} /> Gasto
-                </button>
-                <button
-                  onClick={() => handleOpenAddTx('ingreso')}
-                  className="md-btn md-btn-income"
-                  style={{ padding: '8px 14px', fontSize: '0.85rem' }}
-                >
-                  <ArrowUpRight size={16} /> Ingreso
-                </button>
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Dashboard Contable</h2>
+              <button
+                onClick={() => handleOpenAddTx('gasto')}
+                className="md-btn md-btn-primary"
+                style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+              >
+                <Plus size={16} /> Registrar
+              </button>
             </div>
 
             {/* Metric Stat Cards */}
             <StatCards summary={summary} currency={db.settings.currency} showBalance={showBalance} />
 
-            {/* Recent Transactions Preview */}
+            {/* Recent Transactions */}
             <div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '12px'
-              }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Movimientos Recientes</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Movimientos Recientes</h3>
                 <button
                   onClick={() => setActiveTab('transactions')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--md-sys-color-primary)',
-                    fontWeight: 700,
-                    fontSize: '0.82rem',
-                    cursor: 'pointer'
-                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-primary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
                 >
                   Ver todos →
                 </button>
@@ -314,33 +270,20 @@ export default function Home() {
                 showBalance={showBalance}
               />
             </div>
-
           </div>
         )}
 
         {/* Tab 2: Movimientos Completo */}
         {activeTab === 'transactions' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Historial de Movimientos</h2>
-                <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                  Registros detallados de entradas y salidas
-                </p>
-              </div>
-
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Movimientos</h2>
               <button
                 onClick={() => handleOpenAddTx('gasto')}
                 className="md-btn md-btn-primary"
-                style={{ padding: '8px 14px', fontSize: '0.85rem' }}
+                style={{ padding: '8px 16px', fontSize: '0.85rem' }}
               >
-                <Plus size={16} /> Nuevo Movimiento
+                <Plus size={16} /> Nuevo
               </button>
             </div>
 
@@ -365,15 +308,35 @@ export default function Home() {
 
       </main>
 
-      {/* Floating Action Button (FAB) */}
-      <button
-        className="fab no-print"
-        onClick={() => handleOpenAddTx('gasto')}
-        title="Registrar nuevo movimiento"
-      >
-        <Plus size={22} />
-        <span>NUEVO GASTO</span>
-      </button>
+      {/* Floating Action Button (FAB) - ONLY visible on dashboard/transactions/reports tabs */}
+      {activeTab !== 'quick' && (
+        <button
+          className="fab no-print"
+          onClick={() => handleOpenAddTx('gasto')}
+          title="Registrar gasto"
+        >
+          <Plus size={22} />
+          <span>Gasto</span>
+        </button>
+      )}
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        isOnline={isOnline}
+        pendingSyncCount={pendingCount}
+        onSync={handleSync}
+        isSyncing={isSyncing}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        showBalance={showBalance}
+        toggleShowBalance={toggleShowBalance}
+        onOpenRawDb={() => setIsRawDbModalOpen(true)}
+        onLogout={handleLogout}
+        onInstallPwa={handleInstallPwa}
+        canInstallPwa={!!deferredPrompt}
+      />
 
       {/* Transaction Modal (Add / Edit) */}
       <TransactionModal
@@ -391,8 +354,8 @@ export default function Home() {
         onDbUpdated={loadDatabase}
       />
 
-      {/* PWA / WebAPK Install Banner */}
-      {showPwaBanner && (
+      {/* Discrete PWA Install Banner */}
+      {showPwaBanner && activeTab === 'quick' && (
         <PwaInstallBanner
           onInstall={handleInstallPwa}
           onDismiss={() => setShowPwaBanner(false)}
