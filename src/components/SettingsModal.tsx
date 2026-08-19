@@ -29,7 +29,7 @@ interface SettingsModalProps {
   toggleTheme: () => void;
   showBalance: boolean;
   toggleShowBalance: () => void;
-  onOpenRawDb: () => void;
+  onOpenRawDb?: () => void;
   onLogout: () => void;
   onInstallPwa?: () => void;
   canInstallPwa?: boolean;
@@ -46,7 +46,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   toggleTheme,
   showBalance,
   toggleShowBalance,
-  onOpenRawDb,
   onLogout,
   onInstallPwa,
   canInstallPwa
@@ -301,27 +300,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
           </button>
 
-          {/* Raw DB File Editor */}
-          <button
-            onClick={() => { onOpenRawDb(); onClose(); }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '14px 16px',
-              borderRadius: '14px',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              color: 'var(--md-sys-color-on-surface)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Database size={18} color="var(--md-sys-color-primary)" />
-            <span>Ver / Editar Base de Datos JSON Cruda</span>
-          </button>
 
           {/* Theme Toggle */}
           <button
