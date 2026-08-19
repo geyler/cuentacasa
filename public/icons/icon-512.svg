@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00639B"/>
+      <stop offset="100%" stop-color="#00325A"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#36B37E"/>
+      <stop offset="100%" stop-color="#00875A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  
+  <!-- House Base -->
+  <path d="M256 96 L416 224 V400 C416 417.67 401.67 432 384 432 H128 C110.33 432 96 417.67 96 400 V224 Z" 
+        fill="#FFFFFF" 
+        opacity="0.95" 
+        filter="url(#shadow)"/>
+        
+  <!-- Roof Accent -->
+  <path d="M256 72 L432 212 C440 218 440 230 430 234 L416 240 L256 112 L96 240 L82 234 C72 230 72 218 80 212 Z" 
+        fill="#C2E8FF"/>
+
+  <!-- Dollar / Chart Icon inside House -->
+  <circle cx="256" cy="300" r="72" fill="url(#accentGrad)"/>
+  <text x="256" y="322" font-family="Arial, sans-serif" font-size="84" font-weight="bold" fill="#FFFFFF" text-anchor="middle">$</text>
+  
+  <!-- Trending Arrow -->
+  <path d="M160 360 L220 300 L270 330 L350 240" stroke="#00639B" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <polyline points="320,240 350,240 350,270" stroke="#00639B" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
