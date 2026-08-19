@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType } from '@/types';
 import { formatCurrency } from '@/lib/invoice';
 import { 
@@ -11,7 +11,8 @@ import {
   Edit3, 
   Trash2, 
   Calendar,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 
 interface TransactionListProps {
@@ -22,6 +23,8 @@ interface TransactionListProps {
   showBalance?: boolean;
 }
 
+const PAGE_SIZE = 15;
+
 export const TransactionList: React.FC<TransactionListProps> = ({
   transactions,
   onEdit,
@@ -31,45 +34,56 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'todos' | TransactionType>('todos');
-  const [categoryFilter, setCategoryFilter] = useState<string>('todas');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-
-  // Extract unique categories
-  const categories = Array.from(new Set(transactions.map(t => t.category)));
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Filtered transactions
   const filtered = transactions.filter(tx => {
-    const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (tx.notes && tx.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'todos' || tx.type === typeFilter;
-    const matchesCategory = categoryFilter === 'todas' || tx.category === categoryFilter;
-
-    return matchesSearch && matchesType && matchesCategory;
+    return matchesSearch && matchesType;
   });
 
+  // Reset pagination when search or filters change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, typeFilter]);
+
+  // Infinite Scroll Trigger on Window Scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+        setVisibleCount(prev => (prev < filtered.length ? prev + PAGE_SIZE : prev));
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [filtered.length]);
+
+  const visibleTransactions = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       
-      {/* Search and Filters Header Card */}
-      <div className="md-card" style={{ padding: '14px 18px' }}>
+      {/* Search & Simple Filters Bar */}
+      <div className="md-card" style={{ padding: '10px 14px' }}>
         <div style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: '10px',
+          gap: '8px',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          flexWrap: 'wrap'
         }}>
           
           {/* Search bar */}
-          <div style={{
-            position: 'relative',
-            flex: '1 1 200px'
-          }}>
+          <div style={{ position: 'relative', flex: '1 1 180px' }}>
             <Search 
-              size={16} 
+              size={15} 
               style={{
                 position: 'absolute',
-                left: '12px',
+                left: '10px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: 'var(--md-sys-color-on-surface-variant)'
@@ -77,17 +91,17 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             />
             <input
               type="text"
-              placeholder="Buscar concepto..."
+              placeholder="Buscar..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '8px 12px 8px 34px',
-                borderRadius: '10px',
+                padding: '6px 10px 6px 30px',
+                borderRadius: '8px',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 backgroundColor: 'var(--md-sys-color-surface)',
                 color: 'var(--md-sys-color-on-surface)',
-                fontSize: '0.85rem',
+                fontSize: '0.82rem',
                 outline: 'none'
               }}
             />
@@ -100,10 +114,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 key={t}
                 onClick={() => setTypeFilter(t)}
                 style={{
-                  padding: '6px 12px',
+                  padding: '5px 10px',
                   borderRadius: '9999px',
                   border: 'none',
-                  fontSize: '0.78rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   backgroundColor: typeFilter === t ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
@@ -116,46 +130,19 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             ))}
           </div>
 
-          {/* Category Dropdown Filter */}
-          {categories.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Filter size={14} color="var(--md-sys-color-on-surface-variant)" />
-              <select
-                value={categoryFilter}
-                onChange={e => setCategoryFilter(e.target.value)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="todas">Todas Categorías</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
         </div>
       </div>
 
       {/* Transaction Items */}
-      {filtered.length === 0 ? (
-        <div className="md-card" style={{ textAlign: 'center', padding: '30px 16px' }}>
-          <p style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.9rem' }}>
-            No se encontraron movimientos registrados con los filtros seleccionados.
+      {visibleTransactions.length === 0 ? (
+        <div className="md-card" style={{ textAlign: 'center', padding: '24px 16px' }}>
+          <p style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.85rem' }}>
+            No hay movimientos registrados.
           </p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {filtered.map(tx => {
+          {visibleTransactions.map(tx => {
             const isIncome = tx.type === 'ingreso';
 
             return (
@@ -163,22 +150,21 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 key={tx.id}
                 className="md-card"
                 style={{
-                  padding: '12px 16px',
+                  padding: '10px 14px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '12px',
-                  flexWrap: 'wrap'
+                  gap: '10px'
                 }}
               >
                 {/* Left Side: Icon & Info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 240px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto', overflow: 'hidden' }}>
                   
                   {/* Category Type Icon */}
                   <div style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '12px',
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
                     backgroundColor: isIncome ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-expense-container)',
                     color: isIncome ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)',
                     display: 'flex',
@@ -186,56 +172,49 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     justifyContent: 'center',
                     flexShrink: 0
                   }}>
-                    {isIncome ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+                    {isIncome ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                   </div>
 
-                  {/* Concept & Details */}
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface)' }}>
-                        {tx.concept}
-                      </h4>
-                      <span style={{
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        padding: '2px 6px',
-                        borderRadius: '9999px',
-                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                        color: 'var(--md-sys-color-on-surface-variant)'
-                      }}>
-                        {tx.category}
-                      </span>
-                    </div>
+                  {/* Concept & Date */}
+                  <div style={{ overflow: 'hidden' }}>
+                    <h4 style={{ 
+                      fontSize: '0.88rem', 
+                      fontWeight: 700, 
+                      color: 'var(--md-sys-color-on-surface)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {tx.concept}
+                    </h4>
 
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '10px',
-                      fontSize: '0.75rem',
+                      gap: '6px',
+                      fontSize: '0.72rem',
                       color: 'var(--md-sys-color-on-surface-variant)',
-                      marginTop: '2px'
+                      marginTop: '1px'
                     }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        <Calendar size={12} /> {tx.date}
-                      </span>
-                      {tx.notes && <span>• {tx.notes}</span>}
+                      <Calendar size={11} />
+                      <span>{tx.date}</span>
                     </div>
                   </div>
 
                 </div>
 
-                {/* Right Side: Photo Thumbnail & Amount & Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Right Side: Photo & Amount & Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
                   
                   {/* Photo Thumbnail */}
                   {tx.photoUrl && (
                     <button
                       onClick={() => setSelectedPhoto(tx.photoUrl || null)}
-                      title="Ver foto del gasto"
+                      title="Ver foto"
                       style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '8px',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
                         overflow: 'hidden',
                         border: '1px solid var(--md-sys-color-outline-variant)',
                         padding: 0,
@@ -249,32 +228,27 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   {/* Amount Badge */}
                   <div style={{
                     textAlign: 'right',
-                    minWidth: '95px'
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    color: isIncome ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)'
                   }}>
-                    <div style={{
-                      fontSize: '1rem',
-                      fontWeight: 800,
-                      color: isIncome ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)'
-                    }}>
-                      {isIncome ? '+' : '-'} {formatCurrency(tx.amount, currency, showBalance)}
-                    </div>
+                    {isIncome ? '+' : '-'} {formatCurrency(tx.amount, currency, showBalance)}
                   </div>
 
                   {/* Edit & Delete Actions */}
                   <div style={{ display: 'flex', gap: '2px' }}>
                     <button
                       onClick={() => onEdit(tx)}
-                      title="Editar Movimiento"
+                      title="Editar"
                       style={{
                         background: 'none',
                         border: 'none',
                         color: 'var(--md-sys-color-on-surface-variant)',
                         cursor: 'pointer',
-                        padding: '6px',
-                        borderRadius: '6px'
+                        padding: '4px'
                       }}
                     >
-                      <Edit3 size={16} />
+                      <Edit3 size={15} />
                     </button>
 
                     <button
@@ -283,17 +257,16 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                           onDelete(tx.id);
                         }
                       }}
-                      title="Eliminar Movimiento"
+                      title="Eliminar"
                       style={{
                         background: 'none',
                         border: 'none',
                         color: 'var(--md-sys-color-expense)',
                         cursor: 'pointer',
-                        padding: '6px',
-                        borderRadius: '6px'
+                        padding: '4px'
                       }}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={15} />
                     </button>
                   </div>
 
@@ -302,6 +275,20 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Infinite Scroll / Load More Button */}
+      {hasMore && (
+        <div style={{ textAlign: 'center', margin: '10px 0' }}>
+          <button
+            onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+            className="md-btn md-btn-secondary"
+            style={{ padding: '8px 16px', fontSize: '0.8rem', gap: '6px' }}
+          >
+            <span>Cargar más ({filtered.length - visibleCount} restantes)</span>
+            <ChevronDown size={16} />
+          </button>
         </div>
       )}
 
@@ -333,7 +320,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 color: '#000',
                 border: 'none',
                 borderRadius: '50%',
-                padding: '8px',
+                padding: '6px',
                 cursor: 'pointer'
               }}
             >
