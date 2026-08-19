@@ -5,10 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import { RowDataPacket } from 'mysql2';
 
-// Simple persistent storage file path on server / tmp fallback
+// Storage file fallback for local development when MySQL env vars are absent
 const STORAGE_FILE = path.join(process.cwd(), '.next', 'cuentacasa_cloud_db.json');
-
-// In-memory fallback array for Vercel serverless environments when MySQL is not configured
 let inMemoryCloudTransactions: Transaction[] = [];
 
 function loadFileTransactions(): Transaction[] {
@@ -40,24 +38,45 @@ function saveFileTransactions(transactions: Transaction[]) {
   }
 }
 
-async function getMySQLTransactions(): Promise<Transaction[]> {
-  if (!pool) return [];
+async function getMySQLTransactions(): Promise<{ transactions: Transaction[]; deletedSet: Set<string> }> {
+  if (!pool) return { transactions: [], deletedSet: new Set() };
   await ensureTableExists();
+
+  const [deletedRows] = await pool.query<RowDataPacket[]>('SELECT id FROM deleted_transactions');
+  const deletedSet = new Set<string>(deletedRows.map(r => r.id));
+
   const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM transactions ORDER BY date DESC, created_at DESC');
-  return rows.map(r => ({
-    id: r.id,
-    type: r.type,
-    concept: r.concept,
-    category: r.category,
-    amount: Number(r.amount),
-    date: r.date,
-    notes: r.notes || undefined,
-    photoUrl: r.photo_url || undefined,
-    photoName: r.photo_name || undefined,
-    createdAt: Number(r.created_at),
-    updatedAt: Number(r.updated_at),
-    synced: true
-  }));
+  
+  const transactions = rows
+    .filter(r => !deletedSet.has(r.id))
+    .map(r => ({
+      id: r.id,
+      type: r.type,
+      concept: r.concept,
+      category: r.category,
+      amount: Number(r.amount),
+      date: r.date,
+      notes: r.notes || undefined,
+      photoUrl: r.photo_url || undefined,
+      photoName: r.photo_name || undefined,
+      createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at),
+      synced: true
+    }));
+
+  return { transactions, deletedSet };
+}
+
+async function deleteMySQLTransactions(deletedIds: string[]) {
+  if (!pool || deletedIds.length === 0) return;
+  await ensureTableExists();
+
+  // Delete from transactions table
+  await pool.query('DELETE FROM transactions WHERE id IN (?)', [deletedIds]);
+
+  // Insert into deleted_transactions table
+  const values = deletedIds.map(id => [id, Date.now()]);
+  await pool.query('INSERT IGNORE INTO deleted_transactions (id, deleted_at) VALUES ?', [values]);
 }
 
 async function saveMySQLTransactions(transactions: Transaction[]) {
@@ -102,7 +121,8 @@ export async function GET() {
     let currentCloud: Transaction[] = [];
 
     if (isMySQLConfigured()) {
-      currentCloud = await getMySQLTransactions();
+      const result = await getMySQLTransactions();
+      currentCloud = result.transactions;
     } else {
       currentCloud = loadFileTransactions();
     }
@@ -130,11 +150,26 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const clientTransactions: Transaction[] = Array.isArray(body.transactions) ? body.transactions : [];
+    const deletedIds: string[] = Array.isArray(body.deletedIds) ? body.deletedIds : [];
 
-    // Load server transactions
+    // Process deletion requests first
+    if (deletedIds.length > 0) {
+      if (isMySQLConfigured()) {
+        await deleteMySQLTransactions(deletedIds);
+      } else {
+        const fileTxs = loadFileTransactions().filter(t => !deletedIds.includes(t.id));
+        saveFileTransactions(fileTxs);
+      }
+    }
+
+    // Load server transactions & deleted set
     let serverTransactions: Transaction[] = [];
+    let deletedSet = new Set<string>();
+
     if (isMySQLConfigured()) {
-      serverTransactions = await getMySQLTransactions();
+      const mysqlData = await getMySQLTransactions();
+      serverTransactions = mysqlData.transactions;
+      deletedSet = mysqlData.deletedSet;
     } else {
       serverTransactions = loadFileTransactions();
     }
@@ -144,7 +179,7 @@ export async function POST(req: NextRequest) {
 
     // Put server transactions first
     for (const tx of serverTransactions) {
-      if (tx && tx.id) {
+      if (tx && tx.id && !deletedSet.has(tx.id)) {
         mergedMap.set(tx.id, tx);
       }
     }
@@ -153,7 +188,7 @@ export async function POST(req: NextRequest) {
     const itemsToSaveToMySQL: Transaction[] = [];
 
     for (const tx of clientTransactions) {
-      if (tx && tx.id) {
+      if (tx && tx.id && !deletedSet.has(tx.id)) {
         const existing = mergedMap.get(tx.id);
         if (!existing) {
           const syncedTx = { ...tx, synced: true };

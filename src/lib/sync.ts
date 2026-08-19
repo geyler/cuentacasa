@@ -4,13 +4,14 @@ import { Transaction, RawDatabase } from '@/types';
 export interface SyncStatus {
   isOnline: boolean;
   pendingCount: number;
-  lastSyncTime: string | null;
-  isSyncing: boolean;
+  lastSync?: string;
 }
 
 export function getPendingSyncCount(): number {
   const db = getRawDatabase();
-  return db.transactions.filter(t => !t.synced).length;
+  const pendingTxs = db.transactions.filter(t => !t.synced).length;
+  const pendingDeletes = (db.deletedIds || []).length;
+  return pendingTxs + pendingDeletes;
 }
 
 export async function syncDatabaseWithCloud(): Promise<{ success: boolean; syncedCount: number; message: string }> {
@@ -32,7 +33,8 @@ export async function syncDatabaseWithCloud(): Promise<{ success: boolean; synce
         'Cache-Control': 'no-cache'
       },
       body: JSON.stringify({
-        transactions: db.transactions
+        transactions: db.transactions,
+        deletedIds: db.deletedIds || []
       })
     });
 
@@ -50,6 +52,7 @@ export async function syncDatabaseWithCloud(): Promise<{ success: boolean; synce
       const updatedDb: RawDatabase = {
         ...db,
         transactions: mergedTransactions,
+        deletedIds: [], // Cleared deletedIds after successful server sync
         lastSync: new Date().toISOString()
       };
 
@@ -58,17 +61,17 @@ export async function syncDatabaseWithCloud(): Promise<{ success: boolean; synce
       return {
         success: true,
         syncedCount: mergedTransactions.length,
-        message: `Sincronización completa. ${mergedTransactions.length} registros alineados entre dispositivos.`
+        message: `Sincronización exitosa con la base de datos (${data.storage || 'Cloud'}). ${mergedTransactions.length} registros actualizados.`
       };
     } else {
       throw new Error(data.message || 'Error en respuesta del servidor');
     }
   } catch (error) {
-    console.error('Error sincronizando con la nube:', error);
+    console.error('Error sincronizando con la base de datos:', error);
     return {
       success: false,
       syncedCount: 0,
-      message: 'No se pudo contactar al servidor de alineación cloud.'
+      message: 'No se pudo contactar al servidor de base de datos.'
     };
   }
 }

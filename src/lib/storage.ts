@@ -10,68 +10,8 @@ export const INITIAL_DB: RawDatabase = {
     appName: 'Cuenta Casa',
     autoSync: true
   },
-  transactions: [
-    {
-      id: 'tx-101',
-      type: 'ingreso',
-      concept: 'Pago por desarrollo de webs',
-      category: 'Trabajo / Webs',
-      amount: 45000,
-      date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-      notes: 'Pago cliente proyecto web corporativa',
-      createdAt: Date.now() - 2 * 86400000,
-      updatedAt: Date.now() - 2 * 86400000,
-      synced: true
-    },
-    {
-      id: 'tx-102',
-      type: 'gasto',
-      concept: 'Bulto de comida (Arroz, Frijoles, Aceite)',
-      category: 'Comida',
-      amount: 18500,
-      date: new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0],
-      notes: 'Compra mayorista para la casa',
-      createdAt: Date.now() - 1 * 86400000,
-      updatedAt: Date.now() - 1 * 86400000,
-      synced: true
-    },
-    {
-      id: 'tx-103',
-      type: 'gasto',
-      concept: 'Compra de Pan (5 barras) y Azúcar (3 lb)',
-      category: 'Comida',
-      amount: 1400,
-      date: new Date().toISOString().split('T')[0],
-      notes: 'Desayunos de la semana',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      synced: false
-    },
-    {
-      id: 'tx-104',
-      type: 'ingreso',
-      concept: 'Pago por venta de laptop usada',
-      category: 'Venta de Artículos',
-      amount: 28000,
-      date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0],
-      notes: 'Venta laptop Dell en revolico',
-      createdAt: Date.now() - 5 * 86400000,
-      updatedAt: Date.now() - 5 * 86400000,
-      synced: true
-    },
-    {
-      id: 'tx-105',
-      type: 'gasto',
-      concept: 'Hamburguesas y refrescos en familia',
-      category: 'Comida',
-      amount: 3200,
-      date: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
-      notes: 'Salida de domingo',
-      createdAt: Date.now() - 3 * 86400000,
-      updatedAt: Date.now() - 3 * 86400000,
-      synced: true
-    }
-  ]
+  transactions: [],
+  deletedIds: []
 };
 
 // Retrieve full raw DB
@@ -83,7 +23,12 @@ export function getRawDatabase(): RawDatabase {
       saveRawDatabase(INITIAL_DB);
       return INITIAL_DB;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return {
+      ...parsed,
+      transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+      deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : []
+    };
   } catch (err) {
     console.error('Error parsing raw DB from LocalStorage:', err);
     return INITIAL_DB;
@@ -151,6 +96,10 @@ export function updateTransaction(tx: Transaction): void {
 export function deleteTransaction(id: string): void {
   const db = getRawDatabase();
   db.transactions = db.transactions.filter(t => t.id !== id);
+  if (!db.deletedIds) db.deletedIds = [];
+  if (!db.deletedIds.includes(id)) {
+    db.deletedIds.push(id);
+  }
   saveRawDatabase(db);
 }
 

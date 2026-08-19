@@ -20,7 +20,7 @@ let tableEnsured = false;
 export async function ensureTableExists() {
   if (!pool || tableEnsured) return;
 
-  const createTableQuery = `
+  const createTransactionsQuery = `
     CREATE TABLE IF NOT EXISTS transactions (
       id VARCHAR(64) PRIMARY KEY,
       type ENUM('ingreso', 'gasto') NOT NULL,
@@ -38,11 +38,19 @@ export async function ensureTableExists() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `;
 
+  const createDeletedQuery = `
+    CREATE TABLE IF NOT EXISTS deleted_transactions (
+      id VARCHAR(64) PRIMARY KEY,
+      deleted_at BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
   try {
-    await pool.query(createTableQuery);
+    await pool.query(createTransactionsQuery);
+    await pool.query(createDeletedQuery);
     tableEnsured = true;
   } catch (error) {
-    console.error('Error ensuring transactions table exists in Hostinger MySQL:', error);
+    console.error('Error ensuring tables exist in Hostinger MySQL:', error);
   }
 }
 

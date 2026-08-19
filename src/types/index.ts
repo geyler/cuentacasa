@@ -39,6 +39,7 @@ export interface RawDatabase {
   lastUpdated: string;
   lastSync?: string;
   transactions: Transaction[];
+  deletedIds?: string[];
   settings: {
     currency: string;
     appName: string;
