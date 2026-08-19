@@ -59,9 +59,10 @@ export default function Home() {
   useEffect(() => {
     loadDatabase();
 
-    // Check session auth strictly
+    // Check session auth persistently
+    const localAuth = localStorage.getItem('cuentacasa_auth');
     const sessionAuth = sessionStorage.getItem('cuentacasa_auth');
-    if (sessionAuth === 'true') {
+    if (localAuth === 'true' || sessionAuth === 'true') {
       setIsAuthenticated(true);
     } else {
       setIsAuthenticated(false);
@@ -125,11 +126,13 @@ export default function Home() {
   }, [loadDatabase]);
 
   const handleLoginSuccess = () => {
+    localStorage.setItem('cuentacasa_auth', 'true');
     sessionStorage.setItem('cuentacasa_auth', 'true');
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('cuentacasa_auth');
     sessionStorage.removeItem('cuentacasa_auth');
     setIsAuthenticated(false);
   };

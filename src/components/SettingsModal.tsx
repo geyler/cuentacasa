@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Database, 
   RefreshCw, 
@@ -13,7 +13,9 @@ import {
   WifiOff,
   Eye,
   EyeOff,
-  Settings
+  Settings,
+  Hash,
+  KeyRound
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -49,7 +51,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onInstallPwa,
   canInstallPwa
 }) => {
+  const [pin, setPin] = useState<string | null>(null);
+  const [isEditingPin, setIsEditingPin] = useState(false);
+  const [newPin, setNewPin] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      const currentPin = localStorage.getItem('cuentacasa_pin');
+      setPin(currentPin);
+      setIsEditingPin(false);
+      setNewPin('');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleSavePin = () => {
+    if (newPin.length === 4) {
+      localStorage.setItem('cuentacasa_pin', newPin);
+      setPin(newPin);
+      setIsEditingPin(false);
+      alert('PIN rápido de 4 dígitos guardado exitosamente.');
+    } else {
+      alert('El PIN debe tener exactamente 4 números.');
+    }
+  };
+
+  const handleRemovePin = () => {
+    localStorage.removeItem('cuentacasa_pin');
+    setPin(null);
+    setIsEditingPin(false);
+    alert('PIN rápido desactivado.');
+  };
 
   return (
     <div style={{
@@ -112,12 +145,99 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
             <span>{isOnline ? 'Conexión Online Activa' : 'Modo 100% Offline'}</span>
           </div>
-          <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Base Local</span>
+          <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Hostinger BD</span>
         </div>
 
         {/* Options List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           
+          {/* Quick PIN Setup */}
+          <div style={{
+            padding: '14px 16px',
+            borderRadius: '14px',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            backgroundColor: 'var(--md-sys-color-surface)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Hash size={18} color="var(--md-sys-color-primary)" />
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>PIN Rápido (4 Dígitos)</span>
+              </div>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: pin ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)' }}>
+                {pin ? `Activo (${pin})` : 'Desactivado'}
+              </span>
+            </div>
+
+            {!isEditingPin ? (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setIsEditingPin(true)}
+                  className="md-btn md-btn-secondary"
+                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.82rem' }}
+                >
+                  <KeyRound size={14} />
+                  <span>{pin ? 'Cambiar PIN' : 'Configurar PIN Rápido'}</span>
+                </button>
+                {pin && (
+                  <button
+                    onClick={handleRemovePin}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '0.82rem',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: 'var(--md-sys-color-expense-container)',
+                      color: 'var(--md-sys-color-on-expense-container)',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Quitar PIN
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    placeholder="Ej. 1234"
+                    value={newPin}
+                    onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--md-sys-color-outline)',
+                      backgroundColor: 'var(--md-sys-color-surface-container)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      fontSize: '1rem',
+                      letterSpacing: '0.2rem',
+                      textAlign: 'center'
+                    }}
+                  />
+                  <button
+                    onClick={handleSavePin}
+                    className="md-btn md-btn-primary"
+                    style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    onClick={() => setIsEditingPin(false)}
+                    style={{ background: 'none', border: 'none', fontSize: '0.8rem', cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Toggle Privacy Show Balance */}
           <button
             onClick={toggleShowBalance}
@@ -166,7 +286,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
-              <span>Alinear / Sincronizar Nube</span>
+              <span>Alinear / Sincronizar Hostinger BD</span>
             </div>
             {pendingSyncCount > 0 && (
               <span style={{
