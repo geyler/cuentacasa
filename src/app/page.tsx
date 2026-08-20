@@ -1,7 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Transaction, TransactionType, RawDatabase, AppTab } from '@/types';
+import { 
+  Transaction, 
+  RawDatabase, 
+  AppTab, 
+  TransactionType 
+} from '@/types';
 import { 
   getRawDatabase, 
   saveRawDatabase, 
@@ -9,42 +14,47 @@ import {
   updateTransaction, 
   deleteTransaction 
 } from '@/lib/storage';
-import { calculateFinancialSummary } from '@/lib/invoice';
 import { syncDatabaseWithCloud, getPendingSyncCount } from '@/lib/sync';
-import { LoginScreen } from '@/components/LoginScreen';
-import { QuickEntryView } from '@/components/QuickEntryView';
+import { calculateFinancialSummary } from '@/lib/invoice';
+
 import { Header } from '@/components/Header';
-import { SettingsModal } from '@/components/SettingsModal';
 import { StatCards } from '@/components/StatCards';
+import { QuickEntryView } from '@/components/QuickEntryView';
 import { TransactionList } from '@/components/TransactionList';
-import { ReportView } from '@/components/ReportView';
 import { TransactionModal } from '@/components/TransactionModal';
+import { ReportView } from '@/components/ReportView';
+import { SettingsModal } from '@/components/SettingsModal';
 import { RawDbModal } from '@/components/RawDbModal';
+import { LoginScreen } from '@/components/LoginScreen';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
-import { Plus } from 'lucide-react';
 
-export default function Home() {
-  // Auth state
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isPinUnlocked, setIsPinUnlocked] = useState<boolean>(false);
-  const [authLoaded, setAuthLoaded] = useState<boolean>(false);
+import { Plus, Loader2, Home } from 'lucide-react';
 
-  // Database & App state
+export default function HomePage() {
   const [db, setDb] = useState<RawDatabase | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('quick');
-  const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [showBalance, setShowBalance] = useState<boolean>(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [showBalance, setShowBalance] = useState<boolean>(false);
 
-  // Modal states
+  // Modals state
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [modalTxType, setModalTxType] = useState<TransactionType>('gasto');
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [isRawDbModalOpen, setIsRawDbModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRawDbModalOpen, setIsRawDbModalOpen] = useState(false);
 
-  // PWA install states
+  // Loaders and Sync state
+  const [isOnline, setIsOnline] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+
+  // Authentication & Security state
+  const [authLoaded, setAuthLoaded] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isPinUnlocked, setIsPinUnlocked] = useState(false);
+
+  // PWA Install Prompt state
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPwaBanner, setShowPwaBanner] = useState(false);
 
@@ -86,10 +96,13 @@ export default function Home() {
     const autoSync = async () => {
       if (navigator.onLine) {
         try {
+          setIsSyncing(true);
           await syncDatabaseWithCloud();
           loadDatabase();
         } catch (e) {
           console.error('AutoSync failed:', e);
+        } finally {
+          setIsSyncing(false);
         }
       }
     };
@@ -137,6 +150,14 @@ export default function Home() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, [loadDatabase]);
+
+  const handleTabChange = (tab: AppTab) => {
+    setIsTabTransitioning(true);
+    setActiveTab(tab);
+    setTimeout(() => {
+      setIsTabTransitioning(false);
+    }, 150);
+  };
 
   const handleMasterLoginSuccess = () => {
     localStorage.setItem('cuentacasa_auth', 'true');
@@ -192,7 +213,7 @@ export default function Home() {
   const handleSync = async () => {
     setIsSyncing(true);
     try {
-      const res = await syncDatabaseWithCloud();
+      const res = await syncDatabaseWithCloud(true);
       loadDatabase();
       alert(res.message);
     } catch (e) {
@@ -235,22 +256,65 @@ export default function Home() {
     loadDatabase();
 
     if (navigator.onLine) {
-      await syncDatabaseWithCloud();
-      loadDatabase();
+      setIsSyncing(true);
+      try {
+        await syncDatabaseWithCloud();
+        loadDatabase();
+      } finally {
+        setIsSyncing(false);
+      }
     }
   };
 
   const handleDeleteTransaction = async (id: string) => {
-    deleteTransaction(id);
-    loadDatabase();
-
-    if (navigator.onLine) {
-      await syncDatabaseWithCloud();
+    setDeletingId(id);
+    try {
+      deleteTransaction(id);
       loadDatabase();
+
+      if (navigator.onLine) {
+        setIsSyncing(true);
+        await syncDatabaseWithCloud();
+        loadDatabase();
+      }
+    } finally {
+      setDeletingId(null);
+      setIsSyncing(false);
     }
   };
 
-  if (!authLoaded) return null;
+  // Full-page Skeleton Loader Shell on initial load
+  if (!authLoaded || !db) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--md-sys-color-surface)',
+        gap: '16px'
+      }}>
+        <div style={{
+          width: '54px',
+          height: '54px',
+          borderRadius: '16px',
+          backgroundColor: 'var(--md-sys-color-primary)',
+          color: '#FFF',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 8px 24px rgba(0, 99, 155, 0.3)'
+        }}>
+          <Home size={30} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>
+          <Loader2 size={20} className="animate-spin" />
+          <span>Cargando Cuenta Casa...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Enforce Master Password Login Screen (on initial setup or after Logout)
   if (!isAuthenticated) {
@@ -275,8 +339,6 @@ export default function Home() {
     );
   }
 
-  if (!db) return null;
-
   const transactions = db.transactions || [];
   const summary = calculateFinancialSummary(transactions);
   const pendingCount = getPendingSyncCount();
@@ -287,10 +349,11 @@ export default function Home() {
       {/* Compact Header */}
       <Header
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         showBalance={showBalance}
         toggleShowBalance={toggleShowBalance}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        isSyncing={isSyncing}
       />
 
       {/* Main Content Area */}
@@ -307,7 +370,7 @@ export default function Home() {
           <QuickEntryView
             onOpenGasto={() => handleOpenAddTx('gasto')}
             onOpenIngreso={() => handleOpenAddTx('ingreso')}
-            onOpenDashboard={() => setActiveTab('dashboard')}
+            onOpenDashboard={() => handleTabChange('dashboard')}
           />
         )}
 
@@ -325,15 +388,20 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Metric Stat Cards */}
-            <StatCards summary={summary} currency={db.settings.currency} showBalance={showBalance} />
+            {/* Metric Stat Cards with Skeleton Loading support */}
+            <StatCards 
+              summary={summary} 
+              currency={db.settings.currency} 
+              showBalance={showBalance} 
+              isLoading={isTabTransitioning}
+            />
 
             {/* Recent Transactions */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Últimos 10 Movimientos</h3>
                 <button
-                  onClick={() => setActiveTab('transactions')}
+                  onClick={() => handleTabChange('transactions')}
                   style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-primary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
                 >
                   Ver todos →
@@ -347,6 +415,8 @@ export default function Home() {
                 onDelete={handleDeleteTransaction}
                 currency={db.settings.currency}
                 showBalance={showBalance}
+                isLoading={isTabTransitioning}
+                deletingId={deletingId}
               />
             </div>
           </div>
@@ -372,6 +442,8 @@ export default function Home() {
               onDelete={handleDeleteTransaction}
               currency={db.settings.currency}
               showBalance={showBalance}
+              isLoading={isTabTransitioning}
+              deletingId={deletingId}
             />
           </div>
         )}

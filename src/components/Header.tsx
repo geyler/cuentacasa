@@ -9,7 +9,8 @@ import {
   Eye,
   EyeOff,
   Settings,
-  LayoutDashboard
+  LayoutDashboard,
+  Loader2
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -18,6 +19,7 @@ interface HeaderProps {
   showBalance: boolean;
   toggleShowBalance: () => void;
   onOpenSettings: () => void;
+  isSyncing?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,7 +27,8 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   showBalance,
   toggleShowBalance,
-  onOpenSettings
+  onOpenSettings,
+  isSyncing = false
 }) => {
   return (
     <header style={{
@@ -199,20 +202,20 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Settings Gear Button */}
           <button
             onClick={onOpenSettings}
-            title="Ajustes y Utilidades"
+            title={isSyncing ? 'Sincronizando...' : 'Ajustes y Utilidades'}
             style={{
               padding: '6px',
               borderRadius: '50%',
               border: 'none',
               background: 'none',
-              color: 'var(--md-sys-color-on-surface)',
+              color: isSyncing ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}
           >
-            <Settings size={19} />
+            {isSyncing ? <Loader2 size={19} className="animate-spin" /> : <Settings size={19} />}
           </button>
 
         </div>

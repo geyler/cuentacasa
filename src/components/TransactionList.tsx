@@ -10,7 +10,8 @@ import {
   Edit3, 
   Trash2, 
   Calendar,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from 'lucide-react';
 
 interface TransactionListProps {
@@ -20,6 +21,8 @@ interface TransactionListProps {
   currency?: string;
   showBalance?: boolean;
   limit?: number;
+  isLoading?: boolean;
+  deletingId?: string | null;
 }
 
 const PAGE_SIZE = 15;
@@ -30,7 +33,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   onDelete,
   currency = '$',
   showBalance = true,
-  limit
+  limit,
+  isLoading = false,
+  deletingId = null
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'todos' | TransactionType>('todos');
@@ -136,8 +141,23 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         </div>
       </div>
 
-      {/* Transaction Items */}
-      {visibleTransactions.length === 0 ? (
+      {/* Loading Skeletons State */}
+      {isLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="md-card" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="skeleton" style={{ width: '34px', height: '34px', borderRadius: '10px' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className="skeleton" style={{ width: '120px', height: '14px' }} />
+                  <div className="skeleton" style={{ width: '70px', height: '10px' }} />
+                </div>
+              </div>
+              <div className="skeleton" style={{ width: '80px', height: '18px' }} />
+            </div>
+          ))}
+        </div>
+      ) : visibleTransactions.length === 0 ? (
         <div className="md-card" style={{ textAlign: 'center', padding: '24px 16px' }}>
           <p style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.85rem' }}>
             No hay movimientos registrados.
@@ -147,6 +167,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {visibleTransactions.map(tx => {
             const isIncome = tx.type === 'ingreso';
+            const isDeleting = deletingId === tx.id;
 
             return (
               <div
@@ -157,7 +178,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '10px'
+                  gap: '10px',
+                  opacity: isDeleting ? 0.5 : 1,
+                  transition: 'opacity 0.2s ease'
                 }}
               >
                 {/* Left Side: Icon & Info */}
@@ -223,6 +246,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   <div style={{ display: 'flex', gap: '2px' }}>
                     <button
                       onClick={() => onEdit(tx)}
+                      disabled={isDeleting}
                       title="Editar"
                       style={{
                         background: 'none',
@@ -241,6 +265,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                           onDelete(tx.id);
                         }
                       }}
+                      disabled={isDeleting}
                       title="Eliminar"
                       style={{
                         background: 'none',
@@ -250,7 +275,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         padding: '4px'
                       }}
                     >
-                      <Trash2 size={15} />
+                      {isDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                     </button>
                   </div>
 
@@ -263,7 +288,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       )}
 
       {/* Infinite Scroll / Load More Button */}
-      {hasMore && (
+      {hasMore && !isLoading && (
         <div style={{ textAlign: 'center', margin: '10px 0' }}>
           <button
             onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}

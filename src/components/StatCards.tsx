@@ -9,13 +9,36 @@ interface StatCardsProps {
   summary: FinancialSummary;
   currency?: string;
   showBalance?: boolean;
+  isLoading?: boolean;
 }
 
 export const StatCards: React.FC<StatCardsProps> = ({ 
   summary, 
   currency = '$',
-  showBalance = true 
+  showBalance = true,
+  isLoading = false
 }) => {
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '16px'
+      }}>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="md-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="skeleton" style={{ width: '100px', height: '14px' }} />
+              <div className="skeleton" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+            </div>
+            <div className="skeleton" style={{ width: '140px', height: '28px', margin: '6px 0' }} />
+            <div className="skeleton" style={{ width: '160px', height: '12px' }} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
