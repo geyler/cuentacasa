@@ -1,5 +1,24 @@
 import { Transaction, ReportFilter, FinancialSummary, ReportPeriod } from '@/types';
 
+// 5 minutes editable window check (5 * 60 * 1000 ms)
+export const EDITABLE_WINDOW_MS = 5 * 60 * 1000;
+
+export function isTransactionEditable(createdAt?: number): boolean {
+  if (!createdAt) return false;
+  return (Date.now() - createdAt) <= EDITABLE_WINDOW_MS;
+}
+
+export function getRemainingEditableTime(createdAt?: number): string | null {
+  if (!createdAt) return null;
+  const elapsed = Date.now() - createdAt;
+  const remainingMs = EDITABLE_WINDOW_MS - elapsed;
+  if (remainingMs <= 0) return null;
+  const remainingSecs = Math.ceil(remainingMs / 1000);
+  const mins = Math.floor(remainingSecs / 60);
+  const secs = remainingSecs % 60;
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
 // Filter transactions by period
 export function filterTransactionsByPeriod(transactions: Transaction[], filter: ReportFilter): Transaction[] {
   const now = new Date();

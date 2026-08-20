@@ -15,7 +15,7 @@ import {
   deleteTransaction 
 } from '@/lib/storage';
 import { syncDatabaseWithCloud, getPendingSyncCount } from '@/lib/sync';
-import { calculateFinancialSummary } from '@/lib/invoice';
+import { calculateFinancialSummary, isTransactionEditable } from '@/lib/invoice';
 
 import { Header } from '@/components/Header';
 import { StatCards } from '@/components/StatCards';
@@ -240,12 +240,21 @@ export default function HomePage() {
   };
 
   const handleOpenEditTx = (tx: Transaction) => {
+    if (!isTransactionEditable(tx.createdAt)) {
+      alert('Solo es posible editar o eliminar registros dentro de los primeros 5 minutos de su creación.');
+      return;
+    }
     setEditingTx(tx);
     setIsTxModalOpen(true);
   };
 
   const handleSaveTransaction = async (txData: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingTx) {
+      if (!isTransactionEditable(editingTx.createdAt)) {
+        alert('El tiempo límite de 5 minutos para editar este registro ha expirado.');
+        setIsTxModalOpen(false);
+        return;
+      }
       updateTransaction({
         ...editingTx,
         ...txData
@@ -267,6 +276,11 @@ export default function HomePage() {
   };
 
   const handleDeleteTransaction = async (id: string) => {
+    const targetTx = db?.transactions.find(t => t.id === id);
+    if (targetTx && !isTransactionEditable(targetTx.createdAt)) {
+      alert('Solo es posible editar o eliminar registros dentro de los primeros 5 minutos de su creación.');
+      return;
+    }
     setDeletingId(id);
     try {
       deleteTransaction(id);

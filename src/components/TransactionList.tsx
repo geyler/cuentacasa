@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType } from '@/types';
-import { formatCurrency } from '@/lib/invoice';
+import { formatCurrency, isTransactionEditable, getRemainingEditableTime } from '@/lib/invoice';
 import { 
   Search, 
   ArrowUpRight, 
@@ -11,7 +11,9 @@ import {
   Trash2, 
   Calendar,
   ChevronDown,
-  Loader2
+  Loader2,
+  Lock,
+  Clock
 } from 'lucide-react';
 
 interface TransactionListProps {
@@ -40,6 +42,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'todos' | TransactionType>('todos');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [, setTick] = useState(0);
+
+  // Timer ticker to update remaining time badges in real-time
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(t => t + 1);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Filtered transactions by search & type
   const filtered = transactions.filter(tx => {
@@ -168,6 +179,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           {visibleTransactions.map(tx => {
             const isIncome = tx.type === 'ingreso';
             const isDeleting = deletingId === tx.id;
+            const editable = isTransactionEditable(tx.createdAt);
+            const remainingTime = getRemainingEditableTime(tx.createdAt);
 
             return (
               <div
@@ -217,13 +230,33 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
+                      gap: '8px',
                       fontSize: '0.72rem',
                       color: 'var(--md-sys-color-on-surface-variant)',
                       marginTop: '1px'
                     }}>
-                      <Calendar size={11} />
-                      <span>{tx.date}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={11} />
+                        <span>{tx.date}</span>
+                      </div>
+
+                      {/* Remaining Editable Time Badge if active */}
+                      {editable && remainingTime && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          backgroundColor: 'var(--md-sys-color-primary-container)',
+                          color: 'var(--md-sys-color-on-primary-container)',
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
+                          fontWeight: 700
+                        }} title="Tiempo restante para editar o eliminar">
+                          <Clock size={10} />
+                          {remainingTime}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -242,41 +275,59 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     {isIncome ? '+' : '-'} {formatCurrency(tx.amount, currency, showBalance)}
                   </div>
 
-                  {/* Edit & Delete Actions */}
-                  <div style={{ display: 'flex', gap: '2px' }}>
-                    <button
-                      onClick={() => onEdit(tx)}
-                      disabled={isDeleting}
-                      title="Editar"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--md-sys-color-on-surface-variant)',
-                        cursor: 'pointer',
-                        padding: '4px'
-                      }}
-                    >
-                      <Edit3 size={15} />
-                    </button>
+                  {/* Edit & Delete Actions (Enabled ONLY within 5 minutes) */}
+                  <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                    {editable ? (
+                      <>
+                        <button
+                          onClick={() => onEdit(tx)}
+                          disabled={isDeleting}
+                          title="Editar (Disponible los primeros 5 min)"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--md-sys-color-on-surface-variant)',
+                            cursor: 'pointer',
+                            padding: '4px'
+                          }}
+                        >
+                          <Edit3 size={15} />
+                        </button>
 
-                    <button
-                      onClick={() => {
-                        if (confirm(`¿Eliminar "${tx.concept}"?`)) {
-                          onDelete(tx.id);
-                        }
-                      }}
-                      disabled={isDeleting}
-                      title="Eliminar"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--md-sys-color-expense)',
-                        cursor: 'pointer',
-                        padding: '4px'
-                      }}
-                    >
-                      {isDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-                    </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`¿Eliminar "${tx.concept}"?`)) {
+                              onDelete(tx.id);
+                            }
+                          }}
+                          disabled={isDeleting}
+                          title="Eliminar (Disponible los primeros 5 min)"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--md-sys-color-expense)',
+                            cursor: 'pointer',
+                            padding: '4px'
+                          }}
+                        >
+                          {isDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                        </button>
+                      </>
+                    ) : (
+                      <div 
+                        title="Bloqueado: Solo editable durante los primeros 5 minutos tras su creación"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '4px',
+                          color: 'var(--md-sys-color-outline)',
+                          opacity: 0.7
+                        }}
+                      >
+                        <Lock size={15} />
+                      </div>
+                    )}
                   </div>
 
                 </div>
