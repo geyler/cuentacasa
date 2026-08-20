@@ -19,7 +19,8 @@ import {
   ShoppingBag, 
   Trash2,
   Receipt,
-  Sparkles
+  Edit3,
+  DollarSign
 } from 'lucide-react';
 
 interface BarcodeScannerModalProps {
@@ -41,7 +42,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   // Scanner state
   const [manualCode, setManualCode] = useState('');
   const [scannedBarcode, setScannedBarcode] = useState<string>('0001');
-  const [currentProduct, setCurrentProduct] = useState<StoreProduct | null>(null);
 
   // Ticket / Carrito en vivo State
   const [ticketItems, setTicketItems] = useState<StoreSaleItem[]>([]);
@@ -50,18 +50,14 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [isManualInput, setIsManualInput] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // Select/Scan Product
+  // Select / Scan Product & Add to Ticket
   const handleSelectBarcode = (code: string) => {
     const cleanCode = code.padStart(4, '0');
     setScannedBarcode(cleanCode);
 
     const product = getStoreProductByBarcode(cleanCode);
     if (product) {
-      setCurrentProduct(product);
-      // Auto-add to ticket if scanned via camera or click
       addItemToTicket(product);
-    } else {
-      setCurrentProduct(null);
     }
   };
 
@@ -94,7 +90,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       ];
     });
 
-    triggerSuccessEffect(`Agregado: ${product.name}`);
+    triggerSuccessEffect(`Agregado al Ticket: ${product.name}`);
   };
 
   const updateItemQuantity = (productId: string, delta: number) => {
@@ -111,11 +107,39 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     }).filter(Boolean) as StoreSaleItem[]);
   };
 
+  const updateItemUnitPrice = (productId: string, newUnitPrice: number) => {
+    setTicketItems(prev => prev.map(item => {
+      if (item.productId === productId) {
+        const validPrice = Math.max(0, newUnitPrice);
+        return {
+          ...item,
+          unitPrice: validPrice,
+          subtotal: item.quantity * validPrice
+        };
+      }
+      return item;
+    }));
+  };
+
+  const updateItemSubtotal = (productId: string, newSubtotal: number) => {
+    setTicketItems(prev => prev.map(item => {
+      if (item.productId === productId) {
+        const validSubtotal = Math.max(0, newSubtotal);
+        return {
+          ...item,
+          subtotal: validSubtotal,
+          unitPrice: item.quantity > 0 ? Math.round(validSubtotal / item.quantity) : validSubtotal
+        };
+      }
+      return item;
+    }));
+  };
+
   const removeItemFromTicket = (productId: string) => {
     setTicketItems(prev => prev.filter(item => item.productId !== productId));
   };
 
-  // Start Camera Feed in top rectangular strip
+  // Camera initialization
   useEffect(() => {
     if (!isOpen) {
       if (stream) {
@@ -141,7 +165,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             videoRef.current.srcObject = mediaStream;
           }
 
-          // Check Native BarcodeDetector API support
           if ('BarcodeDetector' in window) {
             const detector = new (window as any).BarcodeDetector({
               formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code', 'upc_a']
@@ -156,7 +179,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                     handleSelectBarcode(rawValue);
                   }
                 } catch (e) {
-                  // Frame error ignore
+                  // Ignore frame detection error
                 }
               }
               if (isOpen) {
@@ -167,7 +190,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           }
         }
       } catch (err) {
-        setCameraError('Cámara inactiva. Puedes seleccionar códigos manualmente.');
+        setCameraError('Cámara inactiva. Puedes seleccionar productos abajo o ingresar el código 4 dígitos.');
       }
     };
 
@@ -188,7 +211,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setTimeout(() => setShowSuccessBadge(false), 1400);
   };
 
-  // Ticket totals calculation
+  // Totals calculations
   const uniqueItemsCount = ticketItems.length;
   const totalUnitsCount = ticketItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalInvoicePrice = ticketItems.reduce((sum, item) => sum + item.subtotal, 0);
@@ -214,6 +237,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     triggerSuccessEffect('¡Venta Registrada Exitosamente!');
     setTicketItems([]);
     if (onSaleCompleted) onSaleCompleted();
+    onClose();
   };
 
   const availableProducts = getStoreProducts();
@@ -231,7 +255,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       overflowY: 'auto'
     }} className="no-print">
 
-      {/* Top MD3 Header Bar */}
+      {/* Top Header Bar */}
       <div style={{
         padding: '12px 16px',
         display: 'flex',
@@ -243,7 +267,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Scan size={20} color="var(--md-sys-color-primary)" />
-          <span style={{ fontWeight: 800, fontSize: '1rem' }}>Escáner de Ventas (4-Dígitos)</span>
+          <span style={{ fontWeight: 800, fontSize: '1rem' }}>Escáner de Ventas en Vivo</span>
         </div>
 
         <button
@@ -254,7 +278,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         </button>
       </div>
 
-      {/* Top Viewfinder Camera Strip */}
+      {/* Camera Viewfinder Strip */}
       <div style={{
         width: '100%',
         height: '160px',
@@ -281,7 +305,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           </div>
         )}
 
-        {/* Laser beam rectangle */}
+        {/* Viewfinder rectangle */}
         <div style={{
           position: 'absolute',
           top: '50%',
@@ -347,13 +371,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               key={prod.barcode}
               onClick={() => handleSelectBarcode(prod.barcode)}
               style={{
-                padding: '4px 10px',
+                padding: '5px 12px',
                 borderRadius: '8px',
                 border: 'none',
                 backgroundColor: 'var(--md-sys-color-primary-container)',
                 color: 'var(--md-sys-color-on-primary-container)',
                 fontSize: '0.78rem',
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
                 flexShrink: 0
               }}
@@ -369,7 +393,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             background: 'none',
             border: 'none',
             color: 'var(--md-sys-color-primary)',
-            fontWeight: 700,
+            fontWeight: 800,
             fontSize: '0.78rem',
             cursor: 'pointer',
             flexShrink: 0,
@@ -436,10 +460,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Receipt size={18} color="var(--md-sys-color-primary)" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Ticket de Venta Actual</h3>
+            <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Ticket de Venta (Editable)</h3>
           </div>
           <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
-            {uniqueItemsCount} Artículos | {totalUnitsCount} Unidades
+            {uniqueItemsCount} Ítems | {totalUnitsCount} Unidades
           </span>
         </div>
 
@@ -447,65 +471,109 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         {ticketItems.length === 0 ? (
           <div className="md-card" style={{ padding: '30px 16px', textAlign: 'center', opacity: 0.7 }}>
             <ShoppingBag size={36} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '8px' }} />
-            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Escanea o selecciona productos arriba para armar la venta.</p>
+            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Escanea o presiona arriba sobre los productos para agregarlos al ticket.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '280px', overflowY: 'auto' }}>
             {ticketItems.map(item => (
               <div
                 key={item.productId}
                 className="md-card"
                 style={{
-                  padding: '10px 14px',
+                  padding: '12px 14px',
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  flexDirection: 'column',
                   gap: '8px'
                 }}
               >
-                <div>
+                {/* Item Top Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
                       #{item.barcode}
                     </span>
-                    <h4 style={{ fontSize: '0.88rem', fontWeight: 800 }}>{item.name}</h4>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 800 }}>{item.name}</h4>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
-                    Precio Costo: ${item.costPrice} | Venta u: ${item.unitPrice}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {/* Stepper */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <button
-                      onClick={() => updateItemQuantity(item.productId, -1)}
-                      style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--md-sys-color-surface-container-high)', fontWeight: 800, cursor: 'pointer' }}
-                    >
-                      -
-                    </button>
-                    <span style={{ fontWeight: 800, fontSize: '0.85rem', minWidth: '18px', textAlign: 'center' }}>
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateItemQuantity(item.productId, 1)}
-                      style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  {/* Subtotal */}
-                  <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--md-sys-color-income)', minWidth: '60px', textAlign: 'right' }}>
-                    ${item.subtotal}
-                  </span>
 
                   <button
                     onClick={() => removeItemFromTicket(item.productId)}
-                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-expense)', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-expense)', cursor: 'pointer', padding: '2px' }}
+                    title="Eliminar ítem del ticket"
                   >
                     <Trash2 size={16} />
                   </button>
+                </div>
+
+                {/* Editable Quantity, Unit Price and Subtotal Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.4fr 1.4fr', gap: '8px', alignItems: 'center' }}>
+                  
+                  {/* Quantity Stepper */}
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>
+                      Cantidad:
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                        onClick={() => updateItemQuantity(item.productId, -1)}
+                        style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--md-sys-color-surface-container-high)', fontWeight: 800, cursor: 'pointer' }}
+                      >
+                        -
+                      </button>
+                      <span style={{ fontWeight: 800, fontSize: '0.88rem', minWidth: '18px', textAlign: 'center' }}>
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateItemQuantity(item.productId, 1)}
+                        style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Unit Price Editable */}
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>
+                      Precio Unit. ({currency}):
+                    </label>
+                    <input
+                      type="number"
+                      value={item.unitPrice}
+                      onChange={e => updateItemUnitPrice(item.productId, parseFloat(e.target.value) || 0)}
+                      style={{
+                        width: '100%',
+                        padding: '4px 6px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        fontWeight: 800,
+                        fontSize: '0.85rem'
+                      }}
+                    />
+                  </div>
+
+                  {/* Subtotal Editable */}
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>
+                      Subtotal ({currency}):
+                    </label>
+                    <input
+                      type="number"
+                      value={item.subtotal}
+                      onChange={e => updateItemSubtotal(item.productId, parseFloat(e.target.value) || 0)}
+                      style={{
+                        width: '100%',
+                        padding: '4px 6px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: 'var(--md-sys-color-income-container)',
+                        color: 'var(--md-sys-color-income)',
+                        fontWeight: 800,
+                        fontSize: '0.88rem'
+                      }}
+                    />
+                  </div>
+
                 </div>
 
               </div>

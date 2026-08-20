@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AppTab } from '@/types';
 import { 
   Home, 
@@ -12,7 +12,10 @@ import {
   LayoutDashboard,
   Loader2,
   Store,
-  Scan
+  Scan,
+  Menu,
+  X,
+  ChevronRight
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -34,6 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScanner,
   isSyncing = false
 }) => {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleNavClick = (tab: AppTab) => {
+    setActiveTab(tab);
+    setIsDrawerOpen(false);
+  };
+
   return (
     <header style={{
       backgroundColor: 'var(--md-sys-color-surface-container)',
@@ -44,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
       boxShadow: 'var(--md-shadow-elevation-1)'
     }} className="no-print">
       
-      {/* Ultra Compact Single Bar */}
+      {/* Clean Single Bar */}
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
@@ -52,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '52px'
+        height: '56px'
       }}>
         
         {/* Brand logo & Title */}
@@ -63,25 +73,26 @@ export const Header: React.FC<HeaderProps> = ({
             border: 'none',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             cursor: 'pointer',
             padding: 0
           }}
         >
           <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '10px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '12px',
             backgroundColor: 'var(--md-sys-color-primary)',
             color: '#FFF',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0, 99, 155, 0.25)'
           }}>
-            <Home size={18} />
+            <Home size={20} />
           </div>
           <h1 style={{ 
-            fontSize: '1.05rem', 
+            fontSize: '1.1rem', 
             fontWeight: 800, 
             letterSpacing: '-0.02em',
             color: 'var(--md-sys-color-on-surface)'
@@ -90,138 +101,48 @@ export const Header: React.FC<HeaderProps> = ({
           </h1>
         </button>
 
-        {/* Compact Center Navigation Tabs */}
-        <nav style={{
-          display: 'flex',
-          gap: '4px',
-          alignItems: 'center'
-        }}>
-          <button
-            onClick={() => setActiveTab('quick')}
-            title="Inicio Rápido"
-            style={{
-              padding: '6px 10px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              color: activeTab === 'quick' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <Home size={15} />
-            <span className="hidden-mobile">Inicio</span>
-          </button>
-
+        {/* Right Actions: Quick Dashboard + Quick Scanner + Eye + Hamburger Menu */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          
+          {/* Quick Access 1: Dashboard */}
           <button
             onClick={() => setActiveTab('dashboard')}
-            title="Dashboard Contable"
+            title="Ir al Dashboard Contable"
             style={{
-              padding: '6px 10px',
+              padding: '7px 12px',
               borderRadius: '9999px',
               border: 'none',
-              backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              color: activeTab === 'dashboard' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 700,
-              fontSize: '0.8rem',
+              backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
+              color: activeTab === 'dashboard' ? '#FFFFFF' : 'var(--md-sys-color-on-surface)',
+              fontWeight: 800,
+              fontSize: '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '6px'
             }}
           >
-            <LayoutDashboard size={15} />
+            <LayoutDashboard size={16} />
             <span className="hidden-mobile">Dashboard</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('store')}
-            title="Inventario de Tienda"
-            style={{
-              padding: '6px 10px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              color: activeTab === 'store' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <Store size={15} />
-            <span className="hidden-mobile">Tienda</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('transactions')}
-            title="Movimientos"
-            style={{
-              padding: '6px 10px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              color: activeTab === 'transactions' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <Receipt size={15} />
-            <span className="hidden-mobile">Movimientos</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('reports')}
-            title="Facturación"
-            style={{
-              padding: '6px 10px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              color: activeTab === 'reports' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <FileText size={15} />
-            <span className="hidden-mobile">Por Fechas</span>
-          </button>
-        </nav>
-
-        {/* Right Side Icons: Barcode Scanner, Eye Privacy Toggle & Settings Gear */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          
-          {/* Barcode Scanner Button */}
+          {/* Quick Access 2: Barcode Scanner */}
           {onOpenScanner && (
             <button
               onClick={onOpenScanner}
-              title="Escáner de Barras (0001-9999)"
+              title="Escáner de Productos (Venta Instantánea)"
               style={{
-                padding: '6px 10px',
+                padding: '7px 12px',
                 borderRadius: '9999px',
                 border: 'none',
                 backgroundColor: 'var(--md-sys-color-primary-container)',
                 color: 'var(--md-sys-color-on-primary-container)',
+                fontWeight: 800,
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                fontWeight: 700,
-                fontSize: '0.78rem'
+                gap: '6px'
               }}
             >
               <Scan size={16} />
@@ -229,12 +150,12 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Eye Privacy Toggle */}
+          {/* Eye Balance Privacy Toggle */}
           <button
             onClick={toggleShowBalance}
             title={showBalance ? 'Ocultar Saldos (Modo Privado)' : 'Mostrar Saldos'}
             style={{
-              padding: '6px',
+              padding: '8px',
               borderRadius: '50%',
               border: 'none',
               backgroundColor: showBalance ? 'transparent' : 'var(--md-sys-color-expense-container)',
@@ -245,30 +166,251 @@ export const Header: React.FC<HeaderProps> = ({
               justifyContent: 'center'
             }}
           >
-            {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
+            {showBalance ? <Eye size={19} /> : <EyeOff size={19} />}
           </button>
 
-          {/* Settings Gear Button */}
+          {/* Hamburger Drawer Menu Button */}
           <button
-            onClick={onOpenSettings}
-            title={isSyncing ? 'Sincronizando...' : 'Ajustes y Utilidades'}
+            onClick={() => setIsDrawerOpen(true)}
+            title="Abrir Menú Principal"
             style={{
-              padding: '6px',
-              borderRadius: '50%',
+              padding: '8px 12px',
+              borderRadius: '12px',
               border: 'none',
-              background: 'none',
-              color: isSyncing ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface)',
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              color: 'var(--md-sys-color-on-primary-container)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              gap: '6px',
+              fontWeight: 800
             }}
           >
-            {isSyncing ? <Loader2 size={19} className="animate-spin" /> : <Settings size={19} />}
+            <Menu size={20} />
+            <span className="hidden-mobile">Menú</span>
           </button>
 
         </div>
       </div>
+
+      {/* Hamburger Navigation Drawer Modal (MD3 Side Sheet) */}
+      {isDrawerOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 150,
+            display: 'flex',
+            justifyContent: 'flex-end'
+          }}
+          onClick={() => setIsDrawerOpen(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '320px',
+              height: '100%',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              boxShadow: 'var(--md-shadow-elevation-3)',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '20px 16px'
+            }}
+          >
+            {/* Drawer Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Home size={18} />
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Menú de Opciones</h3>
+              </div>
+
+              <button onClick={() => setIsDrawerOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface)', cursor: 'pointer' }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Menu Navigation Items */}
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+              
+              <button
+                onClick={() => handleNavClick('quick')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  color: activeTab === 'quick' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Home size={18} />
+                  <span>Inicio Rápido</span>
+                </div>
+                <ChevronRight size={16} opacity={0.6} />
+              </button>
+
+              <button
+                onClick={() => handleNavClick('dashboard')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  color: activeTab === 'dashboard' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <LayoutDashboard size={18} />
+                  <span>Dashboard Contable</span>
+                </div>
+                <ChevronRight size={16} opacity={0.6} />
+              </button>
+
+              <button
+                onClick={() => handleNavClick('store')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  color: activeTab === 'store' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Store size={18} />
+                  <span>Inventario de Tienda</span>
+                </div>
+                <ChevronRight size={16} opacity={0.6} />
+              </button>
+
+              <button
+                onClick={() => handleNavClick('transactions')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  color: activeTab === 'transactions' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Receipt size={18} />
+                  <span>Movimientos</span>
+                </div>
+                <ChevronRight size={16} opacity={0.6} />
+              </button>
+
+              <button
+                onClick={() => handleNavClick('reports')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  color: activeTab === 'reports' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FileText size={18} />
+                  <span>Reportes por Fechas</span>
+                </div>
+                <ChevronRight size={16} opacity={0.6} />
+              </button>
+
+              <div style={{ margin: '8px 0', borderTop: '1px solid var(--md-sys-color-outline-variant)' }} />
+
+              {onOpenScanner && (
+                <button
+                  onClick={() => { setIsDrawerOpen(false); onOpenScanner(); }}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                    color: 'var(--md-sys-color-on-surface)',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Scan size={18} color="var(--md-sys-color-primary)" />
+                    <span>Escáner de Ventas</span>
+                  </div>
+                  <ChevronRight size={16} opacity={0.6} />
+                </button>
+              )}
+
+              <button
+                onClick={() => { setIsDrawerOpen(false); onOpenSettings(); }}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {isSyncing ? <Loader2 size={18} className="animate-spin" /> : <Settings size={18} />}
+                  <span>Ajustes y Nube</span>
+                </div>
+                <ChevronRight size={16} opacity={0.6} />
+              </button>
+
+            </nav>
+
+            {/* Footer status */}
+            <div style={{ paddingTop: '12px', borderTop: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center' }}>
+              Cuenta Casa v1.0 • PWA Offline
+            </div>
+          </div>
+        </div>
+      )}
 
     </header>
   );

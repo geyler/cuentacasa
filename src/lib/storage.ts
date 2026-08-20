@@ -2,6 +2,14 @@ import { Transaction, StoreProduct, StoreSaleRecord, RawDatabase } from '@/types
 
 const STORAGE_KEY = 'cuentacasa_raw_db_v1';
 
+// Default SVG image placeholders for seed products
+const PLACEHOLDER_IMAGES = {
+  pan: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23FFF8F0"/><circle cx="200" cy="200" r="140" fill="%23FFE8D6"/><path d="M120 220C120 170 150 140 200 140C250 140 280 170 280 220C280 240 260 260 200 260C140 260 120 240 120 220Z" fill="%23D48C46"/><path d="M150 180L170 200M200 170L220 190M230 180L250 200" stroke="%23FFF" stroke-width="6" stroke-linecap="round"/><text x="50%" y="82%" fill="%238C5221" font-size="24" font-family="sans-serif" font-weight="bold" text-anchor="middle">Pan Artesanal</text></svg>`,
+  arroz: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23F0F7FF"/><rect x="130" y="100" width="140" height="200" rx="20" fill="%2300639B"/><path d="M150 140H250M150 170H250M150 200H210" stroke="%23E0F2FE" stroke-width="8" stroke-linecap="round"/><circle cx="200" cy="250" r="25" fill="%23FFD700"/><text x="50%" y="85%" fill="%2300385E" font-size="24" font-family="sans-serif" font-weight="bold" text-anchor="middle">Arroz Selección</text></svg>`,
+  cafe: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23FAF4EE"/><path d="M120 150C120 120 280 120 280 150L260 270C260 290 230 300 200 300C170 300 140 290 140 270L120 150Z" fill="%235C3A21"/><rect x="140" y="180" width="120" height="60" rx="10" fill="%23D48C46"/><text x="50%" y="54%" fill="%23FFF" font-size="18" font-family="sans-serif" font-weight="bold" text-anchor="middle">CAFÉ GOURMET</text><path d="M180 90C180 80 190 70 190 60M200 90C200 80 210 70 210 60M220 90C220 80 230 70 230 60" stroke="%23D48C46" stroke-width="4" stroke-linecap="round"/></svg>`,
+  aceite: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23FFFDF0"/><rect x="150" y="130" width="100" height="180" rx="15" fill="%23FFC107"/><rect x="170" y="80" width="60" height="50" fill="%23FFA000"/><path d="M170 180H230V240H170V180Z" fill="%23FFF" opacity="0.9"/><text x="50%" y="55%" fill="%23F57F17" font-size="14" font-family="sans-serif" font-weight="bold" text-anchor="middle">PURE OIL</text></svg>`
+};
+
 export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
   {
     id: 'sp-0001',
@@ -12,6 +20,7 @@ export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
     category: 'Panadería',
     description: 'Fresco del día, elaborado con manteca y vainilla natural.',
     stock: 24,
+    photoUrl: PLACEHOLDER_IMAGES.pan,
     published: true,
     salesCount: 12,
     createdAt: Date.now(),
@@ -26,6 +35,7 @@ export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
     category: 'Viveres',
     description: 'Arroz seleccionado de grano entero de alta calidad.',
     stock: 50,
+    photoUrl: PLACEHOLDER_IMAGES.arroz,
     published: true,
     salesCount: 30,
     createdAt: Date.now(),
@@ -40,6 +50,7 @@ export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
     category: 'Bebidas',
     description: 'Tueste medio artesanal con notas a chocolate.',
     stock: 15,
+    photoUrl: PLACEHOLDER_IMAGES.cafe,
     published: true,
     salesCount: 8,
     createdAt: Date.now(),
@@ -54,6 +65,7 @@ export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
     category: 'Viveres',
     description: 'Aceite puro 100% vegetal ideal para cocina y ensaladas.',
     stock: 30,
+    photoUrl: PLACEHOLDER_IMAGES.aceite,
     published: true,
     salesCount: 15,
     createdAt: Date.now(),
