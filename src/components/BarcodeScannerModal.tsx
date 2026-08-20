@@ -18,8 +18,11 @@ import {
   Camera, 
   ShoppingBag, 
   Trash2,
-  Receipt
+  Receipt,
+  Upload,
+  AlertCircle
 } from 'lucide-react';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -34,28 +37,38 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   onSaleCompleted,
   currency = '$'
 }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const scannerContainerId = 'cuentacasa-html5-barcode-reader';
+  const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
 
   // Scanner state
   const [manualCode, setManualCode] = useState('');
-  const [scannedBarcode, setScannedBarcode] = useState<string>('0001');
-
-  // Ticket / Carrito en vivo State
   const [ticketItems, setTicketItems] = useState<StoreSaleItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isManualInput, setIsManualInput] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraStatus, setCameraStatus] = useState<string>('Iniciando cámara...');
+  const [lastScanned, setLastScanned] = useState<string | null>(null);
+  const [isScanningFile, setIsScanningFile] = useState(false);
 
-  // Select / Scan Product & Add to Ticket
-  const handleSelectBarcode = (code: string) => {
-    const cleanCode = code.padStart(4, '0');
-    setScannedBarcode(cleanCode);
+  // Cooldown tracker to prevent duplicate scans in 2 seconds
+  const lastScanTimeRef = useRef<number>(0);
+
+  const handleDecodedBarcode = (decodedText: string) => {
+    const now = Date.now();
+    if (now - lastScanTimeRef.current < 1800) return; // Cooldown 1.8s
+    lastScanTimeRef.current = now;
+
+    // Extract digits or clean barcode
+    const numericOnly = decodedText.replace(/\D/g, '');
+    const cleanCode = (numericOnly.length > 0 ? numericOnly : decodedText).slice(-4).padStart(4, '0');
+
+    setLastScanned(cleanCode);
 
     const product = getStoreProductByBarcode(cleanCode);
     if (product) {
       addItemToTicket(product);
+    } else {
+      triggerSuccessEffect(`Código #${cleanCode} escaneado (No encontrado en catálogo)`);
     }
   };
 
@@ -90,7 +103,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       ];
     });
 
-    triggerSuccessEffect(`Agregado al Ticket: ${product.name}`);
+    triggerSuccessEffect(`¡Agregado al Ticket: ${product.name}!`);
   };
 
   const updateItemQuantity = (productId: string, delta: number) => {
@@ -139,76 +152,109 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setTicketItems(prev => prev.filter(item => item.productId !== productId));
   };
 
-  // Camera initialization
+  // Initialize Html5Qrcode Scanner Engine
   useEffect(() => {
     if (!isOpen) {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-      }
+      stopScannerEngine();
       setTicketItems([]);
       return;
     }
 
-    let activeStream: MediaStream | null = null;
+    let isMounted = true;
 
-    const startCamera = async () => {
+    const initEngine = async () => {
       try {
-        setCameraError(null);
-        if ('mediaDevices' in navigator && navigator.mediaDevices.getUserMedia) {
-          const mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 360 } }
-          });
-          activeStream = mediaStream;
-          setStream(mediaStream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = mediaStream;
-          }
+        await stopScannerEngine();
 
-          if ('BarcodeDetector' in window) {
-            const detector = new (window as any).BarcodeDetector({
-              formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code', 'upc_a']
-            });
+        const html5Qrcode = new Html5Qrcode(scannerContainerId, {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.ITF
+          ],
+          verbose: false
+        });
 
-            const scanLoop = async () => {
-              if (videoRef.current && videoRef.current.readyState === 4) {
-                try {
-                  const barcodes = await detector.detect(videoRef.current);
-                  if (barcodes.length > 0) {
-                    const rawValue = barcodes[0].rawValue;
-                    handleSelectBarcode(rawValue);
-                  }
-                } catch (e) {
-                  // Ignore frame detection error
-                }
-              }
-              if (isOpen) {
-                requestAnimationFrame(scanLoop);
-              }
-            };
-            requestAnimationFrame(scanLoop);
+        html5QrcodeRef.current = html5Qrcode;
+
+        const config = {
+          fps: 15,
+          qrbox: { width: 260, height: 130 },
+          aspectRatio: 1.777778
+        };
+
+        await html5Qrcode.start(
+          { facingMode: 'environment' },
+          config,
+          (decodedText) => {
+            if (isMounted) handleDecodedBarcode(decodedText);
+          },
+          () => {
+            // Ignore frame scan failures
           }
-        }
+        );
+
+        if (isMounted) setCameraStatus('Cámara lista para escanear.');
       } catch (err) {
-        setCameraError('Cámara inactiva. Puedes seleccionar productos abajo o ingresar el código 4 dígitos.');
+        if (isMounted) {
+          setCameraStatus('No se pudo acceder a la cámara trasera. Puedes seleccionar productos o ingresar código.');
+        }
       }
     };
 
-    startCamera();
+    // Small delay to ensure DOM element is rendered
+    const timer = setTimeout(initEngine, 200);
 
     return () => {
-      if (activeStream) {
-        activeStream.getTracks().forEach(track => track.stop());
-      }
+      isMounted = false;
+      clearTimeout(timer);
+      stopScannerEngine();
     };
   }, [isOpen]);
+
+  const stopScannerEngine = async () => {
+    if (html5QrcodeRef.current) {
+      try {
+        if (html5QrcodeRef.current.isScanning) {
+          await html5QrcodeRef.current.stop();
+        }
+        html5QrcodeRef.current.clear();
+      } catch (e) {
+        // Ignore stop errors
+      }
+      html5QrcodeRef.current = null;
+    }
+  };
+
+  // Image / File Barcode Reader
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsScanningFile(true);
+      const scanner = new Html5Qrcode('file-scanner-temp');
+      const decodedText = await scanner.scanFile(file, true);
+      scanner.clear();
+      handleDecodedBarcode(decodedText);
+    } catch (err) {
+      alert('No se detectó un código de barras legibles en la imagen seleccionada.');
+    } finally {
+      setIsScanningFile(false);
+    }
+  };
 
   if (!isOpen) return null;
 
   const triggerSuccessEffect = (msg: string) => {
     setSuccessMessage(msg);
     setShowSuccessBadge(true);
-    setTimeout(() => setShowSuccessBadge(false), 1400);
+    setTimeout(() => setShowSuccessBadge(false), 1600);
   };
 
   // Totals calculations
@@ -246,7 +292,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.85)',
+      backgroundColor: 'rgba(0, 0, 0, 0.88)',
       backdropFilter: 'blur(8px)',
       zIndex: 120,
       display: 'flex',
@@ -254,6 +300,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       justifyContent: 'flex-start',
       overflowY: 'auto'
     }} className="no-print">
+
+      <div id="file-scanner-temp" style={{ display: 'none' }} />
 
       {/* Top Header Bar */}
       <div style={{
@@ -267,7 +315,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Scan size={20} color="var(--md-sys-color-primary)" />
-          <span style={{ fontWeight: 800, fontSize: '1rem' }}>Escáner de Ventas en Vivo</span>
+          <span style={{ fontWeight: 800, fontSize: '1rem' }}>Escáner de Códigos de Barras</span>
         </div>
 
         <button
@@ -278,11 +326,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         </button>
       </div>
 
-      {/* Camera Viewfinder Strip */}
+      {/* Camera Viewfinder Box with Html5Qrcode engine */}
       <div style={{
         width: '100%',
-        height: '160px',
-        backgroundColor: '#111',
+        minHeight: '210px',
+        maxHeight: '260px',
+        backgroundColor: '#111111',
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',
@@ -290,88 +339,89 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         justifyContent: 'center',
         borderBottom: '3px solid var(--md-sys-color-primary)'
       }}>
-        {!cameraError ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', padding: '20px', fontSize: '0.82rem' }}>
-            <Camera size={26} style={{ marginBottom: '4px', opacity: 0.5 }} />
-            <p>{cameraError}</p>
-          </div>
-        )}
-
-        {/* Viewfinder rectangle */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '12%',
-          right: '12%',
-          transform: 'translateY(-50%)',
-          height: '70px',
-          border: showSuccessBadge ? '2px solid #00FF88' : '2px dashed rgba(255, 255, 255, 0.7)',
-          borderRadius: '12px',
-          boxShadow: showSuccessBadge ? '0 0 20px rgba(0, 255, 136, 0.6)' : '0 0 0 9999px rgba(0, 0, 0, 0.4)',
-          pointerEvents: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            width: '100%',
-            height: '2px',
-            backgroundColor: showSuccessBadge ? '#00FF88' : '#FF3B30',
-            boxShadow: showSuccessBadge ? '0 0 10px #00FF88' : '0 0 10px #FF3B30'
-          }} />
-        </div>
+        {/* Html5Qrcode Reader Element */}
+        <div id={scannerContainerId} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
 
         {/* Feedback Badge */}
         {showSuccessBadge && (
           <div style={{
             position: 'absolute',
-            top: '10px',
+            top: '12px',
             backgroundColor: '#00875A',
             color: '#FFFFFF',
-            padding: '6px 14px',
+            padding: '8px 16px',
             borderRadius: '9999px',
-            fontSize: '0.82rem',
+            fontSize: '0.85rem',
             fontWeight: 800,
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
+            gap: '8px',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.5)',
+            zIndex: 10
           }}>
-            <Check size={16} />
+            <Check size={18} />
             <span>{successMessage}</span>
           </div>
         )}
       </div>
 
-      {/* Manual Code input or Quick Catalog Chips */}
+      {/* Manual Code input, Image Upload & Quick Catalog Chips */}
       <div style={{
         padding: '10px 16px',
         backgroundColor: 'var(--md-sys-color-surface-container)',
         borderBottom: '1px solid var(--md-sys-color-outline-variant)',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '10px'
+        flexDirection: 'column',
+        gap: '8px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', flexShrink: 0 }}>
-            Tocar para Escanear:
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
+            Opciones de Escaneo Rápido:
           </span>
 
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <label style={{
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              color: 'var(--md-sys-color-primary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <Upload size={14} />
+              <span>{isScanningFile ? 'Leyendo imagen...' : 'Escanear Foto'}</span>
+              <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+            </label>
+
+            <button
+              onClick={() => setIsManualInput(!isManualInput)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--md-sys-color-primary)',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Keyboard size={14} />
+              <span>{isManualInput ? 'Cámara' : 'Código Manual'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Catalog Chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
           {availableProducts.map(prod => (
             <button
               key={prod.barcode}
-              onClick={() => handleSelectBarcode(prod.barcode)}
+              onClick={() => handleDecodedBarcode(prod.barcode)}
               style={{
-                padding: '5px 12px',
+                padding: '6px 12px',
                 borderRadius: '8px',
                 border: 'none',
                 backgroundColor: 'var(--md-sys-color-primary-container)',
@@ -386,25 +436,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             </button>
           ))}
         </div>
-
-        <button
-          onClick={() => setIsManualInput(!isManualInput)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--md-sys-color-primary)',
-            fontWeight: 800,
-            fontSize: '0.78rem',
-            cursor: 'pointer',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          <Keyboard size={14} />
-          <span>{isManualInput ? 'Cámara' : 'Código Manual'}</span>
-        </button>
       </div>
 
       {/* Manual Code Input Bar with Numeric Keypad trigger & Input Spotlight */}
@@ -414,10 +445,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface)',
           borderBottom: '1px solid var(--md-sys-color-outline-variant)',
           display: 'flex',
-          gap: '8px',
+          gap: '10px',
           alignItems: 'center'
         }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Ingresar Código 4 dígitos:</span>
+          <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>Ingresar Código 4 dígitos:</span>
           <input
             type="text"
             inputMode="numeric"
@@ -429,12 +460,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               const val = e.target.value.replace(/\D/g, '').slice(0, 4);
               setManualCode(val);
               if (val.length === 4) {
-                handleSelectBarcode(val);
+                handleDecodedBarcode(val);
+                setManualCode('');
               }
             }}
             className="input-spotlight"
             style={{
-              width: '100px',
+              width: '110px',
               padding: '8px 10px',
               borderRadius: '10px',
               border: '2px solid var(--md-sys-color-primary)',
@@ -474,7 +506,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         {ticketItems.length === 0 ? (
           <div className="md-card" style={{ padding: '30px 16px', textAlign: 'center', opacity: 0.7 }}>
             <ShoppingBag size={36} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '8px' }} />
-            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Escanea o presiona arriba sobre los productos para agregarlos al ticket.</p>
+            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Apunta la cámara al código de barras o tócalo arriba en la lista para sumarlo al ticket.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '280px', overflowY: 'auto' }}>
