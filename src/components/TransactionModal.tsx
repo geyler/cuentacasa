@@ -63,7 +63,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }
   }, [editingTransaction, initialType, isOpen]);
 
-  // Submit form on Enter key ONLY when NO input is actively focused
+  // Global window keydown listener: Submit form on Enter key ONLY when NO input is focused
   useEffect(() => {
     if (!isOpen || isSaving) return;
 
@@ -217,6 +217,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </h2>
           <button 
             onClick={onClose}
+            title="Cerrar"
             style={{
               background: 'none',
               border: 'none',
@@ -288,7 +289,26 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
         )}
 
-        <form ref={formRef} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <form 
+          ref={formRef} 
+          onSubmit={handleSubmit}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              if (focusedField !== null) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (focusedField === 'concept') {
+                  setFocusedField('amount');
+                  setTimeout(() => amountRef.current?.focus(), 50);
+                } else if (focusedField === 'amount') {
+                  amountRef.current?.blur();
+                  setFocusedField(null);
+                }
+              }
+            }
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+        >
           
           {/* Detalle / Titulo Input Field 1 */}
           <div style={{
@@ -348,6 +368,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
+                  e.stopPropagation();
                   setFocusedField('amount');
                   setTimeout(() => amountRef.current?.focus(), 50);
                 }
@@ -431,7 +452,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  // Stop form submit, accept input value, remove active focus so no input is selected
+                  e.stopPropagation();
+                  // Stop form submit, remove focus from active input so no input is selected
                   amountRef.current?.blur();
                   setFocusedField(null);
                 }
@@ -527,28 +549,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             )}
           </div>
 
-          {/* Actions */}
+          {/* Full Width Single Action Button */}
           <div style={{
-            display: 'flex',
-            gap: '10px',
             marginTop: '6px',
             opacity: isFocused ? 0.6 : 1,
             transition: 'opacity 0.2s ease'
           }}>
             <button
-              type="button"
-              onClick={onClose}
-              disabled={isSaving}
-              className="md-btn md-btn-secondary"
-              style={{ flex: 1, padding: '12px' }}
-            >
-              Cancelar
-            </button>
-            <button
               type="submit"
               disabled={isSaving}
               className={`md-btn ${type === 'ingreso' ? 'md-btn-income' : 'md-btn-expense'}`}
-              style={{ flex: 1, padding: '12px' }}
+              style={{ width: '100%', padding: '14px', fontSize: '0.95rem' }}
             >
               {isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
               <span>{isSaving ? 'Guardando...' : 'Guardar'}</span>

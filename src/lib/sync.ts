@@ -38,6 +38,10 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     };
   }
 
+  // AbortController with 4s timeout for slow/unstable connection resilience
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
   try {
     const res = await fetch('/api/sync', {
       method: 'POST',
@@ -48,8 +52,11 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       body: JSON.stringify({
         transactions: db.transactions,
         deletedIds: db.deletedIds || []
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       throw new Error(`HTTP error ${res.status}`);
@@ -80,11 +87,12 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       throw new Error(data.message || 'Error en respuesta del servidor');
     }
   } catch (error) {
-    console.error('Error sincronizando con la base de datos:', error);
+    clearTimeout(timeoutId);
+    console.warn('Conexión lenta o inaccesible, trabajando en modo offline:', error);
     return {
       success: false,
       syncedCount: 0,
-      message: 'No se pudo contactar al servidor de base de datos.'
+      message: 'Conexión inestable. Se está trabajando 100% offline con datos locales.'
     };
   }
 }

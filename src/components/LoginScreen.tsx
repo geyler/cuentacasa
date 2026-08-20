@@ -44,6 +44,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setError('');
     setLoading(true);
 
+    // Timeout of 3.5s for network requests to avoid hangs on slow/unstable connection
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
     try {
       if (navigator.onLine) {
         const res = await fetch('/api/auth/login', {
@@ -51,9 +55,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ password })
+          body: JSON.stringify({ password }),
+          signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (res.ok && data.success) {
@@ -68,7 +74,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         }
       }
     } catch (err) {
-      console.warn('Fallback a validación local por falta de conexión:', err);
+      clearTimeout(timeoutId);
+      console.warn('Fallback a validación local por conexión lenta o inestable:', err);
     }
 
     // Offline / Local fallback check
