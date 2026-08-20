@@ -1,16 +1,25 @@
 export type TransactionType = 'ingreso' | 'gasto';
+export type SupplierType = 'propia' | 'proveedor';
 
 export interface Transaction {
   id: string;
   type: TransactionType;
-  concept: string;         // e.g. "Venta Tienda #1024", "Pago por webs"
-  category: string;        // e.g. "Tienda", "Trabajo", "Comida"
+  concept: string;         // e.g. "Ganancia Tienda (Venta #1024)"
+  category: string;        // e.g. "Ganancia Tienda", "Trabajo", "Comida"
   amount: number;          // Monto total
   date: string;            // ISO String YYYY-MM-DD
   notes?: string;
   createdAt: number;       // Timestamp
   updatedAt: number;       // Timestamp
   synced?: boolean;        // Cloud sync status
+}
+
+export interface SupplierAccount {
+  id: string;
+  name: string;             // e.g. "Maikel", "Carlos"
+  pendingPayout: number;    // Dinero retenido por costo de ventas pendiente de pagar
+  totalPaid: number;        // Total histórico liquidado a este proveedor
+  updatedAt: number;
 }
 
 export interface StoreProduct {
@@ -25,6 +34,8 @@ export interface StoreProduct {
   photoUrl?: string;       // 400x400 Base64 compressed image
   published: boolean;      // Visible en la tienda pública
   salesCount?: number;     // Total unidades vendidas
+  supplierType: SupplierType; // 'propia' | 'proveedor'
+  supplierName?: string;      // Nombre del proveedor (ej. "Maikel")
   createdAt: number;
   updatedAt: number;
 }
@@ -37,6 +48,8 @@ export interface StoreSaleItem {
   costPrice: number;
   unitPrice: number;
   subtotal: number;
+  supplierType: SupplierType;
+  supplierName?: string;
 }
 
 export interface StoreSaleRecord {
@@ -44,9 +57,9 @@ export interface StoreSaleRecord {
   date: string;
   timestamp: number;
   items: StoreSaleItem[];
-  totalAmount: number;
-  totalCost: number;
-  netProfit: number;
+  totalAmount: number;     // Total cobrado al cliente
+  totalCost: number;       // Total costo de adquisición
+  netProfit: number;       // Ganancia neta (que va a CuentaCasa)
 }
 
 export type ReportPeriod = 'mensual' | 'quincenal' | 'semanal' | 'personalizado';
@@ -76,6 +89,8 @@ export interface RawDatabase {
   deletedIds?: string[];
   storeProducts?: StoreProduct[];
   storeSales?: StoreSaleRecord[];
+  supplierAccounts?: SupplierAccount[];
+  storeFund?: number;      // Fondo propio acumulado en caja de la tienda
   settings: {
     currency: string;
     appName: string;

@@ -19,8 +19,8 @@ import {
   ShoppingBag, 
   Trash2,
   Receipt,
-  Edit3,
-  DollarSign
+  Users,
+  Building
 } from 'lucide-react';
 
 interface BarcodeScannerModalProps {
@@ -85,7 +85,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           quantity: 1,
           costPrice: product.costPrice || Math.round(product.price * 0.7),
           unitPrice: product.price,
-          subtotal: product.price
+          subtotal: product.price,
+          supplierType: product.supplierType || 'propia',
+          supplierName: product.supplierName
         }
       ];
     });
@@ -234,7 +236,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       netProfit: estimatedNetProfit
     });
 
-    triggerSuccessEffect('¡Venta Registrada Exitosamente!');
+    triggerSuccessEffect('¡Venta Registrada! Ganancia enviada a CuentaCasa.');
     setTicketItems([]);
     if (onSaleCompleted) onSaleCompleted();
     onClose();
@@ -493,6 +495,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                       #{item.barcode}
                     </span>
                     <h4 style={{ fontSize: '0.92rem', fontWeight: 800 }}>{item.name}</h4>
+                    {item.supplierType === 'proveedor' && (
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-expense)', backgroundColor: 'var(--md-sys-color-expense-container)', padding: '1px 6px', borderRadius: '4px' }}>
+                        {item.supplierName || 'Proveedor'}
+                      </span>
+                    )}
                   </div>
 
                   <button
@@ -581,7 +588,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           </div>
         )}
 
-        {/* Factura / Ticket Summary Box */}
+        {/* Factura / Ticket Summary Box (Dual Distribution Breakdown) */}
         {ticketItems.length > 0 && (
           <div style={{
             backgroundColor: 'var(--md-sys-color-income-container)',
@@ -594,9 +601,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>TOTAL FACTURA DE VENTA</span>
-                <span style={{ fontSize: '0.72rem', color: '#00875A', fontWeight: 700 }}>
-                  Ganancia estimada: +{formatCurrency(estimatedNetProfit, currency, true)}
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>TOTAL COBRADO AL CLIENTE</span>
+                <span style={{ fontSize: '0.72rem', color: '#00875A', fontWeight: 800 }}>
+                  A CuentaCasa (Ganancia Neta): +{formatCurrency(estimatedNetProfit, currency, true)}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
+                  Fondo Tienda / Proveedores retenido: {formatCurrency(totalInvoiceCost, currency, true)}
                 </span>
               </div>
 

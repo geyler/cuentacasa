@@ -1,4 +1,4 @@
-import { Transaction, StoreProduct, StoreSaleRecord, RawDatabase } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase } from '@/types';
 
 const STORAGE_KEY = 'cuentacasa_raw_db_v1';
 
@@ -6,7 +6,7 @@ const STORAGE_KEY = 'cuentacasa_raw_db_v1';
 const PLACEHOLDER_IMAGES = {
   pan: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23FFF8F0"/><circle cx="200" cy="200" r="140" fill="%23FFE8D6"/><path d="M120 220C120 170 150 140 200 140C250 140 280 170 280 220C280 240 260 260 200 260C140 260 120 240 120 220Z" fill="%23D48C46"/><path d="M150 180L170 200M200 170L220 190M230 180L250 200" stroke="%23FFF" stroke-width="6" stroke-linecap="round"/><text x="50%" y="82%" fill="%238C5221" font-size="24" font-family="sans-serif" font-weight="bold" text-anchor="middle">Pan Artesanal</text></svg>`,
   arroz: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23F0F7FF"/><rect x="130" y="100" width="140" height="200" rx="20" fill="%2300639B"/><path d="M150 140H250M150 170H250M150 200H210" stroke="%23E0F2FE" stroke-width="8" stroke-linecap="round"/><circle cx="200" cy="250" r="25" fill="%23FFD700"/><text x="50%" y="85%" fill="%2300385E" font-size="24" font-family="sans-serif" font-weight="bold" text-anchor="middle">Arroz Selección</text></svg>`,
-  cafe: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23FAF4EE"/><path d="M120 150C120 120 280 120 280 150L260 270C260 290 230 300 200 300C170 300 140 290 140 270L120 150Z" fill="%235C3A21"/><rect x="140" y="180" width="120" height="60" rx="10" fill="%23D48C46"/><text x="50%" y="54%" fill="%23FFF" font-size="18" font-family="sans-serif" font-weight="bold" text-anchor="middle">CAFÉ GOURMET</text><path d="M180 90C180 80 190 70 190 60M200 90C200 80 210 70 210 60M220 90C220 80 230 70 230 60" stroke="%23D48C46" stroke-width="4" stroke-linecap="round"/></svg>`,
+  cafe: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23FAF4EE"/><path d="M120 150C120 120 280 120 280 150L260 270C260 290 230 300 200 300C170 300 140 290 140 270L120 150Z" fill="%235C3A21"/><rect x="140" y="180" width="120" height="60" rx="10" fill="%23D48C46"/><text x="50%" y="54%" fill="%23FFF" font-size="18" font-family="sans-serif" font-weight="bold" text-anchor="middle">CAFÉ GOURMET</text><path d="M180 90C180 80 190 70 190 60M200 90C200 80 210 70 210 60" stroke="%23D48C46" stroke-width="4" stroke-linecap="round"/></svg>`,
   aceite: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23FFFDF0"/><rect x="150" y="130" width="100" height="180" rx="15" fill="%23FFC107"/><rect x="170" y="80" width="60" height="50" fill="%23FFA000"/><path d="M170 180H230V240H170V180Z" fill="%23FFF" opacity="0.9"/><text x="50%" y="55%" fill="%23F57F17" font-size="14" font-family="sans-serif" font-weight="bold" text-anchor="middle">PURE OIL</text></svg>`
 };
 
@@ -23,6 +23,7 @@ export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
     photoUrl: PLACEHOLDER_IMAGES.pan,
     published: true,
     salesCount: 12,
+    supplierType: 'propia',
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
@@ -38,6 +39,8 @@ export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
     photoUrl: PLACEHOLDER_IMAGES.arroz,
     published: true,
     salesCount: 30,
+    supplierType: 'proveedor',
+    supplierName: 'Maikel',
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
@@ -53,6 +56,7 @@ export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
     photoUrl: PLACEHOLDER_IMAGES.cafe,
     published: true,
     salesCount: 8,
+    supplierType: 'propia',
     createdAt: Date.now(),
     updatedAt: Date.now()
   },
@@ -68,7 +72,26 @@ export const INITIAL_SEED_PRODUCTS: StoreProduct[] = [
     photoUrl: PLACEHOLDER_IMAGES.aceite,
     published: true,
     salesCount: 15,
+    supplierType: 'proveedor',
+    supplierName: 'Carlos',
     createdAt: Date.now(),
+    updatedAt: Date.now()
+  }
+];
+
+export const INITIAL_SUPPLIERS: SupplierAccount[] = [
+  {
+    id: 'sup-maikel',
+    name: 'Maikel',
+    pendingPayout: 0,
+    totalPaid: 0,
+    updatedAt: Date.now()
+  },
+  {
+    id: 'sup-carlos',
+    name: 'Carlos',
+    pendingPayout: 0,
+    totalPaid: 0,
     updatedAt: Date.now()
   }
 ];
@@ -84,6 +107,8 @@ export const INITIAL_DB: RawDatabase = {
   transactions: [],
   storeProducts: INITIAL_SEED_PRODUCTS,
   storeSales: [],
+  supplierAccounts: INITIAL_SUPPLIERS,
+  storeFund: 0,
   deletedIds: []
 };
 
@@ -102,6 +127,8 @@ export function getRawDatabase(): RawDatabase {
       transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
       storeProducts: Array.isArray(parsed.storeProducts) ? parsed.storeProducts : INITIAL_SEED_PRODUCTS,
       storeSales: Array.isArray(parsed.storeSales) ? parsed.storeSales : [],
+      supplierAccounts: Array.isArray(parsed.supplierAccounts) ? parsed.supplierAccounts : INITIAL_SUPPLIERS,
+      storeFund: typeof parsed.storeFund === 'number' ? parsed.storeFund : 0,
       deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : []
     };
   } catch (err) {
@@ -224,7 +251,32 @@ export function deleteStoreProduct(id: string): void {
   }
 }
 
-// --- Store Sales & Accounting Helpers ---
+// --- Supplier Accounts Helpers ---
+
+export function getSupplierAccounts(): SupplierAccount[] {
+  const db = getRawDatabase();
+  return db.supplierAccounts || [];
+}
+
+export function paySupplierAccount(supplierName: string, amount: number): { success: boolean; message: string } {
+  const db = getRawDatabase();
+  if (!db.supplierAccounts) db.supplierAccounts = [];
+
+  const supplier = db.supplierAccounts.find(s => s.name.toLowerCase() === supplierName.toLowerCase());
+  if (!supplier) {
+    return { success: false, message: 'Proveedor no encontrado.' };
+  }
+
+  const payAmount = Math.min(supplier.pendingPayout, amount);
+  supplier.pendingPayout -= payAmount;
+  supplier.totalPaid += payAmount;
+  supplier.updatedAt = Date.now();
+
+  saveRawDatabase(db);
+  return { success: true, message: `Se liquidaron $${payAmount} a la cuenta del proveedor ${supplier.name}.` };
+}
+
+// --- Store Sales & Dual Accounting Helpers ---
 
 export function getStoreSales(): StoreSaleRecord[] {
   const db = getRawDatabase();
@@ -235,6 +287,8 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
   const db = getRawDatabase();
   if (!db.storeSales) db.storeSales = [];
   if (!db.storeProducts) db.storeProducts = [];
+  if (!db.supplierAccounts) db.supplierAccounts = [];
+  if (typeof db.storeFund !== 'number') db.storeFund = 0;
 
   const saleRecord: StoreSaleRecord = {
     ...saleData,
@@ -244,7 +298,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
 
   db.storeSales.unshift(saleRecord);
 
-  // Update stock & salesCount for each product sold
+  // Update stock, salesCount, store fund, and supplier accounts
   saleData.items.forEach(item => {
     const prod = db.storeProducts!.find(p => p.id === item.productId || p.barcode === item.barcode);
     if (prod) {
@@ -252,27 +306,52 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
       prod.salesCount = (prod.salesCount || 0) + item.quantity;
       prod.updatedAt = Date.now();
     }
+
+    const itemCostTotal = item.costPrice * item.quantity;
+
+    // Supplier vs Own Merchandise Flow
+    if (item.supplierType === 'proveedor' && item.supplierName) {
+      let supplier = db.supplierAccounts!.find(s => s.name.toLowerCase() === item.supplierName!.toLowerCase());
+      if (!supplier) {
+        supplier = {
+          id: `sup-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+          name: item.supplierName.trim(),
+          pendingPayout: 0,
+          totalPaid: 0,
+          updatedAt: Date.now()
+        };
+        db.supplierAccounts!.push(supplier);
+      }
+      // Cost money goes to Supplier Pending Payout
+      supplier.pendingPayout += itemCostTotal;
+      supplier.updatedAt = Date.now();
+    } else {
+      // Cost money stays in Store Own Fund
+      db.storeFund! += itemCostTotal;
+    }
   });
 
-  // Automatically register transaction in main accounting DB (Category: 'Tienda')
-  const conceptSummary = saleData.items.length === 1 
-    ? `Venta Tienda: ${saleData.items[0].name} (x${saleData.items[0].quantity})`
-    : `Venta Tienda (${saleData.items.reduce((s, i) => s + i.quantity, 0)} items)`;
+  // CRITICAL RULE: ONLY the Net Profit (Ganancia Casa) is transferred to CuentaCasa Accounting DB
+  if (saleData.netProfit > 0) {
+    const conceptSummary = saleData.items.length === 1 
+      ? `Ganancia Tienda: ${saleData.items[0].name} (x${saleData.items[0].quantity})`
+      : `Ganancia Tienda (${saleData.items.reduce((s, i) => s + i.quantity, 0)} items)`;
 
-  const newTx: Transaction = {
-    id: `tx-sale-${Date.now()}`,
-    type: 'ingreso',
-    concept: conceptSummary,
-    category: 'Tienda',
-    amount: saleData.totalAmount,
-    date: saleData.date,
-    notes: `Ganancia neta: $${saleData.netProfit}`,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    synced: false
-  };
+    const newTx: Transaction = {
+      id: `tx-profit-${Date.now()}`,
+      type: 'ingreso',
+      concept: conceptSummary,
+      category: 'Ganancia Tienda',
+      amount: saleData.netProfit,
+      date: saleData.date,
+      notes: `Venta Total: $${saleData.totalAmount} | Fondo Tienda/Proveedores retenido: $${saleData.totalCost}`,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      synced: false
+    };
 
-  db.transactions.unshift(newTx);
+    db.transactions.unshift(newTx);
+  }
 
   saveRawDatabase(db);
   return saleRecord;
