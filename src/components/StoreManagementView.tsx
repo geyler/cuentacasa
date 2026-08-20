@@ -364,7 +364,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </div>
       )}
 
-      {/* Search Bar */}
+      {/* Search Bar with Input Spotlight */}
       <div className="md-card" style={{ padding: '12px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           
@@ -373,7 +373,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               size={16} 
               style={{
                 position: 'absolute',
-                left: '10px',
+                left: '12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: 'var(--md-sys-color-on-surface-variant)'
@@ -384,14 +384,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               placeholder="Buscar por código, producto o proveedor (ej. Maikel)..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
+              className="input-spotlight"
               style={{
                 width: '100%',
-                padding: '8px 10px 8px 32px',
-                borderRadius: '10px',
+                padding: '10px 12px 10px 36px',
+                borderRadius: '12px',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 backgroundColor: 'var(--md-sys-color-surface)',
                 color: 'var(--md-sys-color-on-surface)',
-                fontSize: '0.85rem'
+                fontSize: '0.88rem'
               }}
             />
           </div>
@@ -541,7 +542,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         })}
       </div>
 
-      {/* Add / Edit Product Modal */}
+      {/* Add / Edit Product Bottom Sheet Modal */}
       {isModalOpen && (
         <div style={{
           position: 'fixed',
@@ -550,9 +551,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           backdropFilter: 'blur(8px)',
           zIndex: 110,
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           justifyContent: 'center',
-          padding: '16px'
+          padding: '0'
         }} onClick={() => setIsModalOpen(false)}>
           
           <form
@@ -561,21 +562,25 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             className="md-card"
             style={{
               width: '100%',
-              maxWidth: '480px',
-              padding: '24px',
+              maxWidth: '520px',
+              padding: '24px 20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '14px',
               maxHeight: '90vh',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              borderRadius: '24px 24px 0 0'
             }}
           >
+            {/* Handle Drag Indicator */}
+            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 8px auto' }} />
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>
                 {editingProduct ? 'Editar Producto de Tienda' : 'Nuevo Producto en Tienda'}
               </h3>
               <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={20} />
+                <X size={22} />
               </button>
             </div>
 
@@ -589,11 +594,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   type="button"
                   onClick={() => setSupplierType('propia')}
                   style={{
-                    padding: '8px',
-                    borderRadius: '8px',
+                    padding: '10px',
+                    borderRadius: '10px',
                     border: 'none',
                     fontWeight: 800,
-                    fontSize: '0.8rem',
+                    fontSize: '0.82rem',
                     cursor: 'pointer',
                     backgroundColor: supplierType === 'propia' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
                     color: supplierType === 'propia' ? '#FFF' : 'var(--md-sys-color-on-surface)'
@@ -606,11 +611,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   type="button"
                   onClick={() => setSupplierType('proveedor')}
                   style={{
-                    padding: '8px',
-                    borderRadius: '8px',
+                    padding: '10px',
+                    borderRadius: '10px',
                     border: 'none',
                     fontWeight: 800,
-                    fontSize: '0.8rem',
+                    fontSize: '0.82rem',
                     cursor: 'pointer',
                     backgroundColor: supplierType === 'proveedor' ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-surface-container-high)',
                     color: supplierType === 'proveedor' ? '#FFF' : 'var(--md-sys-color-on-surface)'
@@ -633,10 +638,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   placeholder="Maikel"
                   value={supplierName}
                   onChange={e => setSupplierName(e.target.value)}
+                  className="input-spotlight"
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
                     border: '2px solid var(--md-sys-color-expense)',
                     backgroundColor: 'var(--md-sys-color-surface)',
                     fontWeight: 800
@@ -645,7 +651,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               </div>
             )}
 
-            {/* Barcode & Category */}
+            {/* Barcode & Category (Numeric Keyboard for Barcode) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
@@ -653,18 +659,23 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 </label>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   maxLength={4}
                   required
                   value={barcode}
                   onChange={e => setBarcode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  className="input-spotlight"
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
                     border: '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface)',
                     fontFamily: 'monospace',
-                    fontWeight: 800
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    textAlign: 'center'
                   }}
                 />
               </div>
@@ -678,10 +689,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   required
                   value={category}
                   onChange={e => setCategory(e.target.value)}
+                  className="input-spotlight"
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
                     border: '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface)'
                   }}
@@ -700,17 +712,18 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 placeholder="Ej. Pan Dulce Casero 5u"
                 value={name}
                 onChange={e => setName(e.target.value)}
+                className="input-spotlight"
                 style={{
                   width: '100%',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
                   border: '1px solid var(--md-sys-color-outline-variant)',
                   backgroundColor: 'var(--md-sys-color-surface)'
                 }}
               />
             </div>
 
-            {/* Cost Price vs Selling Price Grid */}
+            {/* Cost Price vs Selling Price Grid (Numeric Keyboard) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
@@ -718,15 +731,18 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 </label>
                 <input
                   type="number"
+                  inputMode="decimal"
+                  pattern="[0-9]*"
                   step="any"
                   required
                   placeholder="200"
                   value={costPrice}
                   onChange={e => setCostPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  className="input-spotlight"
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
                     border: '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface)',
                     fontWeight: 700
@@ -740,15 +756,18 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 </label>
                 <input
                   type="number"
+                  inputMode="decimal"
+                  pattern="[0-9]*"
                   step="any"
                   required
                   placeholder="350"
                   value={price}
                   onChange={e => setPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  className="input-spotlight"
                   style={{
                     width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
                     border: '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface)',
                     fontWeight: 800,
@@ -758,20 +777,23 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               </div>
             </div>
 
-            {/* Stock */}
+            {/* Stock (Numeric Keyboard) */}
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
                 Stock Disponible (Unidades):
               </label>
               <input
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 required
                 value={stock}
                 onChange={e => setStock(parseInt(e.target.value, 10) || 0)}
+                className="input-spotlight"
                 style={{
                   width: '100%',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
                   border: '1px solid var(--md-sys-color-outline-variant)',
                   backgroundColor: 'var(--md-sys-color-surface)'
                 }}
@@ -785,7 +807,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               </label>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <label className="md-btn md-btn-secondary" style={{ padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer' }}>
+                <label className="md-btn md-btn-secondary" style={{ padding: '8px 14px', fontSize: '0.8rem', cursor: 'pointer' }}>
                   <ImageIcon size={16} />
                   <span>{isUploadingPhoto ? 'Procesando...' : 'Seleccionar Foto'}</span>
                   <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: 'none' }} />
@@ -805,7 +827,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 type="checkbox"
                 checked={published}
                 onChange={e => setPublished(e.target.checked)}
-                style={{ width: '16px', height: '16px' }}
+                style={{ width: '18px', height: '18px' }}
               />
               <span>Publicar en la tienda pública (Visible para clientes)</span>
             </label>
@@ -815,7 +837,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               <button
                 type="submit"
                 className="md-btn md-btn-primary"
-                style={{ flex: 1, padding: '12px' }}
+                style={{ flex: 1, padding: '14px' }}
               >
                 Guardar Producto
               </button>
@@ -826,7 +848,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </div>
       )}
 
-      {/* Supplier Payout Modal */}
+      {/* Supplier Payout Bottom Sheet Modal */}
       {payoutSupplier && (
         <div style={{
           position: 'fixed',
@@ -835,9 +857,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           backdropFilter: 'blur(8px)',
           zIndex: 120,
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           justifyContent: 'center',
-          padding: '16px'
+          padding: '0'
         }} onClick={() => setPayoutSupplier(null)}>
           
           <form
@@ -846,17 +868,21 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             className="md-card"
             style={{
               width: '100%',
-              maxWidth: '400px',
-              padding: '24px',
+              maxWidth: '460px',
+              padding: '24px 20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '14px'
+              gap: '14px',
+              borderRadius: '24px 24px 0 0'
             }}
           >
+            {/* Handle Drag Indicator */}
+            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 8px auto' }} />
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Liquidar Proveedor: {payoutSupplier.name}</h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Liquidar Proveedor: {payoutSupplier.name}</h3>
               <button type="button" onClick={() => setPayoutSupplier(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={20} />
+                <X size={22} />
               </button>
             </div>
 
@@ -870,19 +896,23 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               </label>
               <input
                 type="number"
+                inputMode="decimal"
+                pattern="[0-9]*"
                 step="any"
                 required
                 max={payoutSupplier.pendingPayout}
                 value={payoutAmount}
                 onChange={e => setPayoutAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                className="input-spotlight"
                 style={{
                   width: '100%',
-                  padding: '10px',
-                  borderRadius: '8px',
+                  padding: '12px',
+                  borderRadius: '12px',
                   border: '2px solid var(--md-sys-color-primary)',
                   backgroundColor: 'var(--md-sys-color-surface)',
                   fontWeight: 800,
-                  fontSize: '1.1rem'
+                  fontSize: '1.1rem',
+                  textAlign: 'center'
                 }}
               />
             </div>
@@ -890,7 +920,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <button
               type="submit"
               className="md-btn md-btn-primary"
-              style={{ width: '100%', padding: '12px' }}
+              style={{ width: '100%', padding: '14px' }}
             >
               Registrar Liquidación Entregada
             </button>

@@ -239,3 +239,16 @@ body {
     margin: 0 !important;
   }
 }
+
+/* Input Spotlight Focus & Immersive Blur Styles */
+.input-spotlight {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.input-spotlight:focus {
+  border-color: var(--md-sys-color-primary) !important;
+  box-shadow: 0 0 0 4px rgba(0, 99, 155, 0.22), 0 4px 14px rgba(0,0,0,0.1) !important;
+  transform: translateY(-1px);
+}
+

@@ -18,9 +18,7 @@ import {
   Camera, 
   ShoppingBag, 
   Trash2,
-  Receipt,
-  Users,
-  Building
+  Receipt
 } from 'lucide-react';
 
 interface BarcodeScannerModalProps {
@@ -409,7 +407,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         </button>
       </div>
 
-      {/* Manual Code Input Bar */}
+      {/* Manual Code Input Bar with Numeric Keypad trigger & Input Spotlight */}
       {isManualInput && (
         <div style={{
           padding: '12px 16px',
@@ -422,6 +420,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Ingresar Código 4 dígitos:</span>
           <input
             type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             maxLength={4}
             placeholder="0001"
             value={manualCode}
@@ -432,16 +432,17 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 handleSelectBarcode(val);
               }
             }}
+            className="input-spotlight"
             style={{
-              width: '90px',
-              padding: '6px 10px',
-              borderRadius: '8px',
+              width: '100px',
+              padding: '8px 10px',
+              borderRadius: '10px',
               border: '2px solid var(--md-sys-color-primary)',
               backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
               fontFamily: 'monospace',
               fontWeight: 800,
-              fontSize: '1rem',
+              fontSize: '1.1rem',
               textAlign: 'center'
             }}
           />
@@ -511,7 +512,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   </button>
                 </div>
 
-                {/* Editable Quantity, Unit Price and Subtotal Row */}
+                {/* Editable Quantity, Unit Price and Subtotal Row (Numeric Keypad + Spotlight) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.4fr 1.4fr', gap: '8px', alignItems: 'center' }}>
                   
                   {/* Quantity Stepper */}
@@ -545,12 +546,15 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                     </label>
                     <input
                       type="number"
+                      inputMode="decimal"
+                      pattern="[0-9]*"
                       value={item.unitPrice}
                       onChange={e => updateItemUnitPrice(item.productId, parseFloat(e.target.value) || 0)}
+                      className="input-spotlight"
                       style={{
                         width: '100%',
-                        padding: '4px 6px',
-                        borderRadius: '6px',
+                        padding: '6px 8px',
+                        borderRadius: '8px',
                         border: '1px solid var(--md-sys-color-outline-variant)',
                         backgroundColor: 'var(--md-sys-color-surface)',
                         fontWeight: 800,
@@ -566,12 +570,15 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                     </label>
                     <input
                       type="number"
+                      inputMode="decimal"
+                      pattern="[0-9]*"
                       value={item.subtotal}
                       onChange={e => updateItemSubtotal(item.productId, parseFloat(e.target.value) || 0)}
+                      className="input-spotlight"
                       style={{
                         width: '100%',
-                        padding: '4px 6px',
-                        borderRadius: '6px',
+                        padding: '6px 8px',
+                        borderRadius: '8px',
                         border: '1px solid var(--md-sys-color-outline-variant)',
                         backgroundColor: 'var(--md-sys-color-income-container)',
                         color: 'var(--md-sys-color-income)',

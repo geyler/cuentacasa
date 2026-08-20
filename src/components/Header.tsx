@@ -37,11 +37,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScanner,
   isSyncing = false
 }) => {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleNavClick = (tab: AppTab) => {
     setActiveTab(tab);
-    setIsDrawerOpen(false);
+    setIsMenuOpen(false);
   };
 
   return (
@@ -169,9 +169,9 @@ export const Header: React.FC<HeaderProps> = ({
             {showBalance ? <Eye size={19} /> : <EyeOff size={19} />}
           </button>
 
-          {/* Hamburger Drawer Menu Button */}
+          {/* Hamburger Menu Button */}
           <button
-            onClick={() => setIsDrawerOpen(true)}
+            onClick={() => setIsMenuOpen(true)}
             title="Abrir Menú Principal"
             style={{
               padding: '8px 12px',
@@ -193,219 +193,228 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Hamburger Navigation Drawer Modal (MD3 Side Sheet) */}
-      {isDrawerOpen && (
+      {/* Hamburger Navigation MD3 Bottom Sheet Modal (Sliding from bottom) */}
+      {isMenuOpen && (
         <div 
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(6px)',
+            backdropFilter: 'blur(8px)',
             zIndex: 150,
             display: 'flex',
-            justifyContent: 'flex-end'
+            alignItems: 'flex-end',
+            justifyContent: 'center'
           }}
-          onClick={() => setIsDrawerOpen(false)}
+          onClick={() => setIsMenuOpen(false)}
         >
           <div
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '320px',
-              height: '100%',
+              maxWidth: '500px',
+              maxHeight: '85vh',
               backgroundColor: 'var(--md-sys-color-surface-container)',
+              borderRadius: '24px 24px 0 0',
               boxShadow: 'var(--md-shadow-elevation-3)',
               display: 'flex',
               flexDirection: 'column',
-              padding: '20px 16px'
+              padding: '20px 20px 30px 20px',
+              overflowY: 'auto'
             }}
           >
-            {/* Drawer Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+            {/* Handle Drag Indicator */}
+            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 16px auto' }} />
+
+            {/* Bottom Sheet Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Home size={18} />
+                <div style={{ width: '36px', height: '36px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Home size={20} />
                 </div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Menú de Opciones</h3>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Menú de Opciones</h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)' }}>Navegación principal</span>
+                </div>
               </div>
 
-              <button onClick={() => setIsDrawerOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface)', cursor: 'pointer' }}>
+              <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface)', cursor: 'pointer' }}>
                 <X size={22} />
               </button>
             </div>
 
-            {/* Menu Navigation Items */}
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+            {/* Menu Options List */}
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               
               <button
                 onClick={() => handleNavClick('quick')}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
                   border: 'none',
-                  backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
                   color: activeTab === 'quick' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                   fontWeight: 800,
-                  fontSize: '0.92rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Home size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Home size={20} />
                   <span>Inicio Rápido</span>
                 </div>
-                <ChevronRight size={16} opacity={0.6} />
+                <ChevronRight size={18} opacity={0.6} />
               </button>
 
               <button
                 onClick={() => handleNavClick('dashboard')}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
                   border: 'none',
-                  backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
                   color: activeTab === 'dashboard' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                   fontWeight: 800,
-                  fontSize: '0.92rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <LayoutDashboard size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <LayoutDashboard size={20} />
                   <span>Dashboard Contable</span>
                 </div>
-                <ChevronRight size={16} opacity={0.6} />
+                <ChevronRight size={18} opacity={0.6} />
               </button>
 
               <button
                 onClick={() => handleNavClick('store')}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
                   border: 'none',
-                  backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
                   color: activeTab === 'store' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                   fontWeight: 800,
-                  fontSize: '0.92rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Store size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Store size={20} />
                   <span>Inventario de Tienda</span>
                 </div>
-                <ChevronRight size={16} opacity={0.6} />
+                <ChevronRight size={18} opacity={0.6} />
               </button>
 
               <button
                 onClick={() => handleNavClick('transactions')}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
                   border: 'none',
-                  backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
                   color: activeTab === 'transactions' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                   fontWeight: 800,
-                  fontSize: '0.92rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Receipt size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Receipt size={20} />
                   <span>Movimientos</span>
                 </div>
-                <ChevronRight size={16} opacity={0.6} />
+                <ChevronRight size={18} opacity={0.6} />
               </button>
 
               <button
                 onClick={() => handleNavClick('reports')}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
                   border: 'none',
-                  backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
                   color: activeTab === 'reports' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                   fontWeight: 800,
-                  fontSize: '0.92rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <FileText size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <FileText size={20} />
                   <span>Reportes por Fechas</span>
                 </div>
-                <ChevronRight size={16} opacity={0.6} />
+                <ChevronRight size={18} opacity={0.6} />
               </button>
 
               <div style={{ margin: '8px 0', borderTop: '1px solid var(--md-sys-color-outline-variant)' }} />
 
               {onOpenScanner && (
                 <button
-                  onClick={() => { setIsDrawerOpen(false); onOpenScanner(); }}
+                  onClick={() => { setIsMenuOpen(false); onOpenScanner(); }}
                   style={{
-                    padding: '12px 14px',
-                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    borderRadius: '16px',
                     border: 'none',
                     backgroundColor: 'var(--md-sys-color-surface-container-high)',
                     color: 'var(--md-sys-color-on-surface)',
                     fontWeight: 800,
-                    fontSize: '0.92rem',
+                    fontSize: '0.95rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Scan size={18} color="var(--md-sys-color-primary)" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Scan size={20} color="var(--md-sys-color-primary)" />
                     <span>Escáner de Ventas</span>
                   </div>
-                  <ChevronRight size={16} opacity={0.6} />
+                  <ChevronRight size={18} opacity={0.6} />
                 </button>
               )}
 
               <button
-                onClick={() => { setIsDrawerOpen(false); onOpenSettings(); }}
+                onClick={() => { setIsMenuOpen(false); onOpenSettings(); }}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
                   border: 'none',
                   backgroundColor: 'var(--md-sys-color-surface-container-high)',
                   color: 'var(--md-sys-color-on-surface)',
                   fontWeight: 800,
-                  fontSize: '0.92rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {isSyncing ? <Loader2 size={18} className="animate-spin" /> : <Settings size={18} />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {isSyncing ? <Loader2 size={20} className="animate-spin" /> : <Settings size={20} />}
                   <span>Ajustes y Nube</span>
                 </div>
-                <ChevronRight size={16} opacity={0.6} />
+                <ChevronRight size={18} opacity={0.6} />
               </button>
 
             </nav>
 
             {/* Footer status */}
-            <div style={{ paddingTop: '12px', borderTop: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center' }}>
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center' }}>
               Cuenta Casa v1.0 • PWA Offline
             </div>
           </div>
