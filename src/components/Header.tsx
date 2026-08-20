@@ -10,7 +10,9 @@ import {
   EyeOff,
   Settings,
   LayoutDashboard,
-  Loader2
+  Loader2,
+  Store,
+  Scan
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -19,6 +21,7 @@ interface HeaderProps {
   showBalance: boolean;
   toggleShowBalance: () => void;
   onOpenSettings: () => void;
+  onOpenScanner?: () => void;
   isSyncing?: boolean;
 }
 
@@ -28,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   showBalance,
   toggleShowBalance,
   onOpenSettings,
+  onOpenScanner,
   isSyncing = false
 }) => {
   return (
@@ -135,6 +139,27 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('store')}
+            title="Inventario de Tienda"
+            style={{
+              padding: '6px 10px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+              color: activeTab === 'store' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Store size={15} />
+            <span className="hidden-mobile">Tienda</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('transactions')}
             title="Movimientos"
             style={{
@@ -177,9 +202,33 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Right Side Icons: Eye Privacy Toggle & Settings Gear */}
+        {/* Right Side Icons: Barcode Scanner, Eye Privacy Toggle & Settings Gear */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           
+          {/* Barcode Scanner Button */}
+          {onOpenScanner && (
+            <button
+              onClick={onOpenScanner}
+              title="Escáner de Barras (0001-9999)"
+              style={{
+                padding: '6px 10px',
+                borderRadius: '9999px',
+                border: 'none',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-on-primary-container)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontWeight: 700,
+                fontSize: '0.78rem'
+              }}
+            >
+              <Scan size={16} />
+              <span className="hidden-mobile">Escáner</span>
+            </button>
+          )}
+
           {/* Eye Privacy Toggle */}
           <button
             onClick={toggleShowBalance}

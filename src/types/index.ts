@@ -13,8 +13,22 @@ export interface Transaction {
   synced?: boolean;        // Cloud sync status
 }
 
+export interface StoreProduct {
+  id: string;
+  barcode: string;         // 4-digit numeric code e.g. "0001" to "9999"
+  name: string;
+  price: number;
+  category: string;
+  description?: string;
+  stock: number;
+  imageUrl?: string;
+  published: boolean;      // Visible on public store landing page
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type ReportPeriod = 'mensual' | 'quincenal' | 'semanal' | 'personalizado';
-export type AppTab = 'quick' | 'dashboard' | 'transactions' | 'reports';
+export type AppTab = 'quick' | 'dashboard' | 'transactions' | 'reports' | 'store';
 
 export interface ReportFilter {
   period: ReportPeriod;
@@ -38,6 +52,7 @@ export interface RawDatabase {
   lastSync?: string;
   transactions: Transaction[];
   deletedIds?: string[];
+  storeProducts?: StoreProduct[];
   settings: {
     currency: string;
     appName: string;
