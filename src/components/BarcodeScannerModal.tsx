@@ -1,32 +1,38 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { StoreProduct } from '@/types';
-import { getStoreProductByBarcode, getStoreProducts } from '@/lib/storage';
+import { StoreProduct, StoreSaleItem } from '@/types';
+import { 
+  getStoreProductByBarcode, 
+  getStoreProducts, 
+  registerStoreSale 
+} from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { 
   Scan, 
   X, 
   Plus, 
+  Minus,
   Check, 
   Keyboard, 
   Camera, 
   ShoppingBag, 
-  Zap,
-  ArrowRight
+  Trash2,
+  Receipt,
+  Sparkles
 } from 'lucide-react';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (tx: { concept: string; amount: number; category: string; type: 'gasto' | 'ingreso' }) => void;
+  onSaleCompleted?: () => void;
   currency?: string;
 }
 
 export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   isOpen,
   onClose,
-  onAddTransaction,
+  onSaleCompleted,
   currency = '$'
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -35,37 +41,78 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   // Scanner state
   const [manualCode, setManualCode] = useState('');
   const [scannedBarcode, setScannedBarcode] = useState<string>('0001');
-  const [scannedProduct, setScannedProduct] = useState<StoreProduct | null>(null);
-  
-  // Editable fields
-  const [concept, setConcept] = useState('');
-  const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [category, setCategory] = useState<string>('Viveres');
-  const [txType, setTxType] = useState<'gasto' | 'ingreso'>('gasto');
+  const [currentProduct, setCurrentProduct] = useState<StoreProduct | null>(null);
 
-  // Scanning mode feedback
+  // Ticket / Carrito en vivo State
+  const [ticketItems, setTicketItems] = useState<StoreSaleItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [isManualInput, setIsManualInput] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // Initialize Product selection when barcode changes
+  // Select/Scan Product
   const handleSelectBarcode = (code: string) => {
     const cleanCode = code.padStart(4, '0');
     setScannedBarcode(cleanCode);
 
     const product = getStoreProductByBarcode(cleanCode);
     if (product) {
-      setScannedProduct(product);
-      setConcept(product.name);
-      setUnitPrice(product.price);
-      setCategory(product.category || 'Viveres');
+      setCurrentProduct(product);
+      // Auto-add to ticket if scanned via camera or click
+      addItemToTicket(product);
     } else {
-      setScannedProduct(null);
-      setConcept(`Producto Barcode #${cleanCode}`);
-      setUnitPrice(100);
-      setCategory('General');
+      setCurrentProduct(null);
     }
+  };
+
+  const addItemToTicket = (product: StoreProduct) => {
+    setTicketItems(prev => {
+      const existingIndex = prev.findIndex(item => item.productId === product.id || item.barcode === product.barcode);
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        const currentQty = updated[existingIndex].quantity;
+        const newQty = currentQty + 1;
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: newQty,
+          subtotal: newQty * updated[existingIndex].unitPrice
+        };
+        return updated;
+      }
+
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          barcode: product.barcode,
+          name: product.name,
+          quantity: 1,
+          costPrice: product.costPrice || Math.round(product.price * 0.7),
+          unitPrice: product.price,
+          subtotal: product.price
+        }
+      ];
+    });
+
+    triggerSuccessEffect(`Agregado: ${product.name}`);
+  };
+
+  const updateItemQuantity = (productId: string, delta: number) => {
+    setTicketItems(prev => prev.map(item => {
+      if (item.productId === productId) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? {
+          ...item,
+          quantity: newQty,
+          subtotal: newQty * item.unitPrice
+        } : null;
+      }
+      return item;
+    }).filter(Boolean) as StoreSaleItem[]);
+  };
+
+  const removeItemFromTicket = (productId: string) => {
+    setTicketItems(prev => prev.filter(item => item.productId !== productId));
   };
 
   // Start Camera Feed in top rectangular strip
@@ -75,11 +122,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         stream.getTracks().forEach(track => track.stop());
         setStream(null);
       }
+      setTicketItems([]);
       return;
     }
-
-    // Default select product 0001 on open
-    handleSelectBarcode('0001');
 
     let activeStream: MediaStream | null = null;
 
@@ -109,10 +154,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   if (barcodes.length > 0) {
                     const rawValue = barcodes[0].rawValue;
                     handleSelectBarcode(rawValue);
-                    triggerSuccessEffect();
                   }
                 } catch (e) {
-                  // Ignore frame detection error
+                  // Frame error ignore
                 }
               }
               if (isOpen) {
@@ -123,8 +167,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           }
         }
       } catch (err) {
-        console.warn('Camera access error:', err);
-        setCameraError('Cámara no activa o sin permisos. Puedes seleccionar códigos manualmente.');
+        setCameraError('Cámara inactiva. Puedes seleccionar códigos manualmente.');
       }
     };
 
@@ -139,37 +182,38 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
   if (!isOpen) return null;
 
-  const triggerSuccessEffect = () => {
+  const triggerSuccessEffect = (msg: string) => {
+    setSuccessMessage(msg);
     setShowSuccessBadge(true);
-    setTimeout(() => setShowSuccessBadge(false), 1200);
+    setTimeout(() => setShowSuccessBadge(false), 1400);
   };
 
-  const totalPrice = unitPrice * quantity;
+  // Ticket totals calculation
+  const uniqueItemsCount = ticketItems.length;
+  const totalUnitsCount = ticketItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalInvoicePrice = ticketItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const totalInvoiceCost = ticketItems.reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
+  const estimatedNetProfit = totalInvoicePrice - totalInvoiceCost;
 
-  const handleAddAndContinue = () => {
-    if (!concept.trim() || totalPrice <= 0) {
-      alert('Ingresa un nombre y precio válido.');
+  const handleConfirmSale = () => {
+    if (ticketItems.length === 0) {
+      alert('Agrega al menos un producto al ticket antes de confirmar la venta.');
       return;
     }
 
-    onAddTransaction({
-      concept: `${concept.trim()} (x${quantity})`,
-      amount: totalPrice,
-      category,
-      type: txType
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    registerStoreSale({
+      date: todayStr,
+      items: ticketItems,
+      totalAmount: totalInvoicePrice,
+      totalCost: totalInvoiceCost,
+      netProfit: estimatedNetProfit
     });
 
-    triggerSuccessEffect();
-
-    // Reset quantity for next scan
-    setQuantity(1);
-
-    // Auto-advance to next barcode if manual list
-    const currentNum = parseInt(scannedBarcode, 10);
-    if (!isNaN(currentNum) && currentNum < 9999) {
-      const nextCode = (currentNum + 1).toString().padStart(4, '0');
-      handleSelectBarcode(nextCode);
-    }
+    triggerSuccessEffect('¡Venta Registrada Exitosamente!');
+    setTicketItems([]);
+    if (onSaleCompleted) onSaleCompleted();
   };
 
   const availableProducts = getStoreProducts();
@@ -187,7 +231,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       overflowY: 'auto'
     }} className="no-print">
 
-      {/* Top Header Bar */}
+      {/* Top MD3 Header Bar */}
       <div style={{
         padding: '12px 16px',
         display: 'flex',
@@ -199,7 +243,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Scan size={20} color="var(--md-sys-color-primary)" />
-          <span style={{ fontWeight: 800, fontSize: '1rem' }}>Escáner de Productos (4-Dígitos)</span>
+          <span style={{ fontWeight: 800, fontSize: '1rem' }}>Escáner de Ventas (4-Dígitos)</span>
         </div>
 
         <button
@@ -210,10 +254,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         </button>
       </div>
 
-      {/* Top Rectangular Strip Viewfinder Camera */}
+      {/* Top Viewfinder Camera Strip */}
       <div style={{
         width: '100%',
-        height: '180px',
+        height: '160px',
         backgroundColor: '#111',
         position: 'relative',
         overflow: 'hidden',
@@ -222,34 +266,29 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         justifyContent: 'center',
         borderBottom: '3px solid var(--md-sys-color-primary)'
       }}>
-        {/* Camera stream video */}
         {!cameraError ? (
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
           <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', padding: '20px', fontSize: '0.82rem' }}>
-            <Camera size={28} style={{ marginBottom: '6px', opacity: 0.5 }} />
+            <Camera size={26} style={{ marginBottom: '4px', opacity: 0.5 }} />
             <p>{cameraError}</p>
           </div>
         )}
 
-        {/* Viewfinder Strip Overlay & Animated Red/Green Laser Line */}
+        {/* Laser beam rectangle */}
         <div style={{
           position: 'absolute',
           top: '50%',
-          left: '10%',
-          right: '10%',
+          left: '12%',
+          right: '12%',
           transform: 'translateY(-50%)',
-          height: '80px',
+          height: '70px',
           border: showSuccessBadge ? '2px solid #00FF88' : '2px dashed rgba(255, 255, 255, 0.7)',
           borderRadius: '12px',
           boxShadow: showSuccessBadge ? '0 0 20px rgba(0, 255, 136, 0.6)' : '0 0 0 9999px rgba(0, 0, 0, 0.4)',
@@ -258,7 +297,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          {/* Laser scanning beam line */}
           <div style={{
             width: '100%',
             height: '2px',
@@ -267,11 +305,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           }} />
         </div>
 
-        {/* Scanned Badge Notification */}
+        {/* Feedback Badge */}
         {showSuccessBadge && (
           <div style={{
             position: 'absolute',
-            top: '12px',
+            top: '10px',
             backgroundColor: '#00875A',
             color: '#FFFFFF',
             padding: '6px 14px',
@@ -284,28 +322,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
           }}>
             <Check size={16} />
-            <span>¡Código #{scannedBarcode} Registrado!</span>
+            <span>{successMessage}</span>
           </div>
         )}
-
-        {/* Barcode Indicator */}
-        <div style={{
-          position: 'absolute',
-          bottom: '8px',
-          left: '12px',
-          backgroundColor: 'rgba(0,0,0,0.75)',
-          color: '#00FF88',
-          fontFamily: 'monospace',
-          padding: '4px 10px',
-          borderRadius: '6px',
-          fontSize: '0.85rem',
-          fontWeight: 800
-        }}>
-          BARCODE: #{scannedBarcode}
-        </div>
       </div>
 
-      {/* Quick Barcode Selector & 4-Digit Keypad Switcher */}
+      {/* Manual Code input or Quick Catalog Chips */}
       <div style={{
         padding: '10px 16px',
         backgroundColor: 'var(--md-sys-color-surface-container)',
@@ -317,7 +339,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', flexShrink: 0 }}>
-            Catálogo (0001-9999):
+            Tocar para Escanear:
           </span>
 
           {availableProducts.map(prod => (
@@ -328,15 +350,15 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 padding: '4px 10px',
                 borderRadius: '8px',
                 border: 'none',
-                backgroundColor: scannedBarcode === prod.barcode ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-                color: scannedBarcode === prod.barcode ? 'var(--md-sys-color-on-primary)' : 'var(--md-sys-color-on-surface)',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-on-primary-container)',
                 fontSize: '0.78rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 flexShrink: 0
               }}
             >
-              #{prod.barcode} - {prod.name.slice(0, 12)}...
+              #{prod.barcode} - {prod.name} (${prod.price})
             </button>
           ))}
         </div>
@@ -361,7 +383,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         </button>
       </div>
 
-      {/* Manual 4-Digit Code Keypad Input Mode */}
+      {/* Manual Code Input Bar */}
       {isManualInput && (
         <div style={{
           padding: '12px 16px',
@@ -400,7 +422,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         </div>
       )}
 
-      {/* Bottom Form Data Area for Scanned Product */}
+      {/* Ticket / Factura de Venta Area */}
       <div style={{
         flex: 1,
         padding: '16px',
@@ -409,199 +431,138 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         flexDirection: 'column',
         gap: '14px'
       }}>
-
-        {/* Type Switcher (Gasto / Ingreso) */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => setTxType('gasto')}
-            style={{
-              flex: 1,
-              padding: '8px',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: txType === 'gasto' ? 'var(--md-sys-color-expense-container)' : 'var(--md-sys-color-surface-container-high)',
-              color: txType === 'gasto' ? 'var(--md-sys-color-on-expense-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer'
-            }}
-          >
-            - Registrar como Gasto
-          </button>
-          <button
-            onClick={() => setTxType('ingreso')}
-            style={{
-              flex: 1,
-              padding: '8px',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: txType === 'ingreso' ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-surface-container-high)',
-              color: txType === 'ingreso' ? 'var(--md-sys-color-on-income-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer'
-            }}
-          >
-            + Registrar como Venta/Ingreso
-          </button>
-        </div>
-
-        {/* Product Concept Name */}
-        <div>
-          <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
-            Concepto / Nombre del Producto:
-          </label>
-          <input
-            type="text"
-            value={concept}
-            onChange={e => setConcept(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: '12px',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: 'var(--md-sys-color-surface-container)',
-              color: 'var(--md-sys-color-on-surface)',
-              fontSize: '0.95rem',
-              fontWeight: 700
-            }}
-          />
-        </div>
-
-        {/* Price & Quantity Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          
-          {/* Unit Price */}
-          <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
-              Precio Unitario ({currency}):
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={unitPrice || ''}
-              onChange={e => setUnitPrice(parseFloat(e.target.value) || 0)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '12px',
-                border: '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
-                color: 'var(--md-sys-color-on-surface)',
-                fontSize: '1rem',
-                fontWeight: 800
-              }}
-            />
+        
+        {/* Ticket Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Receipt size={18} color="var(--md-sys-color-primary)" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Ticket de Venta Actual</h3>
           </div>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
+            {uniqueItemsCount} Artículos | {totalUnitsCount} Unidades
+          </span>
+        </div>
 
-          {/* Quantity Stepper */}
-          <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
-              Cantidad a Llevar:
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+        {/* Ticket Items List */}
+        {ticketItems.length === 0 ? (
+          <div className="md-card" style={{ padding: '30px 16px', textAlign: 'center', opacity: 0.7 }}>
+            <ShoppingBag size={36} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '8px' }} />
+            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Escanea o selecciona productos arriba para armar la venta.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
+            {ticketItems.map(item => (
+              <div
+                key={item.productId}
+                className="md-card"
                 style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  fontSize: '1.2rem',
-                  fontWeight: 800,
-                  cursor: 'pointer'
+                  padding: '10px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}
               >
-                -
-              </button>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
+                      #{item.barcode}
+                    </span>
+                    <h4 style={{ fontSize: '0.88rem', fontWeight: 800 }}>{item.name}</h4>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    Precio Costo: ${item.costPrice} | Venta u: ${item.unitPrice}
+                  </div>
+                </div>
 
-              <input
-                type="number"
-                min={1}
-                value={quantity}
-                onChange={e => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface-container)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  fontSize: '1.1rem',
-                  fontWeight: 800,
-                  textAlign: 'center'
-                }}
-              />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {/* Stepper */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      onClick={() => updateItemQuantity(item.productId, -1)}
+                      style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--md-sys-color-surface-container-high)', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      -
+                    </button>
+                    <span style={{ fontWeight: 800, fontSize: '0.85rem', minWidth: '18px', textAlign: 'center' }}>
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => updateItemQuantity(item.productId, 1)}
+                      style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      +
+                    </button>
+                  </div>
 
-              <button
-                onClick={() => setQuantity(q => q + 1)}
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  fontSize: '1.2rem',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                +
-              </button>
+                  {/* Subtotal */}
+                  <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--md-sys-color-income)', minWidth: '60px', textAlign: 'right' }}>
+                    ${item.subtotal}
+                  </span>
+
+                  <button
+                    onClick={() => removeItemFromTicket(item.productId)}
+                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-expense)', cursor: 'pointer' }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Factura / Ticket Summary Box */}
+        {ticketItems.length > 0 && (
+          <div style={{
+            backgroundColor: 'var(--md-sys-color-income-container)',
+            color: 'var(--md-sys-color-on-income-container)',
+            padding: '14px 16px',
+            borderRadius: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>TOTAL FACTURA DE VENTA</span>
+                <span style={{ fontSize: '0.72rem', color: '#00875A', fontWeight: 700 }}>
+                  Ganancia estimada: +{formatCurrency(estimatedNetProfit, currency, true)}
+                </span>
+              </div>
+
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                {formatCurrency(totalInvoicePrice, currency, true)}
+              </div>
             </div>
           </div>
+        )}
 
-        </div>
-
-        {/* Calculated Total Display */}
-        <div style={{
-          backgroundColor: txType === 'gasto' ? 'var(--md-sys-color-expense-container)' : 'var(--md-sys-color-income-container)',
-          color: txType === 'gasto' ? 'var(--md-sys-color-on-expense-container)' : 'var(--md-sys-color-on-income-container)',
-          padding: '12px 16px',
-          borderRadius: '14px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>Monto Total a Agregar</span>
-            <span style={{ fontSize: '0.72rem', opacity: 0.8 }}>({quantity} u x {currency}{unitPrice})</span>
-          </div>
-
-          <div style={{
-            fontSize: '1.5rem',
-            fontWeight: 800,
-            color: txType === 'gasto' ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-income)'
-          }}>
-            {txType === 'gasto' ? '-' : '+'} {formatCurrency(totalPrice, currency, true)}
-          </div>
-        </div>
-
-        {/* Main Action Buttons */}
+        {/* Submit Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto', paddingTop: '10px' }}>
-          
-          {/* Add & Scan Next */}
           <button
-            onClick={handleAddAndContinue}
+            onClick={handleConfirmSale}
+            disabled={ticketItems.length === 0}
             className="md-btn md-btn-primary"
-            style={{ width: '100%', padding: '14px', fontSize: '1rem', gap: '8px' }}
+            style={{
+              width: '100%',
+              padding: '14px',
+              fontSize: '1rem',
+              opacity: ticketItems.length === 0 ? 0.5 : 1
+            }}
           >
-            <Plus size={20} />
-            <span>Agregar y Continuar Escaneando</span>
+            <Check size={20} />
+            <span>Confirmar y Registrar Venta</span>
           </button>
 
-          {/* Done & Close */}
           <button
             onClick={onClose}
             className="md-btn md-btn-secondary"
             style={{ width: '100%', padding: '12px', fontSize: '0.9rem' }}
           >
-            <span>Finalizar Escáner</span>
+            <span>Cerrar Escáner</span>
           </button>
-
         </div>
 
       </div>

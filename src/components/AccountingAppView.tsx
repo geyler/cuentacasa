@@ -494,15 +494,7 @@ export function AccountingAppView() {
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
-        onAddTransaction={({ concept, amount, category, type }) => {
-          handleSaveTransaction({
-            concept,
-            amount,
-            category,
-            type,
-            date: new Date().toISOString().split('T')[0]
-          });
-        }}
+        onSaleCompleted={loadDatabase}
         currency={db.settings.currency}
       />
 

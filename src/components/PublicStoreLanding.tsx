@@ -16,7 +16,7 @@ import {
   MessageCircle, 
   Sparkles, 
   Store,
-  ArrowRight
+  Package
 } from 'lucide-react';
 
 interface CartItem {
@@ -40,7 +40,7 @@ export const PublicStoreLanding: React.FC = () => {
   const categories = Array.from(new Set(products.map(p => p.category)));
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.barcode.includes(searchTerm);
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCat = selectedCategory === 'todas' || p.category === selectedCategory;
     return matchesSearch && matchesCat;
   });
@@ -77,7 +77,7 @@ export const PublicStoreLanding: React.FC = () => {
 
     let text = `🛒 *NUEVO PEDIDO - TIENDA CASA*\n\n`;
     cart.forEach((item, index) => {
-      text += `${index + 1}. *${item.product.name}* (#${item.product.barcode})\n   Cantidad: ${item.quantity}u | Precio: $${item.product.price * item.quantity}\n`;
+      text += `${index + 1}. *${item.product.name}*\n   Cantidad: ${item.quantity}u | Precio: $${item.product.price * item.quantity}\n`;
     });
     text += `\n*TOTAL A PAGAR: $${totalCartPrice}*`;
 
@@ -142,7 +142,7 @@ export const PublicStoreLanding: React.FC = () => {
                 Tienda Casa
               </h1>
               <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                Catálogo de Productos Físicos
+                Catálogo de Productos
               </span>
             </div>
           </div>
@@ -229,7 +229,7 @@ export const PublicStoreLanding: React.FC = () => {
             />
             <input
               type="text"
-              placeholder="Buscar productos o número #0001..."
+              placeholder="Buscar productos..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{
@@ -292,7 +292,7 @@ export const PublicStoreLanding: React.FC = () => {
             <ShoppingBag size={40} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '10px' }} />
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>No se encontraron productos</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px' }}>
-              Intenta buscar con otra categoría o código.
+              Intenta buscar con otra categoría o nombre.
             </p>
           </div>
         ) : (
@@ -317,26 +317,58 @@ export const PublicStoreLanding: React.FC = () => {
                   }}
                 >
                   <div>
-                    {/* Top Barcode & Category */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    {/* Optional Product Image Preview (Base64 400x400) */}
+                    {product.photoUrl ? (
+                      <div style={{
+                        width: '100%',
+                        height: '150px',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        marginBottom: '10px',
+                        backgroundColor: 'var(--md-sys-color-surface-container-high)'
+                      }}>
+                        <img 
+                          src={product.photoUrl} 
+                          alt={product.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      </div>
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        height: '100px',
+                        borderRadius: '12px',
+                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--md-sys-color-on-surface-variant)',
+                        marginBottom: '10px'
+                      }}>
+                        <Package size={32} style={{ opacity: 0.4 }} />
+                      </div>
+                    )}
+
+                    {/* Category Tag */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <span style={{
-                        fontFamily: 'monospace',
-                        fontWeight: 800,
-                        fontSize: '0.78rem',
-                        backgroundColor: 'var(--md-sys-color-primary-container)',
-                        color: 'var(--md-sys-color-on-primary-container)',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                        color: 'var(--md-sys-color-on-surface-variant)',
                         padding: '2px 8px',
                         borderRadius: '6px'
                       }}>
-                        #{product.barcode}
-                      </span>
-
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--md-sys-color-on-surface-variant)' }}>
                         {product.category}
                       </span>
+                      {product.stock > 0 ? (
+                        <span style={{ fontSize: '0.7rem', color: '#00875A', fontWeight: 700 }}>Disponible</span>
+                      ) : (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-expense)', fontWeight: 700 }}>Agotado</span>
+                      )}
                     </div>
 
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '6px' }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '4px' }}>
                       {product.name}
                     </h3>
 
@@ -359,8 +391,9 @@ export const PublicStoreLanding: React.FC = () => {
                     {!inCart ? (
                       <button
                         onClick={() => addToCart(product)}
+                        disabled={product.stock <= 0}
                         className="md-btn md-btn-primary"
-                        style={{ padding: '8px 14px', fontSize: '0.82rem' }}
+                        style={{ padding: '8px 14px', fontSize: '0.82rem', opacity: product.stock <= 0 ? 0.5 : 1 }}
                       >
                         <Plus size={16} />
                         <span>Agregar</span>
