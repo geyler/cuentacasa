@@ -331,7 +331,7 @@ export default function Home() {
             {/* Recent Transactions */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Movimientos Recientes</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Últimos 10 Movimientos</h3>
                 <button
                   onClick={() => setActiveTab('transactions')}
                   style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-primary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
@@ -341,7 +341,8 @@ export default function Home() {
               </div>
 
               <TransactionList
-                transactions={transactions.slice(0, 5)}
+                transactions={transactions}
+                limit={10}
                 onEdit={handleOpenEditTx}
                 onDelete={handleDeleteTransaction}
                 currency={db.settings.currency}

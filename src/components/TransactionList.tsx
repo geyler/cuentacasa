@@ -5,13 +5,11 @@ import { Transaction, TransactionType } from '@/types';
 import { formatCurrency } from '@/lib/invoice';
 import { 
   Search, 
-  Filter, 
   ArrowUpRight, 
   ArrowDownRight, 
   Edit3, 
   Trash2, 
   Calendar,
-  X,
   ChevronDown
 } from 'lucide-react';
 
@@ -21,6 +19,7 @@ interface TransactionListProps {
   onDelete: (id: string) => void;
   currency?: string;
   showBalance?: boolean;
+  limit?: number;
 }
 
 const PAGE_SIZE = 15;
@@ -30,27 +29,31 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   onEdit,
   onDelete,
   currency = '$',
-  showBalance = true
+  showBalance = true,
+  limit
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'todos' | TransactionType>('todos');
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Filtered transactions
+  // Filtered transactions by search & type
   const filtered = transactions.filter(tx => {
     const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'todos' || tx.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
+  // Apply limit if specified (e.g. 10 for Dashboard)
+  const displayedTransactions = limit ? filtered.slice(0, limit) : filtered;
+
   // Reset pagination when search or filters change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [searchTerm, typeFilter]);
 
-  // Infinite Scroll Trigger on Window Scroll
+  // Infinite Scroll Trigger on Window Scroll (only when no limit)
   useEffect(() => {
+    if (limit) return;
     const handleScroll = () => {
       if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
         setVisibleCount(prev => (prev < filtered.length ? prev + PAGE_SIZE : prev));
@@ -59,10 +62,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [filtered.length]);
+  }, [filtered.length, limit]);
 
-  const visibleTransactions = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  const visibleTransactions = limit ? displayedTransactions : displayedTransactions.slice(0, visibleCount);
+  const hasMore = !limit && visibleCount < filtered.length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -125,7 +128,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   textTransform: 'capitalize'
                 }}
               >
-                {t === 'todos' ? 'Todos' : t === 'ingreso' ? '+ Ingresos' : '- Gastos'}
+                {t === 'todos' ? 'Todos' : t === 'ingreso' ? '+ Recibidos' : '- Gastados'}
               </button>
             ))}
           </div>
@@ -203,28 +206,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
                 </div>
 
-                {/* Right Side: Photo & Amount & Actions */}
+                {/* Right Side: Amount & Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
                   
-                  {/* Photo Thumbnail */}
-                  {tx.photoUrl && (
-                    <button
-                      onClick={() => setSelectedPhoto(tx.photoUrl || null)}
-                      title="Ver foto"
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
-                        padding: 0,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <img src={tx.photoUrl} alt={tx.concept} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </button>
-                  )}
-
                   {/* Amount Badge */}
                   <div style={{
                     textAlign: 'right',
@@ -289,44 +273,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             <span>Cargar más ({filtered.length - visibleCount} restantes)</span>
             <ChevronDown size={16} />
           </button>
-        </div>
-      )}
-
-      {/* Photo Lightbox Modal */}
-      {selectedPhoto && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.85)',
-          zIndex: 120,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }} className="no-print" onClick={() => setSelectedPhoto(null)}>
-          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
-            <img 
-              src={selectedPhoto} 
-              alt="Foto ampliada" 
-              style={{ maxWidth: '100%', maxHeight: '85vh', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} 
-            />
-            <button
-              onClick={() => setSelectedPhoto(null)}
-              style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '0',
-                backgroundColor: '#FFF',
-                color: '#000',
-                border: 'none',
-                borderRadius: '50%',
-                padding: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              <X size={20} />
-            </button>
-          </div>
         </div>
       )}
 

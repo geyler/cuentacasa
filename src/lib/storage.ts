@@ -92,11 +92,9 @@ export function updateTransaction(tx: Transaction): void {
   }
 }
 
-// Delete transaction & clean up photo memory completely
+// Delete transaction
 export function deleteTransaction(id: string): void {
   const db = getRawDatabase();
-  
-  // Clean photo payload on deletion
   db.transactions = db.transactions.filter(t => t.id !== id);
   if (!db.deletedIds) db.deletedIds = [];
   if (!db.deletedIds.includes(id)) {
@@ -118,45 +116,4 @@ export function exportDatabaseFile(): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-}
-
-// Resize and compress uploaded images to max 400x400 px JPEG (~20-40KB) for storage efficiency
-export function fileToBase64(file: File, maxWidth = 400, maxHeight = 400): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth || height > maxHeight) {
-          if (width > height) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
-          resolve(compressedBase64);
-        } else {
-          resolve(event.target?.result as string);
-        }
-      };
-      img.onerror = err => reject(err);
-    };
-    reader.onerror = error => reject(error);
-  });
 }

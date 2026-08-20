@@ -3,7 +3,7 @@
 import React from 'react';
 import { FinancialSummary } from '@/types';
 import { formatCurrency } from '@/lib/invoice';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, PieChart } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 
 interface StatCardsProps {
   summary: FinancialSummary;
@@ -17,9 +17,9 @@ export const StatCards: React.FC<StatCardsProps> = ({
   showBalance = true 
 }) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* 4 Primary Metric Cards Grid */}
+      {/* 3 Primary Metric Cards Grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -112,85 +112,6 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
         </div>
 
-        {/* Savings Rate Card */}
-        <div className="md-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--md-sys-color-on-surface-variant)' }}>
-              % Tasa de Ahorro
-            </span>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <PiggyBank size={20} color="var(--md-sys-color-primary)" />
-            </div>
-          </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-on-surface)' }}>
-            {showBalance ? `${summary.savingsRate}%` : '•••%'}
-          </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-            {summary.savingsRate >= 0 ? 'Retenido como fondo de casa' : 'Deficit contable acumulado'}
-          </div>
-        </div>
-
-      </div>
-
-      {/* Expense Category Breakdown Chart */}
-      <div className="md-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-          <PieChart size={22} color="var(--md-sys-color-primary)" />
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface)' }}>
-            Distribución de Gastos por Categoría
-          </h3>
-        </div>
-
-        {Object.keys(summary.categoryBreakdown).length === 0 ? (
-          <p style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.9rem' }}>
-            No hay gastos registrados en el periodo seleccionado.
-          </p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {Object.entries(summary.categoryBreakdown)
-              .sort((a, b) => b[1] - a[1])
-              .map(([category, amount]) => {
-                const percentage = summary.totalExpense > 0 
-                  ? Math.round((amount / summary.totalExpense) * 100) 
-                  : 0;
-
-                return (
-                  <div key={category} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', fontWeight: 600 }}>
-                      <span style={{ color: 'var(--md-sys-color-on-surface)' }}>{category}</span>
-                      <span style={{ color: 'var(--md-sys-color-expense)' }}>
-                        {formatCurrency(amount, currency, showBalance)} ({percentage}%)
-                      </span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div style={{
-                      width: '100%',
-                      height: '8px',
-                      borderRadius: '9999px',
-                      backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${percentage}%`,
-                        backgroundColor: 'var(--md-sys-color-expense)',
-                        borderRadius: '9999px',
-                        transition: 'width 0.4s ease'
-                      }} />
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        )}
       </div>
 
     </div>

@@ -57,8 +57,6 @@ async function getMySQLTransactions(): Promise<{ transactions: Transaction[]; de
       amount: Number(r.amount),
       date: r.date,
       notes: r.notes || undefined,
-      photoUrl: r.photo_url || undefined,
-      photoName: r.photo_name || undefined,
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at),
       synced: true
@@ -74,7 +72,7 @@ async function deleteMySQLTransactions(deletedIds: string[]) {
   // Delete from transactions table
   await pool.query('DELETE FROM transactions WHERE id IN (?)', [deletedIds]);
 
-  // Insert into deleted_transactions table
+  // Insert into deleted_transactions table to record deletion
   const values = deletedIds.map(id => [id, Date.now()]);
   await pool.query('INSERT IGNORE INTO deleted_transactions (id, deleted_at) VALUES ?', [values]);
 }
@@ -84,7 +82,7 @@ async function saveMySQLTransactions(transactions: Transaction[]) {
   await ensureTableExists();
 
   const query = `
-    INSERT INTO transactions (id, type, concept, category, amount, date, notes, photo_url, photo_name, created_at, updated_at)
+    INSERT INTO transactions (id, type, concept, category, amount, date, notes, created_at, updated_at)
     VALUES ?
     ON DUPLICATE KEY UPDATE
       type = VALUES(type),
@@ -93,8 +91,6 @@ async function saveMySQLTransactions(transactions: Transaction[]) {
       amount = VALUES(amount),
       date = VALUES(date),
       notes = VALUES(notes),
-      photo_url = VALUES(photo_url),
-      photo_name = VALUES(photo_name),
       created_at = VALUES(created_at),
       updated_at = VALUES(updated_at)
   `;
@@ -107,8 +103,6 @@ async function saveMySQLTransactions(transactions: Transaction[]) {
     t.amount,
     t.date,
     t.notes || null,
-    t.photoUrl || null,
-    t.photoName || null,
     t.createdAt || Date.now(),
     t.updatedAt || Date.now()
   ]);

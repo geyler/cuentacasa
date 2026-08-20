@@ -8,8 +8,6 @@ export interface Transaction {
   amount: number;          // Monto
   date: string;            // ISO String YYYY-MM-DD
   notes?: string;
-  photoUrl?: string;       // Base64 Data URI or Blob URL
-  photoName?: string;
   createdAt: number;       // Timestamp
   updatedAt: number;       // Timestamp
   synced?: boolean;        // Cloud sync status

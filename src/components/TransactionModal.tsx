@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Transaction, TransactionType } from '@/types';
-import { fileToBase64 } from '@/lib/storage';
-import { X, Camera, Trash2, CheckCircle2, Check, Keyboard, ArrowRight, Loader2 } from 'lucide-react';
+import { X, CheckCircle2, Check, Keyboard, ArrowRight, Loader2 } from 'lucide-react';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -23,7 +22,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [type, setType] = useState<TransactionType>(initialType);
   const [concept, setConcept] = useState('');
   const [amount, setAmount] = useState<string>('');
-  const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   
@@ -40,13 +38,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         setType(editingTransaction.type);
         setConcept(editingTransaction.concept);
         setAmount(editingTransaction.amount.toString());
-        setPhotoUrl(editingTransaction.photoUrl);
         setError('');
       } else {
         setType(initialType);
         setConcept('');
         setAmount('');
-        setPhotoUrl(undefined);
         setError('');
       }
       setIsSaving(false);
@@ -81,18 +77,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   }, [isOpen, focusedField, isSaving]);
 
   if (!isOpen) return null;
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      try {
-        // Automatically resizes and compresses image to max 400x400 JPEG
-        const base64 = await fileToBase64(e.target.files[0], 400, 400);
-        setPhotoUrl(base64);
-      } catch (err) {
-        console.error('Error reading photo:', err);
-      }
-    }
-  };
 
   const handleDismissKeyboard = () => {
     if (typeof document !== 'undefined' && document.activeElement) {
@@ -130,8 +114,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         category: categoryName,
         amount: parsedAmount,
         date: editingTransaction ? editingTransaction.date : currentDate,
-        notes: '',
-        photoUrl
+        notes: ''
       });
       setIsSaving(false);
       onClose();
@@ -477,76 +460,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 transition: 'all 0.2s ease'
               }}
             />
-          </div>
-
-          {/* Photo Attachment */}
-          <div style={{
-            opacity: isFocused ? 0.5 : 1,
-            transition: 'opacity 0.2s ease'
-          }}>
-            <label style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>
-              Foto (Opcional - Max 400x400px)
-            </label>
-
-            {photoUrl ? (
-              <div style={{
-                position: 'relative',
-                width: '100%',
-                height: '120px',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                border: '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: '#000'
-              }}>
-                <img 
-                  src={photoUrl} 
-                  alt="Adjunto" 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                />
-                <button
-                  type="button"
-                  onClick={() => setPhotoUrl(undefined)}
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    backgroundColor: 'rgba(211, 47, 47, 0.9)',
-                    color: '#FFF',
-                    border: 'none',
-                    borderRadius: '50%',
-                    padding: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ) : (
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '10px',
-                borderRadius: '12px',
-                border: '2px dashed var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                color: 'var(--md-sys-color-on-surface-variant)',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 700
-              }}>
-                <Camera size={18} />
-                <span>Adjuntar Foto</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="environment"
-                  onChange={handlePhotoUpload}
-                  style={{ display: 'none' }} 
-                />
-              </label>
-            )}
           </div>
 
           {/* Full Width Single Action Button */}
