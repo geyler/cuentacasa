@@ -20,7 +20,7 @@ import {
   Trash2,
   Receipt,
   Upload,
-  AlertCircle
+  Volume2
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
@@ -30,6 +30,32 @@ interface BarcodeScannerModalProps {
   onSaleCompleted?: () => void;
   currency?: string;
 }
+
+// Web Audio API Beep Generator (100% offline, zero network delay)
+const playScanBeep = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1050, ctx.currentTime); // High crisp scanner beep
+
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.14);
+    }
+  } catch (e) {
+    // Ignore audio context autoplay restrictions if any
+  }
+};
 
 export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   isOpen,
@@ -50,13 +76,16 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [isScanningFile, setIsScanningFile] = useState(false);
 
-  // Cooldown tracker to prevent duplicate scans in 2 seconds
+  // Cooldown tracker to prevent duplicate scans in 1.8 seconds
   const lastScanTimeRef = useRef<number>(0);
 
   const handleDecodedBarcode = (decodedText: string) => {
     const now = Date.now();
     if (now - lastScanTimeRef.current < 1800) return; // Cooldown 1.8s
     lastScanTimeRef.current = now;
+
+    // Play physical scanner PIP sound!
+    playScanBeep();
 
     // Extract digits or clean barcode
     const numericOnly = decodedText.replace(/\D/g, '');
@@ -68,7 +97,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     if (product) {
       addItemToTicket(product);
     } else {
-      triggerSuccessEffect(`Código #${cleanCode} escaneado (No encontrado en catálogo)`);
+      triggerSuccessEffect(`Código #${cleanCode} escaneado (No encontrado)`);
     }
   };
 
@@ -183,8 +212,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         html5QrcodeRef.current = html5Qrcode;
 
         const config = {
-          fps: 15,
-          qrbox: { width: 260, height: 130 },
+          fps: 20,
+          qrbox: { width: 280, height: 130 },
           aspectRatio: 1.777778
         };
 
@@ -207,7 +236,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }
     };
 
-    // Small delay to ensure DOM element is rendered
     const timer = setTimeout(initEngine, 200);
 
     return () => {
@@ -243,7 +271,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       scanner.clear();
       handleDecodedBarcode(decodedText);
     } catch (err) {
-      alert('No se detectó un código de barras legibles en la imagen seleccionada.');
+      alert('No se detectó un código de barras legible en la imagen seleccionada.');
     } finally {
       setIsScanningFile(false);
     }
@@ -292,7 +320,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.88)',
+      backgroundColor: 'rgba(0, 0, 0, 0.90)',
       backdropFilter: 'blur(8px)',
       zIndex: 120,
       display: 'flex',
@@ -314,7 +342,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Scan size={20} color="var(--md-sys-color-primary)" />
+          <Scan size={20} color="#FF0033" />
           <span style={{ fontWeight: 800, fontSize: '1rem' }}>Escáner de Códigos de Barras</span>
         </div>
 
@@ -326,12 +354,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         </button>
       </div>
 
-      {/* Camera Viewfinder Box with Html5Qrcode engine */}
+      {/* Camera Viewfinder Box with High-Tech Laser Beam & Centered Frame */}
       <div style={{
         width: '100%',
-        minHeight: '210px',
-        maxHeight: '260px',
-        backgroundColor: '#111111',
+        height: '240px',
+        backgroundColor: '#050505',
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',
@@ -339,27 +366,56 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         justifyContent: 'center',
         borderBottom: '3px solid var(--md-sys-color-primary)'
       }}>
+        
         {/* Html5Qrcode Reader Element */}
         <div id={scannerContainerId} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
 
-        {/* Feedback Badge */}
+        {/* Viewfinder Target Box Overlay with Corner Brackets & Red Laser Beam */}
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '280px',
+          height: '130px',
+          border: showSuccessBadge ? '2px solid #00FF88' : '2px solid rgba(255, 255, 255, 0.4)',
+          borderRadius: '16px',
+          boxShadow: showSuccessBadge ? '0 0 24px rgba(0, 255, 136, 0.8)' : '0 0 0 9999px rgba(0, 0, 0, 0.55)',
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+
+          {/* Red Laser Scanning Beam (Up and Down Motion) */}
+          {!showSuccessBadge && <div className="scanner-laser-line" />}
+
+          {/* Corner Target Bracket Hints */}
+          <div style={{ position: 'absolute', top: '8px', left: '8px', width: '16px', height: '16px', borderTop: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '4px 0 0 0' }} />
+          <div style={{ position: 'absolute', top: '8px', right: '8px', width: '16px', height: '16px', borderTop: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 4px 0 0' }} />
+          <div style={{ position: 'absolute', bottom: '8px', left: '8px', width: '16px', height: '16px', borderBottom: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '0 0 0 4px' }} />
+          <div style={{ position: 'absolute', bottom: '8px', right: '8px', width: '16px', height: '16px', borderBottom: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 0 4px 0' }} />
+        </div>
+
+        {/* Success Beep Badge */}
         {showSuccessBadge && (
           <div style={{
             position: 'absolute',
             top: '12px',
             backgroundColor: '#00875A',
             color: '#FFFFFF',
-            padding: '8px 16px',
+            padding: '8px 18px',
             borderRadius: '9999px',
-            fontSize: '0.85rem',
+            fontSize: '0.88rem',
             fontWeight: 800,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            boxShadow: '0 6px 16px rgba(0,0,0,0.5)',
+            boxShadow: '0 6px 20px rgba(0, 135, 90, 0.6)',
             zIndex: 10
           }}>
-            <Check size={18} />
+            <Volume2 size={18} />
             <span>{successMessage}</span>
           </div>
         )}
@@ -506,7 +562,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         {ticketItems.length === 0 ? (
           <div className="md-card" style={{ padding: '30px 16px', textAlign: 'center', opacity: 0.7 }}>
             <ShoppingBag size={36} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '8px' }} />
-            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Apunta la cámara al código de barras o tócalo arriba en la lista para sumarlo al ticket.</p>
+            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Centra el código de barras bajo la línea láser para sumar el producto al ticket.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '280px', overflowY: 'auto' }}>

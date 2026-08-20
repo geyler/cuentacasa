@@ -252,3 +252,23 @@ body {
   transform: translateY(-1px);
 }
 
+/* Animated Scanner Laser Sweep */
+@keyframes laser-sweep {
+  0% { top: 6%; }
+  50% { top: 92%; }
+  100% { top: 6%; }
+}
+
+.scanner-laser-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #FF0033 20%, #FF0033 80%, transparent);
+  box-shadow: 0 0 14px #FF0033, 0 0 6px #FF3366;
+  animation: laser-sweep 2.2s ease-in-out infinite;
+  z-index: 5;
+  pointer-events: none;
+}
+
+
