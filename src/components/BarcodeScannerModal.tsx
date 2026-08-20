@@ -181,7 +181,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setTicketItems(prev => prev.filter(item => item.productId !== productId));
   };
 
-  // Initialize Html5Qrcode Scanner Engine
+  // Initialize Html5Qrcode Scanner Engine with exact 1:1 center alignment
   useEffect(() => {
     if (!isOpen) {
       stopScannerEngine();
@@ -213,7 +213,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
         const config = {
           fps: 20,
-          qrbox: { width: 280, height: 130 },
+          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+            // Precise dynamic center box matching the 280x130 visual overlay
+            return {
+              width: Math.min(viewfinderWidth * 0.88, 280),
+              height: Math.min(viewfinderHeight * 0.60, 130)
+            };
+          },
           aspectRatio: 1.777778
         };
 

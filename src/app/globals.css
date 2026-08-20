@@ -265,10 +265,23 @@ body {
   right: 0;
   height: 3px;
   background: linear-gradient(90deg, transparent, #FF0033 20%, #FF0033 80%, transparent);
-  box-shadow: 0 0 14px #FF0033, 0 0 6px #FF3366;
-  animation: laser-sweep 2.2s ease-in-out infinite;
-  z-index: 5;
   pointer-events: none;
 }
 
+/* Html5Qrcode Camera Video Alignment Fix */
+#cuentacasa-html5-barcode-reader {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
 
+#cuentacasa-html5-barcode-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+}
