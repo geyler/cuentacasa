@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { StoreProduct } from '@/types';
 import { getStoreProducts } from '@/lib/storage';
+import { formatCurrency } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { 
   ShoppingBag, 
