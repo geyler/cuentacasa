@@ -52,7 +52,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   currency = '$',
   onOpenScanner
 }) => {
-  const { showToast, confirmAction } = useActionFeedback();
+  const { showToast, confirmAction, showActionResult } = useActionFeedback();
   const rawDb = getRawDatabase();
   const [products, setProducts] = useState<StoreProduct[]>(() => getStoreProducts());
   const [suppliers, setSuppliers] = useState<SupplierAccount[]>(() => getSupplierAccounts());
@@ -203,23 +203,33 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
     refreshData();
     setIsModalOpen(false);
-    showToast({
+    
+    showActionResult({
       title: editingProduct ? '¡Producto Actualizado!' : '¡Producto Creado!',
       message: `"${name.trim()}" ${editingProduct ? 'ha sido modificado correctamente' : 'se agregó al inventario'}.`,
-      type: 'success'
+      type: 'success',
+      actions: [
+        { label: 'Ver Tienda Pública', href: '/', icon: <ExternalLink size={16} /> },
+        { label: 'Agregar Otro Producto', onClick: () => handleOpenAdd(), icon: <Plus size={16} /> }
+      ]
     });
   };
 
   const handleTogglePublish = (p: StoreProduct) => {
+    const isNowPublished = !p.published;
     saveStoreProduct({
       ...p,
-      published: !p.published
+      published: isNowPublished
     });
     refreshData();
-    showToast({
-      title: 'Estado del Producto',
-      message: `"${p.name}" ahora está ${!p.published ? 'Visible en Tienda' : 'en Borrador (Oculto)'}.`,
-      type: 'info'
+
+    showActionResult({
+      title: isNowPublished ? '¡Producto Publicado!' : '¡Producto en Borrador!',
+      message: `"${p.name}" ahora está ${isNowPublished ? 'visible para tus clientes en la Tienda Pública' : 'oculto en estado de borrador'}.`,
+      type: isNowPublished ? 'success' : 'info',
+      actions: [
+        { label: 'Ver en Tienda Pública', href: '/', icon: <ExternalLink size={16} /> }
+      ]
     });
   };
 
@@ -232,10 +242,10 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       onConfirm: () => {
         deleteStoreProduct(id);
         refreshData();
-        showToast({
+        showActionResult({
           title: '¡Producto Eliminado!',
-          message: `"${prodName}" fue retirado del inventario.`,
-          type: 'success'
+          message: `"${prodName}" fue retirado del inventario de la tienda.`,
+          type: 'info'
         });
       }
     });
@@ -255,7 +265,14 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     if (!newSupplierNameInput.trim()) return;
     saveSupplierAccount(newSupplierNameInput.trim());
     refreshData();
-    showToast({ title: 'Proveedor Creado', message: `Proveedor "${newSupplierNameInput.trim()}" registrado en el sistema.`, type: 'success' });
+    showActionResult({
+      title: '¡Proveedor Registrado!',
+      message: `Proveedor "${newSupplierNameInput.trim()}" creado exitosamente.`,
+      type: 'success',
+      actions: [
+        { label: 'Ver Lista de Proveedores', onClick: () => setActiveSubTab('suppliers'), icon: <Users size={16} /> }
+      ]
+    });
     setNewSupplierNameInput('');
     setIsAddSupplierModalOpen(false);
   };
@@ -269,8 +286,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       onConfirm: () => {
         const res = deleteSupplierAccount(sup.id);
         if (res.success) {
-          showToast({ title: 'Proveedor Eliminado', message: `"${sup.name}" fue removido.`, type: 'success' });
           refreshData();
+          showActionResult({ title: 'Proveedor Eliminado', message: `"${sup.name}" fue removido del sistema.`, type: 'info' });
         } else {
           showToast({ title: 'No se pudo eliminar', message: res.error || '', type: 'error' });
         }
@@ -294,9 +311,16 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       confirmText: 'Confirmar Pago',
       onConfirm: () => {
         const res = paySupplierAccount(payoutSupplier.name, Number(payoutAmount));
-        showToast({ title: '¡Liquidación Registrada!', message: res.message, type: 'success' });
         setPayoutSupplier(null);
         refreshData();
+        showActionResult({
+          title: '¡Liquidación Entregada!',
+          message: res.message,
+          type: 'success',
+          actions: [
+            { label: 'Ver Pestaña Proveedores', onClick: () => setActiveSubTab('suppliers'), icon: <Users size={16} /> }
+          ]
+        });
       }
     });
   };
@@ -317,10 +341,17 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       onConfirm: () => {
         const res = transferStoreFundToCasa(amt, transferNotesInput);
         if (res.success) {
-          showToast({ title: '¡Transferencia Exitosa!', message: `Se abonaron $${amt} a tu Cuenta Casa como ingreso por retiro de tienda.`, type: 'success' });
           setTransferAmountInput('');
           setTransferNotesInput('');
           refreshData();
+          showActionResult({
+            title: '¡Transferencia Exitosa!',
+            message: `Se abonaron $${amt} a tu Cuenta Casa como retiro del negocio.`,
+            type: 'success',
+            actions: [
+              { label: 'Ver Transferencia', onClick: () => setActiveSubTab('transfer'), icon: <ArrowRightLeft size={16} /> }
+            ]
+          });
         } else {
           showToast({ title: 'Error de Transferencia', message: res.error || '', type: 'error' });
         }

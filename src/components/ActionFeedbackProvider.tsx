@@ -10,7 +10,9 @@ import {
   Trash2, 
   HelpCircle,
   AlertOctagon,
-  ShieldAlert
+  ShieldAlert,
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -33,9 +35,28 @@ export interface ConfirmOptions {
   onConfirm: () => void | Promise<void>;
 }
 
+export interface ActionResultAction {
+  label: string;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary' | 'expense';
+  icon?: ReactNode;
+  href?: string;
+  target?: string;
+}
+
+export interface ActionResultOptions {
+  title: string;
+  message?: string;
+  type?: 'success' | 'error' | 'info' | 'warning';
+  icon?: ReactNode;
+  actions?: ActionResultAction[];
+  details?: ReactNode;
+}
+
 interface ActionFeedbackContextType {
   showToast: (options: ToastOptions) => void;
   confirmAction: (options: ConfirmOptions) => void;
+  showActionResult: (options: ActionResultOptions) => void;
 }
 
 const ActionFeedbackContext = createContext<ActionFeedbackContextType | undefined>(undefined);
@@ -65,6 +86,9 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
   const [confirmModal, setConfirmModal] = useState<ConfirmOptions | null>(null);
   const [isExecutingConfirm, setIsExecutingConfirm] = useState(false);
 
+  // Persistent Action Result Bottom Sheet state
+  const [actionResult, setActionResult] = useState<ActionResultOptions | null>(null);
+
   const showToast = useCallback(({ title, message, type = 'success', duration = 3200 }: ToastOptions) => {
     const id = Date.now();
     setToast({ id, title, message, type });
@@ -78,6 +102,10 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
 
   const confirmAction = useCallback((options: ConfirmOptions) => {
     setConfirmModal(options);
+  }, []);
+
+  const showActionResult = useCallback((options: ActionResultOptions) => {
+    setActionResult(options);
   }, []);
 
   const handleExecuteConfirm = async () => {
@@ -98,7 +126,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
   };
 
   return (
-    <ActionFeedbackContext.Provider value={{ showToast, confirmAction }}>
+    <ActionFeedbackContext.Provider value={{ showToast, confirmAction, showActionResult }}>
       {children}
 
       {/* Floating Toast Notification Banner */}
@@ -277,6 +305,167 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         </div>
       )}
 
+      {/* Persistent Post-Action Result Bottom Sheet Modal */}
+      {actionResult && (
+        <div
+          className="no-print"
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 10050,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: 0
+          }}
+          onClick={() => setActionResult(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="md-card"
+            style={{
+              width: '100%',
+              maxWidth: '500px',
+              padding: '24px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              borderRadius: '24px 24px 0 0',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              boxShadow: 'var(--md-shadow-elevation-3)',
+              animation: 'slideUp 0.25s ease-out'
+            }}
+          >
+            {/* Drag handle */}
+            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
+
+            {/* Header / Icon */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                backgroundColor: actionResult.type === 'error' ? 'var(--md-sys-color-expense-container)' :
+                                 actionResult.type === 'warning' ? '#FFF3E0' :
+                                 'var(--md-sys-color-income-container)',
+                color: actionResult.type === 'error' ? 'var(--md-sys-color-expense)' :
+                       actionResult.type === 'warning' ? '#E65100' :
+                       'var(--md-sys-color-income)'
+              }}>
+                {actionResult.icon || (
+                  actionResult.type === 'error' ? <AlertOctagon size={28} /> :
+                  actionResult.type === 'warning' ? <AlertTriangle size={28} /> :
+                  <CheckCircle2 size={28} />
+                )}
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                  {actionResult.title}
+                </h3>
+                {actionResult.message && (
+                  <p style={{ fontSize: '0.86rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    {actionResult.message}
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={() => setActionResult(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--md-sys-color-on-surface-variant)' }}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Custom Details Component (if any) */}
+            {actionResult.details && (
+              <div style={{
+                padding: '12px',
+                borderRadius: '14px',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                fontSize: '0.85rem'
+              }}>
+                {actionResult.details}
+              </div>
+            )}
+
+            {/* Action Buttons Stack */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+              {actionResult.actions?.map((act, idx) => {
+                const btnStyle = {
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  textDecoration: 'none'
+                };
+
+                if (act.href) {
+                  return (
+                    <a
+                      key={idx}
+                      href={act.href}
+                      target={act.target || '_blank'}
+                      rel="noopener noreferrer"
+                      className="md-btn md-btn-primary"
+                      onClick={() => setActionResult(null)}
+                      style={btnStyle}
+                    >
+                      {act.icon}
+                      <span>{act.label}</span>
+                    </a>
+                  );
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setActionResult(null);
+                      if (act.onClick) act.onClick();
+                    }}
+                    className={`md-btn ${
+                      act.variant === 'secondary' ? 'md-btn-secondary' :
+                      act.variant === 'expense' ? 'md-btn-expense' :
+                      'md-btn-primary'
+                    }`}
+                    style={btnStyle}
+                  >
+                    {act.icon}
+                    <span>{act.label}</span>
+                  </button>
+                );
+              })}
+
+              {/* Default Close button */}
+              <button
+                type="button"
+                onClick={() => setActionResult(null)}
+                className="md-btn md-btn-secondary"
+                style={{ width: '100%', padding: '10px', fontSize: '0.85rem' }}
+              >
+                Cerrar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* Animation Styles */}
       <style jsx global>{`
         @keyframes toastSlideDown {
@@ -297,6 +486,14 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
           to {
             opacity: 1;
             transform: scale(1);
+          }
+        }
+        @keyframes slideUp {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
           }
         }
       `}</style>

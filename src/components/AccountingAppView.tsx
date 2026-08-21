@@ -32,10 +32,10 @@ import { LoginScreen } from '@/components/LoginScreen';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
 import { ActionFeedbackProvider, useActionFeedback } from '@/components/ActionFeedbackProvider';
 
-import { Plus, Loader2, Home, Scan } from 'lucide-react';
+import { Plus, Loader2, Home, Scan, Receipt } from 'lucide-react';
 
 function AccountingAppContent() {
-  const { showToast, confirmAction } = useActionFeedback();
+  const { showToast, confirmAction, showActionResult } = useActionFeedback();
   const [db, setDb] = useState<RawDatabase | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('quick');
   const [showBalance, setShowBalance] = useState<boolean>(true);
@@ -348,10 +348,14 @@ function AccountingAppContent() {
       });
     } else {
       addTransaction(txData);
-      showToast({
-        title: '¡Transacción Registrada!',
-        message: `Movimiento de ${txData.type === 'ingreso' ? 'Ingreso' : 'Gasto'} ("${txData.concept}") por $${txData.amount} guardado.`,
-        type: 'success'
+      showActionResult({
+        title: `¡${txData.type === 'ingreso' ? 'Ingreso' : 'Gasto'} Registrado!`,
+        message: `"${txData.concept}" por $${txData.amount} guardado en CuentaCasa.`,
+        type: 'success',
+        actions: [
+          { label: `Registrar Otro ${txData.type === 'ingreso' ? 'Ingreso' : 'Gasto'}`, onClick: () => handleOpenAddTx(txData.type), icon: <Plus size={16} /> },
+          { label: 'Ver Movimientos', onClick: () => setActiveTab('transactions'), icon: <Receipt size={16} /> }
+        ]
       });
     }
     loadDatabase();

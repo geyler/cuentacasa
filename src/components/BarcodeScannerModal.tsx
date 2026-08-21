@@ -64,7 +64,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   onSaleCompleted,
   currency = '$'
 }) => {
-  const { showToast, confirmAction } = useActionFeedback();
+  const { showToast, confirmAction, showActionResult } = useActionFeedback();
   const scannerContainerId = 'cuentacasa-html5-barcode-reader';
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
 
@@ -333,14 +333,25 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           netProfit: estimatedNetProfit
         });
 
-        showToast({
-          title: '¡Venta Registrada con Éxito!',
-          message: `Venta por ${formatCurrency(totalInvoicePrice, currency, true)} procesada.`,
-          type: 'success'
-        });
+        const saleTotalText = formatCurrency(totalInvoicePrice, currency, true);
+        const profitText = formatCurrency(estimatedNetProfit, currency, true);
+        const itemsListStr = ticketItems.map(i => `${i.name} (x${i.quantity})`).join(', ');
+
         setTicketItems([]);
         if (onSaleCompleted) onSaleCompleted();
         onClose();
+
+        showActionResult({
+          title: '¡Venta Registrada con Éxito!',
+          message: `Cobro total: ${saleTotalText} • Ganancia a Casa: +${profitText}`,
+          type: 'success',
+          details: (
+            <div>
+              <strong>Detalle de artículos:</strong>
+              <div style={{ marginTop: '4px', opacity: 0.9 }}>{itemsListStr}</div>
+            </div>
+          )
+        });
       }
     });
   };
