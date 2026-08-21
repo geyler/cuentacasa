@@ -15,10 +15,12 @@ import {
   EyeOff,
   Settings,
   Hash,
-  KeyRound
+  KeyRound,
+  Trash2
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
+import { clearAllDatabaseRecords } from '@/lib/storage';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -85,6 +87,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         type: 'error'
       });
     }
+  };
+
+  const handleClearDatabase = () => {
+    confirmAction({
+      title: '¿REINICIAR TODO A 0?',
+      message: '¿Estás seguro de eliminar absolutamente TODOS los registros y gastos de la base de datos? Se vaciará la caché y quedará en 0.',
+      variant: 'danger',
+      confirmText: 'Sí, Borrar Todo a 0',
+      onConfirm: () => {
+        clearAllDatabaseRecords();
+        showToast({
+          title: '¡Base de Datos Reiniciada!',
+          message: 'Se han eliminado todos los registros y vaciado la caché.',
+          type: 'success'
+        });
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    });
   };
 
   const handleRemovePin = () => {
@@ -384,6 +406,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <span>Instalar Aplicación WebAPK</span>
             </button>
           )}
+
+          {/* Reset / Purge DB to 0 Button */}
+          <button
+            onClick={handleClearDatabase}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              width: '100%',
+              padding: '14px 16px',
+              borderRadius: '14px',
+              border: 'none',
+              backgroundColor: 'var(--md-sys-color-expense)',
+              color: '#FFFFFF',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              marginTop: '6px',
+              boxShadow: '0 4px 12px rgba(211, 47, 47, 0.25)'
+            }}
+          >
+            <Trash2 size={18} />
+            <span>Reiniciar Base de Datos a 0 y Limpiar Caché</span>
+          </button>
 
           {/* Logout Button */}
           <button

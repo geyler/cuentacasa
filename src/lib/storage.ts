@@ -1,6 +1,6 @@
 import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase } from '@/types';
 
-const STORAGE_KEY = 'cuentacasa_raw_db_v1';
+const STORAGE_KEY = 'cuentacasa_raw_db_v5';
 
 // Default SVG image placeholders for seed products
 const PLACEHOLDER_IMAGES = {
@@ -142,6 +142,28 @@ export function saveRawDatabase(db: RawDatabase): void {
   if (typeof window === 'undefined') return;
   db.lastUpdated = new Date().toISOString();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db, null, 2));
+}
+
+// Clear all records in DB and reset to zero
+export function clearAllDatabaseRecords(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem('cuentacasa_raw_db_v1');
+    localStorage.removeItem('cuentacasa_raw_db_v2');
+    localStorage.removeItem('cuentacasa_raw_db_v3');
+    localStorage.removeItem('cuentacasa_raw_db_v4');
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {}
+
+  const resetDb: RawDatabase = {
+    ...INITIAL_DB,
+    transactions: [],
+    storeSales: [],
+    storeFund: 0,
+    deletedIds: [],
+    supplierAccounts: INITIAL_SUPPLIERS.map(s => ({ ...s, pendingPayout: 0, totalPaid: 0, updatedAt: Date.now() }))
+  };
+  saveRawDatabase(resetDb);
 }
 
 // Get raw JSON string directly for viewing/editing

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cuenta-casa-v2';
+const CACHE_NAME = 'cuenta-casa-v10';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
