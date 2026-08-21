@@ -421,6 +421,73 @@ export function compressImageToBase64(file: File, maxDim = 400): Promise<string>
   });
 }
 
+// Add or Save new supplier account
+export function saveSupplierAccount(supplierName: string): SupplierAccount {
+  const db = getRawDatabase();
+  const trimmed = supplierName.trim();
+  let existing = db.supplierAccounts?.find(s => s.name.toLowerCase() === trimmed.toLowerCase());
+  if (!existing) {
+    existing = {
+      id: `sup-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      name: trimmed,
+      pendingPayout: 0,
+      totalPaid: 0,
+      updatedAt: Date.now()
+    };
+    if (!db.supplierAccounts) db.supplierAccounts = [];
+    db.supplierAccounts.push(existing);
+    saveRawDatabase(db);
+  }
+  return existing;
+}
+
+// Delete supplier account if no pending debt
+export function deleteSupplierAccount(id: string): { success: boolean; error?: string } {
+  const db = getRawDatabase();
+  const target = db.supplierAccounts?.find(s => s.id === id);
+  if (!target) return { success: false, error: 'Proveedor no encontrado.' };
+  if (target.pendingPayout > 0) {
+    return { success: false, error: `No se puede eliminar a "${target.name}" porque tiene $${target.pendingPayout} pendiente de pago.` };
+  }
+  db.supplierAccounts = db.supplierAccounts?.filter(s => s.id !== id);
+  saveRawDatabase(db);
+  return { success: true };
+}
+
+// Transfer funds from Store Business Fund (Fondo Tienda) to Cuenta Casa Accounting
+export function transferStoreFundToCasa(amount: number, notes?: string): { success: boolean; error?: string } {
+  const db = getRawDatabase();
+  if (amount <= 0) {
+    return { success: false, error: 'Ingresa un monto mayor a 0 para transferir.' };
+  }
+  const currentFund = db.storeFund || 0;
+  if (amount > currentFund) {
+    return { success: false, error: `Saldo en Fondo Tienda insuficiente ($${currentFund}). Intenta un monto menor.` };
+  }
+
+  // Deduct from storeFund
+  db.storeFund = currentFund - amount;
+
+  // Create income transaction in Cuenta Casa
+  const todayISO = new Date().toISOString().split('T')[0];
+  const newTx: Transaction = {
+    id: `tx-transfer-${Date.now()}`,
+    type: 'ingreso',
+    concept: 'Transferencia Fondo Tienda ➔ Cuenta Casa',
+    category: 'Retiro Fondo Tienda',
+    amount: amount,
+    date: todayISO,
+    notes: notes?.trim() || `Retiro de utilidades/capital del negocio hacia cuenta personal. Saldo restante tienda: $${db.storeFund}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    synced: false
+  };
+
+  db.transactions.unshift(newTx);
+  saveRawDatabase(db);
+  return { success: true };
+}
+
 // Download DB as JSON file
 export function exportDatabaseFile(): void {
   const dataStr = getRawDatabaseString();
