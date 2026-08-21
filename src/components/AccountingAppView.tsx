@@ -22,6 +22,7 @@ import { StatCards } from '@/components/StatCards';
 import { QuickEntryView } from '@/components/QuickEntryView';
 import { TransactionList } from '@/components/TransactionList';
 import { TransactionModal } from '@/components/TransactionModal';
+import { TransactionDetailModal } from '@/components/TransactionDetailModal';
 import { ReportView } from '@/components/ReportView';
 import { StoreManagementView } from '@/components/StoreManagementView';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
@@ -47,6 +48,7 @@ function AccountingAppContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRawDbModalOpen, setIsRawDbModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [selectedTxForDetailModal, setSelectedTxForDetailModal] = useState<Transaction | null>(null);
 
   // Loaders and Sync state
   const [isOnline, setIsOnline] = useState(true);
@@ -596,33 +598,32 @@ function AccountingAppContent() {
             transactions={transactions}
             currency={db.settings.currency}
             showBalance={showBalance}
+            onSelectTransaction={(tx) => setSelectedTxForDetailModal(tx)}
           />
         )}
 
       </main>
 
       {/* Context-Aware Floating Action Button (FAB) */}
-      {activeTab !== 'quick' && (
-        activeTab === 'store' ? (
-          <button
-            className="fab no-print"
-            onClick={() => setIsScannerOpen(true)}
-            title="Abrir Escáner POS para Vender"
-            style={{ backgroundColor: 'var(--md-sys-color-primary)', color: '#FFFFFF' }}
-          >
-            <Scan size={22} />
-            <span>Vender / Escanear</span>
-          </button>
-        ) : (
-          <button
-            className="fab no-print"
-            onClick={() => handleOpenAddTx('gasto')}
-            title="Registrar nuevo movimiento"
-          >
-            <Plus size={22} />
-            <span>Registrar Movimiento</span>
-          </button>
-        )
+      {activeTab === 'store' ? (
+        <button
+          className="fab no-print"
+          onClick={() => setIsScannerOpen(true)}
+          title="Abrir Escáner POS para Vender"
+          style={{ backgroundColor: 'var(--md-sys-color-primary)', color: '#FFFFFF' }}
+        >
+          <Scan size={22} />
+          <span>Vender / Escanear</span>
+        </button>
+      ) : (
+        <button
+          className="fab no-print"
+          onClick={() => handleOpenAddTx('gasto')}
+          title="Registrar nuevo movimiento de gasto o ingreso"
+        >
+          <Plus size={22} />
+          <span>Registrar Movimiento</span>
+        </button>
       )}
 
       {/* Barcode Scanner Modal (0001-9999) */}
@@ -674,6 +675,21 @@ function AccountingAppContent() {
           onDismiss={() => setShowPwaBanner(false)}
         />
       )}
+
+      {/* Transaction Detail Bottom Sheet Modal */}
+      <TransactionDetailModal
+        transaction={selectedTxForDetailModal}
+        onClose={() => setSelectedTxForDetailModal(null)}
+        onEdit={(tx) => {
+          setSelectedTxForDetailModal(null);
+          handleOpenEditTx(tx);
+        }}
+        onDelete={(id) => {
+          setSelectedTxForDetailModal(null);
+          handleDeleteTransaction(id);
+        }}
+        currency={db.settings.currency}
+      />
 
     </div>
   );

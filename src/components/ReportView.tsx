@@ -20,12 +20,14 @@ interface ReportViewProps {
   transactions: Transaction[];
   currency?: string;
   showBalance?: boolean;
+  onSelectTransaction?: (tx: Transaction) => void;
 }
 
 export const ReportView: React.FC<ReportViewProps> = ({ 
   transactions, 
   currency = '$',
-  showBalance = true 
+  showBalance = true,
+  onSelectTransaction
 }) => {
   const [period, setPeriod] = useState<ReportPeriod>('mensual');
   const [startDate, setStartDate] = useState<string>('');
@@ -229,16 +231,22 @@ export const ReportView: React.FC<ReportViewProps> = ({
               const isIncome = tx.type === 'ingreso';
 
               return (
-                <div key={tx.id} style={{
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '10px'
-                }}>
+                <div 
+                  key={tx.id} 
+                  onClick={() => onSelectTransaction?.(tx)}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease'
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
                       width: '32px',
