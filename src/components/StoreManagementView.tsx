@@ -459,74 +459,35 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </div>
       </div>
 
-      {/* Products Grid - 2 columns on mobile */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: '12px' }}>
+      {/* Products List View for Admin */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {filteredProducts.map(prod => {
-          const unitProfit = prod.price - (prod.costPrice || 0);
-
           return (
             <div
               key={prod.id}
               className="md-card"
               onClick={() => setSelectedProductForDetailModal(prod)}
               style={{
-                padding: '10px',
+                padding: '10px 14px',
                 display: 'flex',
-                flexDirection: 'column',
+                alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '8px',
+                gap: '12px',
                 opacity: prod.published ? 1 : 0.65,
-                borderRadius: '16px',
+                borderRadius: '14px',
                 cursor: 'pointer',
                 transition: 'transform 0.15s ease, box-shadow 0.15s ease'
               }}
             >
-              <div>
-                {/* Barcode & Published status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span style={{
-                    fontFamily: 'monospace',
-                    fontWeight: 800,
-                    fontSize: '0.72rem',
-                    backgroundColor: 'var(--md-sys-color-primary-container)',
-                    color: 'var(--md-sys-color-on-primary-container)',
-                    padding: '2px 6px',
-                    borderRadius: '6px'
-                  }}>
-                    #{prod.barcode}
-                  </span>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleTogglePublish(prod);
-                    }}
-                    style={{
-                      border: 'none',
-                      borderRadius: '9999px',
-                      padding: '2px 6px',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      backgroundColor: prod.published ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-surface-container-high)',
-                      color: prod.published ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                  >
-                    {prod.published ? <Eye size={11} /> : <EyeOff size={11} />}
-                    <span>{prod.published ? 'Tienda' : 'Borrador'}</span>
-                  </button>
-                </div>
-
-                {/* Photo Preview (1:1 ratio) */}
+              {/* Left: Thumbnail & Details */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                {/* 44x44 Thumbnail */}
                 <div style={{
-                  width: '100%',
-                  aspectRatio: '1/1',
-                  borderRadius: '12px',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '10px',
                   overflow: 'hidden',
-                  marginBottom: '6px',
+                  flexShrink: 0,
                   backgroundColor: 'var(--md-sys-color-surface-container-high)'
                 }}>
                   <img 
@@ -536,42 +497,121 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   />
                 </div>
 
-                <h3 style={{ 
-                  fontSize: '0.88rem', 
-                  fontWeight: 800, 
-                  color: 'var(--md-sys-color-on-surface)',
-                  lineHeight: '1.25',
-                  marginBottom: '2px',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}>
-                  {prod.name}
-                </h3>
+                {/* Info Text */}
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontFamily: 'monospace',
+                      fontWeight: 800,
+                      fontSize: '0.7rem',
+                      backgroundColor: 'var(--md-sys-color-primary-container)',
+                      color: 'var(--md-sys-color-on-primary-container)',
+                      padding: '1px 5px',
+                      borderRadius: '5px'
+                    }}>
+                      #{prod.barcode}
+                    </span>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: prod.stock > 5 ? 'var(--md-sys-color-on-surface-variant)' : 'var(--md-sys-color-expense)',
+                      backgroundColor: prod.stock > 5 ? 'var(--md-sys-color-surface-container)' : 'var(--md-sys-color-expense-container)',
+                      padding: '1px 6px',
+                      borderRadius: '5px'
+                    }}>
+                      Stock: {prod.stock}u
+                    </span>
+                    {prod.supplierType === 'proveedor' && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        backgroundColor: '#FFF3E0',
+                        color: '#E65100',
+                        padding: '1px 5px',
+                        borderRadius: '5px'
+                      }}>
+                        {prod.supplierName || 'Proveedor'}
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 style={{ 
+                    fontSize: '0.9rem', 
+                    fontWeight: 800, 
+                    color: 'var(--md-sys-color-on-surface)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {prod.name}
+                  </h3>
+                </div>
               </div>
 
-              {/* Price & Actions */}
-              <div style={{ paddingTop: '6px', borderTop: '1px solid var(--md-sys-color-surface-variant)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                  {formatCurrency(prod.price, currency, true)}
+              {/* Right: Price & Quick Action Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                    {formatCurrency(prod.price, currency, true)}
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+                    Costo: ${prod.costPrice || 0}
+                  </span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '2px' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => handleTogglePublish(prod)}
+                    title={prod.published ? 'Publicado en Tienda' : 'Borrador (Oculto)'}
+                    style={{
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px',
+                      cursor: 'pointer',
+                      backgroundColor: prod.published ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-surface-container-high)',
+                      color: prod.published ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {prod.published ? <Eye size={16} /> : <EyeOff size={16} />}
+                  </button>
+
                   <button
                     onClick={() => handleOpenEdit(prod)}
                     title="Editar producto"
-                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}
+                    style={{
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px',
+                      cursor: 'pointer',
+                      backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
-                    <Edit3 size={15} />
+                    <Edit3 size={16} />
                   </button>
 
                   <button
                     onClick={() => handleDelete(prod.id, prod.name)}
                     title="Eliminar producto"
-                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-expense)', cursor: 'pointer', padding: '4px' }}
+                    style={{
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px',
+                      cursor: 'pointer',
+                      backgroundColor: 'var(--md-sys-color-expense-container)',
+                      color: 'var(--md-sys-color-expense)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>

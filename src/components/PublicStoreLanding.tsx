@@ -102,7 +102,7 @@ export const PublicStoreLanding: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Sandra Shein-Style Store Top Header */}
+      {/* Store Top Header */}
       <header style={{
         backgroundColor: 'var(--md-sys-color-surface-container)',
         borderBottom: '1px solid var(--md-sys-color-surface-variant)',
@@ -111,115 +111,100 @@ export const PublicStoreLanding: React.FC = () => {
         zIndex: 80,
         boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
       }}>
-        {/* Top Announcement Bar */}
-        <div style={{
-          background: 'linear-gradient(90deg, var(--md-sys-color-primary) 0%, #00385E 100%)',
-          color: '#FFFFFF',
-          padding: '7px 16px',
-          textAlign: 'center',
-          fontSize: '0.8rem',
-          fontWeight: 700,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px'
-        }}>
-          <Sparkles size={15} />
-          <span>¡Bienvenidos a la Tienda Casa! Envíos directos y pedidos inmediatos por WhatsApp.</span>
-        </div>
-
         {/* Store Header Row */}
         <div style={{
           maxWidth: '1200px',
           margin: '0 auto',
-          padding: '14px 16px',
+          padding: '10px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '14px',
+              width: '38px',
+              height: '38px',
+              borderRadius: '12px',
               background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #004D7A 100%)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0, 99, 155, 0.3)'
+              boxShadow: '0 3px 10px rgba(0, 99, 155, 0.3)'
             }}>
-              <Store size={24} />
+              <Store size={22} />
             </div>
-            <div>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em' }}>
-                Tienda Casa
-              </h1>
-              <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <ShieldCheck size={13} color="#00875A" /> Catálogo Oficial Certificado
-              </span>
-            </div>
+            <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em' }}>
+              Tienda
+            </h1>
           </div>
 
           {/* Cart Icon & Admin Access Link (ONLY IF LOGGED IN) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             
-            {/* Shopping Cart Button */}
+            {/* Shopping Cart Button (Icon Only) */}
             <button
               onClick={() => setIsCartOpen(!isCartOpen)}
+              title="Ver Carrito de Compras"
               style={{
                 position: 'relative',
-                padding: '9px 16px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '9999px',
                 border: 'none',
                 backgroundColor: 'var(--md-sys-color-primary-container)',
                 color: 'var(--md-sys-color-on-primary-container)',
                 fontWeight: 800,
-                fontSize: '0.88rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                justifyContent: 'center',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
               }}
             >
-              <ShoppingBag size={18} />
-              <span>Carrito</span>
+              <ShoppingBag size={20} />
               {totalCartCount > 0 && (
                 <span style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-2px',
                   backgroundColor: 'var(--md-sys-color-expense)',
                   color: '#FFF',
-                  padding: '2px 8px',
+                  width: '20px',
+                  height: '20px',
                   borderRadius: '9999px',
-                  fontSize: '0.75rem',
-                  marginLeft: '2px'
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                 }}>
                   {totalCartCount}
                 </span>
               )}
             </button>
 
-            {/* ONLY DISPLAY DASHBOARD ACCESO CONTABLE BUTTON IF LOGGED IN */}
+            {/* ONLY DISPLAY DASHBOARD ICON BUTTON IF LOGGED IN */}
             {isUserLoggedIn && (
               <a
                 href="/login"
+                title="Ir al Dashboard Contable"
                 style={{
-                  padding: '9px 16px',
+                  width: '42px',
+                  height: '42px',
                   borderRadius: '9999px',
                   border: '1px solid var(--md-sys-color-primary)',
                   backgroundColor: 'var(--md-sys-color-surface)',
                   color: 'var(--md-sys-color-primary)',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  textDecoration: 'none',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  justifyContent: 'center',
+                  textDecoration: 'none'
                 }}
               >
-                <Lock size={15} />
-                <span>Dashboard Contable</span>
+                <Lock size={19} />
               </a>
             )}
 
@@ -227,16 +212,16 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero Showcase Banner */}
+      {/* Compact Hero Showcase Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #00385E 0%, #001E36 100%)',
         color: '#FFFFFF',
-        padding: '36px 16px',
+        padding: '20px 16px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <div style={{ maxWidth: '700px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           <span style={{
             backgroundColor: 'rgba(255, 255, 255, 0.15)',
             color: '#00FF88',
