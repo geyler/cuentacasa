@@ -120,10 +120,11 @@ export function getPeriodLabel(filter: ReportFilter): string {
   }
 }
 
-// Format currency with privacy masking support
+// Format currency with privacy masking support (rounds all amounts to clean integers)
 export function formatCurrency(amount: number, currency: string = '$', showBalance: boolean = true): string {
   if (!showBalance) {
     return `${currency} •••••`;
   }
-  return `${currency}${amount.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const rounded = Math.round(amount);
+  return `${currency}${rounded.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }

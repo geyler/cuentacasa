@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType } from '@/types';
 import { formatCurrency, isTransactionEditable, getRemainingEditableTime } from '@/lib/invoice';
+import { TransactionDetailModal } from '@/components/TransactionDetailModal';
 import { 
   Search, 
   ArrowUpRight, 
@@ -13,7 +14,10 @@ import {
   ChevronDown,
   Loader2,
   Lock,
-  Clock
+  Clock,
+  Home,
+  Store,
+  Info
 } from 'lucide-react';
 
 interface TransactionListProps {
@@ -41,6 +45,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'todos' | TransactionType>('todos');
+  const [movementScope, setMovementScope] = useState<'casa' | 'tienda'>('casa');
+  const [selectedTransactionForModal, setSelectedTransactionForModal] = useState<Transaction | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [, setTick] = useState(0);
 
@@ -52,11 +58,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Filtered transactions by search & type
+  // Filtered transactions by movementScope, search & type
   const filtered = transactions.filter(tx => {
-    const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase());
+    const isStoreTx = tx.category.includes('Tienda') || (tx.notes && tx.notes.includes('Tienda'));
+    const matchesScope = movementScope === 'casa' ? !tx.category.includes('Fondo Tienda') : isStoreTx;
+    const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase()) || tx.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'todos' || tx.type === typeFilter;
-    return matchesSearch && matchesType;
+    return matchesScope && matchesSearch && matchesType;
   });
 
   // Apply limit if specified (e.g. 10 for Dashboard)
@@ -86,6 +94,59 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       
+      {/* Top Scope Switcher: Casa vs Tienda */}
+      {!limit && (
+        <div style={{ display: 'flex', gap: '8px', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '6px', borderRadius: '16px' }}>
+          <button
+            onClick={() => setMovementScope('casa')}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              backgroundColor: movementScope === 'casa' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: movementScope === 'casa' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              boxShadow: movementScope === 'casa' ? '0 4px 12px rgba(0, 99, 155, 0.25)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Home size={18} />
+            <span>Movimientos de Casa</span>
+          </button>
+
+          <button
+            onClick={() => setMovementScope('tienda')}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              backgroundColor: movementScope === 'tienda' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: movementScope === 'tienda' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              boxShadow: movementScope === 'tienda' ? '0 4px 12px rgba(0, 99, 155, 0.25)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Store size={18} />
+            <span>Fondo Tienda / Proveedores</span>
+          </button>
+        </div>
+      )}
+
       {/* Search & Simple Filters Bar */}
       <div className="md-card" style={{ padding: '10px 14px' }}>
         <div style={{
@@ -110,7 +171,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             />
             <input
               type="text"
-              placeholder="Buscar..."
+              placeholder="Buscar por concepto o categoría..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{
@@ -186,6 +247,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               <div
                 key={tx.id}
                 className="md-card"
+                onClick={() => setSelectedTransactionForModal(tx)}
                 style={{
                   padding: '10px 14px',
                   display: 'flex',
@@ -193,7 +255,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   justifyContent: 'space-between',
                   gap: '10px',
                   opacity: isDeleting ? 0.5 : 1,
-                  transition: 'opacity 0.2s ease'
+                  cursor: 'pointer',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease'
                 }}
               >
                 {/* Left Side: Icon & Info */}
@@ -276,7 +339,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   </div>
 
                   {/* Edit & Delete Actions (Enabled ONLY within 5 minutes) */}
-                  <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                     {editable ? (
                       <>
                         <button
@@ -295,11 +358,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         </button>
 
                         <button
-                          onClick={() => {
-                            if (confirm(`¿Eliminar "${tx.concept}"?`)) {
-                              onDelete(tx.id);
-                            }
-                          }}
+                          onClick={() => onDelete(tx.id)}
                           disabled={isDeleting}
                           title="Eliminar (Disponible los primeros 5 min)"
                           style={{
@@ -351,6 +410,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           </button>
         </div>
       )}
+
+      {/* Detail Modal for Clicked Transaction */}
+      <TransactionDetailModal
+        transaction={selectedTransactionForModal}
+        onClose={() => setSelectedTransactionForModal(null)}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        currency={currency}
+      />
 
     </div>
   );

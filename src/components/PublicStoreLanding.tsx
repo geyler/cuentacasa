@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { StoreProduct } from '@/types';
 import { getStoreProducts } from '@/lib/storage';
-import { formatCurrency } from '@/lib/invoice';
+import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { 
   ShoppingBag, 
   Search, 
@@ -34,6 +35,7 @@ export const PublicStoreLanding: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [selectedProductForModal, setSelectedProductForModal] = useState<StoreProduct | null>(null);
 
   useEffect(() => {
     // Load published products from storage
@@ -332,7 +334,7 @@ export const PublicStoreLanding: React.FC = () => {
           ))}
         </div>
 
-        {/* Products Grid */}
+        {/* Products Grid - 2 columns on mobile */}
         {filteredProducts.length === 0 ? (
           <div className="md-card" style={{ textAlign: 'center', padding: '50px 20px', maxWidth: '420px', margin: '40px auto' }}>
             <ShoppingBag size={44} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '12px' }} />
@@ -344,8 +346,8 @@ export const PublicStoreLanding: React.FC = () => {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+            gap: '14px'
           }}>
             {filteredProducts.map(product => {
               const inCart = cart.find(item => item.product.id === product.id);
@@ -354,24 +356,26 @@ export const PublicStoreLanding: React.FC = () => {
                 <div
                   key={product.id}
                   className="md-card"
+                  onClick={() => setSelectedProductForModal(product)}
                   style={{
-                    padding: '16px',
+                    padding: '10px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    gap: '14px',
-                    borderRadius: '18px',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                    gap: '8px',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
                   }}
                 >
                   <div>
-                    {/* Product Image Showcase */}
+                    {/* Product Image Showcase (1:1 aspect ratio on mobile) */}
                     <div style={{
                       width: '100%',
-                      height: '170px',
-                      borderRadius: '14px',
+                      aspectRatio: '1/1',
+                      borderRadius: '12px',
                       overflow: 'hidden',
-                      marginBottom: '12px',
+                      marginBottom: '8px',
                       backgroundColor: 'var(--md-sys-color-surface-container-high)',
                       boxShadow: 'inset 0 0 10px rgba(0,0,0,0.03)'
                     }}>
@@ -382,92 +386,62 @@ export const PublicStoreLanding: React.FC = () => {
                       />
                     </div>
 
-                    {/* Category Tag & Availability Badge */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        backgroundColor: 'var(--md-sys-color-primary-container)',
-                        color: 'var(--md-sys-color-on-primary-container)',
-                        padding: '3px 10px',
-                        borderRadius: '9999px'
-                      }}>
-                        {product.category}
-                      </span>
-                      {product.stock > 0 ? (
-                        <span style={{ fontSize: '0.72rem', color: '#00875A', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <Truck size={12} /> Stock Disponible
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-expense)', fontWeight: 800 }}>Agotado</span>
-                      )}
-                    </div>
-
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '4px' }}>
+                    <h3 style={{ 
+                      fontSize: '0.88rem', 
+                      fontWeight: 800, 
+                      color: 'var(--md-sys-color-on-surface)',
+                      lineHeight: '1.25',
+                      marginBottom: '4px',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
                       {product.name}
                     </h3>
-
-                    {product.description && (
-                      <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.4' }}>
-                        {product.description}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Price & Add to Cart Action */}
-                  <div style={{ paddingTop: '12px', borderTop: '1px solid var(--md-sys-color-surface-variant)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ fontSize: '0.72rem', display: 'block', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>Precio</span>
-                      <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                        {formatCurrency(product.price, '$', true)}
-                      </span>
-                    </div>
+                  {/* Price & Add Action */}
+                  <div style={{
+                    paddingTop: '6px',
+                    borderTop: '1px solid var(--md-sys-color-surface-variant)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                      ${Math.round(product.price)}
+                    </span>
 
                     {!inCart ? (
                       <button
-                        onClick={() => addToCart(product)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart(product);
+                        }}
                         disabled={product.stock <= 0}
                         className="md-btn md-btn-primary"
-                        style={{ padding: '9px 16px', fontSize: '0.85rem', opacity: product.stock <= 0 ? 0.5 : 1 }}
+                        style={{
+                          padding: '5px 10px',
+                          fontSize: '0.75rem',
+                          borderRadius: '9999px',
+                          opacity: product.stock <= 0 ? 0.5 : 1
+                        }}
                       >
-                        <Plus size={16} />
-                        <span>Agregar</span>
+                        <Plus size={14} />
                       </button>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          onClick={() => updateQuantity(product.id, -1)}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                            fontWeight: 800,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          -
-                        </button>
-                        <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>{inCart.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(product.id, 1)}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: 'var(--md-sys-color-primary)',
-                            color: '#FFF',
-                            fontWeight: 800,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
+                      <span style={{
+                        backgroundColor: 'var(--md-sys-color-primary-container)',
+                        color: 'var(--md-sys-color-on-primary-container)',
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800
+                      }}>
+                        {inCart.quantity}u
+                      </span>
                     )}
-
                   </div>
 
                 </div>
@@ -475,6 +449,16 @@ export const PublicStoreLanding: React.FC = () => {
             })}
           </div>
         )}
+
+        {/* Modal Card with Details, Related Products, and WhatsApp */}
+        <ProductDetailModal
+          product={selectedProductForModal}
+          onClose={() => setSelectedProductForModal(null)}
+          onAddToCart={addToCart}
+          allProducts={products}
+          currency="$"
+          isAdmin={false}
+        />
 
       </main>
 

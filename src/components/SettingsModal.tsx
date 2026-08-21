@@ -18,6 +18,8 @@ import {
   KeyRound
 } from 'lucide-react';
 
+import { useActionFeedback } from '@/components/ActionFeedbackProvider';
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,6 +52,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onInstallPwa,
   canInstallPwa
 }) => {
+  const { showToast, confirmAction } = useActionFeedback();
   const [pin, setPin] = useState<string | null>(null);
   const [isEditingPin, setIsEditingPin] = useState(false);
   const [newPin, setNewPin] = useState('');
@@ -70,17 +73,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       localStorage.setItem('cuentacasa_pin', newPin);
       setPin(newPin);
       setIsEditingPin(false);
-      alert('PIN rápido de 4 dígitos guardado exitosamente.');
+      showToast({
+        title: '¡PIN Configurado!',
+        message: 'PIN rápido de 4 dígitos guardado exitosamente.',
+        type: 'success'
+      });
     } else {
-      alert('El PIN debe tener exactamente 4 números.');
+      showToast({
+        title: 'PIN Inválido',
+        message: 'El PIN rápido debe constar de exactamente 4 números.',
+        type: 'error'
+      });
     }
   };
 
   const handleRemovePin = () => {
-    localStorage.removeItem('cuentacasa_pin');
-    setPin(null);
-    setIsEditingPin(false);
-    alert('PIN rápido desactivado.');
+    confirmAction({
+      title: '¿Desactivar PIN Rápido?',
+      message: 'Se eliminará la clave rápida de 4 dígitos. Para ingresar requerirás la contraseña maestra.',
+      variant: 'warning',
+      confirmText: 'Desactivar PIN',
+      onConfirm: () => {
+        localStorage.removeItem('cuentacasa_pin');
+        setPin(null);
+        setIsEditingPin(false);
+        showToast({
+          title: 'PIN Desactivado',
+          message: 'El acceso mediante PIN rápido ha sido desactivado.',
+          type: 'info'
+        });
+      }
+    });
   };
 
   return (

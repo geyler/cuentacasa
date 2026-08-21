@@ -13,6 +13,8 @@ import {
   compressImageToBase64
 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
+import { useActionFeedback } from '@/components/ActionFeedbackProvider';
+import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { 
   Store, 
   Plus, 
@@ -43,10 +45,12 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   currency = '$',
   onOpenScanner
 }) => {
+  const { showToast, confirmAction } = useActionFeedback();
   const rawDb = getRawDatabase();
   const [products, setProducts] = useState<StoreProduct[]>(() => getStoreProducts());
   const [suppliers, setSuppliers] = useState<SupplierAccount[]>(() => getSupplierAccounts());
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProductForDetailModal, setSelectedProductForDetailModal] = useState<StoreProduct | null>(null);
   
   // Modal State for Add / Edit Store Product
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -128,8 +132,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       setIsUploadingPhoto(true);
       const compressedBase64 = await compressImageToBase64(file, 400);
       setPhotoUrl(compressedBase64);
+      showToast({ title: 'Fotografía Cargada', message: 'Imagen comprimida y optimizada exitosamente.', type: 'success' });
     } catch (err) {
-      alert('Error al procesar la fotografía.');
+      showToast({ title: 'Error de Imagen', message: 'No se pudo procesar la fotografía.', type: 'error' });
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -138,7 +143,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !price || Number(price) <= 0) {
-      alert('Ingresa el nombre y un precio de venta válido.');
+      showToast({ title: 'Campos Requeridos', message: 'Ingresa el nombre del producto y un precio de venta válido.', type: 'warning' });
       return;
     }
 
@@ -161,6 +166,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
     refreshData();
     setIsModalOpen(false);
+    showToast({
+      title: editingProduct ? '¡Producto Actualizado!' : '¡Producto Creado!',
+      message: `"${name.trim()}" ${editingProduct ? 'ha sido modificado correctamente' : 'se agregó al inventario'}.`,
+      type: 'success'
+    });
   };
 
   const handleTogglePublish = (p: StoreProduct) => {
@@ -169,13 +179,29 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       published: !p.published
     });
     refreshData();
+    showToast({
+      title: 'Estado del Producto',
+      message: `"${p.name}" ahora está ${!p.published ? 'Visible en Tienda' : 'en Borrador (Oculto)'}.`,
+      type: 'info'
+    });
   };
 
   const handleDelete = (id: string, prodName: string) => {
-    if (confirm(`¿Eliminar "${prodName}" del inventario de la tienda?`)) {
-      deleteStoreProduct(id);
-      refreshData();
-    }
+    confirmAction({
+      title: '¿Eliminar Producto?',
+      message: `¿Estás seguro de eliminar "${prodName}" del inventario de la tienda?`,
+      variant: 'danger',
+      confirmText: 'Eliminar Producto',
+      onConfirm: () => {
+        deleteStoreProduct(id);
+        refreshData();
+        showToast({
+          title: '¡Producto Eliminado!',
+          message: `"${prodName}" fue retirado del inventario.`,
+          type: 'success'
+        });
+      }
+    });
   };
 
   const handleOpenPayout = (sup: SupplierAccount) => {
@@ -187,10 +213,18 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     e.preventDefault();
     if (!payoutSupplier || !payoutAmount || Number(payoutAmount) <= 0) return;
 
-    const res = paySupplierAccount(payoutSupplier.name, Number(payoutAmount));
-    alert(res.message);
-    setPayoutSupplier(null);
-    refreshData();
+    confirmAction({
+      title: '¿Confirmar Liquidación a Proveedor?',
+      message: `Se registrará la entrega de ${formatCurrency(Number(payoutAmount), currency)} en efectivo a ${payoutSupplier.name}.`,
+      variant: 'warning',
+      confirmText: 'Confirmar Pago',
+      onConfirm: () => {
+        const res = paySupplierAccount(payoutSupplier.name, Number(payoutAmount));
+        showToast({ title: '¡Liquidación Registrada!', message: res.message, type: 'success' });
+        setPayoutSupplier(null);
+        refreshData();
+      }
+    });
   };
 
   const filteredProducts = products.filter(p => 
@@ -224,34 +258,41 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', maxWidth: '400px' }}>
           {onOpenScanner && (
             <button
               onClick={onOpenScanner}
               className="md-btn"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.2)',
+                flex: '1 1 140px',
+                backgroundColor: 'rgba(255,255,255,0.25)',
                 color: '#FFFFFF',
-                fontSize: '0.85rem',
-                padding: '8px 14px'
+                fontSize: '0.88rem',
+                fontWeight: 800,
+                padding: '10px 16px',
+                border: '1px solid rgba(255,255,255,0.4)',
+                backdropFilter: 'blur(4px)'
               }}
             >
-              <Scan size={16} />
+              <Scan size={18} />
               <span>Vender con Escáner</span>
             </button>
           )}
 
           <button
             onClick={handleOpenAdd}
-            className="md-btn md-btn-primary"
+            className="md-btn"
             style={{
+              flex: '1 1 140px',
               backgroundColor: '#FFFFFF',
               color: 'var(--md-sys-color-primary)',
-              fontSize: '0.85rem',
-              padding: '8px 16px'
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              padding: '10px 16px',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.15)'
             }}
           >
-            <Plus size={16} />
+            <Plus size={18} />
             <span>Agregar Producto</span>
           </button>
         </div>
@@ -418,8 +459,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </div>
       </div>
 
-      {/* Products Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '14px' }}>
+      {/* Products Grid - 2 columns on mobile */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: '12px' }}>
         {filteredProducts.map(prod => {
           const unitProfit = prod.price - (prod.costPrice || 0);
 
@@ -427,113 +468,111 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <div
               key={prod.id}
               className="md-card"
+              onClick={() => setSelectedProductForDetailModal(prod)}
               style={{
-                padding: '16px',
+                padding: '10px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                gap: '10px',
-                opacity: prod.published ? 1 : 0.65
+                gap: '8px',
+                opacity: prod.published ? 1 : 0.65,
+                borderRadius: '16px',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
               }}
             >
               <div>
-                {/* Barcode & Published toggle */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                {/* Barcode & Published status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <span style={{
                     fontFamily: 'monospace',
                     fontWeight: 800,
-                    fontSize: '0.8rem',
+                    fontSize: '0.72rem',
                     backgroundColor: 'var(--md-sys-color-primary-container)',
                     color: 'var(--md-sys-color-on-primary-container)',
-                    padding: '2px 8px',
+                    padding: '2px 6px',
                     borderRadius: '6px'
                   }}>
                     #{prod.barcode}
                   </span>
 
                   <button
-                    onClick={() => handleTogglePublish(prod)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTogglePublish(prod);
+                    }}
                     style={{
                       border: 'none',
                       borderRadius: '9999px',
-                      padding: '3px 8px',
-                      fontSize: '0.72rem',
+                      padding: '2px 6px',
+                      fontSize: '0.68rem',
                       fontWeight: 700,
                       cursor: 'pointer',
                       backgroundColor: prod.published ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-surface-container-high)',
                       color: prod.published ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '3px'
                     }}
                   >
-                    {prod.published ? <Eye size={12} /> : <EyeOff size={12} />}
-                    <span>{prod.published ? 'En Tienda' : 'Borrador'}</span>
+                    {prod.published ? <Eye size={11} /> : <EyeOff size={11} />}
+                    <span>{prod.published ? 'Tienda' : 'Borrador'}</span>
                   </button>
                 </div>
 
-                {/* Photo Preview if uploaded */}
-                {prod.photoUrl && (
-                  <div style={{ width: '100%', height: '100px', borderRadius: '8px', overflow: 'hidden', marginBottom: '8px' }}>
-                    <img src={prod.photoUrl} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                )}
+                {/* Photo Preview (1:1 ratio) */}
+                <div style={{
+                  width: '100%',
+                  aspectRatio: '1/1',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  marginBottom: '6px',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)'
+                }}>
+                  <img 
+                    src={prod.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">TIENDA CASA</text></svg>`} 
+                    alt={prod.name} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
+                </div>
 
-                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                <h3 style={{ 
+                  fontSize: '0.88rem', 
+                  fontWeight: 800, 
+                  color: 'var(--md-sys-color-on-surface)',
+                  lineHeight: '1.25',
+                  marginBottom: '2px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
                   {prod.name}
                 </h3>
-
-                {/* Ownership / Supplier Tag */}
-                <div style={{ marginTop: '4px' }}>
-                  {prod.supplierType === 'proveedor' ? (
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-expense)', backgroundColor: 'var(--md-sys-color-expense-container)', padding: '2px 8px', borderRadius: '6px' }}>
-                      Consignación: {prod.supplierName || 'Proveedor'}
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '2px 8px', borderRadius: '6px' }}>
-                      Mercancía Propia
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                  <Tag size={12} />
-                  <span>{prod.category}</span>
-                  <span>•</span>
-                  <Package size={12} />
-                  <span>Stock: {prod.stock} u</span>
-                </div>
               </div>
 
-              {/* Price & Cost Breakdown */}
-              <div style={{ paddingTop: '10px', borderTop: '1px solid var(--md-sys-color-surface-variant)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '4px' }}>
-                  <span>Costo: ${prod.costPrice || 0}</span>
-                  <span style={{ color: '#00875A', fontWeight: 700 }}>Ganancia Casa: +${unitProfit}</span>
+              {/* Price & Actions */}
+              <div style={{ paddingTop: '6px', borderTop: '1px solid var(--md-sys-color-surface-variant)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                  {formatCurrency(prod.price, currency, true)}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                    {formatCurrency(prod.price, currency, true)}
-                  </div>
+                <div style={{ display: 'flex', gap: '2px' }} onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => handleOpenEdit(prod)}
+                    title="Editar producto"
+                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}
+                  >
+                    <Edit3 size={15} />
+                  </button>
 
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button
-                      onClick={() => handleOpenEdit(prod)}
-                      title="Editar producto"
-                      style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}
-                    >
-                      <Edit3 size={16} />
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(prod.id, prod.name)}
-                      title="Eliminar producto"
-                      style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-expense)', cursor: 'pointer', padding: '4px' }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleDelete(prod.id, prod.name)}
+                    title="Eliminar producto"
+                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-expense)', cursor: 'pointer', padding: '4px' }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </div>
 
@@ -929,6 +968,23 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
         </div>
       )}
+
+      {/* Product Detail Modal for Store Admin */}
+      <ProductDetailModal
+        product={selectedProductForDetailModal}
+        onClose={() => setSelectedProductForDetailModal(null)}
+        onEditProduct={(p) => {
+          setSelectedProductForDetailModal(null);
+          handleOpenEdit(p);
+        }}
+        onDeleteProduct={(id, name) => {
+          setSelectedProductForDetailModal(null);
+          handleDelete(id, name);
+        }}
+        allProducts={products}
+        currency={currency}
+        isAdmin={true}
+      />
 
     </div>
   );

@@ -29,10 +29,12 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { RawDbModal } from '@/components/RawDbModal';
 import { LoginScreen } from '@/components/LoginScreen';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
+import { ActionFeedbackProvider, useActionFeedback } from '@/components/ActionFeedbackProvider';
 
 import { Plus, Loader2, Home, Scan } from 'lucide-react';
 
-export function AccountingAppView() {
+function AccountingAppContent() {
+  const { showToast, confirmAction } = useActionFeedback();
   const [db, setDb] = useState<RawDatabase | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('quick');
   const [showBalance, setShowBalance] = useState<boolean>(true);
@@ -115,11 +117,23 @@ export function AccountingAppView() {
 
     // Online/Offline Listeners
     setIsOnline(navigator.onLine);
-    const handleOnline = () => {
+    const handleOnline = async () => {
       setIsOnline(true);
-      autoSync();
+      showToast({
+        title: '¡Conexión Restablecida!',
+        message: 'Se ha restablecido la señal. Sincronizando datos con la nube...',
+        type: 'info'
+      });
+      await autoSync();
     };
-    const handleOffline = () => setIsOnline(false);
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast({
+        title: 'Modo Offline Activo',
+        message: 'Sin señal de red. Trabajando 100% en local con almacenamiento seguro.',
+        type: 'warning'
+      });
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -131,9 +145,51 @@ export function AccountingAppView() {
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
 
+    // Universal Input Spotlight Focus & Enter Key Field Navigation
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) {
+        document.body.classList.add('input-spotlight-active');
+        setTimeout(() => {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    };
+
+    const handleFocusOut = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) {
+        document.body.classList.remove('input-spotlight-active');
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        const target = e.target as HTMLInputElement;
+        if (target && ['INPUT', 'SELECT'].includes(target.tagName) && target.type !== 'submit' && target.type !== 'button') {
+          const container = target.closest('form') || target.closest('.md-card') || document;
+          if (container) {
+            const inputs = Array.from(container.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])')) as HTMLElement[];
+            const index = inputs.indexOf(target);
+            if (index >= 0 && index < inputs.length - 1) {
+              e.preventDefault();
+              inputs[index + 1].focus();
+            }
+          }
+        }
+      }
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+    document.addEventListener('keydown', handleKeyDown);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [loadDatabase]);
 
@@ -159,18 +215,29 @@ export function AccountingAppView() {
     } else {
       setIsPinUnlocked(true);
     }
+    showToast({ title: '¡Sesión Iniciada!', message: 'Bienvenido a Cuenta Casa.', type: 'success' });
   };
 
   const handlePinUnlockSuccess = () => {
     setIsPinUnlocked(true);
+    showToast({ title: '¡Acceso Concedido!', message: 'PIN del día verificado correctamente.', type: 'success' });
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('cuentacasa_auth');
-    sessionStorage.removeItem('cuentacasa_auth');
-    localStorage.removeItem('cuentacasa_last_pin_unlock');
-    setIsAuthenticated(false);
-    setIsPinUnlocked(false);
+    confirmAction({
+      title: '¿Cerrar Sesión en Cuenta Casa?',
+      message: 'Se cerrará la sesión actual. Tendrás que ingresar tu clave maestra para volver a acceder.',
+      variant: 'danger',
+      confirmText: 'Cerrar Sesión',
+      onConfirm: () => {
+        localStorage.removeItem('cuentacasa_auth');
+        sessionStorage.removeItem('cuentacasa_auth');
+        localStorage.removeItem('cuentacasa_last_pin_unlock');
+        setIsAuthenticated(false);
+        setIsPinUnlocked(false);
+        showToast({ title: 'Sesión Cerrada', message: 'Has cerrado la sesión de la aplicación.', type: 'info' });
+      }
+    });
   };
 
   const toggleTheme = () => {
@@ -178,6 +245,11 @@ export function AccountingAppView() {
     setTheme(newTheme);
     localStorage.setItem('cuentacasa_theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
+    showToast({
+      title: 'Tema Visual Cambiado',
+      message: `Se ha activado el modo ${newTheme === 'dark' ? 'Oscuro' : 'Claro'}.`,
+      type: 'info'
+    });
   };
 
   const toggleShowBalance = () => {
@@ -194,6 +266,11 @@ export function AccountingAppView() {
       saveRawDatabase(updatedDb);
       setDb(updatedDb);
     }
+    showToast({
+      title: 'Visualización de Saldos',
+      message: `Los saldos de la pantalla ahora están ${nextVal ? 'visibles' : 'ocultos (Modo Privacidad)'}.`,
+      type: 'info'
+    });
   };
 
   const handleSync = async () => {
@@ -201,9 +278,17 @@ export function AccountingAppView() {
     try {
       const res = await syncDatabaseWithCloud(true);
       loadDatabase();
-      alert(res.message);
+      showToast({
+        title: '¡Sincronización Exitosa!',
+        message: res.message,
+        type: 'success'
+      });
     } catch (e) {
-      alert('Error al intentar alinear datos con la nube.');
+      showToast({
+        title: 'Error de Sincronización',
+        message: 'No se pudo alinear los datos con la nube. Comprueba tu conexión.',
+        type: 'error'
+      });
     } finally {
       setIsSyncing(false);
     }
@@ -215,6 +300,7 @@ export function AccountingAppView() {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
       setShowPwaBanner(false);
+      showToast({ title: '¡PWA Instalada!', message: 'Cuenta Casa se ha instalado en tu dispositivo.', type: 'success' });
     }
     setDeferredPrompt(null);
   };
@@ -227,7 +313,11 @@ export function AccountingAppView() {
 
   const handleOpenEditTx = (tx: Transaction) => {
     if (!isTransactionEditable(tx.createdAt)) {
-      alert('Solo es posible editar o eliminar registros dentro de los primeros 5 minutos de su creación.');
+      showToast({
+        title: 'Edición Bloqueada',
+        message: 'Solo es posible editar o eliminar registros dentro de los primeros 5 minutos de su creación.',
+        type: 'warning'
+      });
       return;
     }
     setEditingTx(tx);
@@ -237,7 +327,11 @@ export function AccountingAppView() {
   const handleSaveTransaction = async (txData: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingTx) {
       if (!isTransactionEditable(editingTx.createdAt)) {
-        alert('El tiempo límite de 5 minutos para editar este registro ha expirado.');
+        showToast({
+          title: 'Tiempo Expirado',
+          message: 'El tiempo límite de 5 minutos para editar este registro ha expirado.',
+          type: 'error'
+        });
         setIsTxModalOpen(false);
         return;
       }
@@ -245,8 +339,18 @@ export function AccountingAppView() {
         ...editingTx,
         ...txData
       });
+      showToast({
+        title: '¡Transacción Actualizada!',
+        message: `Se guardaron los cambios en "${txData.concept}".`,
+        type: 'success'
+      });
     } else {
       addTransaction(txData);
+      showToast({
+        title: '¡Transacción Registrada!',
+        message: `Movimiento de ${txData.type === 'ingreso' ? 'Ingreso' : 'Gasto'} ("${txData.concept}") por $${txData.amount} guardado.`,
+        type: 'success'
+      });
     }
     loadDatabase();
 
@@ -264,23 +368,42 @@ export function AccountingAppView() {
   const handleDeleteTransaction = async (id: string) => {
     const targetTx = db?.transactions.find(t => t.id === id);
     if (targetTx && !isTransactionEditable(targetTx.createdAt)) {
-      alert('Solo es posible editar o eliminar registros dentro de los primeros 5 minutos de su creación.');
+      showToast({
+        title: 'Eliminación Bloqueada',
+        message: 'Solo es posible eliminar registros dentro de los primeros 5 minutos de su creación.',
+        type: 'warning'
+      });
       return;
     }
-    setDeletingId(id);
-    try {
-      deleteTransaction(id);
-      loadDatabase();
 
-      if (navigator.onLine) {
-        setIsSyncing(true);
-        await syncDatabaseWithCloud();
-        loadDatabase();
+    confirmAction({
+      title: '¿Eliminar Movimiento?',
+      message: `¿Estás seguro de eliminar "${targetTx?.concept || 'esta transacción'}"? Esta acción se sincronizará con la nube.`,
+      variant: 'danger',
+      confirmText: 'Eliminar Movimiento',
+      onConfirm: async () => {
+        setDeletingId(id);
+        try {
+          deleteTransaction(id);
+          loadDatabase();
+
+          if (navigator.onLine) {
+            setIsSyncing(true);
+            await syncDatabaseWithCloud();
+            loadDatabase();
+          }
+
+          showToast({
+            title: '¡Movimiento Eliminado!',
+            message: 'La transacción fue removida exitosamente.',
+            type: 'success'
+          });
+        } finally {
+          setDeletingId(null);
+          setIsSyncing(false);
+        }
       }
-    } finally {
-      setDeletingId(null);
-      setIsSyncing(false);
-    }
+    });
   };
 
   // Full-page Skeleton Loader Shell on initial load
@@ -478,16 +601,28 @@ export function AccountingAppView() {
 
       </main>
 
-      {/* Floating Action Button (FAB) */}
+      {/* Context-Aware Floating Action Button (FAB) */}
       {activeTab !== 'quick' && (
-        <button
-          className="fab no-print"
-          onClick={() => handleOpenAddTx('gasto')}
-          title="Registrar gasto"
-        >
-          <Plus size={22} />
-          <span>Gasto</span>
-        </button>
+        activeTab === 'store' ? (
+          <button
+            className="fab no-print"
+            onClick={() => setIsScannerOpen(true)}
+            title="Abrir Escáner POS para Vender"
+            style={{ backgroundColor: 'var(--md-sys-color-primary)', color: '#FFFFFF' }}
+          >
+            <Scan size={22} />
+            <span>Vender / Escanear</span>
+          </button>
+        ) : (
+          <button
+            className="fab no-print"
+            onClick={() => handleOpenAddTx('gasto')}
+            title="Registrar nuevo movimiento"
+          >
+            <Plus size={22} />
+            <span>Registrar Movimiento</span>
+          </button>
+        )
       )}
 
       {/* Barcode Scanner Modal (0001-9999) */}
@@ -541,5 +676,13 @@ export function AccountingAppView() {
       )}
 
     </div>
+  );
+}
+
+export function AccountingAppView() {
+  return (
+    <ActionFeedbackProvider>
+      <AccountingAppContent />
+    </ActionFeedbackProvider>
   );
 }

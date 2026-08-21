@@ -241,15 +241,27 @@ body {
 }
 
 /* Input Spotlight Focus & Immersive Blur Styles */
-.input-spotlight {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  outline: none;
+body.input-spotlight-active::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  z-index: 95;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
 }
 
-.input-spotlight:focus {
+input:focus, select:focus, textarea:focus, .input-spotlight:focus {
   border-color: var(--md-sys-color-primary) !important;
-  box-shadow: 0 0 0 4px rgba(0, 99, 155, 0.22), 0 4px 14px rgba(0,0,0,0.1) !important;
-  transform: translateY(-1px);
+  box-shadow: 0 0 0 4px rgba(0, 99, 155, 0.28), 0 8px 24px rgba(0,0,0,0.18) !important;
+  position: relative !important;
+  z-index: 100 !important;
+  transform: translateY(-2px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Animated Scanner Laser Sweep */

@@ -8,6 +8,7 @@ import {
   registerStoreSale 
 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
+import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { 
   Scan, 
   X, 
@@ -43,8 +44,8 @@ const playScanBeep = () => {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(1050, ctx.currentTime); // High crisp scanner beep
 
-      gain.gain.setValueAtTime(0.4, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -63,6 +64,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   onSaleCompleted,
   currency = '$'
 }) => {
+  const { showToast, confirmAction } = useActionFeedback();
   const scannerContainerId = 'cuentacasa-html5-barcode-reader';
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
 
@@ -102,6 +104,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   };
 
   const addItemToTicket = (product: StoreProduct) => {
+    playScanBeep();
     setTicketItems(prev => {
       const existingIndex = prev.findIndex(item => item.productId === product.id || item.barcode === product.barcode);
       if (existingIndex !== -1) {
@@ -136,6 +139,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   };
 
   const updateItemQuantity = (productId: string, delta: number) => {
+    playScanBeep();
     setTicketItems(prev => prev.map(item => {
       if (item.productId === productId) {
         const newQty = item.quantity + delta;
@@ -178,6 +182,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   };
 
   const removeItemFromTicket = (productId: string) => {
+    playScanBeep();
     setTicketItems(prev => prev.filter(item => item.productId !== productId));
   };
 
@@ -277,7 +282,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       scanner.clear();
       handleDecodedBarcode(decodedText);
     } catch (err) {
-      alert('No se detectó un código de barras legible en la imagen seleccionada.');
+      showToast({
+        title: 'Sin Resultados',
+        message: 'No se detectó un código de barras legible en la imagen seleccionada.',
+        type: 'error'
+      });
     } finally {
       setIsScanningFile(false);
     }
@@ -300,24 +309,40 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
   const handleConfirmSale = () => {
     if (ticketItems.length === 0) {
-      alert('Agrega al menos un producto al ticket antes de confirmar la venta.');
+      showToast({
+        title: 'Ticket Vacío',
+        message: 'Agrega al menos un producto al ticket antes de confirmar la venta.',
+        type: 'warning'
+      });
       return;
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    confirmAction({
+      title: '¿Confirmar y Registrar Venta?',
+      message: `Se registrará la venta de ${totalUnitsCount} unidades por un total de ${formatCurrency(totalInvoicePrice, currency, true)}. La ganancia neta de +${formatCurrency(estimatedNetProfit, currency, true)} ingresará a CuentaCasa.`,
+      variant: 'primary',
+      confirmText: 'Confirmar y Cobrar',
+      onConfirm: () => {
+        const todayStr = new Date().toISOString().split('T')[0];
 
-    registerStoreSale({
-      date: todayStr,
-      items: ticketItems,
-      totalAmount: totalInvoicePrice,
-      totalCost: totalInvoiceCost,
-      netProfit: estimatedNetProfit
+        registerStoreSale({
+          date: todayStr,
+          items: ticketItems,
+          totalAmount: totalInvoicePrice,
+          totalCost: totalInvoiceCost,
+          netProfit: estimatedNetProfit
+        });
+
+        showToast({
+          title: '¡Venta Registrada con Éxito!',
+          message: `Venta por ${formatCurrency(totalInvoicePrice, currency, true)} procesada.`,
+          type: 'success'
+        });
+        setTicketItems([]);
+        if (onSaleCompleted) onSaleCompleted();
+        onClose();
+      }
     });
-
-    triggerSuccessEffect('¡Venta Registrada! Ganancia enviada a CuentaCasa.');
-    setTicketItems([]);
-    if (onSaleCompleted) onSaleCompleted();
-    onClose();
   };
 
   const availableProducts = getStoreProducts();

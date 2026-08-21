@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { getRawDatabaseString, saveRawDatabaseString, exportDatabaseFile } from '@/lib/storage';
 import { X, Copy, Download, Upload, Save, Check, FileCode } from 'lucide-react';
 
+import { useActionFeedback } from '@/components/ActionFeedbackProvider';
+
 interface RawDbModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,6 +17,7 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
   onClose,
   onDbUpdated
 }) => {
+  const { showToast, confirmAction } = useActionFeedback();
   const [jsonText, setJsonText] = useState('');
   const [copied, setCopied] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError?: boolean } | null>(null);
@@ -31,18 +34,29 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
   const handleCopy = () => {
     navigator.clipboard.writeText(jsonText);
     setCopied(true);
+    showToast({ title: 'JSON Copiado', message: 'El texto de la base de datos fue copiado al portapapeles.', type: 'info' });
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSaveText = () => {
-    const result = saveRawDatabaseString(jsonText);
-    if (result.success) {
-      setStatusMessage({ text: '¡Base de datos JSON guardada correctamente!' });
-      onDbUpdated();
-      setTimeout(() => setStatusMessage(null), 3000);
-    } else {
-      setStatusMessage({ text: result.error || 'Error al guardar JSON', isError: true });
-    }
+    confirmAction({
+      title: '¿Guardar Cambios en BD JSON?',
+      message: 'Se actualizará el estado de Cuenta Casa con el contenido JSON del editor.',
+      variant: 'warning',
+      confirmText: 'Guardar Cambios',
+      onConfirm: () => {
+        const result = saveRawDatabaseString(jsonText);
+        if (result.success) {
+          setStatusMessage({ text: '¡Base de datos JSON guardada correctamente!' });
+          showToast({ title: '¡Base de Datos Actualizada!', message: 'Los cambios en la base de datos fueron guardados.', type: 'success' });
+          onDbUpdated();
+          setTimeout(() => setStatusMessage(null), 3000);
+        } else {
+          setStatusMessage({ text: result.error || 'Error al guardar JSON', isError: true });
+          showToast({ title: 'Error en JSON', message: result.error || 'Error al procesar la sintaxis JSON.', type: 'error' });
+        }
+      }
+    });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,14 +66,24 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
       reader.onload = (event) => {
         const content = event.target?.result as string;
         if (content) {
-          setJsonText(content);
-          const result = saveRawDatabaseString(content);
-          if (result.success) {
-            setStatusMessage({ text: `¡Archivo "${file.name}" importado y guardado con éxito!` });
-            onDbUpdated();
-          } else {
-            setStatusMessage({ text: result.error || 'Error al procesar archivo JSON', isError: true });
-          }
+          confirmAction({
+            title: '¿Importar Archivo JSON?',
+            message: `Se reemplazará toda la base de datos local con los datos del archivo "${file.name}".`,
+            variant: 'warning',
+            confirmText: 'Importar y Reemplazar',
+            onConfirm: () => {
+              setJsonText(content);
+              const result = saveRawDatabaseString(content);
+              if (result.success) {
+                setStatusMessage({ text: `¡Archivo "${file.name}" importado con éxito!` });
+                showToast({ title: '¡Importación Exitosa!', message: `Base de datos importada desde "${file.name}".`, type: 'success' });
+                onDbUpdated();
+              } else {
+                setStatusMessage({ text: result.error || 'Error al procesar archivo JSON', isError: true });
+                showToast({ title: 'Error al Importar', message: result.error || 'El archivo seleccionado no es válido.', type: 'error' });
+              }
+            }
+          });
         }
       };
       reader.readAsText(file);
