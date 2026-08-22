@@ -55,6 +55,11 @@ function AccountingAppContent() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+  const [syncBanner, setSyncBanner] = useState<{
+    show: boolean;
+    status: 'syncing' | 'success' | 'offline';
+    message: string;
+  }>({ show: false, status: 'syncing', message: '' });
 
   // Authentication & Security state
   const [authLoaded, setAuthLoaded] = useState(false);
@@ -100,14 +105,36 @@ function AccountingAppContent() {
     setAuthLoaded(true);
 
     // Auto sync function
-    const autoSync = async () => {
+    const autoSync = async (isBackgroundReconnection: boolean = false) => {
       if (navigator.onLine) {
         try {
           setIsSyncing(true);
+          if (isBackgroundReconnection) {
+            setSyncBanner({
+              show: true,
+              status: 'syncing',
+              message: '🔄 Sincronizando en segundo plano con Base de Datos Hostinger...'
+            });
+          }
           await syncDatabaseWithCloud();
           loadDatabase();
+          if (isBackgroundReconnection) {
+            setSyncBanner({
+              show: true,
+              status: 'success',
+              message: '✅ Base de Datos Hostinger sincronizada. ¡Todo en caja!'
+            });
+            setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 3800);
+          }
         } catch (e) {
-          console.error('AutoSync failed:', e);
+          if (isBackgroundReconnection) {
+            setSyncBanner({
+              show: true,
+              status: 'offline',
+              message: '⚠️ Error de conexión a la nube. Operando en modo local.'
+            });
+            setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 3500);
+          }
         } finally {
           setIsSyncing(false);
         }
@@ -115,26 +142,22 @@ function AccountingAppContent() {
     };
 
     // Auto sync on mount if online
-    autoSync();
+    autoSync(false);
 
     // Online/Offline Listeners
     setIsOnline(navigator.onLine);
     const handleOnline = async () => {
       setIsOnline(true);
-      showToast({
-        title: '¡Conexión Restablecida!',
-        message: 'Se ha restablecido la señal. Sincronizando datos con la nube...',
-        type: 'info'
-      });
-      await autoSync();
+      await autoSync(true);
     };
     const handleOffline = () => {
       setIsOnline(false);
-      showToast({
-        title: 'Modo Offline Activo',
-        message: 'Sin señal de red. Trabajando 100% en local con almacenamiento seguro.',
-        type: 'warning'
+      setSyncBanner({
+        show: true,
+        status: 'offline',
+        message: '📶 Modo 100% Offline activo. Los datos permanecen guardados en tu dispositivo.'
       });
+      setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 3800);
     };
 
     window.addEventListener('online', handleOnline);
@@ -473,8 +496,31 @@ function AccountingAppContent() {
   const pendingCount = getPendingSyncCount();
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       
+      {/* Top Background Sync Progress Banner */}
+      {syncBanner.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0,
+          zIndex: 99999,
+          backgroundColor: syncBanner.status === 'success' ? '#00875A' : syncBanner.status === 'offline' ? '#D97706' : '#00639B',
+          color: '#FFFFFF',
+          padding: '8px 16px',
+          fontSize: '0.82rem',
+          fontWeight: 800,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          transition: 'all 0.3s ease'
+        }}>
+          {syncBanner.status === 'syncing' && <Loader2 size={16} className="animate-spin" />}
+          <span>{syncBanner.message}</span>
+        </div>
+      )}
+
       {/* Compact Header */}
       <Header
         activeTab={activeTab}

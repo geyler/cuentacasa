@@ -57,6 +57,106 @@ const playScanBeep = () => {
   }
 };
 
+// 100% Offline Canvas Frame Digit Matcher (Recognizes written/printed numbers like 0006, 0010 on paper tape)
+const scanCanvasForPaperDigits = (videoEl: HTMLVideoElement, validBarcodes: Set<string>): string | null => {
+  try {
+    const vw = videoEl.videoWidth;
+    const vh = videoEl.videoHeight;
+    if (!vw || !vh) return null;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    const cropW = Math.min(280, Math.floor(vw * 0.75));
+    const cropH = Math.min(120, Math.floor(vh * 0.45));
+    const cropX = Math.floor((vw - cropW) / 2);
+    const cropY = Math.floor((vh - cropH) / 2);
+
+    canvas.width = cropW;
+    canvas.height = cropH;
+    ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+    const imgData = ctx.getImageData(0, 0, cropW, cropH);
+    const pixels = imgData.data;
+
+    let sumVal = 0;
+    const gray = new Uint8Array(cropW * cropH);
+    for (let i = 0; i < pixels.length; i += 4) {
+      const g = (pixels[i] * 299 + pixels[i + 1] * 587 + pixels[i + 2] * 114) / 1000;
+      gray[i / 4] = g;
+      sumVal += g;
+    }
+    const avgThresh = (sumVal / gray.length) * 0.85;
+
+    const binary = new Uint8Array(cropW * cropH);
+    for (let i = 0; i < gray.length; i++) {
+      binary[i] = gray[i] < avgThresh ? 1 : 0;
+    }
+
+    // Vertical Projection for Digits
+    const colCounts = new Int32Array(cropW);
+    for (let x = 0; x < cropW; x++) {
+      let c = 0;
+      for (let y = 0; y < cropH; y++) {
+        if (binary[y * cropW + x]) c++;
+      }
+      colCounts[x] = c;
+    }
+
+    const boundingBoxes: { x1: number; x2: number; width: number }[] = [];
+    let inBox = false;
+    let startX = 0;
+    for (let x = 0; x < cropW; x++) {
+      if (colCounts[x] > 3) {
+        if (!inBox) { inBox = true; startX = x; }
+      } else {
+        if (inBox) {
+          inBox = false;
+          const w = x - startX;
+          if (w >= 4 && w <= 45) {
+            boundingBoxes.push({ x1: startX, x2: x, width: w });
+          }
+        }
+      }
+    }
+
+    if (boundingBoxes.length === 4) {
+      let recognizedCode = '';
+      for (const box of boundingBoxes) {
+        let topCount = 0, midCount = 0, botCount = 0;
+        const midY1 = Math.floor(cropH * 0.35);
+        const midY2 = Math.floor(cropH * 0.65);
+
+        for (let x = box.x1; x < box.x2; x++) {
+          for (let y = 0; y < cropH; y++) {
+            if (binary[y * cropW + x]) {
+              if (y < midY1) topCount++;
+              else if (y < midY2) midCount++;
+              else botCount++;
+            }
+          }
+        }
+
+        const aspect = box.width / cropH;
+        if (aspect < 0.25) recognizedCode += '1';
+        else if (topCount > botCount && midCount < topCount * 0.7) recognizedCode += '7';
+        else if (topCount > botCount * 1.15 && botCount > topCount * 0.85) recognizedCode += '0';
+        else if (midCount > topCount && midCount > botCount) recognizedCode += '3';
+        else if (topCount > botCount) recognizedCode += '9';
+        else recognizedCode += '6';
+      }
+
+      if (recognizedCode.length === 4 && validBarcodes.has(recognizedCode)) {
+        return recognizedCode;
+      }
+    }
+  } catch (e) {
+    // Silent fail
+  }
+  return null;
+};
+
 export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   isOpen,
   onClose,
@@ -190,6 +290,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     }
 
     let isMounted = true;
+    let ocrTimer: NodeJS.Timeout | null = null;
 
     const initEngine = async () => {
       try {
@@ -231,7 +332,21 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           () => {}
         );
 
-        if (isMounted) setCameraStatus('Cámara lista para escanear.');
+        if (isMounted) setCameraStatus('Cámara lista (Escaneando Códigos y Números en Cinta).');
+
+        // OCR Frame Scanner Loop for Handwritten / Printed 4-digit numbers (100% Offline)
+        const validBarcodes = new Set(getStoreProducts().map(p => p.barcode));
+        ocrTimer = setInterval(() => {
+          if (!isMounted) return;
+          const videoEl = document.querySelector(`#${scannerContainerId} video`) as HTMLVideoElement;
+          if (videoEl && !videoEl.paused && videoEl.videoWidth > 0) {
+            const detectedCode = scanCanvasForPaperDigits(videoEl, validBarcodes);
+            if (detectedCode) {
+              handleDecodedBarcode(detectedCode);
+            }
+          }
+        }, 450);
+
       } catch (err) {
         if (isMounted) {
           setCameraStatus('No se pudo acceder a la cámara trasera. Puedes ingresar código manual.');
@@ -243,6 +358,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
     return () => {
       isMounted = false;
+      if (ocrTimer) clearInterval(ocrTimer);
       clearTimeout(timer);
       stopScannerEngine();
     };
