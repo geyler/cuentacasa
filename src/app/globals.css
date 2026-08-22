@@ -241,18 +241,17 @@ body {
 }
 
 /* Input Spotlight Focus & Immersive Blur Styles */
-body.input-spotlight-active::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-  z-index: 95;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
+.input-spotlight-dimmed {
+  opacity: 0.35 !important;
+  filter: blur(2.5px) !important;
+  transition: opacity 0.25s ease, filter 0.25s ease !important;
+}
+
+.input-spotlight-active {
+  opacity: 1 !important;
+  filter: none !important;
+  z-index: 105 !important;
+  transition: opacity 0.25s ease, filter 0.25s ease !important;
 }
 
 input:focus, select:focus, textarea:focus, .input-spotlight:focus {

@@ -170,10 +170,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <input
                 ref={pinRef}
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={4}
                 placeholder="••••"
                 value={pin}
-                onFocus={() => setIsFocused(true)}
+                onFocus={e => {
+                  setIsFocused(true);
+                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
                 onBlur={() => setIsFocused(false)}
                 onChange={e => {
                   const val = e.target.value.replace(/\D/g, '').slice(0, 4);
@@ -181,6 +186,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 }}
                 required
                 autoFocus
+                className="input-spotlight"
                 style={{
                   width: '180px',
                   padding: '12px',
@@ -246,13 +252,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 <input
                   ref={passwordRef}
                   type={showPassword ? 'text' : 'password'}
+                  inputMode="text"
                   placeholder="••••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
+                  onFocus={e => {
+                    setIsFocused(true);
+                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }}
                   onBlur={() => setIsFocused(false)}
                   required
                   autoFocus
+                  className="input-spotlight"
                   style={{
                     width: '100%',
                     padding: '14px 42px 14px 14px',

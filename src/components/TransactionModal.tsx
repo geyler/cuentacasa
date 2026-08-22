@@ -295,8 +295,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           
           {/* Detalle / Titulo Input Field 1 */}
           <div style={{
-            opacity: focusedField !== null && focusedField !== 'concept' ? 0.4 : 1,
-            transition: 'opacity 0.2s ease'
+            opacity: focusedField !== null && focusedField !== 'concept' ? 0.35 : 1,
+            filter: focusedField !== null && focusedField !== 'concept' ? 'blur(2.5px)' : 'none',
+            transition: 'all 0.25s ease'
           }}>
             
             {focusedField === 'concept' ? (
@@ -342,12 +343,16 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <input
               ref={conceptRef}
               type="text"
+              inputMode="text"
               minLength={3}
               maxLength={120}
               placeholder={type === 'ingreso' ? 'Ej. Pago por webs, Venta de laptop...' : 'Ej. Pan, Arroz, Hamburguesa...'}
               value={concept}
               onChange={e => setConcept(e.target.value)}
-              onFocus={() => setFocusedField('concept')}
+              onFocus={e => {
+                setFocusedField('concept');
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -358,6 +363,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               }}
               required
               autoFocus
+              className="input-spotlight"
               style={{
                 width: '100%',
                 padding: '12px 14px',
@@ -368,7 +374,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 backgroundColor: 'var(--md-sys-color-surface)',
                 color: 'var(--md-sys-color-on-surface)',
                 fontSize: '1rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 outline: 'none',
                 boxShadow: focusedField === 'concept'
                   ? '0 0 0 4px rgba(0, 99, 155, 0.25)'
@@ -383,8 +389,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           {/* Monto Input Field 2 (LAST INPUT) */}
           <div style={{
-            opacity: focusedField !== null && focusedField !== 'amount' ? 0.4 : 1,
-            transition: 'opacity 0.2s ease'
+            opacity: focusedField !== null && focusedField !== 'amount' ? 0.35 : 1,
+            filter: focusedField !== null && focusedField !== 'amount' ? 'blur(2.5px)' : 'none',
+            transition: 'all 0.25s ease'
           }}>
             
             {focusedField === 'amount' ? (
@@ -427,21 +434,26 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <input
               ref={amountRef}
               type="number"
+              inputMode="decimal"
+              pattern="[0-9]*"
               step="any"
               placeholder="0.00"
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              onFocus={() => setFocusedField('amount')}
+              onFocus={e => {
+                setFocusedField('amount');
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   e.stopPropagation();
-                  // Stop form submit, remove focus from active input so no input is selected
                   amountRef.current?.blur();
                   setFocusedField(null);
                 }
               }}
               required
+              className="input-spotlight"
               style={{
                 width: '100%',
                 padding: '12px 14px',

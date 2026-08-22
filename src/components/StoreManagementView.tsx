@@ -1369,8 +1369,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
             {/* Product Name */}
             <div style={{
-              opacity: focusedField !== null && focusedField !== 'name' ? 0.5 : 1,
-              transition: 'opacity 0.2s ease'
+              opacity: focusedField !== null && focusedField !== 'name' ? 0.35 : 1,
+              filter: focusedField !== null && focusedField !== 'name' ? 'blur(2.5px)' : 'none',
+              transition: 'all 0.25s ease'
             }}>
               {focusedField === 'name' ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -1401,11 +1402,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               <input
                 ref={nameRef}
                 type="text"
+                inputMode="text"
                 required
                 placeholder="Ej. Pan Dulce Casero 5u"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                onFocus={() => setFocusedField('name')}
+                onFocus={e => {
+                  setFocusedField('name');
+                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -1416,13 +1421,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 className="input-spotlight"
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: '12px 14px',
                   borderRadius: '12px',
                   border: focusedField === 'name' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                   backgroundColor: 'var(--md-sys-color-surface)',
-                  fontWeight: 600,
+                  fontSize: '1rem',
+                  fontWeight: 700,
                   outline: 'none',
-                  boxShadow: focusedField === 'name' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none'
+                  boxShadow: focusedField === 'name' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none',
+                  transition: 'all 0.2s ease'
                 }}
               />
             </div>
@@ -1430,8 +1437,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             {/* Cost Price vs Selling Price Grid (Numeric Keyboard) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div style={{
-                opacity: focusedField !== null && focusedField !== 'costPrice' ? 0.5 : 1,
-                transition: 'opacity 0.2s ease'
+                opacity: focusedField !== null && focusedField !== 'costPrice' ? 0.35 : 1,
+                filter: focusedField !== null && focusedField !== 'costPrice' ? 'blur(2.5px)' : 'none',
+                transition: 'all 0.25s ease'
               }}>
                 {focusedField === 'costPrice' ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -1467,7 +1475,10 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   placeholder="200"
                   value={costPrice}
                   onChange={e => setCostPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  onFocus={() => setFocusedField('costPrice')}
+                  onFocus={e => {
+                    setFocusedField('costPrice');
+                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }}
                   onKeyDown={e => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -1478,20 +1489,23 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   className="input-spotlight"
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
+                    padding: '12px 14px',
                     borderRadius: '12px',
                     border: focusedField === 'costPrice' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface)',
+                    fontSize: '1rem',
                     fontWeight: 700,
                     outline: 'none',
-                    boxShadow: focusedField === 'costPrice' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none'
+                    boxShadow: focusedField === 'costPrice' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none',
+                    transition: 'all 0.2s ease'
                   }}
                 />
               </div>
 
               <div style={{
-                opacity: focusedField !== null && focusedField !== 'price' ? 0.5 : 1,
-                transition: 'opacity 0.2s ease'
+                opacity: focusedField !== null && focusedField !== 'price' ? 0.35 : 1,
+                filter: focusedField !== null && focusedField !== 'price' ? 'blur(2.5px)' : 'none',
+                transition: 'all 0.25s ease'
               }}>
                 {focusedField === 'price' ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -1527,7 +1541,10 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   placeholder="350"
                   value={price}
                   onChange={e => setPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  onFocus={() => setFocusedField('price')}
+                  onFocus={e => {
+                    setFocusedField('price');
+                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }}
                   onKeyDown={e => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -1538,14 +1555,16 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   className="input-spotlight"
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
+                    padding: '12px 14px',
                     borderRadius: '12px',
                     border: focusedField === 'price' ? '2px solid var(--md-sys-color-income)' : '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface)',
+                    fontSize: '1rem',
                     fontWeight: 800,
                     color: 'var(--md-sys-color-income)',
                     outline: 'none',
-                    boxShadow: focusedField === 'price' ? '0 0 0 4px rgba(0, 135, 90, 0.25)' : 'none'
+                    boxShadow: focusedField === 'price' ? '0 0 0 4px rgba(0, 135, 90, 0.25)' : 'none',
+                    transition: 'all 0.2s ease'
                   }}
                 />
               </div>
@@ -1553,8 +1572,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
             {/* Stock (Numeric Keyboard) */}
             <div style={{
-              opacity: focusedField !== null && focusedField !== 'stock' ? 0.5 : 1,
-              transition: 'opacity 0.2s ease'
+              opacity: focusedField !== null && focusedField !== 'stock' ? 0.35 : 1,
+              filter: focusedField !== null && focusedField !== 'stock' ? 'blur(2.5px)' : 'none',
+              transition: 'all 0.25s ease'
             }}>
               {focusedField === 'stock' ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -1590,7 +1610,10 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 required
                 value={stock}
                 onChange={e => setStock(parseInt(e.target.value, 10) || 0)}
-                onFocus={() => setFocusedField('stock')}
+                onFocus={e => {
+                  setFocusedField('stock');
+                  e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -1601,13 +1624,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 className="input-spotlight"
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: '12px 14px',
                   borderRadius: '12px',
                   border: focusedField === 'stock' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                   backgroundColor: 'var(--md-sys-color-surface)',
+                  fontSize: '1rem',
                   fontWeight: 700,
                   outline: 'none',
-                  boxShadow: focusedField === 'stock' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none'
+                  boxShadow: focusedField === 'stock' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none',
+                  transition: 'all 0.2s ease'
                 }}
               />
             </div>
