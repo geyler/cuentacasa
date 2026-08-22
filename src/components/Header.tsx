@@ -215,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
               maxWidth: '500px',
               maxHeight: '85vh',
               backgroundColor: 'var(--md-sys-color-surface-container)',
-              borderRadius: '24px 24px 0 0',
+              borderRadius: '28px 28px 0 0',
               boxShadow: 'var(--md-shadow-elevation-3)',
               display: 'flex',
               flexDirection: 'column',

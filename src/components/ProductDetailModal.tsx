@@ -85,6 +85,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface)',
           borderTopLeftRadius: '28px',
           borderTopRightRadius: '28px',
+          borderBottomLeftRadius: '0px',
+          borderBottomRightRadius: '0px',
           padding: '24px',
           boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
           display: 'flex',

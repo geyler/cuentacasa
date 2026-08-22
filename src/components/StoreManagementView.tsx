@@ -1685,7 +1685,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: '14px',
-              borderRadius: '24px 24px 0 0'
+              borderRadius: '28px 28px 0 0'
             }}
           >
             <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 8px auto' }} />
@@ -1755,7 +1755,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: '14px',
-              borderRadius: '24px 24px 0 0'
+              borderRadius: '28px 28px 0 0'
             }}
           >
             {/* Handle Drag Indicator */}

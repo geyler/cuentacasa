@@ -347,7 +347,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              borderRadius: '24px 24px 0 0',
+              borderRadius: '28px 28px 0 0',
               backgroundColor: 'var(--md-sys-color-surface)',
               boxShadow: 'var(--md-shadow-elevation-3)',
               animation: 'slideUp 0.25s ease-out'

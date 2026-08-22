@@ -505,6 +505,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               color: 'var(--md-sys-color-on-surface)',
               borderTopLeftRadius: '28px',
               borderTopRightRadius: '28px',
+              borderBottomLeftRadius: '0px',
+              borderBottomRightRadius: '0px',
               width: '100%',
               maxWidth: '480px',
               padding: '24px 20px',
