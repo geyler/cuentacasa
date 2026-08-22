@@ -20,7 +20,6 @@ import {
   ShoppingBag, 
   Trash2,
   Receipt,
-  Upload,
   Volume2
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
@@ -42,7 +41,7 @@ const playScanBeep = () => {
       const gain = ctx.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(1050, ctx.currentTime); // High crisp scanner beep
+      osc.frequency.setValueAtTime(1050, ctx.currentTime);
 
       gain.gain.setValueAtTime(0.3, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
@@ -73,10 +72,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [ticketItems, setTicketItems] = useState<StoreSaleItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [isManualInput, setIsManualInput] = useState(false);
   const [cameraStatus, setCameraStatus] = useState<string>('Iniciando cámara...');
   const [lastScanned, setLastScanned] = useState<string | null>(null);
-  const [isScanningFile, setIsScanningFile] = useState(false);
 
   // Cooldown tracker to prevent duplicate scans in 1.8 seconds
   const lastScanTimeRef = useRef<number>(0);
@@ -86,10 +83,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     if (now - lastScanTimeRef.current < 1800) return; // Cooldown 1.8s
     lastScanTimeRef.current = now;
 
-    // Play physical scanner PIP sound!
     playScanBeep();
 
-    // Extract digits or clean barcode
     const numericOnly = decodedText.replace(/\D/g, '');
     const cleanCode = (numericOnly.length > 0 ? numericOnly : decodedText).slice(-4).padStart(4, '0');
 
@@ -135,7 +130,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       ];
     });
 
-    triggerSuccessEffect(`¡Agregado al Ticket: ${product.name}!`);
+    triggerSuccessEffect(`¡Agregado: ${product.name}!`);
   };
 
   const updateItemQuantity = (productId: string, delta: number) => {
@@ -186,7 +181,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setTicketItems(prev => prev.filter(item => item.productId !== productId));
   };
 
-  // Initialize Html5Qrcode Scanner Engine with exact 1:1 center alignment
+  // Initialize Html5Qrcode Scanner Engine
   useEffect(() => {
     if (!isOpen) {
       stopScannerEngine();
@@ -219,10 +214,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         const config = {
           fps: 20,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-            // Precise dynamic center box matching the 280x130 visual overlay
             return {
-              width: Math.min(viewfinderWidth * 0.88, 280),
-              height: Math.min(viewfinderHeight * 0.60, 130)
+              width: Math.min(viewfinderWidth * 0.88, 260),
+              height: Math.min(viewfinderHeight * 0.55, 110)
             };
           },
           aspectRatio: 1.777778
@@ -234,15 +228,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           (decodedText) => {
             if (isMounted) handleDecodedBarcode(decodedText);
           },
-          () => {
-            // Ignore frame scan failures
-          }
+          () => {}
         );
 
         if (isMounted) setCameraStatus('Cámara lista para escanear.');
       } catch (err) {
         if (isMounted) {
-          setCameraStatus('No se pudo acceder a la cámara trasera. Puedes seleccionar productos o ingresar código.');
+          setCameraStatus('No se pudo acceder a la cámara trasera. Puedes ingresar código manual.');
         }
       }
     };
@@ -267,28 +259,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         // Ignore stop errors
       }
       html5QrcodeRef.current = null;
-    }
-  };
-
-  // Image / File Barcode Reader
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsScanningFile(true);
-      const scanner = new Html5Qrcode('file-scanner-temp');
-      const decodedText = await scanner.scanFile(file, true);
-      scanner.clear();
-      handleDecodedBarcode(decodedText);
-    } catch (err) {
-      showToast({
-        title: 'Sin Resultados',
-        message: 'No se detectó un código de barras legible en la imagen seleccionada.',
-        type: 'error'
-      });
-    } finally {
-      setIsScanningFile(false);
     }
   };
 
@@ -356,72 +326,81 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     });
   };
 
-  const availableProducts = getStoreProducts();
+  const handleManualFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualCode.trim()) {
+      const codeToScan = manualCode.trim().padStart(4, '0');
+      handleDecodedBarcode(codeToScan);
+      setManualCode('');
+    }
+  };
 
   return (
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.90)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.93)',
+      backdropFilter: 'blur(10px)',
       zIndex: 120,
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'flex-start',
-      overflowY: 'auto'
+      height: '100vh',
+      overflow: 'hidden'
     }} className="no-print">
 
-      <div id="file-scanner-temp" style={{ display: 'none' }} />
-
-      {/* Top Header Bar */}
+      {/* FIXED TOP HEADER */}
       <div style={{
-        padding: '12px 16px',
+        padding: '10px 16px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: '#000000',
         color: '#FFFFFF',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
+        borderBottom: '1px solid rgba(255,255,255,0.12)',
+        flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Scan size={20} color="#FF0033" />
-          <span style={{ fontWeight: 800, fontSize: '1rem' }}>Escáner de Códigos de Barras</span>
+          <Scan size={18} color="#FF0033" />
+          <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>Escáner de Códigos de Barras</span>
         </div>
 
         <button
           onClick={onClose}
-          style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer' }}
+          style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', padding: '4px' }}
         >
-          <X size={24} />
+          <X size={22} />
         </button>
       </div>
 
-      {/* Camera Viewfinder Box with High-Tech Laser Beam & Centered Frame */}
+      {/* FIXED CAMERA VIEWFINDER BOX - STABLE SIZE (NON-SQUISHING) */}
       <div style={{
         width: '100%',
-        height: '240px',
+        height: '180px',
+        minHeight: '180px',
+        maxHeight: '180px',
         backgroundColor: '#050505',
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        borderBottom: '3px solid var(--md-sys-color-primary)'
+        borderBottom: '2px solid var(--md-sys-color-primary)',
+        flexShrink: 0
       }}>
         
         {/* Html5Qrcode Reader Element */}
         <div id={scannerContainerId} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
 
-        {/* Viewfinder Target Box Overlay with Corner Brackets & Red Laser Beam */}
+        {/* Target Box Overlay */}
         <div style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '280px',
-          height: '130px',
+          width: '240px',
+          height: '110px',
           border: showSuccessBadge ? '2px solid #00FF88' : '2px solid rgba(255, 255, 255, 0.4)',
-          borderRadius: '16px',
+          borderRadius: '14px',
           boxShadow: showSuccessBadge ? '0 0 24px rgba(0, 255, 136, 0.8)' : '0 0 0 9999px rgba(0, 0, 0, 0.55)',
           pointerEvents: 'none',
           overflow: 'hidden',
@@ -429,124 +408,51 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-
-          {/* Red Laser Scanning Beam (Up and Down Motion) */}
           {!showSuccessBadge && <div className="scanner-laser-line" />}
-
-          {/* Corner Target Bracket Hints */}
-          <div style={{ position: 'absolute', top: '8px', left: '8px', width: '16px', height: '16px', borderTop: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '4px 0 0 0' }} />
-          <div style={{ position: 'absolute', top: '8px', right: '8px', width: '16px', height: '16px', borderTop: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 4px 0 0' }} />
-          <div style={{ position: 'absolute', bottom: '8px', left: '8px', width: '16px', height: '16px', borderBottom: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '0 0 0 4px' }} />
-          <div style={{ position: 'absolute', bottom: '8px', right: '8px', width: '16px', height: '16px', borderBottom: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 0 4px 0' }} />
+          <div style={{ position: 'absolute', top: '6px', left: '6px', width: '14px', height: '14px', borderTop: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '3px 0 0 0' }} />
+          <div style={{ position: 'absolute', top: '6px', right: '6px', width: '14px', height: '14px', borderTop: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 3px 0 0' }} />
+          <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '14px', height: '14px', borderBottom: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '0 0 0 3px' }} />
+          <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '14px', height: '14px', borderBottom: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 0 3px 0' }} />
         </div>
 
         {/* Success Beep Badge */}
         {showSuccessBadge && (
           <div style={{
             position: 'absolute',
-            top: '12px',
+            top: '10px',
             backgroundColor: '#00875A',
             color: '#FFFFFF',
-            padding: '8px 18px',
+            padding: '6px 14px',
             borderRadius: '9999px',
-            fontSize: '0.88rem',
+            fontSize: '0.8rem',
             fontWeight: 800,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 6px 20px rgba(0, 135, 90, 0.6)',
+            gap: '6px',
+            boxShadow: '0 4px 16px rgba(0, 135, 90, 0.6)',
             zIndex: 10
           }}>
-            <Volume2 size={18} />
+            <Volume2 size={16} />
             <span>{successMessage}</span>
           </div>
         )}
       </div>
 
-      {/* Manual Code input, Image Upload & Quick Catalog Chips */}
+      {/* FIXED TOOLBAR BAR: ONLY MANUAL CODE ENTRY / CAMERA */}
       <div style={{
-        padding: '10px 16px',
+        padding: '8px 14px',
         backgroundColor: 'var(--md-sys-color-surface-container)',
         borderBottom: '1px solid var(--md-sys-color-outline-variant)',
         display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '10px',
+        flexShrink: 0
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
-            Opciones de Escaneo Rápido:
+        <form onSubmit={handleManualFormSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', whiteSpace: 'nowrap' }}>
+            Código Manual:
           </span>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <label style={{
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              color: 'var(--md-sys-color-primary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}>
-              <Upload size={14} />
-              <span>{isScanningFile ? 'Leyendo imagen...' : 'Escanear Foto'}</span>
-              <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-            </label>
-
-            <button
-              onClick={() => setIsManualInput(!isManualInput)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--md-sys-color-primary)',
-                fontWeight: 800,
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Keyboard size={14} />
-              <span>{isManualInput ? 'Cámara' : 'Código Manual'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Catalog Chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-          {availableProducts.map(prod => (
-            <button
-              key={prod.barcode}
-              onClick={() => handleDecodedBarcode(prod.barcode)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                color: 'var(--md-sys-color-on-primary-container)',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                flexShrink: 0
-              }}
-            >
-              #{prod.barcode} - {prod.name} (${prod.price})
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Manual Code Input Bar with Numeric Keypad trigger & Input Spotlight */}
-      {isManualInput && (
-        <div style={{
-          padding: '12px 16px',
-          backgroundColor: 'var(--md-sys-color-surface)',
-          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
-          display: 'flex',
-          gap: '10px',
-          alignItems: 'center'
-        }}>
-          <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>Ingresar Código 4 dígitos:</span>
           <input
             type="text"
             inputMode="numeric"
@@ -564,70 +470,83 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             }}
             className="input-spotlight"
             style={{
-              width: '110px',
-              padding: '8px 10px',
-              borderRadius: '10px',
-              border: '2px solid var(--md-sys-color-primary)',
-              backgroundColor: 'var(--md-sys-color-surface-container)',
+              width: '90px',
+              padding: '5px 8px',
+              borderRadius: '8px',
+              border: '1.5px solid var(--md-sys-color-primary)',
+              backgroundColor: 'var(--md-sys-color-surface)',
               color: 'var(--md-sys-color-on-surface)',
               fontFamily: 'monospace',
               fontWeight: 800,
-              fontSize: '1.1rem',
+              fontSize: '0.95rem',
               textAlign: 'center'
             }}
           />
-        </div>
-      )}
+          <button
+            type="submit"
+            className="md-btn md-btn-primary"
+            style={{ padding: '5px 10px', fontSize: '0.75rem', fontWeight: 800 }}
+          >
+            Sumar
+          </button>
+        </form>
 
-      {/* Ticket / Factura de Venta Area */}
+        <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+          📷 Escáner activo
+        </span>
+      </div>
+
+      {/* MIDDLE SECTION: SCROLLABLE TICKET LIST (Independent scroll without pushing top/bottom) */}
       <div style={{
         flex: 1,
-        padding: '16px',
+        minHeight: 0,
+        overflowY: 'auto',
+        padding: '10px 14px',
         backgroundColor: 'var(--md-sys-color-surface)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px'
+        gap: '8px'
       }}>
         
-        {/* Ticket Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Ticket Header Bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Receipt size={18} color="var(--md-sys-color-primary)" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Ticket de Venta (Editable)</h3>
+            <Receipt size={16} color="var(--md-sys-color-primary)" />
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 800 }}>Ticket de Venta (Editable)</h3>
           </div>
-          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
-            {uniqueItemsCount} Ítems | {totalUnitsCount} Unidades
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
+            {uniqueItemsCount} Ítems • {totalUnitsCount} Unidades
           </span>
         </div>
 
         {/* Ticket Items List */}
         {ticketItems.length === 0 ? (
-          <div className="md-card" style={{ padding: '30px 16px', textAlign: 'center', opacity: 0.7 }}>
-            <ShoppingBag size={36} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '8px' }} />
-            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Centra el código de barras bajo la línea láser para sumar el producto al ticket.</p>
+          <div className="md-card" style={{ padding: '24px 14px', textAlign: 'center', opacity: 0.7, margin: 'auto 0' }}>
+            <ShoppingBag size={30} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '6px' }} />
+            <p style={{ fontSize: '0.78rem', fontWeight: 700 }}>Centra el código de barras bajo la línea láser o ingresa el código manual para agregar al ticket.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '280px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {ticketItems.map(item => (
               <div
                 key={item.productId}
                 className="md-card"
                 style={{
-                  padding: '12px 14px',
+                  padding: '8px 10px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px'
+                  gap: '6px'
                 }}
               >
                 {/* Item Top Row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '1px 4px', borderRadius: '4px' }}>
                       #{item.barcode}
                     </span>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 800 }}>{item.name}</h4>
+                    <h4 style={{ fontSize: '0.82rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</h4>
                     {item.supplierType === 'proveedor' && (
-                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-expense)', backgroundColor: 'var(--md-sys-color-expense-container)', padding: '1px 6px', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--md-sys-color-expense)', backgroundColor: 'var(--md-sys-color-expense-container)', padding: '1px 4px', borderRadius: '3px' }}>
                         {item.supplierName || 'Proveedor'}
                       </span>
                     )}
@@ -635,34 +554,34 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
                   <button
                     onClick={() => removeItemFromTicket(item.productId)}
-                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-expense)', cursor: 'pointer', padding: '2px' }}
-                    title="Eliminar ítem del ticket"
+                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-expense)', cursor: 'pointer', padding: '2px', marginLeft: '6px' }}
+                    title="Eliminar ítem"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} />
                   </button>
                 </div>
 
-                {/* Editable Quantity, Unit Price and Subtotal Row (Numeric Keypad + Spotlight) */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.4fr 1.4fr', gap: '8px', alignItems: 'center' }}>
+                {/* Editable Quantity, Unit Price and Subtotal Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '6px', alignItems: 'center' }}>
                   
                   {/* Quantity Stepper */}
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>
-                      Cantidad:
+                    <label style={{ fontSize: '0.62rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
+                      Cant:
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                       <button
                         onClick={() => updateItemQuantity(item.productId, -1)}
-                        style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--md-sys-color-surface-container-high)', fontWeight: 800, cursor: 'pointer' }}
+                        style={{ width: '22px', height: '22px', borderRadius: '5px', border: 'none', backgroundColor: 'var(--md-sys-color-surface-container-high)', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}
                       >
                         -
                       </button>
-                      <span style={{ fontWeight: 800, fontSize: '0.88rem', minWidth: '18px', textAlign: 'center' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.8rem', minWidth: '16px', textAlign: 'center' }}>
                         {item.quantity}
                       </span>
                       <button
                         onClick={() => updateItemQuantity(item.productId, 1)}
-                        style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', fontWeight: 800, cursor: 'pointer' }}
+                        style={{ width: '22px', height: '22px', borderRadius: '5px', border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}
                       >
                         +
                       </button>
@@ -671,8 +590,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
                   {/* Unit Price Editable */}
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>
-                      Precio Unit. ({currency}):
+                    <label style={{ fontSize: '0.62rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
+                      Precio ({currency}):
                     </label>
                     <input
                       type="number"
@@ -683,19 +602,19 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                       className="input-spotlight"
                       style={{
                         width: '100%',
-                        padding: '6px 8px',
-                        borderRadius: '8px',
+                        padding: '3px 6px',
+                        borderRadius: '6px',
                         border: '1px solid var(--md-sys-color-outline-variant)',
                         backgroundColor: 'var(--md-sys-color-surface)',
                         fontWeight: 800,
-                        fontSize: '0.85rem'
+                        fontSize: '0.78rem'
                       }}
                     />
                   </div>
 
                   {/* Subtotal Editable */}
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>
+                    <label style={{ fontSize: '0.62rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
                       Subtotal ({currency}):
                     </label>
                     <input
@@ -707,13 +626,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                       className="input-spotlight"
                       style={{
                         width: '100%',
-                        padding: '6px 8px',
-                        borderRadius: '8px',
+                        padding: '3px 6px',
+                        borderRadius: '6px',
                         border: '1px solid var(--md-sys-color-outline-variant)',
                         backgroundColor: 'var(--md-sys-color-income-container)',
                         color: 'var(--md-sys-color-income)',
                         fontWeight: 800,
-                        fontSize: '0.88rem'
+                        fontSize: '0.78rem'
                       }}
                     />
                   </div>
@@ -725,61 +644,68 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           </div>
         )}
 
-        {/* Factura / Ticket Summary Box (Dual Distribution Breakdown) */}
+      </div>
+
+      {/* FIXED BOTTOM SECTION: SUMMARY + CONFIRM ACTION BUTTON (LOCKED AT BOTTOM) */}
+      <div style={{
+        padding: '10px 14px',
+        backgroundColor: 'var(--md-sys-color-surface-container)',
+        borderTop: '1px solid var(--md-sys-color-outline-variant)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        flexShrink: 0
+      }}>
+        {/* Factura / Ticket Summary Box */}
         {ticketItems.length > 0 && (
           <div style={{
             backgroundColor: 'var(--md-sys-color-income-container)',
             color: 'var(--md-sys-color-on-income-container)',
-            padding: '14px 16px',
-            borderRadius: '16px',
+            padding: '8px 12px',
+            borderRadius: '12px',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>TOTAL COBRADO AL CLIENTE</span>
-                <span style={{ fontSize: '0.72rem', color: '#00875A', fontWeight: 800 }}>
-                  A CuentaCasa (Ganancia Neta): +{formatCurrency(estimatedNetProfit, currency, true)}
-                </span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
-                  Fondo Tienda / Proveedores retenido: {formatCurrency(totalInvoiceCost, currency, true)}
-                </span>
-              </div>
+            <div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, display: 'block' }}>TOTAL COBRADO</span>
+              <span style={{ fontSize: '0.65rem', color: '#00875A', fontWeight: 800, display: 'block' }}>
+                Ganancia Casa: +{formatCurrency(estimatedNetProfit, currency, true)}
+              </span>
+            </div>
 
-              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                {formatCurrency(totalInvoicePrice, currency, true)}
-              </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+              {formatCurrency(totalInvoicePrice, currency, true)}
             </div>
           </div>
         )}
 
         {/* Submit Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto', paddingTop: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
           <button
             onClick={handleConfirmSale}
             disabled={ticketItems.length === 0}
             className="md-btn md-btn-primary"
             style={{
-              width: '100%',
-              padding: '14px',
-              fontSize: '1rem',
+              flex: 1,
+              padding: '10px',
+              fontSize: '0.88rem',
+              fontWeight: 800,
               opacity: ticketItems.length === 0 ? 0.5 : 1
             }}
           >
-            <Check size={20} />
-            <span>Confirmar y Registrar Venta</span>
+            <Check size={18} />
+            <span>Confirmar Venta</span>
           </button>
 
           <button
             onClick={onClose}
             className="md-btn md-btn-secondary"
-            style={{ width: '100%', padding: '12px', fontSize: '0.9rem' }}
+            style={{ padding: '10px 14px', fontSize: '0.82rem' }}
           >
-            <span>Cerrar Escáner</span>
+            <span>Cerrar</span>
           </button>
         </div>
-
       </div>
 
     </div>

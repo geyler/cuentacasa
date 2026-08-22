@@ -121,7 +121,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   };
 
   const handleOpenAdd = () => {
-    const nextBarcode = (products.length + 1).toString().padStart(4, '0');
+    const allProds = getStoreProducts();
+    let maxVal = 0;
+    allProds.forEach(p => {
+      const num = parseInt(p.barcode, 10);
+      if (!isNaN(num) && num > maxVal) {
+        maxVal = num;
+      }
+    });
+    const nextBarcode = (maxVal + 1).toString().padStart(4, '0');
     setEditingProduct(null);
     setBarcode(nextBarcode);
     setName('');
@@ -1224,7 +1232,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             {/* Barcode */}
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                Código de Barras (4 Dígitos):
+                Código de Barras (Generado Automáticamente):
               </label>
               <input
                 type="text"
@@ -1232,21 +1240,27 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 pattern="[0-9]*"
                 maxLength={4}
                 required
+                readOnly
                 value={barcode}
-                onChange={e => setBarcode(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 className="input-spotlight"
                 style={{
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: '12px',
                   border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface)',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                  color: 'var(--md-sys-color-on-surface)',
                   fontFamily: 'monospace',
                   fontWeight: 800,
                   fontSize: '1rem',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  cursor: 'not-allowed',
+                  opacity: 0.85
                 }}
               />
+              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '3px' }}>
+                🔒 Código secuencial único (generado automáticamente).
+              </span>
             </div>
 
             {/* WordPress Style Category Selector */}
