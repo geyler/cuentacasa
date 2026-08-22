@@ -259,8 +259,17 @@ export function getStoreProducts(): StoreProduct[] {
 
 export function getStoreProductByBarcode(barcode: string): StoreProduct | undefined {
   const products = getStoreProducts();
-  const cleanBarcode = barcode.padStart(4, '0');
-  return products.find(p => p.barcode === cleanBarcode || p.barcode === barcode);
+  if (!barcode) return undefined;
+  const str = barcode.toString().trim();
+  const numericOnly = str.replace(/\D/g, '');
+  const cleanPadded = (numericOnly.length > 0 ? numericOnly : str).padStart(4, '0');
+  const numVal = parseInt(numericOnly || str, 10);
+
+  return products.find(p => {
+    if (p.barcode === cleanPadded || p.barcode === str) return true;
+    if (!isNaN(numVal) && parseInt(p.barcode, 10) === numVal) return true;
+    return false;
+  });
 }
 
 export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' | 'updatedAt'>): StoreProduct {

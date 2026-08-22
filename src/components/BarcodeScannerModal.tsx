@@ -57,8 +57,8 @@ const playScanBeep = () => {
   }
 };
 
-// 100% Offline Canvas Frame Digit Matcher (Recognizes written/printed numbers like 0006, 0010 on paper tape)
-const scanCanvasForPaperDigits = (videoEl: HTMLVideoElement, validBarcodes: Set<string>): string | null => {
+// 100% Offline Canvas Frame Digit Matcher (Recognizes written/printed numbers like 0005, 0004, 0010 on paper tape)
+const scanCanvasForPaperDigits = (videoEl: HTMLVideoElement): string | null => {
   try {
     const vw = videoEl.videoWidth;
     const vh = videoEl.videoHeight;
@@ -68,8 +68,8 @@ const scanCanvasForPaperDigits = (videoEl: HTMLVideoElement, validBarcodes: Set<
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    const cropW = Math.min(280, Math.floor(vw * 0.75));
-    const cropH = Math.min(120, Math.floor(vh * 0.45));
+    const cropW = Math.min(300, Math.floor(vw * 0.8));
+    const cropH = Math.min(130, Math.floor(vh * 0.5));
     const cropX = Math.floor((vw - cropW) / 2);
     const cropY = Math.floor((vh - cropH) / 2);
 
@@ -87,14 +87,14 @@ const scanCanvasForPaperDigits = (videoEl: HTMLVideoElement, validBarcodes: Set<
       gray[i / 4] = g;
       sumVal += g;
     }
-    const avgThresh = (sumVal / gray.length) * 0.85;
+    const avgThresh = (sumVal / gray.length) * 0.86;
 
     const binary = new Uint8Array(cropW * cropH);
     for (let i = 0; i < gray.length; i++) {
       binary[i] = gray[i] < avgThresh ? 1 : 0;
     }
 
-    // Vertical Projection for Digits
+    // Column projection to isolate text/digits
     const colCounts = new Int32Array(cropW);
     for (let x = 0; x < cropW; x++) {
       let c = 0;
@@ -108,47 +108,75 @@ const scanCanvasForPaperDigits = (videoEl: HTMLVideoElement, validBarcodes: Set<
     let inBox = false;
     let startX = 0;
     for (let x = 0; x < cropW; x++) {
-      if (colCounts[x] > 3) {
+      if (colCounts[x] > 2) {
         if (!inBox) { inBox = true; startX = x; }
       } else {
         if (inBox) {
           inBox = false;
           const w = x - startX;
-          if (w >= 4 && w <= 45) {
+          if (w >= 4 && w <= 65) {
             boundingBoxes.push({ x1: startX, x2: x, width: w });
           }
         }
       }
     }
 
-    if (boundingBoxes.length === 4) {
-      let recognizedCode = '';
-      for (const box of boundingBoxes) {
-        let topCount = 0, midCount = 0, botCount = 0;
-        const midY1 = Math.floor(cropH * 0.35);
-        const midY2 = Math.floor(cropH * 0.65);
+    // Digit classifier helper for individual glyphs (0-9)
+    const classifyGlyph = (x1: number, x2: number): string => {
+      const w = x2 - x1;
+      const aspect = w / cropH;
+      if (aspect < 0.28) return '1';
 
-        for (let x = box.x1; x < box.x2; x++) {
-          for (let y = 0; y < cropH; y++) {
-            if (binary[y * cropW + x]) {
-              if (y < midY1) topCount++;
-              else if (y < midY2) midCount++;
-              else botCount++;
-            }
+      let topCount = 0, midCount = 0, botCount = 0;
+      let leftCount = 0, rightCount = 0;
+      const midY1 = Math.floor(cropH * 0.33);
+      const midY2 = Math.floor(cropH * 0.66);
+      const midX = x1 + Math.floor(w / 2);
+
+      for (let x = x1; x < x2; x++) {
+        for (let y = 0; y < cropH; y++) {
+          if (binary[y * cropW + x]) {
+            if (y < midY1) topCount++;
+            else if (y < midY2) midCount++;
+            else botCount++;
+
+            if (x < midX) leftCount++;
+            else rightCount++;
           }
         }
-
-        const aspect = box.width / cropH;
-        if (aspect < 0.25) recognizedCode += '1';
-        else if (topCount > botCount && midCount < topCount * 0.7) recognizedCode += '7';
-        else if (topCount > botCount * 1.15 && botCount > topCount * 0.85) recognizedCode += '0';
-        else if (midCount > topCount && midCount > botCount) recognizedCode += '3';
-        else if (topCount > botCount) recognizedCode += '9';
-        else recognizedCode += '6';
       }
 
-      if (recognizedCode.length === 4 && validBarcodes.has(recognizedCode)) {
-        return recognizedCode;
+      const total = topCount + midCount + botCount;
+      if (total === 0) return '0';
+
+      const topR = topCount / total;
+      const midR = midCount / total;
+      const botR = botCount / total;
+      const rightR = rightCount / total;
+
+      if (rightR > 0.60 && midR > 0.30 && topR > 0.22) return '4';
+      if (topR > 0.33 && botR > 0.33 && leftCount > rightCount * 0.9) return '5';
+      if (topR > 0.42 && botR < 0.24) return '7';
+      if (topR > 0.30 && botR > 0.30 && midR < 0.26) return '0';
+      if (rightR > 0.58 && midR > 0.28) return '3';
+      if (topR > 0.26 && midR > 0.26 && botR > 0.26) return '8';
+      if (topR > botR * 1.2) return '9';
+      if (botR > topR * 1.2) return '6';
+      if (botR > 0.36) return '2';
+
+      return '0';
+    };
+
+    if (boundingBoxes.length >= 1 && boundingBoxes.length <= 4) {
+      let codeStr = '';
+      for (const box of boundingBoxes) {
+        codeStr += classifyGlyph(box.x1, box.x2);
+      }
+
+      const candidatePadded = codeStr.padStart(4, '0');
+      const foundProduct = getStoreProductByBarcode(codeStr) || getStoreProductByBarcode(candidatePadded);
+      if (foundProduct) {
+        return foundProduct.barcode;
       }
     }
   } catch (e) {
@@ -185,16 +213,17 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
     playScanBeep();
 
-    const numericOnly = decodedText.replace(/\D/g, '');
-    const cleanCode = (numericOnly.length > 0 ? numericOnly : decodedText).slice(-4).padStart(4, '0');
+    const rawStr = decodedText.trim();
+    const product = getStoreProductByBarcode(rawStr);
 
-    setLastScanned(cleanCode);
-
-    const product = getStoreProductByBarcode(cleanCode);
     if (product) {
+      setLastScanned(product.barcode);
       addItemToTicket(product);
     } else {
-      triggerSuccessEffect(`Código #${cleanCode} escaneado (No encontrado)`);
+      const numericOnly = rawStr.replace(/\D/g, '');
+      const displayCode = numericOnly.length > 0 ? numericOnly.padStart(4, '0') : rawStr;
+      setLastScanned(displayCode);
+      triggerSuccessEffect(`Código #${displayCode} escaneado (No encontrado)`);
     }
   };
 
@@ -335,17 +364,16 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         if (isMounted) setCameraStatus('Cámara lista (Escaneando Códigos y Números en Cinta).');
 
         // OCR Frame Scanner Loop for Handwritten / Printed 4-digit numbers (100% Offline)
-        const validBarcodes = new Set(getStoreProducts().map(p => p.barcode));
         ocrTimer = setInterval(() => {
           if (!isMounted) return;
           const videoEl = document.querySelector(`#${scannerContainerId} video`) as HTMLVideoElement;
           if (videoEl && !videoEl.paused && videoEl.videoWidth > 0) {
-            const detectedCode = scanCanvasForPaperDigits(videoEl, validBarcodes);
+            const detectedCode = scanCanvasForPaperDigits(videoEl);
             if (detectedCode) {
               handleDecodedBarcode(detectedCode);
             }
           }
-        }, 450);
+        }, 400);
 
       } catch (err) {
         if (isMounted) {
