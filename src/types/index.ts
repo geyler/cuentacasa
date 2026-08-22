@@ -97,5 +97,7 @@ export interface RawDatabase {
     autoSync: boolean;
     syncUrl?: string;
     showBalance?: boolean;
+    masterPassword?: string;
   };
 }
+

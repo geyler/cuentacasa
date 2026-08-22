@@ -40,7 +40,10 @@ import {
   ArrowRightLeft,
   UserPlus,
   PlusCircle,
-  Receipt
+  Receipt,
+  Keyboard,
+  ArrowRight,
+  Check
 } from 'lucide-react';
 
 interface StoreManagementViewProps {
@@ -83,6 +86,18 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   // WordPress-Style Category Creation
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+
+  // Active focused field state for Spotlight UX
+  const [focusedField, setFocusedField] = useState<'name' | 'costPrice' | 'price' | 'stock' | 'description' | 'supplierName' | null>(null);
+
+  const nameRef = React.useRef<HTMLInputElement>(null);
+  const costPriceRef = React.useRef<HTMLInputElement>(null);
+  const priceRef = React.useRef<HTMLInputElement>(null);
+  const stockRef = React.useRef<HTMLInputElement>(null);
+  const descriptionRef = React.useRef<HTMLInputElement>(null);
+  const supplierNameRef = React.useRef<HTMLInputElement>(null);
+  const productFormRef = React.useRef<HTMLFormElement>(null);
 
   // Purchase Funding Source: 'negocio' | 'casa' | 'proveedor'
   const [fundingSource, setFundingSource] = useState<'negocio' | 'casa' | 'proveedor'>('negocio');
@@ -112,6 +127,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   // Category List (WordPress style)
   const existingCategories = Array.from(new Set([
     'Viveres', 'Panadería', 'Bebidas', 'Lácteos', 'Aseo', 'Golosinas', 'Carnes',
+    ...customCategories,
     ...products.map(p => p.category)
   ]));
 
@@ -144,7 +160,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setSupplierName('Maikel');
     setFundingSource('negocio');
     setIsAddingNewCategory(false);
+    setFocusedField('name');
     setIsModalOpen(true);
+    setTimeout(() => nameRef.current?.focus(), 100);
   };
 
   const handleOpenEdit = (p: StoreProduct) => {
@@ -162,7 +180,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setSupplierName(p.supplierName || 'Maikel');
     setFundingSource(p.supplierType === 'proveedor' ? 'proveedor' : 'negocio');
     setIsAddingNewCategory(false);
+    setFocusedField('name');
     setIsModalOpen(true);
+    setTimeout(() => nameRef.current?.focus(), 100);
   };
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,11 +281,13 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
   const handleAddNewCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategoryInput.trim()) return;
-    setCategory(newCategoryInput.trim());
+    const catName = newCategoryInput.trim();
+    if (!catName) return;
+    setCustomCategories(prev => Array.from(new Set([...prev, catName])));
+    setCategory(catName);
     setNewCategoryInput('');
     setIsAddingNewCategory(false);
-    showToast({ title: 'Nueva Categoría', message: `Categoría "${newCategoryInput.trim()}" seleccionada.`, type: 'info' });
+    showToast({ title: 'Nueva Categoría', message: `Categoría "${catName}" elegida automáticamente.`, type: 'success' });
   };
 
   const handleCreateSupplierSubmit = (e: React.FormEvent) => {
@@ -1112,9 +1134,10 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           alignItems: 'flex-end',
           justifyContent: 'center',
           padding: '0'
-        }} onClick={() => setIsModalOpen(false)}>
+        }} onClick={() => { setFocusedField(null); setIsModalOpen(false); }}>
           
           <form
+            ref={productFormRef}
             onClick={e => e.stopPropagation()}
             onSubmit={handleSaveProduct}
             className="md-card"
@@ -1127,7 +1150,10 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               gap: '14px',
               maxHeight: '90vh',
               overflowY: 'auto',
-              borderRadius: '24px 24px 0 0'
+              borderTopLeftRadius: '28px',
+              borderTopRightRadius: '28px',
+              borderBottomLeftRadius: '0px',
+              borderBottomRightRadius: '0px'
             }}
           >
             {/* Handle Drag Indicator */}
@@ -1342,34 +1368,97 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             </div>
 
             {/* Product Name */}
-            <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                Nombre del Producto:
-              </label>
+            <div style={{
+              opacity: focusedField !== null && focusedField !== 'name' ? 0.5 : 1,
+              transition: 'opacity 0.2s ease'
+            }}>
+              {focusedField === 'name' ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Keyboard size={14} /> Nombre del Producto *
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFocusedField('costPrice');
+                      setTimeout(() => costPriceRef.current?.focus(), 50);
+                    }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '9999px',
+                      border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: 'var(--md-sys-color-on-primary)',
+                      fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer'
+                    }}
+                  >
+                    <span>Siguiente</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
+              ) : (
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                  Nombre del Producto:
+                </label>
+              )}
               <input
+                ref={nameRef}
                 type="text"
                 required
                 placeholder="Ej. Pan Dulce Casero 5u"
                 value={name}
                 onChange={e => setName(e.target.value)}
+                onFocus={() => setFocusedField('name')}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    setFocusedField('costPrice');
+                    setTimeout(() => costPriceRef.current?.focus(), 50);
+                  }
+                }}
                 className="input-spotlight"
                 style={{
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: '12px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface)'
+                  border: focusedField === 'name' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  fontWeight: 600,
+                  outline: 'none',
+                  boxShadow: focusedField === 'name' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none'
                 }}
               />
             </div>
 
             {/* Cost Price vs Selling Price Grid (Numeric Keyboard) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                  Precio de Costo ({currency}):
-                </label>
+              <div style={{
+                opacity: focusedField !== null && focusedField !== 'costPrice' ? 0.5 : 1,
+                transition: 'opacity 0.2s ease'
+              }}>
+                {focusedField === 'costPrice' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
+                      Costo ({currency})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFocusedField('price');
+                        setTimeout(() => priceRef.current?.focus(), 50);
+                      }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '9999px',
+                        border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer'
+                      }}
+                    >
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                    Precio Costo ({currency}):
+                  </label>
+                )}
                 <input
+                  ref={costPriceRef}
                   type="number"
                   inputMode="decimal"
                   pattern="[0-9]*"
@@ -1378,23 +1467,58 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   placeholder="200"
                   value={costPrice}
                   onChange={e => setCostPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  onFocus={() => setFocusedField('costPrice')}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      setFocusedField('price');
+                      setTimeout(() => priceRef.current?.focus(), 50);
+                    }
+                  }}
                   className="input-spotlight"
                   style={{
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '12px',
-                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    border: focusedField === 'costPrice' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface)',
-                    fontWeight: 700
+                    fontWeight: 700,
+                    outline: 'none',
+                    boxShadow: focusedField === 'costPrice' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none'
                   }}
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                  Precio Venta Público ({currency}):
-                </label>
+              <div style={{
+                opacity: focusedField !== null && focusedField !== 'price' ? 0.5 : 1,
+                transition: 'opacity 0.2s ease'
+              }}>
+                {focusedField === 'price' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                      Público ({currency})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFocusedField('stock');
+                        setTimeout(() => stockRef.current?.focus(), 50);
+                      }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '9999px',
+                        border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer'
+                      }}
+                    >
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                    Precio Venta Público ({currency}):
+                  </label>
+                )}
                 <input
+                  ref={priceRef}
                   type="number"
                   inputMode="decimal"
                   pattern="[0-9]*"
@@ -1403,39 +1527,87 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   placeholder="350"
                   value={price}
                   onChange={e => setPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  onFocus={() => setFocusedField('price')}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      setFocusedField('stock');
+                      setTimeout(() => stockRef.current?.focus(), 50);
+                    }
+                  }}
                   className="input-spotlight"
                   style={{
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '12px',
-                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    border: focusedField === 'price' ? '2px solid var(--md-sys-color-income)' : '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: 'var(--md-sys-color-surface)',
                     fontWeight: 800,
-                    color: 'var(--md-sys-color-income)'
+                    color: 'var(--md-sys-color-income)',
+                    outline: 'none',
+                    boxShadow: focusedField === 'price' ? '0 0 0 4px rgba(0, 135, 90, 0.25)' : 'none'
                   }}
                 />
               </div>
             </div>
 
             {/* Stock (Numeric Keyboard) */}
-            <div>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                Stock Disponible (Unidades):
-              </label>
+            <div style={{
+              opacity: focusedField !== null && focusedField !== 'stock' ? 0.5 : 1,
+              transition: 'opacity 0.2s ease'
+            }}>
+              {focusedField === 'stock' ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Keyboard size={14} /> Stock Disponible (Unidades)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      stockRef.current?.blur();
+                      setFocusedField(null);
+                    }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '9999px',
+                      border: 'none', backgroundColor: 'var(--md-sys-color-primary)', color: 'var(--md-sys-color-on-primary)',
+                      fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer'
+                    }}
+                  >
+                    <Check size={13} />
+                    <span>Listo</span>
+                  </button>
+                </div>
+              ) : (
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                  Stock Disponible (Unidades):
+                </label>
+              )}
               <input
+                ref={stockRef}
                 type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 required
                 value={stock}
                 onChange={e => setStock(parseInt(e.target.value, 10) || 0)}
+                onFocus={() => setFocusedField('stock')}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    stockRef.current?.blur();
+                    setFocusedField(null);
+                  }
+                }}
                 className="input-spotlight"
                 style={{
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: '12px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface)'
+                  border: focusedField === 'stock' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  fontWeight: 700,
+                  outline: 'none',
+                  boxShadow: focusedField === 'stock' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none'
                 }}
               />
             </div>

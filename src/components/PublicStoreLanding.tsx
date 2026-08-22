@@ -212,68 +212,138 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       </header>
 
-      {/* Compact Hero Showcase Banner */}
+      {/* Premium Multi-Category Hero Showcase Banner */}
       <div style={{
-        background: 'linear-gradient(135deg, #00385E 0%, #001E36 100%)',
+        background: 'linear-gradient(135deg, #002B49 0%, #001529 50%, #003E6B 100%)',
         color: '#FFFFFF',
-        padding: '20px 16px',
+        padding: '28px 16px 36px 16px',
         textAlign: 'center',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxShadow: 'inset 0 -10px 20px rgba(0,0,0,0.15)'
       }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <span style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        {/* Decorative Background Glass Glow Circles */}
+        <div style={{
+          position: 'absolute',
+          top: '-40px',
+          left: '10%',
+          width: '180px',
+          height: '180px',
+          borderRadius: '9999px',
+          background: 'radial-gradient(circle, rgba(0, 255, 136, 0.15) 0%, rgba(0,0,0,0) 70%)',
+          pointerEvents: 'none'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '-50px',
+          right: '8%',
+          width: '220px',
+          height: '220px',
+          borderRadius: '9999px',
+          background: 'radial-gradient(circle, rgba(0, 153, 255, 0.2) 0%, rgba(0,0,0,0) 70%)',
+          pointerEvents: 'none'
+        }} />
+
+        <div style={{ maxWidth: '680px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+          
+          {/* Versatile Store Badge */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: 'rgba(255, 255, 255, 0.12)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             color: '#00FF88',
-            padding: '4px 14px',
+            padding: '5px 16px',
             borderRadius: '9999px',
             fontSize: '0.78rem',
             fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            display: 'inline-block',
-            marginBottom: '12px'
+            letterSpacing: '0.04em',
+            marginBottom: '14px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
-            Productos Frescos y Selección de Calidad
-          </span>
+            <Sparkles size={14} color="#00FF88" />
+            <span>TIENDA VARIADA & MULTIRRUBRO</span>
+          </div>
 
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, lineHeight: '1.2', marginBottom: '12px' }}>
-            Explora Nuestro Catálogo de Productos
+          <h2 style={{ 
+            fontSize: '2.1rem', 
+            fontWeight: 900, 
+            lineHeight: '1.2', 
+            marginBottom: '10px',
+            letterSpacing: '-0.02em',
+            background: 'linear-gradient(180deg, #FFFFFF 0%, #E2F1FF 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
+            Todo lo que Necesitas en un Solo Lugar
           </h2>
-          <p style={{ fontSize: '0.95rem', opacity: 0.85, lineHeight: '1.5', maxWidth: '540px', margin: '0 auto 20px auto' }}>
-            Elige tus productos favoritos y haz tu encargo en un clic directamente por WhatsApp con atención personalizada.
+
+          <p style={{ 
+            fontSize: '0.92rem', 
+            color: 'rgba(255, 255, 255, 0.88)', 
+            lineHeight: '1.5', 
+            maxWidth: '560px', 
+            margin: '0 auto 16px auto',
+            fontWeight: 500
+          }}>
+            Víveres • Panadería • Bebidas • Aseo • Electrónica • Golosinas y Más. Explora el catálogo y encarga directo por WhatsApp.
           </p>
 
+          {/* Quick Advantage Badges */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+            marginBottom: '20px'
+          }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.9, display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '4px 10px', borderRadius: '8px' }}>
+              <Truck size={13} color="#00FF88" /> Envíos Directos
+            </span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.9, display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '4px 10px', borderRadius: '8px' }}>
+              <MessageCircle size={13} color="#25D366" /> Atención Inmediata
+            </span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.9, display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '4px 10px', borderRadius: '8px' }}>
+              <ShieldCheck size={13} color="#60A5FA" /> Garantía de Calidad
+            </span>
+          </div>
+
           {/* Search bar inside Hero */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '480px', margin: '0 auto' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '500px', margin: '0 auto' }}>
             <Search 
               size={20} 
               style={{
                 position: 'absolute',
-                left: '16px',
+                left: '18px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--md-sys-color-on-surface-variant)'
+                color: 'var(--md-sys-color-primary)'
               }} 
             />
             <input
               type="text"
-              placeholder="Buscar productos en la tienda..."
+              placeholder="¿Qué estás buscando hoy? Ej. Arroz, Café, Pan..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '14px 16px 14px 48px',
+                padding: '14px 18px 14px 50px',
                 borderRadius: '9999px',
-                border: 'none',
+                border: '2px solid rgba(255, 255, 255, 0.4)',
                 backgroundColor: '#FFFFFF',
                 color: '#1A1C1E',
-                fontSize: '1rem',
+                fontSize: '0.96rem',
+                fontWeight: 600,
                 outline: 'none',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                transition: 'box-shadow 0.2s ease'
               }}
             />
           </div>
+
         </div>
       </div>
 

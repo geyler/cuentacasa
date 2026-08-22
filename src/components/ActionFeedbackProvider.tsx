@@ -202,7 +202,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         </div>
       )}
 
-      {/* Modern Confirmation Modal Backdrop */}
+      {/* Modern Confirmation Bottom Sheet Modal */}
       {confirmModal && (
         <div
           className="no-print"
@@ -213,9 +213,9 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
             backdropFilter: 'blur(8px)',
             zIndex: 10000,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
-            padding: '20px'
+            padding: 0
           }}
           onClick={handleCancelConfirm}
         >
@@ -224,21 +224,36 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
             style={{
               backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
-              borderRadius: '28px',
+              borderTopLeftRadius: '28px',
+              borderTopRightRadius: '28px',
+              borderBottomLeftRadius: '0px',
+              borderBottomRightRadius: '0px',
               width: '100%',
-              maxWidth: '440px',
-              padding: '24px',
-              boxShadow: 'var(--md-shadow-elevation-3)',
+              maxWidth: '480px',
+              padding: '20px 24px 28px 24px',
+              boxShadow: 'var(--md-shadow-elevation-4)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               textAlign: 'center',
               gap: '16px',
-              border: '1px solid var(--md-sys-color-surface-variant)',
-              animation: 'modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              animation: 'slideUp 0.25s ease-out'
             }}
           >
+            {/* Drag Handle */}
+            <div style={{
+              width: '36px',
+              height: '4px',
+              borderRadius: '9999px',
+              backgroundColor: 'var(--md-sys-color-outline-variant)',
+              margin: '0 auto 4px auto',
+              opacity: 0.8
+            }} />
+
             {/* Top Icon Badge */}
+
             <div style={{
               width: '56px',
               height: '56px',

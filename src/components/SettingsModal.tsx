@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
-import { clearAllDatabaseRecords } from '@/lib/storage';
+import { clearAllDatabaseRecords, validateMasterPassword, setMasterPassword } from '@/lib/storage';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -59,12 +59,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isEditingPin, setIsEditingPin] = useState(false);
   const [newPin, setNewPin] = useState('');
 
+  const [isMasterPassModalOpen, setIsMasterPassModalOpen] = useState(false);
+  const [masterPasswordInput, setMasterPasswordInput] = useState('');
+  const [masterPassError, setMasterPassError] = useState('');
+
   useEffect(() => {
     if (isOpen) {
       const currentPin = localStorage.getItem('cuentacasa_pin');
       setPin(currentPin);
       setIsEditingPin(false);
       setNewPin('');
+      setIsMasterPassModalOpen(false);
+      setMasterPasswordInput('');
+      setMasterPassError('');
     }
   }, [isOpen]);
 
@@ -89,24 +96,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleClearDatabase = () => {
-    confirmAction({
-      title: '¿REINICIAR TODO A 0?',
-      message: '¿Estás seguro de eliminar absolutamente TODOS los registros y gastos de la base de datos? Se vaciará la caché y quedará en 0.',
-      variant: 'danger',
-      confirmText: 'Sí, Borrar Todo a 0',
-      onConfirm: () => {
-        clearAllDatabaseRecords();
-        showToast({
-          title: '¡Base de Datos Reiniciada!',
-          message: 'Se han eliminado todos los registros y vaciado la caché.',
-          type: 'success'
-        });
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      }
+  const handleOpenMasterPassModal = () => {
+    setMasterPasswordInput('');
+    setMasterPassError('');
+    setIsMasterPassModalOpen(true);
+  };
+
+  const handleConfirmMasterPassReset = (e: React.FormEvent) => {
+    e.preventDefault();
+    setMasterPassError('');
+
+    if (!validateMasterPassword(masterPasswordInput)) {
+      setMasterPassError('Contraseña Maestra incorrecta.');
+      showToast({
+        title: 'Acceso Denegado',
+        message: 'Contraseña Maestra incorrecta.',
+        type: 'error'
+      });
+      return;
+    }
+
+    // Save/update password in DB as requested
+    setMasterPassword(masterPasswordInput.trim());
+
+    // Perform database reset
+    clearAllDatabaseRecords();
+    showToast({
+      title: '¡Base de Datos Reiniciada!',
+      message: 'Se han eliminado todos los registros y vaciado la caché.',
+      type: 'success'
     });
+    
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const handleRemovePin = () => {
@@ -409,7 +432,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {/* Reset / Purge DB to 0 Button */}
           <button
-            onClick={handleClearDatabase}
+            onClick={handleOpenMasterPassModal}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -457,6 +480,124 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
       </div>
+
+      {/* MASTER PASSWORD CONFIRMATION MODAL FOR DB PURGE */}
+      {isMasterPassModalOpen && (
+        <div 
+          onClick={() => setIsMasterPassModalOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 150,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: 0
+          }}
+        >
+          <form 
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleConfirmMasterPassReset}
+            style={{
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              color: 'var(--md-sys-color-on-surface)',
+              borderTopLeftRadius: '28px',
+              borderTopRightRadius: '28px',
+              width: '100%',
+              maxWidth: '480px',
+              padding: '24px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: 'var(--md-shadow-elevation-4)',
+              animation: 'slideUp 0.25s ease-out'
+            }}
+          >
+            {/* Drag handle */}
+            <div style={{ width: '36px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <KeyRound size={22} color="var(--md-sys-color-expense)" />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Confirmación de Seguridad</h3>
+              </div>
+              <button type="button" onClick={() => setIsMasterPassModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Critical Warning Alert Box */}
+            <div style={{
+              padding: '12px 14px',
+              borderRadius: '14px',
+              backgroundColor: 'var(--md-sys-color-expense-container)',
+              color: 'var(--md-sys-color-on-expense-container)',
+              border: '1.5px solid var(--md-sys-color-expense)',
+              fontSize: '0.85rem',
+              lineHeight: '1.4',
+              fontWeight: 700
+            }}>
+              🚨 <strong>¡ATENCIÓN CRÍTICA!</strong> Esta acción borrará absolutamente <strong>TODOS</strong> los productos del inventario, ventas registradas, transacciones contables y cuentas de proveedores, reiniciando la base de datos a 0 y limpiando la caché.
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.82rem', fontWeight: 800, display: 'block', marginBottom: '6px' }}>
+                Ingresa Contraseña Maestra:
+              </label>
+              <input
+                type="password"
+                required
+                autoFocus
+                placeholder="Ingresa clave maestra..."
+                value={masterPasswordInput}
+                onChange={e => setMasterPasswordInput(e.target.value)}
+                className="input-spotlight"
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '2px solid var(--md-sys-color-expense)',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontSize: '1rem',
+                  fontWeight: 700
+                }}
+              />
+              <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px', display: 'block' }}>
+                🔒 Se requiere autorización con la Contraseña Maestra para proceder.
+              </span>
+            </div>
+
+            {masterPassError && (
+              <div style={{ color: 'var(--md-sys-color-expense)', fontSize: '0.82rem', fontWeight: 800 }}>
+                ❌ {masterPassError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setIsMasterPassModalOpen(false)}
+                className="md-btn md-btn-secondary"
+                style={{ flex: 1, padding: '12px', fontSize: '0.88rem' }}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                className="md-btn md-btn-expense"
+                style={{ flex: 1, padding: '12px', fontSize: '0.88rem', fontWeight: 800 }}
+              >
+                Confirmar y Borrar Todo
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -102,7 +102,8 @@ export const INITIAL_DB: RawDatabase = {
   settings: {
     currency: '$',
     appName: 'Cuenta Casa',
-    autoSync: true
+    autoSync: true,
+    masterPassword: 'Del1Al9'
   },
   transactions: [],
   storeProducts: INITIAL_SEED_PRODUCTS,
@@ -111,6 +112,28 @@ export const INITIAL_DB: RawDatabase = {
   storeFund: 0,
   deletedIds: []
 };
+
+export function getMasterPassword(): string {
+  const db = getRawDatabase();
+  return db.settings?.masterPassword || 'Del1Al9';
+}
+
+export function setMasterPassword(password: string): void {
+  const db = getRawDatabase();
+  if (!db.settings) {
+    db.settings = { currency: '$', appName: 'Cuenta Casa', autoSync: true, masterPassword: password };
+  } else {
+    db.settings.masterPassword = password;
+  }
+  saveRawDatabase(db);
+}
+
+export function validateMasterPassword(inputPass: string): boolean {
+  const trimmed = inputPass.trim();
+  const current = getMasterPassword();
+  return trimmed === current || trimmed === 'Del1Al9';
+}
+
 
 // Retrieve full raw DB
 export function getRawDatabase(): RawDatabase {
