@@ -1,4 +1,4 @@
-import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase, FundAccountType } from '@/types';
 
 const STORAGE_KEY = 'cuentacasa_raw_db_v5';
 

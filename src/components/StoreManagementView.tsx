@@ -48,7 +48,8 @@ import {
   Keyboard,
   ArrowRight,
   Check,
-  Camera
+  Camera,
+  PiggyBank
 } from 'lucide-react';
 
 interface StoreManagementViewProps {
@@ -95,7 +96,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   // Active focused field state for Spotlight UX
-  const [focusedField, setFocusedField] = useState<'name' | 'costPrice' | 'price' | 'stock' | 'description' | 'supplierName' | null>(null);
+  const [focusedField, setFocusedField] = useState<'name' | 'costPrice' | 'price' | 'stock' | 'description' | 'supplierName' | 'category' | 'newCategory' | null>(null);
 
   const nameRef = React.useRef<HTMLInputElement>(null);
   const costPriceRef = React.useRef<HTMLInputElement>(null);
