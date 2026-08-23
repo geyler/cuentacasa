@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { StoreProduct } from '@/types';
-import { getStoreProducts } from '@/lib/storage';
+import { getStoreProducts, getStoreWhatsappNumber } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { 
@@ -21,7 +21,8 @@ import {
   Package,
   ArrowRight,
   ShieldCheck,
-  Truck
+  Truck,
+  ExternalLink
 } from 'lucide-react';
 
 interface CartItem {
@@ -89,6 +90,7 @@ export const PublicStoreLanding: React.FC = () => {
   const handleSendWhatsAppOrder = () => {
     if (cart.length === 0) return;
 
+    const targetPhone = getStoreWhatsappNumber();
     let text = `🛒 *NUEVO PEDIDO DE COMPRA - TIENDA CASA*\n\n`;
     cart.forEach((item, index) => {
       text += `${index + 1}. *${item.product.name}*\n   Cantidad: ${item.quantity}u | Precio: $${item.product.price * item.quantity}\n`;
@@ -96,7 +98,9 @@ export const PublicStoreLanding: React.FC = () => {
     text += `\n*TOTAL A PAGAR: $${totalCartPrice}*`;
 
     const encoded = encodeURIComponent(text);
-    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
+    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    window.open(waUrl, '_blank');
   };
 
   return (
@@ -350,6 +354,68 @@ export const PublicStoreLanding: React.FC = () => {
       {/* Main Body Section */}
       <main style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
         
+        {/* Category Showcase Grid (ERP-Style) */}
+        {categories.length > 0 && selectedCategory === 'todas' && !searchTerm && (
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Tag size={16} color="var(--md-sys-color-primary)" />
+              <span>Categorías del Catálogo</span>
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+              gap: '10px'
+            }}>
+              {categories.map(cat => {
+                const catProds = products.filter(p => p.category === cat);
+                const samplePhoto = catProds.find(p => p.photoUrl)?.photoUrl;
+
+                return (
+                  <div
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '16px',
+                      backgroundColor: 'var(--md-sys-color-surface-container)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      gap: '6px',
+                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      transition: 'transform 0.15s ease'
+                    }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      backgroundColor: 'var(--md-sys-color-primary-container)',
+                      color: 'var(--md-sys-color-on-primary-container)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden'
+                    }}>
+                      {samplePhoto ? (
+                        <img src={samplePhoto} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Tag size={20} />
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>{cat}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                      {catProds.length} {catProds.length === 1 ? 'producto' : 'productos'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Category Filter Chips */}
         <div style={{ marginBottom: '24px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
@@ -433,13 +499,33 @@ export const PublicStoreLanding: React.FC = () => {
                       overflow: 'hidden',
                       marginBottom: '8px',
                       backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                      boxShadow: 'inset 0 0 10px rgba(0,0,0,0.03)'
+                      boxShadow: 'inset 0 0 10px rgba(0,0,0,0.03)',
+                      position: 'relative'
                     }}>
                       <img 
                         src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">TIENDA CASA</text></svg>`} 
                         alt={product.name} 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                       />
+
+                      {product.isExternal && (
+                        <span style={{
+                          position: 'absolute',
+                          top: '6px',
+                          right: '6px',
+                          backgroundColor: '#00639B',
+                          color: '#FFFFFF',
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}>
+                          <ExternalLink size={10} /> Externo
+                        </span>
+                      )}
                     </div>
 
                     <h3 style={{ 
@@ -457,7 +543,7 @@ export const PublicStoreLanding: React.FC = () => {
                     </h3>
                   </div>
 
-                  {/* Price & Add Action */}
+                  {/* Price & Add / External Action */}
                   <div style={{
                     paddingTop: '6px',
                     borderTop: '1px solid var(--md-sys-color-surface-variant)',
@@ -469,7 +555,29 @@ export const PublicStoreLanding: React.FC = () => {
                       ${Math.round(product.price)}
                     </span>
 
-                    {!inCart ? (
+                    {product.isExternal ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (product.externalUrl) {
+                            window.open(product.externalUrl, '_blank');
+                          } else {
+                            setSelectedProductForModal(product);
+                          }
+                        }}
+                        className="md-btn"
+                        style={{
+                          padding: '5px 10px',
+                          fontSize: '0.75rem',
+                          borderRadius: '9999px',
+                          backgroundColor: 'var(--md-sys-color-primary-container)',
+                          color: 'var(--md-sys-color-on-primary-container)',
+                          fontWeight: 800
+                        }}
+                      >
+                        <ExternalLink size={14} />
+                      </button>
+                    ) : !inCart ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

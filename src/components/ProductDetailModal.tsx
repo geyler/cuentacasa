@@ -16,7 +16,8 @@ import {
   User, 
   TrendingUp, 
   Sparkles,
-  ShoppingBag
+  ShoppingBag,
+  ExternalLink
 } from 'lucide-react';
 
 interface ProductDetailModalProps {
@@ -224,37 +225,66 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </div>
         )}
 
-        {/* WhatsApp & Cart Actions */}
+        {/* WhatsApp & Cart / External Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button
-            onClick={handleWhatsAppOrder}
-            className="md-btn"
-            style={{
-              backgroundColor: '#25D366',
-              color: '#FFFFFF',
-              width: '100%',
-              padding: '14px',
-              fontSize: '1rem',
-              fontWeight: 800,
-              boxShadow: '0 4px 16px rgba(37, 211, 102, 0.35)'
-            }}
-          >
-            <MessageCircle size={22} />
-            <span>Consultar / Pedir por WhatsApp</span>
-          </button>
-
-          {onAddToCart && activeProduct.stock > 0 && (
+          {activeProduct.isExternal ? (
             <button
               onClick={() => {
-                onAddToCart(activeProduct);
-                onClose();
+                if (activeProduct.externalUrl) {
+                  window.open(activeProduct.externalUrl, '_blank');
+                } else {
+                  handleWhatsAppOrder();
+                }
               }}
               className="md-btn md-btn-primary"
-              style={{ width: '100%', padding: '12px', fontSize: '0.95rem' }}
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: '1rem',
+                fontWeight: 800,
+                boxShadow: '0 4px 16px rgba(0, 99, 155, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
             >
-              <Plus size={18} />
-              <span>Agregar al Carrito de Compra</span>
+              <ExternalLink size={20} />
+              <span>Ver Producto en Enlace Externo / WhatsApp</span>
             </button>
+          ) : (
+            <>
+              <button
+                onClick={handleWhatsAppOrder}
+                className="md-btn"
+                style={{
+                  backgroundColor: '#25D366',
+                  color: '#FFFFFF',
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  boxShadow: '0 4px 16px rgba(37, 211, 102, 0.35)'
+                }}
+              >
+                <MessageCircle size={22} />
+                <span>Consultar / Pedir por WhatsApp</span>
+              </button>
+
+              {onAddToCart && activeProduct.stock > 0 && (
+                <button
+                  onClick={() => {
+                    onAddToCart(activeProduct);
+                    onClose();
+                  }}
+                  className="md-btn md-btn-primary"
+                  style={{ width: '100%', padding: '12px', fontSize: '0.95rem' }}
+                >
+                  <Plus size={18} />
+                  <span>Agregar al Carrito de Compra</span>
+                </button>
+              )}
+            </>
           )}
 
           {isAdmin && (onEditProduct || onDeleteProduct) && (

@@ -15,7 +15,9 @@ import {
   transferCasaToStoreFund,
   addTransaction,
   getRawDatabase,
-  compressImageToBase64
+  compressImageToBase64,
+  getStoreWhatsappNumber,
+  saveStoreWhatsappNumber
 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
@@ -49,7 +51,8 @@ import {
   ArrowRight,
   Check,
   Camera,
-  PiggyBank
+  PiggyBank,
+  MessageCircle
 } from 'lucide-react';
 
 interface StoreManagementViewProps {
@@ -69,7 +72,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [selectedProductForDetailModal, setSelectedProductForDetailModal] = useState<StoreProduct | null>(null);
   
   // Navigation Sub-Tabs
-  const [activeSubTab, setActiveSubTab] = useState<'products' | 'suppliers' | 'transfer' | 'sales'>('products');
+  const [activeSubTab, setActiveSubTab] = useState<'products' | 'suppliers' | 'transfer' | 'sales' | 'settings'>('products');
 
   // Modal State for Add / Edit Store Product
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,6 +92,17 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [supplierType, setSupplierType] = useState<SupplierType>('propia');
   const [supplierName, setSupplierName] = useState('Maikel');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  
+  // External / Affiliate Product Fields
+  const [isExternal, setIsExternal] = useState(false);
+  const [externalUrl, setExternalUrl] = useState('');
+
+  // Store WhatsApp Target Setting
+  const [storeWhatsappNumber, setStoreWhatsappNumberState] = useState('');
+
+  React.useEffect(() => {
+    setStoreWhatsappNumberState(getStoreWhatsappNumber());
+  }, []);
 
   // WordPress-Style Category Creation
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
@@ -96,7 +110,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   // Active focused field state for Spotlight UX
-  const [focusedField, setFocusedField] = useState<'name' | 'costPrice' | 'price' | 'stock' | 'description' | 'supplierName' | 'category' | 'newCategory' | null>(null);
+  const [focusedField, setFocusedField] = useState<'name' | 'costPrice' | 'price' | 'stock' | 'description' | 'supplierName' | 'category' | 'newCategory' | 'externalUrl' | null>(null);
 
   const nameRef = React.useRef<HTMLInputElement>(null);
   const costPriceRef = React.useRef<HTMLInputElement>(null);
@@ -168,6 +182,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setSupplierType('propia');
     setSupplierName('Maikel');
     setFundingSource('negocio');
+    setIsExternal(false);
+    setExternalUrl('');
     setIsAddingNewCategory(false);
     setFocusedField(null);
     setIsModalOpen(true);
@@ -187,6 +203,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setSupplierType(p.supplierType || 'propia');
     setSupplierName(p.supplierName || 'Maikel');
     setFundingSource(p.supplierType === 'proveedor' ? 'proveedor' : 'negocio');
+    setIsExternal(p.isExternal || false);
+    setExternalUrl(p.externalUrl || '');
     setIsAddingNewCategory(false);
     setFocusedField(null);
     setIsModalOpen(true);
@@ -238,7 +256,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       published,
       salesCount: editingProduct ? editingProduct.salesCount : 0,
       supplierType: effectiveSupplierType,
-      supplierName: effectiveSupplierName
+      supplierName: effectiveSupplierName,
+      isExternal,
+      externalUrl: isExternal ? externalUrl.trim() : undefined
     });
 
     // If new product funded by Casa, log dual transaction for the merchandise investment
@@ -470,24 +490,29 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', maxWidth: '400px' }}>
+        <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '320px' }}>
           {onOpenScanner && (
             <button
               onClick={onOpenScanner}
               className="md-btn"
               style={{
-                flex: '1 1 140px',
+                flex: 1,
                 backgroundColor: 'rgba(255,255,255,0.25)',
                 color: '#FFFFFF',
-                fontSize: '0.88rem',
+                fontSize: '0.92rem',
                 fontWeight: 800,
-                padding: '10px 16px',
+                padding: '12px 16px',
                 border: '1px solid rgba(255,255,255,0.4)',
-                backdropFilter: 'blur(4px)'
+                backdropFilter: 'blur(4px)',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
               }}
             >
-              <Scan size={18} />
-              <span>Vender con Escáner</span>
+              <Scan size={20} />
+              <span>Vender</span>
             </button>
           )}
 
@@ -495,17 +520,22 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             onClick={handleOpenAdd}
             className="md-btn"
             style={{
-              flex: '1 1 140px',
+              flex: 1,
               backgroundColor: '#FFFFFF',
               color: 'var(--md-sys-color-primary)',
-              fontSize: '0.88rem',
+              fontSize: '0.92rem',
               fontWeight: 800,
-              padding: '10px 16px',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.15)'
+              padding: '12px 16px',
+              borderRadius: '16px',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
           >
-            <Plus size={18} />
-            <span>Agregar Producto</span>
+            <Plus size={20} />
+            <span>Publicar</span>
           </button>
         </div>
       </div>
@@ -674,6 +704,30 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         >
           <Receipt size={16} />
           <span>Ventas ({salesRecords.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('settings')}
+          style={{
+            flex: '1 1 auto',
+            padding: '10px 14px',
+            borderRadius: '12px',
+            border: 'none',
+            fontWeight: 800,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            backgroundColor: activeSubTab === 'settings' ? 'var(--md-sys-color-surface)' : 'transparent',
+            color: activeSubTab === 'settings' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+            boxShadow: activeSubTab === 'settings' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <MessageCircle size={16} />
+          <span>WhatsApp Pedidos</span>
         </button>
       </div>
 
@@ -1240,6 +1294,76 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </div>
       )}
 
+      {/* TAB 5: WHATSAPP SETTINGS */}
+      {activeSubTab === 'settings' && (
+        <div className="md-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              backgroundColor: '#25D366',
+              color: '#FFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <MessageCircle size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                WhatsApp para Pedidos del Carrito
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Los pedidos del catálogo online se enviarán automáticamente a este número de WhatsApp.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+              Número de WhatsApp Target (Ej. 5351234567)
+            </label>
+            <input
+              type="tel"
+              placeholder="Ej. 5351234567"
+              value={storeWhatsappNumber}
+              onChange={e => setStoreWhatsappNumberState(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: '14px',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                fontSize: '1rem',
+                fontWeight: 700,
+                outline: 'none',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                color: 'var(--md-sys-color-on-surface)'
+              }}
+            />
+          </div>
+
+          <button
+            onClick={() => {
+              saveStoreWhatsappNumber(storeWhatsappNumber);
+              showToast({ title: 'WhatsApp Guardado', message: 'Los pedidos online del carrito se dirigirán a este número.', type: 'success' });
+            }}
+            className="md-btn"
+            style={{
+              backgroundColor: '#25D366',
+              color: '#FFFFFF',
+              padding: '12px',
+              fontSize: '0.92rem',
+              fontWeight: 800,
+              boxShadow: '0 4px 14px rgba(37, 211, 102, 0.3)'
+            }}
+          >
+            <Check size={18} />
+            <span>Guardar Número WhatsApp</span>
+          </button>
+        </div>
+      )}
+
       {/* Add / Edit Product Bottom Sheet Modal */}
       {isModalOpen && (
         <div 
@@ -1634,6 +1758,43 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               }}
               required
             />
+
+            {/* External Link / Affiliate Checkbox & Input */}
+            <div style={{
+              padding: '12px 14px',
+              borderRadius: '14px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: isExternal ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              opacity: focusedField !== null && focusedField !== 'externalUrl' ? 0.35 : 1,
+              filter: focusedField !== null && focusedField !== 'externalUrl' ? 'blur(3px)' : 'none',
+              transition: 'all 0.25s ease'
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                <input
+                  type="checkbox"
+                  checked={isExternal}
+                  onChange={e => setIsExternal(e.target.checked)}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--md-sys-color-primary)' }}
+                />
+                <span>🔗 Producto de Enlace Externo / WhatsApp Directo</span>
+              </label>
+
+              {isExternal && (
+                <AppInput
+                  label="Enlace Externo o WhatsApp *"
+                  placeholder="https://wa.me/5351234567 o https://..."
+                  value={externalUrl}
+                  onChange={e => setExternalUrl(e.target.value)}
+                  focusedField={focusedField}
+                  fieldName="externalUrl"
+                  onFocus={() => setFocusedField('externalUrl')}
+                  required={isExternal}
+                />
+              )}
+            </div>
 
             {/* Centered Photo Upload Card */}
             <div style={{

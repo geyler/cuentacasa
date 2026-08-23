@@ -38,6 +38,8 @@ export interface StoreProduct {
   salesCount?: number;     // Total unidades vendidas
   supplierType: SupplierType; // 'propia' | 'proveedor'
   supplierName?: string;      // Nombre del proveedor (ej. "Maikel")
+  isExternal?: boolean;       // Si es un producto de enlace externo/afiliado
+  externalUrl?: string;       // WhatsApp o URL de referido/tienda externa
   createdAt: number;
   updatedAt: number;
 }
@@ -101,6 +103,7 @@ export interface RawDatabase {
     syncUrl?: string;
     showBalance?: boolean;
     masterPassword?: string;
+    storeWhatsappNumber?: string; // Número de WhatsApp para recibir pedidos del carrito online
   };
 }
 
