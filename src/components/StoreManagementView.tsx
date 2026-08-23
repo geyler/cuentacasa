@@ -12,6 +12,8 @@ import {
   saveSupplierAccount,
   deleteSupplierAccount,
   transferStoreFundToCasa,
+  transferCasaToStoreFund,
+  addTransaction,
   getRawDatabase,
   compressImageToBase64
 } from '@/lib/storage';
@@ -109,9 +111,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState(false);
   const [newSupplierNameInput, setNewSupplierNameInput] = useState('');
 
-  // Transfer Fund to Cuenta Casa State
+  // Transfer Fund & Payout States
+  const [transferDirection, setTransferDirection] = useState<'store_to_casa' | 'casa_to_store'>('store_to_casa');
   const [transferAmountInput, setTransferAmountInput] = useState<number | ''>('');
   const [transferNotesInput, setTransferNotesInput] = useState('');
+  const [payoutSource, setPayoutSource] = useState<'negocio' | 'casa'>('negocio');
 
   const salesRecords = getStoreSales();
 
@@ -213,7 +217,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     const effectiveSupplierType: SupplierType = fundingSource === 'proveedor' ? 'proveedor' : 'propia';
     const effectiveSupplierName = effectiveSupplierType === 'proveedor' ? supplierName.trim() : undefined;
 
-    saveStoreProduct({
+    const savedProd = saveStoreProduct({
       barcode: barcode.padStart(4, '0'),
       name: name.trim(),
       costPrice: numericCost,
@@ -227,6 +231,32 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       supplierType: effectiveSupplierType,
       supplierName: effectiveSupplierName
     });
+
+    // If new product funded by Casa, log dual transaction for the merchandise investment
+    if (!editingProduct && fundingSource === 'casa' && savedProd.stock > 0 && numericCost > 0) {
+      const todayISO = new Date().toISOString().split('T')[0];
+      const investmentTotal = numericCost * savedProd.stock;
+
+      addTransaction({
+        type: 'gasto',
+        concept: `Compra Mercancía: ${savedProd.name} (${savedProd.stock} u.)`,
+        category: 'Inversión Tienda',
+        amount: investmentTotal,
+        date: todayISO,
+        accountSource: 'casa',
+        notes: `Fondos personales de Casa utilizados para adquirir inventario.`
+      });
+
+      addTransaction({
+        type: 'ingreso',
+        concept: `Aporte Casa: Mercancía ${savedProd.name} (${savedProd.stock} u.)`,
+        category: 'Inversión Tienda',
+        amount: investmentTotal,
+        date: todayISO,
+        accountSource: 'tienda',
+        notes: `Entrada de inventario valorada al costo y financiada por Casa.`
+      });
+    }
 
     refreshData();
     setIsModalOpen(false);
@@ -333,13 +363,14 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     e.preventDefault();
     if (!payoutSupplier || !payoutAmount || Number(payoutAmount) <= 0) return;
 
+    const srcLabel = payoutSource === 'casa' ? 'Cuenta Casa' : 'Fondo Tienda';
     confirmAction({
       title: '¿Confirmar Liquidación a Proveedor?',
-      message: `Se registrará la entrega de ${formatCurrency(Number(payoutAmount), currency)} en efectivo a ${payoutSupplier.name}.`,
+      message: `Se registrará la entrega de ${formatCurrency(Number(payoutAmount), currency)} a ${payoutSupplier.name} desde ${srcLabel}.`,
       variant: 'warning',
       confirmText: 'Confirmar Pago',
       onConfirm: () => {
-        const res = paySupplierAccount(payoutSupplier.name, Number(payoutAmount));
+        const res = paySupplierAccount(payoutSupplier.name, Number(payoutAmount), payoutSource);
         setPayoutSupplier(null);
         refreshData();
         showActionResult({
@@ -362,23 +393,34 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     }
 
     const amt = Number(transferAmountInput);
+    const isStoreToCasa = transferDirection === 'store_to_casa';
+    const dialogTitle = isStoreToCasa ? '¿Transferir Saldo a Cuenta Casa?' : '¿Inyectar Capital a Fondo Tienda?';
+    const dialogMsg = isStoreToCasa 
+      ? `Se transferirán ${formatCurrency(amt, currency)} del Fondo de la Tienda hacia tu Cuenta Casa (se registrarán ambas transacciones saliente y entrante).`
+      : `Se inyectarán ${formatCurrency(amt, currency)} desde tu Cuenta Casa hacia el Fondo de la Tienda (se registrarán ambas transacciones saliente y entrante).`;
+
     confirmAction({
-      title: '¿Transferir Saldo a Cuenta Casa?',
-      message: `Se transferirán ${formatCurrency(amt, currency)} del Fondo de la Tienda directamente hacia tu Cuenta Casa.`,
+      title: dialogTitle,
+      message: dialogMsg,
       variant: 'info',
       confirmText: 'Transferir Ahora',
       onConfirm: () => {
-        const res = transferStoreFundToCasa(amt, transferNotesInput);
+        const res = isStoreToCasa 
+          ? transferStoreFundToCasa(amt, transferNotesInput)
+          : transferCasaToStoreFund(amt, transferNotesInput);
+
         if (res.success) {
           setTransferAmountInput('');
           setTransferNotesInput('');
           refreshData();
           showActionResult({
             title: '¡Transferencia Exitosa!',
-            message: `Se abonaron $${amt} a tu Cuenta Casa como retiro del negocio.`,
+            message: isStoreToCasa 
+              ? `Se registraron 2 transacciones: Saliente en Tienda y Entrante en Cuenta Casa ($${amt}).`
+              : `Se registraron 2 transacciones: Saliente en Cuenta Casa y Entrante en Fondo Tienda ($${amt}).`,
             type: 'success',
             actions: [
-              { label: 'Ver Transferencia', onClick: () => setActiveSubTab('transfer'), icon: <ArrowRightLeft size={16} /> }
+              { label: 'Ver Pestaña Transferencias', onClick: () => setActiveSubTab('transfer'), icon: <ArrowRightLeft size={16} /> }
             ]
           });
         } else {
@@ -971,11 +1013,50 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               <ArrowRightLeft size={22} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Transferencia Fondo Tienda ➔ Cuenta Casa</h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Transferencias entre Cuentas</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                Envía capital o utilidades retenidas del negocio hacia tu presupuesto personal de Cuenta Casa.
+                Transfiere entre el Fondo de la Tienda y tu Cuenta Casa. Cada movimiento registrará automáticamente 2 transacciones (una saliente y una entrante).
               </p>
             </div>
+          </div>
+
+          {/* Direction Selector Switcher */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+            <button
+              type="button"
+              onClick={() => setTransferDirection('store_to_casa')}
+              style={{
+                padding: '10px',
+                borderRadius: '12px',
+                border: transferDirection === 'store_to_casa' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: transferDirection === 'store_to_casa' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                color: transferDirection === 'store_to_casa' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                fontWeight: transferDirection === 'store_to_casa' ? 800 : 600,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                textAlign: 'center'
+              }}
+            >
+              🏦 Tienda ➔ 🏡 Casa
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTransferDirection('casa_to_store')}
+              style={{
+                padding: '10px',
+                borderRadius: '12px',
+                border: transferDirection === 'casa_to_store' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: transferDirection === 'casa_to_store' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                color: transferDirection === 'casa_to_store' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                fontWeight: transferDirection === 'casa_to_store' ? 800 : 600,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                textAlign: 'center'
+              }}
+            >
+              🏡 Casa ➔ 🏦 Tienda
+            </button>
           </div>
 
           <div style={{
@@ -995,14 +1076,16 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 {formatCurrency(totalStoreFund, currency, true)}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setTransferAmountInput(totalStoreFund)}
-              className="md-btn md-btn-secondary"
-              style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-            >
-              Usar Todo
-            </button>
+            {transferDirection === 'store_to_casa' && (
+              <button
+                type="button"
+                onClick={() => setTransferAmountInput(totalStoreFund)}
+                className="md-btn md-btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+              >
+                Usar Todo
+              </button>
+            )}
           </div>
 
           <form onSubmit={handleExecuteStoreFundTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -1016,7 +1099,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 pattern="[0-9]*"
                 step="any"
                 required
-                max={totalStoreFund}
+                max={transferDirection === 'store_to_casa' ? totalStoreFund : undefined}
                 placeholder="500"
                 value={transferAmountInput}
                 onChange={e => setTransferAmountInput(e.target.value === '' ? '' : parseFloat(e.target.value))}
@@ -1040,7 +1123,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="Ej. Retiro de utilidad mensual para gastos del hogar"
+                placeholder={transferDirection === 'store_to_casa' ? "Ej. Retiro de utilidad mensual para gastos del hogar" : "Ej. Aporte para compra de inventario"}
                 value={transferNotesInput}
                 onChange={e => setTransferNotesInput(e.target.value)}
                 className="input-spotlight"
@@ -1056,12 +1139,14 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
             <button
               type="submit"
-              disabled={totalStoreFund <= 0}
+              disabled={transferDirection === 'store_to_casa' && totalStoreFund <= 0}
               className="md-btn md-btn-primary"
-              style={{ padding: '14px', fontSize: '0.95rem', opacity: totalStoreFund <= 0 ? 0.5 : 1 }}
+              style={{ padding: '14px', fontSize: '0.95rem', opacity: (transferDirection === 'store_to_casa' && totalStoreFund <= 0) ? 0.5 : 1 }}
             >
               <ArrowRightLeft size={18} />
-              <span>Confirmar Transferencia a Cuenta Casa</span>
+              <span>
+                {transferDirection === 'store_to_casa' ? 'Confirmar Transferencia a Cuenta Casa' : 'Confirmar Inyección a Fondo Tienda'}
+              </span>
             </button>
           </form>
         </div>
@@ -1654,6 +1739,48 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
               Monto retenido pendiente de entregar: <strong style={{ color: 'var(--md-sys-color-expense)' }}>${payoutSupplier.pendingPayout}</strong>
             </p>
+
+            {/* Payout Source Selector */}
+            <div>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                Origen del Dinero para Liquidar:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPayoutSource('negocio')}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: payoutSource === 'negocio' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: payoutSource === 'negocio' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                    color: payoutSource === 'negocio' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                    fontWeight: payoutSource === 'negocio' ? 800 : 600,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🏦 Fondo Tienda
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPayoutSource('casa')}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: payoutSource === 'casa' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: payoutSource === 'casa' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                    color: payoutSource === 'casa' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                    fontWeight: payoutSource === 'casa' ? 800 : 600,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🏡 Cuenta Casa
+                </button>
+              </div>
+            </div>
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>

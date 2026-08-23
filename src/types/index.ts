@@ -4,11 +4,12 @@ export type SupplierType = 'propia' | 'proveedor';
 export interface Transaction {
   id: string;
   type: TransactionType;
-  concept: string;         // e.g. "Ganancia Tienda (Venta #1024)"
-  category: string;        // e.g. "Ganancia Tienda", "Trabajo", "Comida"
+  concept: string;         // e.g. "tienda: venta de: 7 articulos"
+  category: string;        // e.g. "Ganancia Tienda", "Trabajo", "Transferencia"
   amount: number;          // Monto total
   date: string;            // ISO String YYYY-MM-DD
   notes?: string;
+  accountSource?: 'casa' | 'tienda'; // Source account identifier
   createdAt: number;       // Timestamp
   updatedAt: number;       // Timestamp
   synced?: boolean;        // Cloud sync status

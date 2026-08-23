@@ -297,7 +297,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
     confirmAction({
       title: '¿Confirmar y Registrar Venta?',
-      message: `Se registrará la venta de ${totalUnitsCount} unidades por un total de ${formatCurrency(totalInvoicePrice, currency, true)}. La ganancia neta de +${formatCurrency(estimatedNetProfit, currency, true)} ingresará a CuentaCasa.`,
+      message: `Se registrará la venta de ${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'} por un total de ${formatCurrency(totalInvoicePrice, currency, true)}.`,
       variant: 'primary',
       confirmText: 'Confirmar y Cobrar',
       onConfirm: () => {
@@ -312,7 +312,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         });
 
         const saleTotalText = formatCurrency(totalInvoicePrice, currency, true);
-        const profitText = formatCurrency(estimatedNetProfit, currency, true);
         const itemsListStr = ticketItems.map(i => `${i.name} (x${i.quantity})`).join(', ');
 
         setTicketItems([]);
@@ -321,7 +320,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
         showActionResult({
           title: '¡Venta Registrada con Éxito!',
-          message: `Cobro total: ${saleTotalText} • Ganancia a Casa: +${profitText}`,
+          message: `Cobro total: ${saleTotalText} (${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'})`,
           type: 'success',
           details: (
             <div>
@@ -677,8 +676,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           }}>
             <div>
               <span style={{ fontSize: '0.68rem', fontWeight: 700, display: 'block' }}>TOTAL COBRADO</span>
-              <span style={{ fontSize: '0.65rem', color: '#00875A', fontWeight: 800, display: 'block' }}>
-                Ganancia Casa: +{formatCurrency(estimatedNetProfit, currency, true)}
+              <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700, display: 'block' }}>
+                {totalUnitsCount} {totalUnitsCount === 1 ? 'artículo' : 'artículos'}
               </span>
             </div>
 

@@ -312,7 +312,7 @@ export function getSupplierAccounts(): SupplierAccount[] {
   return db.supplierAccounts || [];
 }
 
-export function paySupplierAccount(supplierName: string, amount: number): { success: boolean; message: string } {
+export function paySupplierAccount(supplierName: string, amount: number, source: 'negocio' | 'casa' = 'negocio'): { success: boolean; message: string } {
   const db = getRawDatabase();
   if (!db.supplierAccounts) db.supplierAccounts = [];
 
@@ -325,6 +325,61 @@ export function paySupplierAccount(supplierName: string, amount: number): { succ
   supplier.pendingPayout -= payAmount;
   supplier.totalPaid += payAmount;
   supplier.updatedAt = Date.now();
+
+  const todayISO = new Date().toISOString().split('T')[0];
+  const now = Date.now();
+
+  if (source === 'casa') {
+    // Dual transaction registration: Outgoing from House, Credit entry to Store
+    const houseExpenseTx: Transaction = {
+      id: `tx-sup-pay-casa-${now}`,
+      type: 'gasto',
+      concept: `Liquidación Proveedor: ${supplier.name} (Pago desde Casa)`,
+      category: 'Pago Proveedor Consignación',
+      amount: payAmount,
+      date: todayISO,
+      accountSource: 'casa',
+      notes: `Pago directo en efectivo a ${supplier.name} con fondos de Casa.`,
+      createdAt: now,
+      updatedAt: now,
+      synced: false
+    };
+
+    const storeIncomeTx: Transaction = {
+      id: `tx-sup-pay-store-${now}`,
+      type: 'ingreso',
+      concept: `Aporte Casa: Liquidación Proveedor ${supplier.name}`,
+      category: 'Aporte Casa a Tienda',
+      amount: payAmount,
+      date: todayISO,
+      accountSource: 'tienda',
+      notes: `Financiamiento recibido de Casa para saldar deuda con ${supplier.name}.`,
+      createdAt: now + 1,
+      updatedAt: now + 1,
+      synced: false
+    };
+
+    db.transactions.unshift(houseExpenseTx, storeIncomeTx);
+  } else {
+    // Paid from Store Business Fund
+    db.storeFund = Math.max(0, (db.storeFund || 0) - payAmount);
+
+    const storeExpenseTx: Transaction = {
+      id: `tx-sup-pay-store-${now}`,
+      type: 'gasto',
+      concept: `Liquidación a Proveedor: ${supplier.name}`,
+      category: 'Pago Proveedor Consignación',
+      amount: payAmount,
+      date: todayISO,
+      accountSource: 'tienda',
+      notes: `Pago efectuado con ganancias/fondo del negocio. Saldo restante tienda: $${db.storeFund}`,
+      createdAt: now,
+      updatedAt: now,
+      synced: false
+    };
+
+    db.transactions.unshift(storeExpenseTx);
+  }
 
   saveRawDatabase(db);
   return { success: true, message: `Se liquidaron $${payAmount} a la cuenta del proveedor ${supplier.name}.` };
@@ -385,11 +440,12 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     }
   });
 
-  // CRITICAL RULE: ONLY the Net Profit (Ganancia Casa) is transferred to CuentaCasa Accounting DB
+  // ONLY the Net Profit (Ganancia Casa) is transferred to CuentaCasa Accounting DB
   if (saleData.netProfit > 0) {
-    const conceptSummary = saleData.items.length === 1 
-      ? `Ganancia Tienda: ${saleData.items[0].name} (x${saleData.items[0].quantity})`
-      : `Ganancia Tienda (${saleData.items.reduce((s, i) => s + i.quantity, 0)} items)`;
+    const totalCount = saleData.items.reduce((s, i) => s + i.quantity, 0);
+    const conceptSummary = totalCount === 1 
+      ? 'tienda: venta de: 1 articulo' 
+      : `tienda: venta de: ${totalCount} articulos`;
 
     const newTx: Transaction = {
       id: `tx-profit-${Date.now()}`,
@@ -398,6 +454,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
       category: 'Ganancia Tienda',
       amount: saleData.netProfit,
       date: saleData.date,
+      accountSource: 'casa',
       notes: `Venta Total: $${saleData.totalAmount} | Fondo Tienda/Proveedores retenido: $${saleData.totalCost}`,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -500,22 +557,90 @@ export function transferStoreFundToCasa(amount: number, notes?: string): { succe
   // Deduct from storeFund
   db.storeFund = currentFund - amount;
 
-  // Create income transaction in Cuenta Casa
   const todayISO = new Date().toISOString().split('T')[0];
-  const newTx: Transaction = {
-    id: `tx-transfer-${Date.now()}`,
-    type: 'ingreso',
-    concept: 'Transferencia Fondo Tienda ➔ Cuenta Casa',
-    category: 'Retiro Fondo Tienda',
+  const now = Date.now();
+
+  // Dual Registration:
+  // 1. Outgoing from Store
+  const storeExpenseTx: Transaction = {
+    id: `tx-trf-out-store-${now}`,
+    type: 'gasto',
+    concept: 'Transferencia Saliente: Fondo Tienda ➔ Cuenta Casa',
+    category: 'Transferencia Entre Cuentas',
     amount: amount,
     date: todayISO,
-    notes: notes?.trim() || `Retiro de utilidades/capital del negocio hacia cuenta personal. Saldo restante tienda: $${db.storeFund}`,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    accountSource: 'tienda',
+    notes: notes?.trim() || `Retiro de ganancias del negocio. Saldo restante tienda: $${db.storeFund}`,
+    createdAt: now,
+    updatedAt: now,
     synced: false
   };
 
-  db.transactions.unshift(newTx);
+  // 2. Incoming to House
+  const houseIncomeTx: Transaction = {
+    id: `tx-trf-in-casa-${now}`,
+    type: 'ingreso',
+    concept: 'Transferencia Entrante: Fondo Tienda ➔ Cuenta Casa',
+    category: 'Transferencia Entre Cuentas',
+    amount: amount,
+    date: todayISO,
+    accountSource: 'casa',
+    notes: notes?.trim() || `Ingreso recibido desde Fondo Tienda a Cuenta Casa.`,
+    createdAt: now + 1,
+    updatedAt: now + 1,
+    synced: false
+  };
+
+  db.transactions.unshift(houseIncomeTx, storeExpenseTx);
+  saveRawDatabase(db);
+  return { success: true };
+}
+
+// Transfer funds from House (Cuenta Casa) to Store Business Fund (Fondo Tienda)
+export function transferCasaToStoreFund(amount: number, notes?: string): { success: boolean; error?: string } {
+  const db = getRawDatabase();
+  if (amount <= 0) {
+    return { success: false, error: 'Ingresa un monto mayor a 0 para transferir.' };
+  }
+
+  // Add to storeFund
+  db.storeFund = (db.storeFund || 0) + amount;
+
+  const todayISO = new Date().toISOString().split('T')[0];
+  const now = Date.now();
+
+  // Dual Registration:
+  // 1. Outgoing from House
+  const houseExpenseTx: Transaction = {
+    id: `tx-trf-out-casa-${now}`,
+    type: 'gasto',
+    concept: 'Transferencia Saliente: Cuenta Casa ➔ Fondo Tienda',
+    category: 'Transferencia Entre Cuentas',
+    amount: amount,
+    date: todayISO,
+    accountSource: 'casa',
+    notes: notes?.trim() || `Aporte de fondos de Casa al negocio. Saldo nuevo tienda: $${db.storeFund}`,
+    createdAt: now,
+    updatedAt: now,
+    synced: false
+  };
+
+  // 2. Incoming to Store
+  const storeIncomeTx: Transaction = {
+    id: `tx-trf-in-store-${now}`,
+    type: 'ingreso',
+    concept: 'Transferencia Entrante: Cuenta Casa ➔ Fondo Tienda',
+    category: 'Transferencia Entre Cuentas',
+    amount: amount,
+    date: todayISO,
+    accountSource: 'tienda',
+    notes: notes?.trim() || `Inyección de capital recibida desde Cuenta Casa.`,
+    createdAt: now + 1,
+    updatedAt: now + 1,
+    synced: false
+  };
+
+  db.transactions.unshift(storeIncomeTx, houseExpenseTx);
   saveRawDatabase(db);
   return { success: true };
 }
