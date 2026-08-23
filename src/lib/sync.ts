@@ -1,5 +1,5 @@
 import { getRawDatabase, saveRawDatabase } from './storage';
-import { Transaction, StoreProduct, RawDatabase } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase } from '@/types';
 
 export interface SyncStatus {
   isOnline: boolean;
@@ -36,13 +36,13 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       success: true,
       syncedCount: db.transactions.length,
       productCount: (db.storeProducts || []).length,
-      message: 'La base de datos está al día.'
+      message: 'La base de datos está al día con Hostinger.'
     };
   }
 
-  // AbortController with 6s timeout for slow/unstable connection resilience
+  // AbortController with 7s timeout for slow/unstable connection resilience
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const timeoutId = setTimeout(() => controller.abort(), 7000);
 
   try {
     const res = await fetch('/api/sync', {
@@ -55,7 +55,12 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         transactions: db.transactions,
         deletedIds: db.deletedIds || [],
         storeProducts: db.storeProducts || [],
-        deletedProductIds: db.deletedProductIds || []
+        deletedProductIds: db.deletedProductIds || [],
+        storeSales: db.storeSales || [],
+        supplierAccounts: db.supplierAccounts || [],
+        storeFund: db.storeFund !== undefined ? db.storeFund : 0,
+        savingsFund: db.savingsFund !== undefined ? db.savingsFund : 0,
+        settings: db.settings || {}
       }),
       signal: controller.signal
     });
@@ -77,10 +82,26 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         ? data.storeProducts 
         : (db.storeProducts || []);
 
+      const mergedSales: StoreSaleRecord[] = Array.isArray(data.storeSales)
+        ? data.storeSales
+        : (db.storeSales || []);
+
+      const mergedSuppliers: SupplierAccount[] = Array.isArray(data.supplierAccounts)
+        ? data.supplierAccounts
+        : (db.supplierAccounts || []);
+
       const updatedDb: RawDatabase = {
         ...db,
         transactions: mergedTransactions,
         storeProducts: mergedProducts,
+        storeSales: mergedSales,
+        supplierAccounts: mergedSuppliers,
+        storeFund: data.storeFund !== undefined ? data.storeFund : (db.storeFund || 0),
+        savingsFund: data.savingsFund !== undefined ? data.savingsFund : (db.savingsFund || 0),
+        settings: {
+          ...db.settings,
+          ...(data.settings || {})
+        },
         deletedIds: [], // Cleared deletedIds after successful server sync
         deletedProductIds: [], // Cleared deletedProductIds after successful server sync
         lastSync: new Date().toISOString()
@@ -92,7 +113,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         success: true,
         syncedCount: mergedTransactions.length,
         productCount: mergedProducts.length,
-        message: `Sincronización exitosa con la base de datos (${data.storage || 'Cloud'}). ${mergedTransactions.length} movimientos y ${mergedProducts.length} productos actualizados.`
+        message: `Sincronización exitosa con Hostinger MySQL. ${mergedTransactions.length} movimientos y ${mergedProducts.length} productos unificados.`
       };
     } else {
       throw new Error(data.message || 'Error en respuesta del servidor');

@@ -441,6 +441,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         const res = paySupplierAccount(payoutSupplier.name, Number(payoutAmount), payoutSource);
         setPayoutSupplier(null);
         refreshData();
+        syncDatabaseWithCloud(true).catch(err => console.warn('Payout sync warning:', err));
         showActionResult({
           title: '¡Liquidación Entregada!',
           message: res.message,
@@ -481,6 +482,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           setTransferAmountInput('');
           setTransferNotesInput('');
           refreshData();
+          syncDatabaseWithCloud(true).catch(err => console.warn('Transfer sync warning:', err));
           showActionResult({
             title: '¡Transferencia Exitosa!',
             message: isStoreToCasa 

@@ -76,11 +76,46 @@ export async function ensureTableExists() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `;
 
+  const createSalesQuery = `
+    CREATE TABLE IF NOT EXISTS store_sales (
+      id VARCHAR(64) PRIMARY KEY,
+      date VARCHAR(20) NOT NULL,
+      timestamp BIGINT NOT NULL,
+      items LONGTEXT NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+      total_cost DECIMAL(12, 2) NOT NULL DEFAULT 0,
+      net_profit DECIMAL(12, 2) NOT NULL DEFAULT 0,
+      INDEX idx_sales_date (date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
+  const createSuppliersQuery = `
+    CREATE TABLE IF NOT EXISTS supplier_accounts (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      pending_payout DECIMAL(12, 2) NOT NULL DEFAULT 0,
+      total_paid DECIMAL(12, 2) NOT NULL DEFAULT 0,
+      updated_at BIGINT NOT NULL,
+      INDEX idx_supplier_name (name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
+  const createAppStateQuery = `
+    CREATE TABLE IF NOT EXISTS app_state (
+      state_key VARCHAR(64) PRIMARY KEY,
+      state_value LONGTEXT NOT NULL,
+      updated_at BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
   try {
     await pool.query(createTransactionsQuery);
     await pool.query(createDeletedQuery);
     await pool.query(createProductsQuery);
     await pool.query(createDeletedProductsQuery);
+    await pool.query(createSalesQuery);
+    await pool.query(createSuppliersQuery);
+    await pool.query(createAppStateQuery);
     tableEnsured = true;
   } catch (error) {
     console.error('Error ensuring tables exist in Hostinger MySQL:', error);

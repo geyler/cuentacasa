@@ -7,6 +7,7 @@ import {
   getStoreProducts, 
   registerStoreSale 
 } from '@/lib/storage';
+import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { 
@@ -319,6 +320,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           totalCost: totalInvoiceCost,
           netProfit: estimatedNetProfit
         });
+
+        // Trigger automatic sync with Hostinger DB
+        syncDatabaseWithCloud(true).catch(err => console.warn('Sale sync warning:', err));
 
         const saleTotalText = formatCurrency(totalInvoicePrice, currency, true);
         const itemsListStr = ticketItems.map(i => `${i.name} (x${i.quantity})`).join(', ');

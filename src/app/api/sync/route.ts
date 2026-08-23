@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Transaction, StoreProduct } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount } from '@/types';
 import pool, { ensureTableExists, isMySQLConfigured } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
@@ -11,6 +11,11 @@ const STORAGE_FILE = path.join(process.cwd(), '.next', 'cuentacasa_cloud_db.json
 interface FileCloudData {
   transactions: Transaction[];
   storeProducts: StoreProduct[];
+  storeSales: StoreSaleRecord[];
+  supplierAccounts: SupplierAccount[];
+  storeFund: number;
+  savingsFund: number;
+  settings: any;
 }
 
 function loadFileData(): FileCloudData {
@@ -19,17 +24,38 @@ function loadFileData(): FileCloudData {
       const data = fs.readFileSync(STORAGE_FILE, 'utf-8');
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed)) {
-        return { transactions: parsed, storeProducts: [] };
+        return {
+          transactions: parsed,
+          storeProducts: [],
+          storeSales: [],
+          supplierAccounts: [],
+          storeFund: 0,
+          savingsFund: 0,
+          settings: {}
+        };
       }
       return {
         transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
-        storeProducts: Array.isArray(parsed.storeProducts) ? parsed.storeProducts : []
+        storeProducts: Array.isArray(parsed.storeProducts) ? parsed.storeProducts : [],
+        storeSales: Array.isArray(parsed.storeSales) ? parsed.storeSales : [],
+        supplierAccounts: Array.isArray(parsed.supplierAccounts) ? parsed.supplierAccounts : [],
+        storeFund: Number(parsed.storeFund || 0),
+        savingsFund: Number(parsed.savingsFund || 0),
+        settings: parsed.settings || {}
       };
     }
   } catch (e) {
     // Fallback to empty store
   }
-  return { transactions: [], storeProducts: [] };
+  return {
+    transactions: [],
+    storeProducts: [],
+    storeSales: [],
+    supplierAccounts: [],
+    storeFund: 0,
+    savingsFund: 0,
+    settings: {}
+  };
 }
 
 function saveFileData(cloudData: FileCloudData) {
@@ -44,6 +70,7 @@ function saveFileData(cloudData: FileCloudData) {
   }
 }
 
+// MySQL Transactions Helpers
 async function getMySQLTransactions(): Promise<{ transactions: Transaction[]; deletedSet: Set<string> }> {
   if (!pool) return { transactions: [], deletedSet: new Set() };
   await ensureTableExists();
@@ -76,7 +103,6 @@ async function deleteMySQLTransactions(deletedIds: string[]) {
   await ensureTableExists();
 
   await pool.query('DELETE FROM transactions WHERE id IN (?)', [deletedIds]);
-
   const values = deletedIds.map(id => [id, Date.now()]);
   await pool.query('INSERT IGNORE INTO deleted_transactions (id, deleted_at) VALUES ?', [values]);
 }
@@ -114,6 +140,7 @@ async function saveMySQLTransactions(transactions: Transaction[]) {
   await pool.query(query, [values]);
 }
 
+// MySQL Products Helpers
 async function getMySQLProducts(): Promise<{ products: StoreProduct[]; deletedSet: Set<string> }> {
   if (!pool) return { products: [], deletedSet: new Set() };
   await ensureTableExists();
@@ -210,26 +237,154 @@ async function deleteMySQLProducts(deletedIds: string[]) {
   await pool.query('INSERT IGNORE INTO deleted_store_products (id, deleted_at) VALUES ?', [values]);
 }
 
+// MySQL Sales Helpers
+async function getMySQLSales(): Promise<StoreSaleRecord[]> {
+  if (!pool) return [];
+  await ensureTableExists();
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM store_sales ORDER BY timestamp DESC');
+  return rows.map(r => ({
+    id: r.id,
+    date: r.date,
+    timestamp: Number(r.timestamp),
+    items: typeof r.items === 'string' ? JSON.parse(r.items) : (r.items || []),
+    totalAmount: Number(r.total_amount),
+    totalCost: Number(r.total_cost),
+    netProfit: Number(r.net_profit)
+  }));
+}
+
+async function saveMySQLSales(sales: StoreSaleRecord[]) {
+  if (!pool || sales.length === 0) return;
+  await ensureTableExists();
+  const query = `
+    INSERT INTO store_sales (id, date, timestamp, items, total_amount, total_cost, net_profit)
+    VALUES ?
+    ON DUPLICATE KEY UPDATE
+      date = VALUES(date),
+      timestamp = VALUES(timestamp),
+      items = VALUES(items),
+      total_amount = VALUES(total_amount),
+      total_cost = VALUES(total_cost),
+      net_profit = VALUES(net_profit)
+  `;
+  const values = sales.map(s => [
+    s.id,
+    s.date,
+    s.timestamp || Date.now(),
+    JSON.stringify(s.items || []),
+    s.totalAmount,
+    s.totalCost,
+    s.netProfit
+  ]);
+  await pool.query(query, [values]);
+}
+
+// MySQL Suppliers Helpers
+async function getMySQLSuppliers(): Promise<SupplierAccount[]> {
+  if (!pool) return [];
+  await ensureTableExists();
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM supplier_accounts ORDER BY updated_at DESC');
+  return rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    pendingPayout: Number(r.pending_payout),
+    totalPaid: Number(r.total_paid),
+    updatedAt: Number(r.updated_at)
+  }));
+}
+
+async function saveMySQLSuppliers(suppliers: SupplierAccount[]) {
+  if (!pool || suppliers.length === 0) return;
+  await ensureTableExists();
+  const query = `
+    INSERT INTO supplier_accounts (id, name, pending_payout, total_paid, updated_at)
+    VALUES ?
+    ON DUPLICATE KEY UPDATE
+      name = VALUES(name),
+      pending_payout = VALUES(pending_payout),
+      total_paid = VALUES(total_paid),
+      updated_at = VALUES(updated_at)
+  `;
+  const values = suppliers.map(sup => [
+    sup.id,
+    sup.name,
+    sup.pendingPayout,
+    sup.totalPaid,
+    sup.updatedAt || Date.now()
+  ]);
+  await pool.query(query, [values]);
+}
+
+// MySQL App State Helpers
+async function getMySQLAppState(key: string): Promise<string | null> {
+  if (!pool) return null;
+  await ensureTableExists();
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT state_value FROM app_state WHERE state_key = ?', [key]);
+  if (rows.length > 0) return rows[0].state_value;
+  return null;
+}
+
+async function saveMySQLAppState(key: string, value: string) {
+  if (!pool) return;
+  await ensureTableExists();
+  const query = `
+    INSERT INTO app_state (state_key, state_value, updated_at)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      state_value = VALUES(state_value),
+      updated_at = VALUES(updated_at)
+  `;
+  await pool.query(query, [key, value, Date.now()]);
+}
+
 export async function GET() {
   try {
     let currentCloudTransactions: Transaction[] = [];
     let currentCloudProducts: StoreProduct[] = [];
+    let currentCloudSales: StoreSaleRecord[] = [];
+    let currentCloudSuppliers: SupplierAccount[] = [];
+    let currentStoreFund = 0;
+    let currentSavingsFund = 0;
+    let currentSettings: any = {};
 
     if (isMySQLConfigured()) {
       const txResult = await getMySQLTransactions();
       currentCloudTransactions = txResult.transactions;
       const prodResult = await getMySQLProducts();
       currentCloudProducts = prodResult.products;
+      currentCloudSales = await getMySQLSales();
+      currentCloudSuppliers = await getMySQLSuppliers();
+
+      const storeFundStr = await getMySQLAppState('storeFund');
+      if (storeFundStr !== null) currentStoreFund = Number(storeFundStr);
+
+      const savingsFundStr = await getMySQLAppState('savingsFund');
+      if (savingsFundStr !== null) currentSavingsFund = Number(savingsFundStr);
+
+      const settingsStr = await getMySQLAppState('settings');
+      if (settingsStr !== null) {
+        try { currentSettings = JSON.parse(settingsStr); } catch (e) {}
+      }
     } else {
       const fileData = loadFileData();
       currentCloudTransactions = fileData.transactions;
       currentCloudProducts = fileData.storeProducts;
+      currentCloudSales = fileData.storeSales;
+      currentCloudSuppliers = fileData.supplierAccounts;
+      currentStoreFund = fileData.storeFund;
+      currentSavingsFund = fileData.savingsFund;
+      currentSettings = fileData.settings;
     }
 
     return NextResponse.json({
       success: true,
       transactions: currentCloudTransactions,
       storeProducts: currentCloudProducts,
+      storeSales: currentCloudSales,
+      supplierAccounts: currentCloudSuppliers,
+      storeFund: currentStoreFund,
+      savingsFund: currentSavingsFund,
+      settings: currentSettings,
       count: currentCloudTransactions.length,
       productCount: currentCloudProducts.length,
       storage: isMySQLConfigured() ? 'Hostinger MySQL' : 'Local File Storage'
@@ -254,6 +409,11 @@ export async function POST(req: NextRequest) {
     const deletedIds: string[] = Array.isArray(body.deletedIds) ? body.deletedIds : [];
     const clientProducts: StoreProduct[] = Array.isArray(body.storeProducts) ? body.storeProducts : [];
     const deletedProductIds: string[] = Array.isArray(body.deletedProductIds) ? body.deletedProductIds : [];
+    const clientSales: StoreSaleRecord[] = Array.isArray(body.storeSales) ? body.storeSales : [];
+    const clientSuppliers: SupplierAccount[] = Array.isArray(body.supplierAccounts) ? body.supplierAccounts : [];
+    const clientStoreFund = body.storeFund !== undefined ? Number(body.storeFund) : undefined;
+    const clientSavingsFund = body.savingsFund !== undefined ? Number(body.savingsFund) : undefined;
+    const clientSettings = body.settings && typeof body.settings === 'object' ? body.settings : undefined;
 
     // 1. Process transaction deletions
     if (deletedIds.length > 0) {
@@ -290,7 +450,6 @@ export async function POST(req: NextRequest) {
     }
 
     const mergedTxMap = new Map<string, Transaction>();
-
     for (const tx of serverTransactions) {
       if (tx && tx.id && !deletedSet.has(tx.id)) {
         mergedTxMap.set(tx.id, tx);
@@ -298,7 +457,6 @@ export async function POST(req: NextRequest) {
     }
 
     const txsToSaveToMySQL: Transaction[] = [];
-
     for (const tx of clientTransactions) {
       if (tx && tx.id && !deletedSet.has(tx.id)) {
         const existing = mergedTxMap.get(tx.id);
@@ -340,7 +498,6 @@ export async function POST(req: NextRequest) {
     }
 
     const mergedProductMap = new Map<string, StoreProduct>();
-
     for (const p of serverProducts) {
       if (p && p.id && !deletedProductSet.has(p.id)) {
         mergedProductMap.set(p.id, p);
@@ -348,7 +505,6 @@ export async function POST(req: NextRequest) {
     }
 
     const productsToSaveToMySQL: StoreProduct[] = [];
-
     for (const p of clientProducts) {
       if (p && p.id && !deletedProductSet.has(p.id)) {
         const existing = mergedProductMap.get(p.id) || Array.from(mergedProductMap.values()).find(item => item.barcode === p.barcode);
@@ -372,11 +528,122 @@ export async function POST(req: NextRequest) {
       await saveMySQLProducts(productsToSaveToMySQL);
     }
 
-    // If local file storage, persist full data
-    if (!isMySQLConfigured()) {
+    // 5. Load & Merge Sales
+    let serverSales: StoreSaleRecord[] = [];
+    if (isMySQLConfigured()) {
+      serverSales = await getMySQLSales();
+    } else {
+      serverSales = loadFileData().storeSales;
+    }
+
+    const mergedSalesMap = new Map<string, StoreSaleRecord>();
+    for (const s of serverSales) {
+      if (s && s.id) mergedSalesMap.set(s.id, s);
+    }
+
+    const salesToSaveToMySQL: StoreSaleRecord[] = [];
+    for (const s of clientSales) {
+      if (s && s.id && !mergedSalesMap.has(s.id)) {
+        mergedSalesMap.set(s.id, s);
+        salesToSaveToMySQL.push(s);
+      }
+    }
+
+    const mergedSales = Array.from(mergedSalesMap.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    if (isMySQLConfigured() && salesToSaveToMySQL.length > 0) {
+      await saveMySQLSales(salesToSaveToMySQL);
+    }
+
+    // 6. Load & Merge Supplier Accounts
+    let serverSuppliers: SupplierAccount[] = [];
+    if (isMySQLConfigured()) {
+      serverSuppliers = await getMySQLSuppliers();
+    } else {
+      serverSuppliers = loadFileData().supplierAccounts;
+    }
+
+    const mergedSupplierMap = new Map<string, SupplierAccount>();
+    for (const sup of serverSuppliers) {
+      if (sup && (sup.id || sup.name)) {
+        const key = sup.id || sup.name;
+        mergedSupplierMap.set(key, sup);
+      }
+    }
+
+    const suppliersToSaveToMySQL: SupplierAccount[] = [];
+    for (const sup of clientSuppliers) {
+      if (sup && (sup.id || sup.name)) {
+        const key = sup.id || sup.name;
+        const existing = mergedSupplierMap.get(key);
+        if (!existing) {
+          mergedSupplierMap.set(key, sup);
+          suppliersToSaveToMySQL.push(sup);
+        } else {
+          const existingTime = existing.updatedAt || 0;
+          const clientTime = sup.updatedAt || 0;
+          if (clientTime >= existingTime) {
+            mergedSupplierMap.set(key, sup);
+            suppliersToSaveToMySQL.push(sup);
+          }
+        }
+      }
+    }
+
+    const mergedSuppliers = Array.from(mergedSupplierMap.values());
+    if (isMySQLConfigured() && suppliersToSaveToMySQL.length > 0) {
+      await saveMySQLSuppliers(suppliersToSaveToMySQL);
+    }
+
+    // 7. Load & Merge Funds & Settings
+    let mergedStoreFund = clientStoreFund !== undefined ? clientStoreFund : 0;
+    let mergedSavingsFund = clientSavingsFund !== undefined ? clientSavingsFund : 0;
+    let mergedSettings: any = clientSettings || {};
+
+    if (isMySQLConfigured()) {
+      if (clientStoreFund !== undefined) {
+        await saveMySQLAppState('storeFund', String(clientStoreFund));
+        mergedStoreFund = clientStoreFund;
+      } else {
+        const sfStr = await getMySQLAppState('storeFund');
+        if (sfStr !== null) mergedStoreFund = Number(sfStr);
+      }
+
+      if (clientSavingsFund !== undefined) {
+        await saveMySQLAppState('savingsFund', String(clientSavingsFund));
+        mergedSavingsFund = clientSavingsFund;
+      } else {
+        const svStr = await getMySQLAppState('savingsFund');
+        if (svStr !== null) mergedSavingsFund = Number(svStr);
+      }
+
+      if (clientSettings) {
+        const existingSettingsStr = await getMySQLAppState('settings');
+        let existingSettings = {};
+        if (existingSettingsStr) {
+          try { existingSettings = JSON.parse(existingSettingsStr); } catch (e) {}
+        }
+        mergedSettings = { ...existingSettings, ...clientSettings };
+        await saveMySQLAppState('settings', JSON.stringify(mergedSettings));
+      } else {
+        const stStr = await getMySQLAppState('settings');
+        if (stStr !== null) {
+          try { mergedSettings = JSON.parse(stStr); } catch (e) {}
+        }
+      }
+    } else {
+      const fileData = loadFileData();
+      mergedStoreFund = clientStoreFund !== undefined ? clientStoreFund : fileData.storeFund;
+      mergedSavingsFund = clientSavingsFund !== undefined ? clientSavingsFund : fileData.savingsFund;
+      mergedSettings = clientSettings ? { ...fileData.settings, ...clientSettings } : fileData.settings;
+
       saveFileData({
         transactions: mergedTransactions,
-        storeProducts: mergedProducts
+        storeProducts: mergedProducts,
+        storeSales: mergedSales,
+        supplierAccounts: mergedSuppliers,
+        storeFund: mergedStoreFund,
+        savingsFund: mergedSavingsFund,
+        settings: mergedSettings
       });
     }
 
@@ -384,10 +651,15 @@ export async function POST(req: NextRequest) {
       success: true,
       transactions: mergedTransactions,
       storeProducts: mergedProducts,
+      storeSales: mergedSales,
+      supplierAccounts: mergedSuppliers,
+      storeFund: mergedStoreFund,
+      savingsFund: mergedSavingsFund,
+      settings: mergedSettings,
       count: mergedTransactions.length,
       productCount: mergedProducts.length,
       storage: isMySQLConfigured() ? 'Hostinger MySQL' : 'Local File Storage',
-      message: `Sincronización exitosa. ${mergedTransactions.length} movimientos y ${mergedProducts.length} productos unificados.`
+      message: `Sincronización Hostinger exitosa. Todos los datos unificados.`
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
@@ -397,7 +669,7 @@ export async function POST(req: NextRequest) {
     console.error('Error in POST /api/sync:', error);
     return NextResponse.json({
       success: false,
-      message: 'Error al procesar sincronización en el servidor.'
+      message: 'Error al procesar sincronización en Hostinger MySQL.'
     }, { status: 500 });
   }
 }
