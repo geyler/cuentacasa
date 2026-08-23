@@ -80,7 +80,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [name, setName] = useState('');
   const [costPrice, setCostPrice] = useState<number | ''>('');
   const [price, setPrice] = useState<number | ''>('');
-  const [category, setCategory] = useState('Viveres');
+  const [category, setCategory] = useState('');
   const [stock, setStock] = useState<number>(10);
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string>('');
@@ -159,7 +159,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setName('');
     setCostPrice('');
     setPrice('');
-    setCategory('Viveres');
+    setCategory('');
     setStock(10);
     setDescription('');
     setPhotoUrl('');
@@ -211,6 +211,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     e.preventDefault();
     if (!name.trim() || !price || Number(price) <= 0) {
       showToast({ title: 'Campos Requeridos', message: 'Ingresa el nombre del producto y un precio de venta válido.', type: 'warning' });
+      return;
+    }
+
+    if (!category.trim()) {
+      showToast({ title: 'Categoría Requerida', message: 'Selecciona una categoría para el producto.', type: 'warning' });
       return;
     }
 
@@ -1263,11 +1268,10 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             onClick={e => {
               e.stopPropagation();
               const target = e.target as HTMLElement;
-              const isInputControl = target.tagName === 'INPUT' || 
-                                     target.tagName === 'TEXTAREA' || 
-                                     target.tagName === 'SELECT' ||
-                                     Boolean(target.closest('input, textarea, select'));
-              if (!isInputControl) {
+              const isTextInputElement = target.tagName === 'INPUT' || 
+                                         target.tagName === 'TEXTAREA' || 
+                                         target.tagName === 'SELECT';
+              if (!isTextInputElement) {
                 if (document.activeElement instanceof HTMLElement) {
                   document.activeElement.blur();
                 }
@@ -1295,7 +1299,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             {/* Handle Drag Indicator */}
             <div style={{ width: '44px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 2px auto', opacity: 0.8 }} />
 
-            {/* Header */}
+            {/* Header (Top) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1331,81 +1335,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               </button>
             </div>
 
-            {/* Centered Photo Upload Card */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '14px',
-              borderRadius: '20px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              gap: '10px',
-              opacity: focusedField !== null ? 0.35 : 1,
-              filter: focusedField !== null ? 'blur(3px)' : 'none',
-              transition: 'all 0.25s ease'
-            }}>
-              {photoUrl ? (
-                <div style={{ position: 'relative', width: '90px', height: '90px' }}>
-                  <img 
-                    src={photoUrl} 
-                    alt="Preview" 
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover', 
-                      borderRadius: '16px',
-                      boxShadow: 'var(--md-shadow-elevation-1)',
-                      border: '2px solid var(--md-sys-color-primary)'
-                    }} 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPhotoUrl('')}
-                    style={{
-                      position: 'absolute',
-                      top: '-6px',
-                      right: '-6px',
-                      backgroundColor: 'var(--md-sys-color-expense)',
-                      color: '#FFF',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div style={{
-                  width: '74px',
-                  height: '74px',
-                  borderRadius: '18px',
-                  backgroundColor: 'var(--md-sys-color-primary-container)',
-                  color: 'var(--md-sys-color-on-primary-container)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <ImageIcon size={32} />
-                </div>
-              )}
-
-              <label className="md-btn md-btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '12px' }}>
-                <Camera size={16} />
-                <span>{isUploadingPhoto ? 'Optimizando...' : photoUrl ? 'Cambiar Imagen' : 'Añadir Fotografía'}</span>
-                <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: 'none' }} />
-              </label>
-            </div>
-
-            {/* Funding Source Selector (Origen del Financiamiento) */}
+            {/* Origen del Financiamiento y Proveedores (Immediately Below Header) */}
             <div style={{
               opacity: focusedField !== null ? 0.35 : 1,
               filter: focusedField !== null ? 'blur(3px)' : 'none',
@@ -1491,18 +1421,35 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               />
             )}
 
-            {/* Barcode & Category Row */}
+            {/* Product Name Input */}
+            <AppInput
+              ref={nameRef}
+              label="Nombre del Producto *"
+              placeholder="Ej. Pan Dulce Casero 5u"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              focusedField={focusedField}
+              fieldName="name"
+              onFocus={() => setFocusedField('name')}
+              onNextField={() => {
+                setFocusedField('costPrice');
+                setTimeout(() => costPriceRef.current?.focus(), 50);
+              }}
+              required
+            />
+
+            {/* Category Select & Auto-generated Barcode Tag */}
             <div style={{
-              opacity: focusedField !== null ? 0.35 : 1,
-              filter: focusedField !== null ? 'blur(3px)' : 'none',
+              opacity: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 0.35 : 1,
+              filter: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 'blur(3px)' : 'none',
               transition: 'all 0.25s ease',
               display: 'flex',
               flexDirection: 'column',
-              gap: '10px'
+              gap: '6px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                  Categoría y Código:
+                  Categoría del Producto *
                 </label>
                 <div style={{
                   display: 'inline-flex',
@@ -1517,40 +1464,58 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   fontWeight: 800
                 }}>
                   <Tag size={13} />
-                  <span>#{barcode}</span>
+                  <span>Código: #{barcode}</span>
                 </div>
               </div>
 
-              {/* Category Pills & Add New Category */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>Selecciona una categoría:</span>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingNewCategory(!isAddingNewCategory)}
-                  style={{
-                    border: 'none',
-                    background: 'none',
-                    color: 'var(--md-sys-color-primary)',
-                    fontWeight: 800,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <PlusCircle size={14} />
-                  <span>+ Nueva Categoría</span>
-                </button>
-              </div>
+              {/* Standardized Category Select Dropdown */}
+              <select
+                value={isAddingNewCategory ? '__NEW_CATEGORY__' : category}
+                onChange={(e) => {
+                  if (e.target.value === '__NEW_CATEGORY__') {
+                    setIsAddingNewCategory(true);
+                    setCategory('');
+                  } else {
+                    setIsAddingNewCategory(false);
+                    setCategory(e.target.value);
+                  }
+                }}
+                onFocus={() => setFocusedField('category')}
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: focusedField === 'category' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  color: category ? 'var(--md-sys-color-on-surface)' : 'var(--md-sys-color-on-surface-variant)',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  outline: 'none',
+                  cursor: 'pointer',
+                  boxShadow: focusedField === 'category' ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <option value="" disabled>-- Seleccionar Categoría --</option>
+                {existingCategories.map(cat => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+                <option value="__NEW_CATEGORY__" style={{ fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
+                  ➕ Crear Nueva Categoría...
+                </option>
+              </select>
 
+              {/* Inline input if Creating New Category */}
               {isAddingNewCategory && (
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
                   <input
                     type="text"
                     placeholder="Nombre nueva categoría..."
                     value={newCategoryInput}
                     onChange={e => setNewCategoryInput(e.target.value)}
+                    onFocus={() => setFocusedField('newCategory')}
                     style={{
                       flex: 1,
                       padding: '10px 12px',
@@ -1572,47 +1537,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   </button>
                 </div>
               )}
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {existingCategories.map(cat => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setCategory(cat)}
-                    style={{
-                      padding: '7px 14px',
-                      borderRadius: '9999px',
-                      border: category === cat ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                      fontSize: '0.78rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      backgroundColor: category === cat ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface)',
-                      color: category === cat ? '#FFFFFF' : 'var(--md-sys-color-on-surface)',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
             </div>
-
-            {/* Product Name Input */}
-            <AppInput
-              ref={nameRef}
-              label="Nombre del Producto *"
-              placeholder="Ej. Pan Dulce Casero 5u"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              focusedField={focusedField}
-              fieldName="name"
-              onFocus={() => setFocusedField('name')}
-              onNextField={() => {
-                setFocusedField('costPrice');
-                setTimeout(() => costPriceRef.current?.focus(), 50);
-              }}
-              required
-            />
 
             {/* Cost Price vs Selling Price Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1708,6 +1633,80 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               }}
               required
             />
+
+            {/* Centered Photo Upload Card */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '14px',
+              borderRadius: '20px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              gap: '10px',
+              opacity: focusedField !== null ? 0.35 : 1,
+              filter: focusedField !== null ? 'blur(3px)' : 'none',
+              transition: 'all 0.25s ease'
+            }}>
+              {photoUrl ? (
+                <div style={{ position: 'relative', width: '90px', height: '90px' }}>
+                  <img 
+                    src={photoUrl} 
+                    alt="Preview" 
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover', 
+                      borderRadius: '16px',
+                      boxShadow: 'var(--md-shadow-elevation-1)',
+                      border: '2px solid var(--md-sys-color-primary)'
+                    }} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPhotoUrl('')}
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      backgroundColor: 'var(--md-sys-color-expense)',
+                      color: '#FFF',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '24px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '16px',
+                  backgroundColor: 'var(--md-sys-color-primary-container)',
+                  color: 'var(--md-sys-color-on-primary-container)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <ImageIcon size={28} />
+                </div>
+              )}
+
+              <label className="md-btn md-btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '12px' }}>
+                <Camera size={16} />
+                <span>{isUploadingPhoto ? 'Optimizando...' : photoUrl ? 'Cambiar Imagen' : 'Añadir Fotografía'}</span>
+                <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: 'none' }} />
+              </label>
+            </div>
 
             {/* Published Toggle Checkbox */}
             <label style={{
