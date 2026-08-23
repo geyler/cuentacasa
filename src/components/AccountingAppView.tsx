@@ -659,6 +659,7 @@ function AccountingAppContent() {
             onOpenGasto={() => handleOpenAddTx('gasto')}
             onOpenIngreso={() => handleOpenAddTx('ingreso')}
             onOpenDashboard={() => handleTabChange('dashboard')}
+            onOpenStore={() => handleTabChange('store')}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
           />
         )}

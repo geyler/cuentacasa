@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { ArrowDownRight, ArrowUpRight, ArrowRightLeft, LayoutDashboard, ShieldCheck, PiggyBank } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, ArrowRightLeft, LayoutDashboard, ShieldCheck, PiggyBank, Store } from 'lucide-react';
 
 interface QuickEntryViewProps {
   onOpenGasto: () => void;
   onOpenIngreso: () => void;
   onOpenDashboard: () => void;
+  onOpenStore?: () => void;
   onOpenTransfer?: () => void;
 }
 
@@ -14,6 +15,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   onOpenGasto,
   onOpenIngreso,
   onOpenDashboard,
+  onOpenStore,
   onOpenTransfer
 }) => {
   return (
@@ -130,8 +132,8 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
 
         </div>
 
-        {/* Small discrete button below */}
-        <div>
+        {/* Small discrete buttons below */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
           <button
             onClick={onOpenDashboard}
             style={{
@@ -151,6 +153,33 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             <LayoutDashboard size={15} color="var(--md-sys-color-primary)" />
             <span>Ver Dashboard / Administración</span>
           </button>
+
+          <a
+            href="/"
+            onClick={(e) => {
+              if (onOpenStore) {
+                e.preventDefault();
+                onOpenStore();
+              }
+            }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '9999px',
+              border: '1px solid rgba(37, 211, 102, 0.35)',
+              backgroundColor: 'rgba(37, 211, 102, 0.08)',
+              color: 'var(--md-sys-color-on-surface)',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              textDecoration: 'none'
+            }}
+          >
+            <Store size={14} color="#25D366" />
+            <span>Ver Tienda Pública</span>
+          </a>
         </div>
 
       </div>
