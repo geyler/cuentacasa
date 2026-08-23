@@ -206,7 +206,7 @@ body {
   .mobile-only-btn {
     display: inline-flex !important;
   }
-  .md-card {
+  .md-card:not(.bottom-sheet-modal) {
     padding: 16px !important;
     border-radius: 18px !important;
   }
@@ -221,29 +221,50 @@ body {
   }
 }
 
-/* Print Styles for Facturas / Reports */
-@media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-  .no-print, header, nav, .fab, .md-btn, .pwa-banner {
-    display: none !important;
-  }
-  .printable-report {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
+/* Strict Bottom Sheet Modal Container (Straight bottom corners 0 0, rounded top 28px 28px) */
+.bottom-sheet-modal {
+  border-top-left-radius: 28px !important;
+  border-top-right-radius: 28px !important;
+  border-bottom-left-radius: 0px !important;
+  border-bottom-right-radius: 0px !important;
+  border-radius: 28px 28px 0px 0px !important;
+  margin-bottom: 0 !important;
+  border-bottom: none !important;
+  padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+}
+
+
+/* Standardized Universal Input Styles */
+.app-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-size: 1rem;
+  font-weight: 700;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-input-numeric {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-size: 1.15rem;
+  font-weight: 800;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Input Spotlight Focus & Immersive Blur Styles */
 .input-spotlight-dimmed {
-  opacity: 0.35 !important;
-  filter: blur(2.5px) !important;
+  opacity: 0.3 !important;
+  filter: blur(3.5px) !important;
   transition: opacity 0.25s ease, filter 0.25s ease !important;
 }
 

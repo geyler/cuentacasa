@@ -435,34 +435,97 @@ function AccountingAppContent() {
     });
   };
 
-  // Full-page Skeleton Loader Shell on initial load
+  // Full-page PWA Loader Shell on initial load
   if (!authLoaded || !db) {
     return (
       <div style={{
         minHeight: '100vh',
+        width: '100vw',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'var(--md-sys-color-surface)',
-        gap: '16px'
+        background: 'linear-gradient(135deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container) 100%)',
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 9999,
+        padding: '24px'
       }}>
+        {/* Glow backdrop effect */}
         <div style={{
-          width: '54px',
-          height: '54px',
-          borderRadius: '16px',
-          backgroundColor: 'var(--md-sys-color-primary)',
-          color: '#FFF',
+          position: 'absolute',
+          width: '220px',
+          height: '220px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0, 99, 155, 0.18) 0%, rgba(0, 99, 155, 0) 70%)',
+          filter: 'blur(20px)',
+          pointerEvents: 'none'
+        }} />
+
+        {/* Small Transparent Logo Badge */}
+        <div style={{
+          position: 'relative',
+          width: '64px',
+          height: '64px',
+          borderRadius: '20px',
+          background: 'rgba(0, 99, 155, 0.08)',
+          border: '1px solid rgba(0, 99, 155, 0.2)',
+          backdropFilter: 'blur(12px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 8px 24px rgba(0, 99, 155, 0.3)'
+          marginBottom: '20px',
+          boxShadow: '0 12px 32px rgba(0, 99, 155, 0.15)'
         }}>
-          <Home size={30} />
+          <img 
+            src="/icons/icon-192.svg" 
+            alt="Cuenta Casa Logo" 
+            style={{ 
+              width: '42px', 
+              height: '42px', 
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))'
+            }} 
+          />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>
-          <Loader2 size={20} className="animate-spin" />
-          <span>Cargando Cuenta Casa...</span>
+
+        {/* Branding & Title */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <h1 style={{
+            fontSize: '1.4rem',
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+            color: 'var(--md-sys-color-on-surface)',
+            marginBottom: '4px'
+          }}>
+            Cuenta Casa
+          </h1>
+          <p style={{
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            color: 'var(--md-sys-color-on-surface-variant)',
+            opacity: 0.8
+          }}>
+            Control Contable & POS Tienda
+          </p>
+        </div>
+
+        {/* Sleek Spinner & Status */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '8px 16px',
+          borderRadius: '9999px',
+          backgroundColor: 'var(--md-sys-color-surface-container-high)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          fontSize: '0.82rem',
+          fontWeight: 700,
+          color: 'var(--md-sys-color-primary)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+        }}>
+          <Loader2 size={16} className="animate-spin" />
+          <span>Iniciando aplicación 100% offline...</span>
         </div>
       </div>
     );

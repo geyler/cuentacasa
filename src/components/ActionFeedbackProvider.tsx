@@ -221,13 +221,10 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         >
           <div
             onClick={e => e.stopPropagation()}
+            className="bottom-sheet-modal"
             style={{
               backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
-              borderTopLeftRadius: '28px',
-              borderTopRightRadius: '28px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px',
               width: '100%',
               maxWidth: '480px',
               padding: '20px 24px 28px 24px',
@@ -339,7 +336,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="md-card"
+            className="bottom-sheet-modal"
             style={{
               width: '100%',
               maxWidth: '500px',
@@ -347,7 +344,6 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              borderRadius: '28px 28px 0 0',
               backgroundColor: 'var(--md-sys-color-surface)',
               boxShadow: 'var(--md-shadow-elevation-3)',
               animation: 'slideUp 0.25s ease-out'

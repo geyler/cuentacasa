@@ -104,6 +104,7 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
     }} className="no-print" onClick={onClose}>
       
       <div 
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Transaction, TransactionType } from '@/types';
 import { X, CheckCircle2, Check, Keyboard, ArrowRight, Loader2 } from 'lucide-react';
+import { AppInput } from '@/components/common/AppInput';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -137,14 +138,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }} className="no-print" onClick={onClose}>
       
       <div 
-        onClick={e => e.stopPropagation()}
+        className="bottom-sheet-modal"
+        onClick={e => {
+          e.stopPropagation();
+          const target = e.target as HTMLElement;
+          if (target && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) {
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
+            setFocusedField(null);
+          }
+        }}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '28px',
-          borderTopRightRadius: '28px',
-          borderBottomLeftRadius: '0px',
-          borderBottomRightRadius: '0px',
           width: '100%',
           maxWidth: '480px',
           padding: '14px 24px 28px 24px',
@@ -294,185 +301,45 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         >
           
           {/* Detalle / Titulo Input Field 1 */}
-          <div style={{
-            opacity: focusedField !== null && focusedField !== 'concept' ? 0.35 : 1,
-            filter: focusedField !== null && focusedField !== 'concept' ? 'blur(2.5px)' : 'none',
-            transition: 'all 0.25s ease'
-          }}>
-            
-            {focusedField === 'concept' ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '6px'
-              }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Keyboard size={14} /> Detalle del {type === 'ingreso' ? 'Ingreso' : 'Gasto'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFocusedField('amount');
-                    setTimeout(() => amountRef.current?.focus(), 50);
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 8px',
-                    borderRadius: '9999px',
-                    border: 'none',
-                    backgroundColor: 'var(--md-sys-color-primary)',
-                    color: 'var(--md-sys-color-on-primary)',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <span>Siguiente</span>
-                  <ArrowRight size={13} />
-                </button>
-              </div>
-            ) : (
-              <label style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>
-                Detalle / Título * (3 a 120 caracteres)
-              </label>
-            )}
+          <AppInput
+            ref={conceptRef}
+            label={`Detalle / Título del ${type === 'ingreso' ? 'Ingreso' : 'Gasto'} *`}
+            placeholder={type === 'ingreso' ? 'Ej. Pago por webs, Venta de laptop...' : 'Ej. Pan, Arroz, Hamburguesa...'}
+            value={concept}
+            onChange={e => setConcept(e.target.value)}
+            focusedField={focusedField}
+            fieldName="concept"
+            onFocus={() => setFocusedField('concept')}
+            onNextField={() => {
+              setFocusedField('amount');
+              setTimeout(() => amountRef.current?.focus(), 50);
+            }}
+            minLength={3}
+            maxLength={120}
+            counterText={`${concept.length}/120`}
+            required
+            autoFocus
+          />
 
-            <input
-              ref={conceptRef}
-              type="text"
-              inputMode="text"
-              minLength={3}
-              maxLength={120}
-              placeholder={type === 'ingreso' ? 'Ej. Pago por webs, Venta de laptop...' : 'Ej. Pan, Arroz, Hamburguesa...'}
-              value={concept}
-              onChange={e => setConcept(e.target.value)}
-              onFocus={e => {
-                setFocusedField('concept');
-                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setFocusedField('amount');
-                  setTimeout(() => amountRef.current?.focus(), 50);
-                }
-              }}
-              required
-              autoFocus
-              className="input-spotlight"
-              style={{
-                width: '100%',
-                padding: '12px 14px',
-                borderRadius: '12px',
-                border: focusedField === 'concept' 
-                  ? '2px solid var(--md-sys-color-primary)' 
-                  : '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                color: 'var(--md-sys-color-on-surface)',
-                fontSize: '1rem',
-                fontWeight: 700,
-                outline: 'none',
-                boxShadow: focusedField === 'concept'
-                  ? '0 0 0 4px rgba(0, 99, 155, 0.25)'
-                  : 'none',
-                transition: 'all 0.2s ease'
-              }}
-            />
-            <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'right', marginTop: '2px' }}>
-              {concept.length}/120
-            </div>
-          </div>
-
-          {/* Monto Input Field 2 (LAST INPUT) */}
-          <div style={{
-            opacity: focusedField !== null && focusedField !== 'amount' ? 0.35 : 1,
-            filter: focusedField !== null && focusedField !== 'amount' ? 'blur(2.5px)' : 'none',
-            transition: 'all 0.25s ease'
-          }}>
-            
-            {focusedField === 'amount' ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '6px'
-              }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Keyboard size={14} /> Monto ($)
-                </span>
-                <button
-                  type="button"
-                  onClick={handleDismissKeyboard}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 8px',
-                    borderRadius: '9999px',
-                    border: 'none',
-                    backgroundColor: 'var(--md-sys-color-primary)',
-                    color: 'var(--md-sys-color-on-primary)',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Check size={13} />
-                  <span>Listo</span>
-                </button>
-              </div>
-            ) : (
-              <label style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>
-                Monto ($) *
-              </label>
-            )}
-
-            <input
-              ref={amountRef}
-              type="number"
-              inputMode="decimal"
-              pattern="[0-9]*"
-              step="any"
-              placeholder="0.00"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              onFocus={e => {
-                setFocusedField('amount');
-                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  amountRef.current?.blur();
-                  setFocusedField(null);
-                }
-              }}
-              required
-              className="input-spotlight"
-              style={{
-                width: '100%',
-                padding: '12px 14px',
-                borderRadius: '12px',
-                border: focusedField === 'amount' 
-                  ? '2px solid var(--md-sys-color-primary)' 
-                  : '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                color: 'var(--md-sys-color-on-surface)',
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                outline: 'none',
-                boxShadow: focusedField === 'amount'
-                  ? '0 0 0 4px rgba(0, 99, 155, 0.25)'
-                  : 'none',
-                transition: 'all 0.2s ease'
-              }}
-            />
-          </div>
+          {/* Monto Input Field 2 */}
+          <AppInput
+            ref={amountRef}
+            label="Monto *"
+            unitSymbol="$"
+            type="number"
+            inputMode="decimal"
+            pattern="[0-9]*"
+            step="any"
+            isNumeric
+            placeholder="0.00"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            focusedField={focusedField}
+            fieldName="amount"
+            onFocus={() => setFocusedField('amount')}
+            onDone={handleDismissKeyboard}
+            required
+          />
 
           {/* Full Width Single Action Button */}
           <div style={{

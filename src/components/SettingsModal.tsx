@@ -165,14 +165,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }} className="no-print" onClick={onClose}>
       
       <div 
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '28px',
-          borderTopRightRadius: '28px',
-          borderBottomLeftRadius: '0px',
-          borderBottomRightRadius: '0px',
           width: '100%',
           maxWidth: '500px',
           padding: '14px 24px 28px 24px',
@@ -498,15 +495,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           }}
         >
           <form 
+            className="bottom-sheet-modal"
             onClick={e => e.stopPropagation()}
             onSubmit={handleConfirmMasterPassReset}
             style={{
               backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
-              borderTopLeftRadius: '28px',
-              borderTopRightRadius: '28px',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px',
               width: '100%',
               maxWidth: '480px',
               padding: '24px 20px',

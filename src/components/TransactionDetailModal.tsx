@@ -50,15 +50,12 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     }} className="no-print" onClick={onClose}>
 
       <div 
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: '560px',
           backgroundColor: 'var(--md-sys-color-surface)',
-          borderTopLeftRadius: '28px',
-          borderTopRightRadius: '28px',
-          borderBottomLeftRadius: '0px',
-          borderBottomRightRadius: '0px',
           padding: '24px',
           boxShadow: '0 -10px 40px rgba(0,0,0,0.3)',
           display: 'flex',
