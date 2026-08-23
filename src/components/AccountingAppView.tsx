@@ -52,6 +52,7 @@ function AccountingAppContent() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [selectedTxForDetailModal, setSelectedTxForDetailModal] = useState<Transaction | null>(null);
+  const [preloadedCartItems, setPreloadedCartItems] = useState<any[]>([]);
 
   // Loaders and Sync state
   const [isOnline, setIsOnline] = useState(true);
@@ -106,6 +107,51 @@ function AccountingAppContent() {
       setIsPinUnlocked(false);
     }
     setAuthLoaded(true);
+
+    // Check for WhatsApp order deep-link cart in URL query params
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const cartParam = params.get('cart');
+      if (cartParam) {
+        const rawProds = getRawDatabase().storeProducts || [];
+        const itemsToLoad: any[] = [];
+
+        cartParam.split(',').forEach(entry => {
+          const parts = entry.split(':');
+          if (parts.length === 2) {
+            const barcode = parts[0].padStart(4, '0');
+            const qty = parseInt(parts[1], 10) || 1;
+            const prod = rawProds.find(p => p.barcode === barcode || p.barcode === parts[0]);
+            if (prod) {
+              const cost = prod.costPrice || Math.round(prod.price * 0.7);
+              itemsToLoad.push({
+                productId: prod.id,
+                barcode: prod.barcode,
+                name: prod.name,
+                quantity: qty,
+                costPrice: cost,
+                unitPrice: prod.price,
+                subtotal: prod.price * qty,
+                supplierType: prod.supplierType || 'propia',
+                supplierName: prod.supplierName
+              });
+            }
+          }
+        });
+
+        if (itemsToLoad.length > 0) {
+          setPreloadedCartItems(itemsToLoad);
+          setActiveTab('store');
+          setIsScannerOpen(true);
+          showToast({
+            title: '¡Pedido de WhatsApp Cargado!',
+            message: `Se cargaron ${itemsToLoad.length} productos en la pantalla de cobro del POS.`,
+            type: 'success'
+          });
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
+    }
 
     // Auto sync function
     const autoSync = async (isBackgroundReconnection: boolean = false) => {
@@ -749,9 +795,13 @@ function AccountingAppContent() {
       {/* Barcode Scanner Modal (0001-9999) */}
       <BarcodeScannerModal
         isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
+        onClose={() => {
+          setIsScannerOpen(false);
+          setPreloadedCartItems([]);
+        }}
         onSaleCompleted={loadDatabase}
         currency={db.settings.currency}
+        initialTicketItems={preloadedCartItems}
       />
 
       {/* Settings Modal */}

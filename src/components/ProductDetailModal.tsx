@@ -382,6 +382,35 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </div>
         )}
 
+        {/* Structured JSON-LD for Google Local SEO (Las Tunas, Cuba) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org/",
+              "@type": "Product",
+              "name": activeProduct.name,
+              "image": activeProduct.photoUrl ? [activeProduct.photoUrl] : [],
+              "description": activeProduct.description || `${activeProduct.name} disponible en Tienda Casa, Las Tunas.`,
+              "sku": activeProduct.barcode,
+              "brand": {
+                "@type": "Brand",
+                "name": "Cuenta Casa Las Tunas"
+              },
+              "offers": {
+                "@type": "Offer",
+                "priceCurrency": currency === '$' ? 'CUP' : currency,
+                "price": activeProduct.price,
+                "availability": activeProduct.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                "itemCondition": "https://schema.org/NewCondition",
+                "seller": {
+                  "@type": "Organization",
+                  "name": "Tienda Casa Las Tunas"
+                }
+              }
+            })
+          }}
+        />
       </div>
 
     </div>

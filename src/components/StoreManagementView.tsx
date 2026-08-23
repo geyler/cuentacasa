@@ -95,6 +95,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   
   // External / Affiliate Product Fields
   const [isExternal, setIsExternal] = useState(false);
+  const [externalType, setExternalType] = useState<'whatsapp' | 'link'>('whatsapp');
+  const [externalValue, setExternalValue] = useState('');
   const [externalUrl, setExternalUrl] = useState('');
 
   // Store WhatsApp Target Setting
@@ -183,6 +185,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setSupplierName('Maikel');
     setFundingSource('negocio');
     setIsExternal(false);
+    setExternalType('whatsapp');
+    setExternalValue('');
     setExternalUrl('');
     setIsAddingNewCategory(false);
     setFocusedField(null);
@@ -204,6 +208,14 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setSupplierName(p.supplierName || 'Maikel');
     setFundingSource(p.supplierType === 'proveedor' ? 'proveedor' : 'negocio');
     setIsExternal(p.isExternal || false);
+    const isWa = p.externalType === 'whatsapp' || (p.externalUrl && (p.externalUrl.includes('wa.me') || p.externalUrl.includes('whatsapp')));
+    setExternalType(isWa ? 'whatsapp' : 'link');
+    if (isWa && p.externalUrl) {
+      const digits = p.externalUrl.replace(/\D/g, '');
+      setExternalValue(digits || p.externalUrl);
+    } else {
+      setExternalValue(p.externalUrl || '');
+    }
     setExternalUrl(p.externalUrl || '');
     setIsAddingNewCategory(false);
     setFocusedField(null);
@@ -244,13 +256,33 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     const effectiveSupplierType: SupplierType = fundingSource === 'proveedor' ? 'proveedor' : 'propia';
     const effectiveSupplierName = effectiveSupplierType === 'proveedor' ? supplierName.trim() : undefined;
 
+    let finalExternalUrl = '';
+    if (isExternal) {
+      if (externalType === 'whatsapp') {
+        const digits = externalValue.replace(/\D/g, '');
+        if (digits) {
+          const cleanDigits = digits.length === 8 ? `53${digits}` : digits;
+          finalExternalUrl = `https://wa.me/+${cleanDigits}`;
+        } else {
+          finalExternalUrl = externalValue.trim();
+        }
+      } else {
+        const val = externalValue.trim();
+        if (val && !val.startsWith('http://') && !val.startsWith('https://')) {
+          finalExternalUrl = `https://${val}`;
+        } else {
+          finalExternalUrl = val;
+        }
+      }
+    }
+
     const savedProd = saveStoreProduct({
       barcode: barcode.padStart(4, '0'),
       name: name.trim(),
       costPrice: numericCost,
       price: Number(price),
       category: category.trim() || 'General',
-      stock: Number(stock) || 0,
+      stock: isExternal ? 1 : (Number(stock) || 0),
       description: description.trim(),
       photoUrl: photoUrl || undefined,
       published,
@@ -258,11 +290,12 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       supplierType: effectiveSupplierType,
       supplierName: effectiveSupplierName,
       isExternal,
-      externalUrl: isExternal ? externalUrl.trim() : undefined
+      externalType: isExternal ? externalType : undefined,
+      externalUrl: isExternal ? finalExternalUrl : undefined
     });
 
-    // If new product funded by Casa, log dual transaction for the merchandise investment
-    if (!editingProduct && fundingSource === 'casa' && savedProd.stock > 0 && numericCost > 0) {
+    // If new product funded by Casa (and NOT external), log dual transaction for the merchandise investment
+    if (!editingProduct && !isExternal && fundingSource === 'casa' && savedProd.stock > 0 && numericCost > 0) {
       const todayISO = new Date().toISOString().split('T')[0];
       const investmentTotal = numericCost * savedProd.stock;
 
@@ -840,16 +873,30 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                         }}>
                           #{prod.barcode}
                         </span>
-                        <span style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          color: prod.stock > 5 ? 'var(--md-sys-color-on-surface-variant)' : 'var(--md-sys-color-expense)',
-                          backgroundColor: prod.stock > 5 ? 'var(--md-sys-color-surface-container)' : 'var(--md-sys-color-expense-container)',
-                          padding: '1px 6px',
-                          borderRadius: '5px'
-                        }}>
-                          Stock: {prod.stock}u
-                        </span>
+                        {prod.isExternal ? (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            color: '#059669',
+                            backgroundColor: '#D1FAE5',
+                            padding: '1px 7px',
+                            borderRadius: '5px',
+                            border: '1px solid #A7F3D0'
+                          }}>
+                            {prod.externalUrl?.includes('wa.me') || prod.externalUrl?.includes('whatsapp') ? '💬 WhatsApp Directo' : '🌐 Enlace Externo'}
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            color: prod.stock > 5 ? 'var(--md-sys-color-on-surface-variant)' : 'var(--md-sys-color-expense)',
+                            backgroundColor: prod.stock > 5 ? 'var(--md-sys-color-surface-container)' : 'var(--md-sys-color-expense-container)',
+                            padding: '1px 6px',
+                            borderRadius: '5px'
+                          }}>
+                            Stock: {prod.stock}u
+                          </span>
+                        )}
                         {prod.supplierType === 'proveedor' && (
                           <span style={{
                             fontSize: '0.68rem',
@@ -1767,7 +1814,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               border: isExternal ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px',
+              gap: '10px',
               opacity: focusedField !== null && focusedField !== 'externalUrl' ? 0.35 : 1,
               filter: focusedField !== null && focusedField !== 'externalUrl' ? 'blur(3px)' : 'none',
               transition: 'all 0.25s ease'
@@ -1783,17 +1830,110 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               </label>
 
               {isExternal && (
-                <AppInput
-                  label="Enlace Externo o WhatsApp *"
-                  placeholder="https://wa.me/5351234567 o https://..."
-                  value={externalUrl}
-                  onChange={e => setExternalUrl(e.target.value)}
-                  focusedField={focusedField}
-                  fieldName="externalUrl"
-                  onFocus={() => setFocusedField('externalUrl')}
-                  required={isExternal}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* Selector Tab: WhatsApp vs Link */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setExternalType('whatsapp')}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: externalType === 'whatsapp' ? '2px solid #25D366' : '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: externalType === 'whatsapp' ? 'rgba(37, 211, 102, 0.12)' : 'transparent',
+                        color: externalType === 'whatsapp' ? '#25D366' : 'var(--md-sys-color-on-surface)',
+                        fontWeight: 800,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      💬 Número WhatsApp
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExternalType('link')}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: externalType === 'link' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: externalType === 'link' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                        color: externalType === 'link' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                        fontWeight: 800,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🌐 Enlace Web Externo
+                    </button>
+                  </div>
+
+                  {externalType === 'whatsapp' ? (
+                    <div>
+                      <AppInput
+                        label="Número de WhatsApp (Las Tunas) *"
+                        placeholder="Ej: 53999999 (Sin +53 ni código de país)"
+                        value={externalValue}
+                        onChange={e => setExternalValue(e.target.value)}
+                        focusedField={focusedField}
+                        fieldName="externalUrl"
+                        onFocus={() => setFocusedField('externalUrl')}
+                        required={isExternal}
+                      />
+                      <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
+                        💡 Escribe los 8 dígitos locales (ej: 53999999). El sistema lo convertirá a wa.me/+53...
+                      </p>
+                    </div>
+                  ) : (
+                    <AppInput
+                      label="URL o Enlace Web Directo *"
+                      placeholder="https://tienda-externa.com/producto..."
+                      value={externalValue}
+                      onChange={e => setExternalValue(e.target.value)}
+                      focusedField={focusedField}
+                      fieldName="externalUrl"
+                      onFocus={() => setFocusedField('externalUrl')}
+                      required={isExternal}
+                    />
+                  )}
+                </div>
               )}
+            </div>
+
+            {/* Detailed Description Field for Local SEO & User Information */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              opacity: focusedField !== null && focusedField !== 'description' ? 0.35 : 1,
+              filter: focusedField !== null && focusedField !== 'description' ? 'blur(3px)' : 'none',
+              transition: 'all 0.25s ease'
+            }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Descripción Detallada (SEO Local & Información del Cliente)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Escribe detalles del producto, especificaciones, ingredientes o disponibilidad en Las Tunas para mejorar el SEO..."
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                onFocus={() => setFocusedField('description')}
+                onBlur={() => setFocusedField(null)}
+                className="input-spotlight"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  border: focusedField === 'description' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  resize: 'vertical'
+                }}
+              />
             </div>
 
             {/* Centered Photo Upload Card */}

@@ -16,7 +16,9 @@ import {
   Settings,
   Hash,
   KeyRound,
-  Trash2
+  Trash2,
+  RotateCcw,
+  Zap
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
@@ -149,6 +151,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         });
       }
     });
+  };
+
+  const handleClearCacheAndReload = async () => {
+    try {
+      // 1. Unregister Service Workers if active
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
+      // 2. Delete all CacheStorage caches
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(key => caches.delete(key)));
+      }
+
+      // 3. Clear SessionStorage (without touching localStorage DB records)
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.clear();
+      }
+
+      showToast({
+        title: '¡Caché de Aplicación Borrada!',
+        message: 'Caché eliminada con éxito. Recargando con los últimos diseños...',
+        type: 'success'
+      });
+
+      // Force hard reload by appending timestamp query to bust browser asset cache
+      setTimeout(() => {
+        const cleanUrl = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
+        window.location.href = cleanUrl;
+      }, 600);
+    } catch (err) {
+      showToast({
+        title: 'Caché Limpiada',
+        message: 'Recargando aplicación...',
+        type: 'info'
+      });
+      setTimeout(() => {
+        window.location.reload();
+      }, 400);
+    }
   };
 
   return (
@@ -377,6 +423,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
           </button>
 
+          {/* Clear Application Cache & Reload UI Designs */}
+          <button
+            onClick={handleClearCacheAndReload}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '14px 16px',
+              borderRadius: '14px',
+              border: '1.5px solid var(--md-sys-color-primary)',
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              color: 'var(--md-sys-color-on-primary-container)',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0, 99, 155, 0.15)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <RotateCcw size={18} />
+              <span>Limpiar Caché (Cargar Nuevos Diseños)</span>
+            </div>
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              backgroundColor: 'var(--md-sys-color-primary)',
+              color: 'var(--md-sys-color-on-primary)',
+              padding: '3px 8px',
+              borderRadius: '6px'
+            }}>
+              Recargar ⚡
+            </span>
+          </button>
 
           {/* Theme Toggle */}
           <button

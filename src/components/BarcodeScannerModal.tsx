@@ -29,6 +29,7 @@ interface BarcodeScannerModalProps {
   onClose: () => void;
   onSaleCompleted?: () => void;
   currency?: string;
+  initialTicketItems?: StoreSaleItem[];
 }
 
 // Web Audio API Beep Generator (100% offline, zero network delay)
@@ -61,7 +62,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   isOpen,
   onClose,
   onSaleCompleted,
-  currency = '$'
+  currency = '$',
+  initialTicketItems = []
 }) => {
   const { showToast, confirmAction, showActionResult } = useActionFeedback();
   const scannerContainerId = 'cuentacasa-html5-barcode-reader';
@@ -77,6 +79,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
   // Cooldown tracker to prevent duplicate scans in 1.8 seconds
   const lastScanTimeRef = useRef<number>(0);
+
+  // Load initial ticket items if provided (e.g. from WhatsApp order deep-link)
+  useEffect(() => {
+    if (isOpen && initialTicketItems && initialTicketItems.length > 0) {
+      setTicketItems(initialTicketItems);
+    }
+  }, [isOpen, initialTicketItems]);
 
   const handleDecodedBarcode = (decodedText: string) => {
     const rawStr = decodedText.trim();
