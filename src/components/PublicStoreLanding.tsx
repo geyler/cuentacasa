@@ -175,34 +175,12 @@ export const PublicStoreLanding: React.FC = () => {
             </div>
             <h1 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em', display: 'flex', flexDirection: 'column' }}>
               <span>Cubasoft Store</span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>Las Tunas, Cuba</span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>Catálogo & Ventas Cuba</span>
             </h1>
           </div>
 
-          {/* Cart Icon & Cubasoft Info / Admin Access Link */}
+          {/* Cart Icon & Admin Access Link */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            
-            {/* Cubasoft System Info / Buy Button */}
-            <button
-              onClick={() => setIsCubasoftModalOpen(true)}
-              title="Información de Cubasoft ERP & Adquirir Sistema"
-              style={{
-                padding: '6px 12px',
-                borderRadius: '9999px',
-                border: '1px solid var(--md-sys-color-primary)',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                color: 'var(--md-sys-color-on-primary-container)',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <Info size={15} />
-              <span className="hide-mobile">Cubasoft ERP</span>
-            </button>
             
             {/* Shopping Cart Button (Icon Only) */}
             <button
@@ -1043,58 +1021,56 @@ export const PublicStoreLanding: React.FC = () => {
         <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Store size={22} color="#00FF88" />
-            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#FFFFFF' }}>Cubasoft Store Las Tunas</span>
+            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#FFFFFF' }}>Cubasoft Store Cuba</span>
           </div>
 
           <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: '600px', margin: 0, lineHeight: '1.5' }}>
-            La plataforma líder de comercio electrónico y ventas locales en Las Tunas, Cuba. Impulsada por <strong>Cubasoft ERP v2.5</strong> con catálogo PWA, pedidos automatizados por WhatsApp y punto de venta offline-first.
+            La plataforma líder de comercio electrónico y catálogo digital en Cuba. Impulsada por <strong>Cubasoft ERP v2.5</strong> con catálogo PWA, pedidos automatizados por WhatsApp y punto de venta offline-first.
           </p>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginTop: '6px' }}>
-            <button
-              onClick={() => setIsCubasoftModalOpen(true)}
+          {/* Clean Footer Text Links (Not bulky buttons) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', justifyContent: 'center', alignItems: 'center', marginTop: '6px' }}>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsCubasoftModalOpen(true);
+              }}
               style={{
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: 'none',
-                backgroundColor: 'var(--md-sys-color-primary)',
-                color: '#FFF',
-                fontWeight: 800,
+                color: '#60A5FA',
+                textDecoration: 'none',
+                fontWeight: 700,
                 fontSize: '0.85rem',
-                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 4px 12px rgba(0, 99, 155, 0.3)'
+                gap: '5px'
               }}
             >
-              <Zap size={16} /> Ver Demo & Precios Cubasoft ERP
-            </button>
+              <Zap size={14} /> Ver Demo & Precios Cubasoft ERP
+            </a>
+
+            <span style={{ color: '#475569' }}>•</span>
 
             <a
               href="https://cubasoft.net"
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                color: '#FFFFFF',
-                fontWeight: 800,
-                fontSize: '0.85rem',
+                color: '#94A3B8',
                 textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '5px'
               }}
             >
-              <Globe size={16} /> Desarrollado por Cubasoft.net
+              <Globe size={14} /> Desarrollado por Cubasoft.net
             </a>
           </div>
 
-          <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '12px' }}>
-            © {new Date().getFullYear()} Cubasoft Store Las Tunas, Cuba. Todos los derechos reservados.
+          <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '8px' }}>
+            © {new Date().getFullYear()} Cubasoft Store Cuba. Todos los derechos reservados.
           </span>
         </div>
       </footer>
@@ -1113,7 +1089,7 @@ export const PublicStoreLanding: React.FC = () => {
             "@context": "https://schema.org",
             "@type": "Store",
             "name": STORE_SEO_CONFIG.fullName,
-            "description": "Tienda Online en Las Tunas, Cuba. Alimentos, electrodomésticos y productos del hogar gestionados por Cubasoft ERP.",
+            "description": "Tienda Online en Cuba. Alimentos, electrodomésticos, tecnología y productos del hogar gestionados por Cubasoft ERP.",
             "url": typeof window !== 'undefined' ? window.location.origin : 'https://cubasoft.net',
             "telephone": STORE_SEO_CONFIG.contactWhatsapp,
             "priceRange": "$$$",

@@ -1,6 +1,6 @@
 /**
  * Cubasoft ERP & Store SEO Helper Utilities
- * Generates local SEO metadata, category descriptions, and deterministic aggregate ratings.
+ * Generates SEO metadata, category descriptions, and deterministic aggregate ratings for Cuba.
  */
 
 export interface ProductSeoMeta {
@@ -12,11 +12,10 @@ export interface ProductSeoMeta {
 
 export const STORE_SEO_CONFIG = {
   storeName: 'Cubasoft Store',
-  fullName: 'Cubasoft Store Las Tunas',
+  fullName: 'Cubasoft Store Cuba',
   systemName: 'Cubasoft ERP',
   developerUrl: 'https://cubasoft.net',
-  location: 'Las Tunas, Cuba',
-  municipality: 'Tunas',
+  location: 'Cuba',
   currency: 'CUP',
   contactWhatsapp: '+53 51234567',
   contactEmail: 'ventas@cubasoft.net'
@@ -60,19 +59,19 @@ export function getProductSeoMeta(barcode: string, price: number): ProductSeoMet
 }
 
 /**
- * Common category SEO descriptions for Cubasoft Store Las Tunas
+ * Common category SEO descriptions for Cubasoft Store (Cuba)
  */
 export const CATEGORY_SEO_DESCRIPTIONS: Record<string, string> = {
-  'electrodomésticos': 'Electrodomésticos y equipos para el hogar en Las Tunas, Cuba. Garantía local y entregas rápidas con Cubasoft Store.',
-  'electrodomesticos': 'Electrodomésticos y equipos para el hogar en Las Tunas, Cuba. Garantía local y entregas rápidas con Cubasoft Store.',
-  'alimentos': 'Alimentos frescos, víveres y productos de primera necesidad en Las Tunas, Cuba. Envíos locales y pago en CUP.',
-  'bebidas': 'Refrescos, maltas, jugos y bebidas nacionales e importadas disponibles en Las Tunas con Cubasoft Store.',
-  'ropa': 'Ropa, calzado y confecciones de alta calidad en Las Tunas. Diseños modernos y precios justos.',
-  'calzado': 'Calzado resistente y de moda para todas las edades en Las Tunas, Cuba.',
-  'hogar': 'Artículos para el hogar, cocina, limpieza y decoración en el municipio Tunas, Cuba.',
-  'tecnología': 'Teléfonos celulares, accesorios, gadgets y productos tecnológicos en Las Tunas con Cubasoft Store.',
-  'tecnologia': 'Teléfonos celulares, accesorios, gadgets y productos tecnológicos en Las Tunas con Cubasoft Store.',
-  'limpieza': 'Productos de aseo personal y limpieza del hogar con entrega rápida en Las Tunas.'
+  'electrodomésticos': 'Electrodomésticos y equipos para el hogar en Cuba. Envíos y entregas rápidas con Cubasoft Store.',
+  'electrodomesticos': 'Electrodomésticos y equipos para el hogar en Cuba. Envíos y entregas rápidas con Cubasoft Store.',
+  'alimentos': 'Alimentos frescos, víveres y productos de primera necesidad en Cuba. Catálogo directo y pago en CUP.',
+  'bebidas': 'Refrescos, maltas, jugos y bebidas nacionales e importadas disponibles en Cuba con Cubasoft Store.',
+  'ropa': 'Ropa, calzado y confecciones de alta calidad en Cuba. Diseños modernos y precios justos.',
+  'calzado': 'Calzado resistente y de moda para todas las edades disponible en Cuba.',
+  'hogar': 'Artículos para el hogar, cocina, limpieza y decoración con catálogo digital en Cuba.',
+  'tecnología': 'Teléfonos celulares, accesorios, gadgets y productos tecnológicos en Cuba con Cubasoft Store.',
+  'tecnologia': 'Teléfonos celulares, accesorios, gadgets y productos tecnológicos en Cuba con Cubasoft Store.',
+  'limpieza': 'Productos de aseo personal y limpieza del hogar con entrega rápida en Cuba.'
 };
 
 export function getCategorySeoDescription(categoryName: string): string {
@@ -80,5 +79,5 @@ export function getCategorySeoDescription(categoryName: string): string {
   if (CATEGORY_SEO_DESCRIPTIONS[key]) {
     return CATEGORY_SEO_DESCRIPTIONS[key];
   }
-  return `Catálogo de ${categoryName} en Cubasoft Store Las Tunas, Cuba. Compra online rápida y segura respaldada por Cubasoft ERP.`;
+  return `Catálogo de ${categoryName} en Cubasoft Store Cuba. Compra online rápida y segura respaldada por Cubasoft ERP.`;
 }

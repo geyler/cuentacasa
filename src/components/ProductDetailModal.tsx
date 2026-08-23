@@ -47,9 +47,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   isAdmin = false
 }) => {
   const [activeProduct, setActiveProduct] = useState<StoreProduct | null>(initialProduct);
+  const [imageError, setImageError] = useState(false);
 
   React.useEffect(() => {
     setActiveProduct(initialProduct);
+    setImageError(false);
   }, [initialProduct]);
 
   if (!activeProduct) return null;
@@ -154,19 +156,61 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Product HD Image 1:1 Showcase Frame (Sandra Shein ERP Style) */}
         <div style={{
           width: '100%',
-          aspectRatio: '16/10',
-          maxHeight: '260px',
+          aspectRatio: '1/1',
+          maxHeight: '300px',
           borderRadius: '22px',
           overflow: 'hidden',
           backgroundColor: 'var(--md-sys-color-surface-container-high)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          position: 'relative'
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
-          <img 
-            src={activeProduct.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">CUBASOFT STORE</text></svg>`} 
-            alt={activeProduct.name} 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-          />
+          {!imageError && activeProduct.photoUrl ? (
+            <img 
+              src={activeProduct.photoUrl} 
+              alt={activeProduct.name} 
+              onError={() => setImageError(true)}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                backgroundColor: 'var(--md-sys-color-surface-container-low)'
+              }} 
+            />
+          ) : (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              color: 'var(--md-sys-color-on-surface-variant)',
+              padding: '20px'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <ShoppingBag size={32} opacity={0.4} />
+              </div>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, opacity: 0.7 }}>
+                {activeProduct.name}
+              </span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.5, backgroundColor: 'var(--md-sys-color-surface)', padding: '2px 8px', borderRadius: '6px' }}>
+                Sin imagen disponible
+              </span>
+            </div>
+          )}
 
           {/* Out of Stock AGOTADO Badge Overlay */}
           {!activeProduct.isExternal && activeProduct.stock <= 0 && (
@@ -211,7 +255,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
+              zIndex: 12
             }}>
               <Globe size={13} /> Catálogo Externo
             </span>
@@ -229,7 +274,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               fontWeight: 800,
               padding: '4px 12px',
               borderRadius: '9999px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              zIndex: 12
             }}>
               {activeProduct.stock > 0 ? `Stock: ${activeProduct.stock}u` : 'Agotado'}
             </span>
