@@ -161,9 +161,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setSupplierName('Maikel');
     setFundingSource('negocio');
     setIsAddingNewCategory(false);
-    setFocusedField('name');
+    setFocusedField(null);
     setIsModalOpen(true);
-    setTimeout(() => nameRef.current?.focus(), 100);
   };
 
   const handleOpenEdit = (p: StoreProduct) => {
@@ -181,9 +180,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setSupplierName(p.supplierName || 'Maikel');
     setFundingSource(p.supplierType === 'proveedor' ? 'proveedor' : 'negocio');
     setIsAddingNewCategory(false);
-    setFocusedField('name');
+    setFocusedField(null);
     setIsModalOpen(true);
-    setTimeout(() => nameRef.current?.focus(), 100);
   };
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1125,24 +1123,34 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
       {/* Add / Edit Product Bottom Sheet Modal */}
       {isModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.70)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 110,
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          padding: '0'
-        }} onClick={() => { setFocusedField(null); setIsModalOpen(false); }}>
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.70)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 110,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: '0'
+          }} 
+          className="no-print" 
+          onClick={() => { 
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
+            setFocusedField(null); 
+            setIsModalOpen(false); 
+          }}
+        >
           
           <form
             ref={productFormRef}
             onClick={e => {
               e.stopPropagation();
               const target = e.target as HTMLElement;
-              if (target && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) {
+              if (target !== document.activeElement) {
                 if (document.activeElement instanceof HTMLElement) {
                   document.activeElement.blur();
                 }
@@ -1169,36 +1177,47 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto', opacity: 0.8 }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-                {editingProduct ? 'Editar Producto de Tienda' : 'Nuevo Producto en Tienda'}
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>
+                {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
               </h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}>
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                  }
+                  setFocusedField(null);
+                  setIsModalOpen(false);
+                }} 
+                style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}
+              >
                 <X size={22} />
               </button>
             </div>
 
-            {/* Funding Source Selector (Origen del Pago de la Mercancía) */}
+            {/* Funding Source Selector (Origen del Financiamiento) */}
             <div style={{
-              opacity: focusedField !== null ? 0.45 : 1,
-              filter: focusedField !== null ? 'blur(2.5px)' : 'none',
+              opacity: focusedField !== null ? 0.35 : 1,
+              filter: focusedField !== null ? 'blur(3px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                Origen del Financiamiento / Compra:
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+                Origen del Financiamiento:
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
                 <button
                   type="button"
                   onClick={() => setFundingSource('negocio')}
                   style={{
-                    padding: '8px 6px',
-                    borderRadius: '10px',
-                    border: 'none',
+                    padding: '9px 6px',
+                    borderRadius: '12px',
+                    border: fundingSource === 'negocio' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                     fontWeight: 800,
                     fontSize: '0.75rem',
                     cursor: 'pointer',
-                    backgroundColor: fundingSource === 'negocio' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-                    color: fundingSource === 'negocio' ? '#FFF' : 'var(--md-sys-color-on-surface)'
+                    backgroundColor: fundingSource === 'negocio' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface)',
+                    color: fundingSource === 'negocio' ? '#FFF' : 'var(--md-sys-color-on-surface)',
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   🏦 Fondo Negocio
@@ -1208,14 +1227,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   type="button"
                   onClick={() => setFundingSource('casa')}
                   style={{
-                    padding: '8px 6px',
-                    borderRadius: '10px',
-                    border: 'none',
+                    padding: '9px 6px',
+                    borderRadius: '12px',
+                    border: fundingSource === 'casa' ? '2px solid var(--md-sys-color-income)' : '1px solid var(--md-sys-color-outline-variant)',
                     fontWeight: 800,
                     fontSize: '0.75rem',
                     cursor: 'pointer',
-                    backgroundColor: fundingSource === 'casa' ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-surface-container-high)',
-                    color: fundingSource === 'casa' ? '#FFF' : 'var(--md-sys-color-on-surface)'
+                    backgroundColor: fundingSource === 'casa' ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-surface)',
+                    color: fundingSource === 'casa' ? '#FFF' : 'var(--md-sys-color-on-surface)',
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   🏡 Cuenta Casa
@@ -1228,14 +1248,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                     setSupplierType('proveedor');
                   }}
                   style={{
-                    padding: '8px 6px',
-                    borderRadius: '10px',
-                    border: 'none',
+                    padding: '9px 6px',
+                    borderRadius: '12px',
+                    border: fundingSource === 'proveedor' ? '2px solid var(--md-sys-color-expense)' : '1px solid var(--md-sys-color-outline-variant)',
                     fontWeight: 800,
                     fontSize: '0.75rem',
                     cursor: 'pointer',
-                    backgroundColor: fundingSource === 'proveedor' ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-surface-container-high)',
-                    color: fundingSource === 'proveedor' ? '#FFF' : 'var(--md-sys-color-on-surface)'
+                    backgroundColor: fundingSource === 'proveedor' ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-surface)',
+                    color: fundingSource === 'proveedor' ? '#FFF' : 'var(--md-sys-color-on-surface)',
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   🤝 Consignación
@@ -1259,42 +1280,40 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
             {/* Barcode Display */}
             <div style={{
-              opacity: focusedField !== null ? 0.45 : 1,
-              filter: focusedField !== null ? 'blur(2.5px)' : 'none',
+              opacity: focusedField !== null ? 0.35 : 1,
+              filter: focusedField !== null ? 'blur(3px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                Código de Barras (Secuencial Automático):
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
+                Código de Barras (Automático):
               </label>
-              <input
-                type="text"
-                readOnly
-                value={barcode}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  fontFamily: 'monospace',
-                  fontWeight: 800,
-                  fontSize: '1rem',
-                  textAlign: 'center',
-                  cursor: 'not-allowed',
-                  opacity: 0.85
-                }}
-              />
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px 12px',
+                borderRadius: '12px',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                color: 'var(--md-sys-color-on-surface)',
+                fontFamily: 'monospace',
+                fontWeight: 800,
+                fontSize: '1rem'
+              }}>
+                <Tag size={16} color="var(--md-sys-color-primary)" />
+                <span>#{barcode}</span>
+              </div>
             </div>
 
             {/* Category Selector */}
             <div style={{
-              opacity: focusedField !== null ? 0.45 : 1,
-              filter: focusedField !== null ? 'blur(2.5px)' : 'none',
+              opacity: focusedField !== null ? 0.35 : 1,
+              filter: focusedField !== null ? 'blur(3px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Categoría del Producto:
                 </label>
                 <button
@@ -1329,7 +1348,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                       padding: '8px 12px',
                       borderRadius: '10px',
                       border: '2px solid var(--md-sys-color-primary)',
-                      fontSize: '0.85rem'
+                      fontSize: '0.85rem',
+                      outline: 'none'
                     }}
                   />
                   <button
@@ -1350,14 +1370,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                     type="button"
                     onClick={() => setCategory(cat)}
                     style={{
-                      padding: '5px 12px',
+                      padding: '6px 14px',
                       borderRadius: '9999px',
-                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      border: category === cat ? '1px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                       fontSize: '0.78rem',
-                      fontWeight: 700,
+                      fontWeight: 800,
                       cursor: 'pointer',
-                      backgroundColor: category === cat ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-                      color: category === cat ? '#FFFFFF' : 'var(--md-sys-color-on-surface)'
+                      backgroundColor: category === cat ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface)',
+                      color: category === cat ? '#FFFFFF' : 'var(--md-sys-color-on-surface)',
+                      transition: 'all 0.2s ease'
                     }}
                   >
                     {cat}
@@ -1369,7 +1390,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             {/* Product Name Input */}
             <AppInput
               ref={nameRef}
-              label="Nombre del Producto: *"
+              label="Nombre del Producto *"
               placeholder="Ej. Pan Dulce Casero 5u"
               value={name}
               onChange={e => setName(e.target.value)}
@@ -1387,7 +1408,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <AppInput
                 ref={costPriceRef}
-                label="Precio Costo"
+                label="Precio Costo *"
                 unitSymbol={currency}
                 type="number"
                 inputMode="decimal"
@@ -1409,7 +1430,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
               <AppInput
                 ref={priceRef}
-                label="Precio Público"
+                label="Precio Público *"
                 unitSymbol={currency}
                 type="number"
                 inputMode="decimal"
@@ -1434,7 +1455,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             {/* Stock Units */}
             <AppInput
               ref={stockRef}
-              label="Stock Disponible (Unidades)"
+              label="Stock (Unidades) *"
               type="number"
               inputMode="numeric"
               pattern="[0-9]*"
@@ -1454,12 +1475,12 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
             {/* Photo Upload */}
             <div style={{
-              opacity: focusedField !== null ? 0.45 : 1,
-              filter: focusedField !== null ? 'blur(2.5px)' : 'none',
+              opacity: focusedField !== null ? 0.35 : 1,
+              filter: focusedField !== null ? 'blur(3px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                Foto del Producto (Max 400x400 Base64):
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+                Foto del Producto (Max 400x400):
               </label>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1470,7 +1491,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 </label>
 
                 {photoUrl && (
-                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                     <img src={photoUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                 )}
@@ -1481,29 +1502,33 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <label style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '10px',
+              padding: '10px 12px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
               cursor: 'pointer',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
               fontWeight: 700,
-              opacity: focusedField !== null ? 0.45 : 1,
-              filter: focusedField !== null ? 'blur(2.5px)' : 'none',
+              opacity: focusedField !== null ? 0.35 : 1,
+              filter: focusedField !== null ? 'blur(3px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
               <input
                 type="checkbox"
                 checked={published}
                 onChange={e => setPublished(e.target.checked)}
-                style={{ width: '18px', height: '18px' }}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--md-sys-color-primary)' }}
               />
               <span>Publicar en la tienda pública (Visible para clientes)</span>
             </label>
 
             {/* Modal Actions */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
               <button
                 type="submit"
                 className="md-btn md-btn-primary"
-                style={{ flex: 1, padding: '14px', fontSize: '1rem', fontWeight: 800 }}
+                style={{ flex: 1, padding: '14px', fontSize: '0.95rem', fontWeight: 800 }}
               >
                 {editingProduct ? 'Guardar Cambios' : 'Guardar Producto'}
               </button>

@@ -48,12 +48,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       }
       setIsSaving(false);
 
-      // Auto-focus first input on open
-      setFocusedField('concept');
-      const timer = setTimeout(() => {
-        conceptRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
+      setFocusedField(null);
     } else {
       setFocusedField(null);
       setIsSaving(false);
@@ -135,14 +130,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       alignItems: 'flex-end',
       justifyContent: 'center',
       padding: '0'
-    }} className="no-print" onClick={onClose}>
+    }} className="no-print" onClick={() => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      setFocusedField(null);
+      onClose();
+    }}>
       
       <div 
         className="bottom-sheet-modal"
         onClick={e => {
           e.stopPropagation();
           const target = e.target as HTMLElement;
-          if (target && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) {
+          if (target !== document.activeElement) {
             if (document.activeElement instanceof HTMLElement) {
               document.activeElement.blur();
             }
