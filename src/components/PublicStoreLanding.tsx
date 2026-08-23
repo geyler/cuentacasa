@@ -22,7 +22,9 @@ import {
   ExternalLink,
   Info,
   Globe,
-  Star
+  Star,
+  ShieldCheck,
+  Zap
 } from 'lucide-react';
 import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
 import { STORE_SEO_CONFIG, getCategorySeoDescription, getProductSeoMeta } from '@/lib/seoHelper';
@@ -548,6 +550,7 @@ export const PublicStoreLanding: React.FC = () => {
           }}>
             {filteredProducts.map(product => {
               const inCart = cart.find(item => item.product.id === product.id);
+              const cardSeo = getProductSeoMeta(product.barcode, product.price);
 
               return (
                 <div
@@ -555,22 +558,25 @@ export const PublicStoreLanding: React.FC = () => {
                   className="md-card"
                   onClick={() => setSelectedProductForModal(product)}
                   style={{
-                    padding: '10px',
+                    padding: '12px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    gap: '8px',
-                    borderRadius: '16px',
+                    gap: '10px',
+                    borderRadius: '18px',
                     cursor: 'pointer',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    transition: 'all 0.2s ease',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    position: 'relative'
                   }}
                 >
                   <div>
-                    {/* Product Image Showcase (1:1 aspect ratio on mobile) */}
+                    {/* Product Image Showcase (1:1 aspect ratio) */}
                     <div style={{
                       width: '100%',
                       aspectRatio: '1/1',
-                      borderRadius: '12px',
+                      borderRadius: '14px',
                       overflow: 'hidden',
                       marginBottom: '8px',
                       backgroundColor: 'var(--md-sys-color-surface-container-high)',
@@ -578,19 +584,46 @@ export const PublicStoreLanding: React.FC = () => {
                       position: 'relative'
                     }}>
                       <img 
-                        src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">TIENDA CASA</text></svg>`} 
+                        src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">CUBASOFT</text></svg>`} 
                         alt={product.name} 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                       />
 
+                      {/* Stock AGOTADO Badge Overlay */}
+                      {!product.isExternal && product.stock <= 0 && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          backgroundColor: 'rgba(255, 255, 255, 0.45)',
+                          backdropFilter: 'blur(2px)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <span style={{
+                            backgroundColor: 'var(--md-sys-color-expense)',
+                            color: '#FFFFFF',
+                            fontSize: '0.65rem',
+                            fontWeight: 900,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            transform: 'rotate(-10deg)',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                          }}>
+                            AGOTADO
+                          </span>
+                        </div>
+                      )}
+
+                      {/* External Link Pill */}
                       {product.isExternal && (
                         <span style={{
                           position: 'absolute',
                           top: '6px',
                           right: '6px',
-                          backgroundColor: '#00639B',
+                          backgroundColor: '#059669',
                           color: '#FFFFFF',
-                          fontSize: '0.65rem',
+                          fontSize: '0.62rem',
                           fontWeight: 800,
                           padding: '2px 6px',
                           borderRadius: '6px',
@@ -601,6 +634,25 @@ export const PublicStoreLanding: React.FC = () => {
                           <ExternalLink size={10} /> Externo
                         </span>
                       )}
+
+                      {/* Rating Stars Overlay Pill */}
+                      <span style={{
+                        position: 'absolute',
+                        bottom: '6px',
+                        left: '6px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                        backdropFilter: 'blur(4px)',
+                        color: '#FBBF24',
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}>
+                        <Star size={10} fill="#FBBF24" /> {cardSeo.ratingValue}
+                      </span>
                     </div>
 
                     <h3 style={{ 
@@ -618,17 +670,22 @@ export const PublicStoreLanding: React.FC = () => {
                     </h3>
                   </div>
 
-                  {/* Price & Add / External Action */}
+                  {/* Price & Action Button */}
                   <div style={{
-                    paddingTop: '6px',
+                    paddingTop: '8px',
                     borderTop: '1px solid var(--md-sys-color-surface-variant)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                      ${Math.round(product.price)}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                        ${Math.round(product.price)}
+                      </span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '1px 4px', borderRadius: '4px' }}>
+                        CUP
+                      </span>
+                    </div>
 
                     {product.isExternal ? (
                       <button
@@ -642,7 +699,7 @@ export const PublicStoreLanding: React.FC = () => {
                         }}
                         className="md-btn"
                         style={{
-                          padding: '5px 10px',
+                          padding: '6px 10px',
                           fontSize: '0.75rem',
                           borderRadius: '9999px',
                           backgroundColor: 'var(--md-sys-color-primary-container)',
@@ -661,7 +718,7 @@ export const PublicStoreLanding: React.FC = () => {
                         disabled={product.stock <= 0}
                         className="md-btn md-btn-primary"
                         style={{
-                          padding: '5px 10px',
+                          padding: '6px 10px',
                           fontSize: '0.75rem',
                           borderRadius: '9999px',
                           opacity: product.stock <= 0 ? 0.5 : 1
@@ -673,9 +730,9 @@ export const PublicStoreLanding: React.FC = () => {
                       <span style={{
                         backgroundColor: 'var(--md-sys-color-primary-container)',
                         color: 'var(--md-sys-color-on-primary-container)',
-                        padding: '2px 8px',
+                        padding: '3px 10px',
                         borderRadius: '9999px',
-                        fontSize: '0.72rem',
+                        fontSize: '0.75rem',
                         fontWeight: 800
                       }}>
                         {inCart.quantity}u
