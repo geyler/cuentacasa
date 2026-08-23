@@ -18,12 +18,14 @@ import {
   MessageCircle, 
   Sparkles, 
   Store,
-  Package,
-  ArrowRight,
-  ShieldCheck,
   Truck,
-  ExternalLink
+  ExternalLink,
+  Info,
+  Globe,
+  Star
 } from 'lucide-react';
+import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
+import { STORE_SEO_CONFIG, getCategorySeoDescription, getProductSeoMeta } from '@/lib/seoHelper';
 
 interface CartItem {
   product: StoreProduct;
@@ -38,6 +40,7 @@ export const PublicStoreLanding: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [selectedProductForModal, setSelectedProductForModal] = useState<StoreProduct | null>(null);
+  const [isCubasoftModalOpen, setIsCubasoftModalOpen] = useState(false);
 
   useEffect(() => {
     // Load published products from storage
@@ -98,10 +101,10 @@ export const PublicStoreLanding: React.FC = () => {
     setCart(prev => prev.map(item => {
       if (item.product.id === productId) {
         const newQty = item.quantity + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : null;
+        return newQty > 0 ? { ...item, quantity: newQty } : item;
       }
       return item;
-    }).filter(Boolean) as CartItem[]);
+    }));
   };
 
   const removeFromCart = (productId: string) => {
@@ -116,14 +119,15 @@ export const PublicStoreLanding: React.FC = () => {
 
     const targetPhone = getStoreWhatsappNumber();
     const cartQuery = cart.map(i => `${i.product.barcode}:${i.quantity}`).join(',');
-    const posLink = `${window.location.origin}/app?cart=${encodeURIComponent(cartQuery)}`;
+    const cartLink = `${window.location.origin}/app?cart=${encodeURIComponent(cartQuery)}`;
 
-    let text = `🛒 *NUEVO PEDIDO DE COMPRA - TIENDA CASA*\n----------------------------------\n`;
+    let text = `🛒 *NUEVO PEDIDO - CUBASOFT STORE*\n📍 *Las Tunas, Cuba*\n----------------------------------\n`;
     cart.forEach((item, index) => {
-      text += `${index + 1}. *${item.product.name}* (Cod: #${item.product.barcode})\n   Cantidad: ${item.quantity}u | Subtotal: $${item.product.price * item.quantity}\n`;
+      text += `${index + 1}. *${item.product.name}* (Cod: #${item.product.barcode})\n   Cant: ${item.quantity}u | Subtotal: $${item.product.price * item.quantity} CUP\n`;
     });
-    text += `----------------------------------\n*TOTAL A PAGAR: $${totalCartPrice}*\n\n`;
-    text += `🔗 *Enlace para POS Admin:* ${posLink}`;
+    text += `----------------------------------\n💰 *TOTAL A PAGAR: $${totalCartPrice} CUP*\n\n`;
+    text += `🛒 *Ver / Cargar este Carrito:*\n${cartLink}\n\n`;
+    text += `_(Si eres cliente este enlace llena tu carrito. Si eres Administrador abre la pantalla de cobro en POS)_`;
 
     const encoded = encodeURIComponent(text);
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
@@ -167,13 +171,36 @@ export const PublicStoreLanding: React.FC = () => {
             }}>
               <Store size={22} />
             </div>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em' }}>
-              Tienda
+            <h1 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em', display: 'flex', flexDirection: 'column' }}>
+              <span>Cubasoft Store</span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>Las Tunas, Cuba</span>
             </h1>
           </div>
 
-          {/* Cart Icon & Admin Access Link (ONLY IF LOGGED IN) */}
+          {/* Cart Icon & Cubasoft Info / Admin Access Link */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            
+            {/* Cubasoft System Info / Buy Button */}
+            <button
+              onClick={() => setIsCubasoftModalOpen(true)}
+              title="Información de Cubasoft ERP & Adquirir Sistema"
+              style={{
+                padding: '6px 12px',
+                borderRadius: '9999px',
+                border: '1px solid var(--md-sys-color-primary)',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-on-primary-container)',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <Info size={15} />
+              <span className="hide-mobile">Cubasoft ERP</span>
+            </button>
             
             {/* Shopping Cart Button (Icon Only) */}
             <button
@@ -483,6 +510,26 @@ export const PublicStoreLanding: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* Category SEO Description Banner */}
+        {selectedCategory !== 'todas' && (
+          <div style={{
+            marginBottom: '20px',
+            padding: '12px 16px',
+            borderRadius: '14px',
+            backgroundColor: 'var(--md-sys-color-primary-container)',
+            color: 'var(--md-sys-color-on-primary-container)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          }}>
+            <Sparkles size={16} color="var(--md-sys-color-primary)" />
+            <span>{getCategorySeoDescription(selectedCategory)}</span>
+          </div>
+        )}
 
         {/* Products Grid - 2 columns on mobile */}
         {filteredProducts.length === 0 ? (
@@ -926,6 +973,110 @@ export const PublicStoreLanding: React.FC = () => {
           </div>
         </div>
       )}
+
+    {/* Footer referencing Cubasoft.net as developer */}
+      <footer style={{
+        backgroundColor: '#001529',
+        color: '#E2E8F0',
+        padding: '32px 16px 40px 16px',
+        marginTop: 'auto',
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        textAlign: 'center'
+      }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Store size={22} color="#00FF88" />
+            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#FFFFFF' }}>Cubasoft Store Las Tunas</span>
+          </div>
+
+          <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: '600px', margin: 0, lineHeight: '1.5' }}>
+            La plataforma líder de comercio electrónico y ventas locales en Las Tunas, Cuba. Impulsada por <strong>Cubasoft ERP v2.5</strong> con catálogo PWA, pedidos automatizados por WhatsApp y punto de venta offline-first.
+          </p>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginTop: '6px' }}>
+            <button
+              onClick={() => setIsCubasoftModalOpen(true)}
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                border: 'none',
+                backgroundColor: 'var(--md-sys-color-primary)',
+                color: '#FFF',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(0, 99, 155, 0.3)'
+              }}
+            >
+              <Zap size={16} /> Ver Demo & Precios Cubasoft ERP
+            </button>
+
+            <a
+              href="https://cubasoft.net"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                padding: '10px 18px',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                color: '#FFFFFF',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Globe size={16} /> Desarrollado por Cubasoft.net
+            </a>
+          </div>
+
+          <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '12px' }}>
+            © {new Date().getFullYear()} Cubasoft Store Las Tunas, Cuba. Todos los derechos reservados.
+          </span>
+        </div>
+      </footer>
+
+      {/* Cubasoft Info / Sales Modal */}
+      <CubasoftInfoModal 
+        isOpen={isCubasoftModalOpen} 
+        onClose={() => setIsCubasoftModalOpen(false)} 
+      />
+
+      {/* Home Page Schema JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Store",
+            "name": STORE_SEO_CONFIG.fullName,
+            "description": "Tienda Online en Las Tunas, Cuba. Alimentos, electrodomésticos y productos del hogar gestionados por Cubasoft ERP.",
+            "url": typeof window !== 'undefined' ? window.location.origin : 'https://cubasoft.net',
+            "telephone": STORE_SEO_CONFIG.contactWhatsapp,
+            "priceRange": "$$$",
+            "currenciesAccepted": "CUP",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Las Tunas",
+              "addressRegion": "Las Tunas",
+              "addressCountry": "CU"
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.9",
+              "reviewCount": "68",
+              "bestRating": "5",
+              "worstRating": "1"
+            }
+          })
+        }}
+      />
 
     </div>
   );

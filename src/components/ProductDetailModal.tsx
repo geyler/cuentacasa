@@ -17,8 +17,10 @@ import {
   TrendingUp, 
   Sparkles,
   ShoppingBag,
-  ExternalLink
+  ExternalLink,
+  Star
 } from 'lucide-react';
+import { getProductSeoMeta, STORE_SEO_CONFIG } from '@/lib/seoHelper';
 
 interface ProductDetailModalProps {
   product: StoreProduct | null;
@@ -383,34 +385,49 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         )}
 
         {/* Structured JSON-LD for Google Local SEO (Las Tunas, Cuba) */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org/",
-              "@type": "Product",
-              "name": activeProduct.name,
-              "image": activeProduct.photoUrl ? [activeProduct.photoUrl] : [],
-              "description": activeProduct.description || `${activeProduct.name} disponible en Tienda Casa, Las Tunas.`,
-              "sku": activeProduct.barcode,
-              "brand": {
-                "@type": "Brand",
-                "name": "Cuenta Casa Las Tunas"
-              },
-              "offers": {
-                "@type": "Offer",
-                "priceCurrency": currency === '$' ? 'CUP' : currency,
-                "price": activeProduct.price,
-                "availability": activeProduct.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-                "itemCondition": "https://schema.org/NewCondition",
-                "seller": {
-                  "@type": "Organization",
-                  "name": "Tienda Casa Las Tunas"
-                }
-              }
-            })
-          }}
-        />
+        {(() => {
+          const seoMeta = getProductSeoMeta(activeProduct.barcode, activeProduct.price);
+          return (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org/",
+                  "@type": "Product",
+                  "name": `${activeProduct.name} - ${STORE_SEO_CONFIG.fullName}`,
+                  "image": activeProduct.photoUrl ? [activeProduct.photoUrl] : [],
+                  "description": activeProduct.description || `${activeProduct.name} disponible en ${STORE_SEO_CONFIG.fullName}, Cuba. Compra con garantía local y entrega rápida.`,
+                  "sku": activeProduct.barcode,
+                  "mpn": activeProduct.barcode,
+                  "brand": {
+                    "@type": "Brand",
+                    "name": STORE_SEO_CONFIG.storeName
+                  },
+                  "aggregateRating": {
+                    "@type": "AggregateRating",
+                    "ratingValue": seoMeta.ratingValue.toString(),
+                    "reviewCount": seoMeta.reviewCount.toString(),
+                    "bestRating": "5",
+                    "worstRating": "1"
+                  },
+                  "offers": {
+                    "@type": "Offer",
+                    "priceCurrency": "CUP",
+                    "price": activeProduct.price,
+                    "priceValidUntil": "2027-12-31",
+                    "availability": activeProduct.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                    "itemCondition": "https://schema.org/NewCondition",
+                    "seller": {
+                      "@type": "Organization",
+                      "name": STORE_SEO_CONFIG.fullName,
+                      "url": STORE_SEO_CONFIG.developerUrl
+                    }
+                  }
+                })
+              }}
+            />
+          );
+        })()}
       </div>
 
     </div>

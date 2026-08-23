@@ -18,11 +18,13 @@ import {
   KeyRound,
   Trash2,
   RotateCcw,
-  Zap
+  Zap,
+  MessageCircle,
+  Save
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
-import { clearAllDatabaseRecords, validateMasterPassword, setMasterPassword } from '@/lib/storage';
+import { clearAllDatabaseRecords, validateMasterPassword, setMasterPassword, getStoreWhatsappNumber, saveStoreWhatsappNumber } from '@/lib/storage';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -65,6 +67,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [masterPasswordInput, setMasterPasswordInput] = useState('');
   const [masterPassError, setMasterPassError] = useState('');
 
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       const currentPin = localStorage.getItem('cuentacasa_pin');
@@ -74,10 +79,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setIsMasterPassModalOpen(false);
       setMasterPasswordInput('');
       setMasterPassError('');
+      setWhatsappPhone(getStoreWhatsappNumber());
+      setIsEditingPhone(false);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleSavePhone = () => {
+    let clean = whatsappPhone.replace(/\D/g, '');
+    if (clean.length === 8) {
+      clean = '53' + clean;
+    }
+    saveStoreWhatsappNumber(clean);
+    setWhatsappPhone(clean);
+    setIsEditingPhone(false);
+    showToast({
+      title: '¡Teléfono de WhatsApp Guardado!',
+      message: `Los pedidos de la tienda pública se enviarán al +${clean || 'WhatsApp por defecto'}.`,
+      type: 'success'
+    });
+  };
 
   const handleSavePin = () => {
     if (newPin.length === 4) {
@@ -272,6 +294,82 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Options List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+          {/* Admin WhatsApp Phone Setup */}
+          <div style={{
+            padding: '14px 16px',
+            borderRadius: '14px',
+            border: '1.5px solid #25D366',
+            backgroundColor: 'rgba(37, 211, 102, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <MessageCircle size={18} color="#25D366" />
+                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface)' }}>
+                  WhatsApp Recepción de Pedidos
+                </span>
+              </div>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: whatsappPhone ? '#25D366' : 'var(--md-sys-color-expense)' }}>
+                {whatsappPhone ? `+${whatsappPhone}` : 'No Configurado'}
+              </span>
+            </div>
+
+            {!isEditingPhone ? (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ flex: 1, fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                  Número al que llegarán los encargos realizados desde la tienda pública.
+                </span>
+                <button
+                  onClick={() => setIsEditingPhone(true)}
+                  className="md-btn md-btn-secondary"
+                  style={{ padding: '8px 12px', fontSize: '0.82rem', borderColor: '#25D366', color: '#25D366' }}
+                >
+                  {whatsappPhone ? 'Editar Número' : 'Configurar Número'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="tel"
+                    placeholder="Ej. 5351234567 o 53999999"
+                    value={whatsappPhone}
+                    onChange={e => setWhatsappPhone(e.target.value)}
+                    className="input-spotlight"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #25D366',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      fontSize: '0.92rem',
+                      fontWeight: 700
+                    }}
+                  />
+                  <button
+                    onClick={handleSavePhone}
+                    className="md-btn"
+                    style={{ backgroundColor: '#25D366', color: '#FFF', padding: '8px 14px', fontSize: '0.82rem', fontWeight: 800 }}
+                  >
+                    <Save size={14} /> Guardar
+                  </button>
+                  <button
+                    onClick={() => setIsEditingPhone(false)}
+                    style={{ background: 'none', border: 'none', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--md-sys-color-on-surface-variant)' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  💡 Para Las Tunas, escribe 8 dígitos (ej: 53999999) y se añadirá el +53 automáticamente.
+                </span>
+              </div>
+            )}
+          </div>
           
           {/* Quick PIN Setup */}
           <div style={{
