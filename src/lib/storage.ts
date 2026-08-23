@@ -110,6 +110,7 @@ export const INITIAL_DB: RawDatabase = {
   storeSales: [],
   supplierAccounts: INITIAL_SUPPLIERS,
   storeFund: 0,
+  savingsFund: 0,
   deletedIds: []
 };
 
@@ -152,6 +153,7 @@ export function getRawDatabase(): RawDatabase {
       storeSales: Array.isArray(parsed.storeSales) ? parsed.storeSales : [],
       supplierAccounts: Array.isArray(parsed.supplierAccounts) ? parsed.supplierAccounts : INITIAL_SUPPLIERS,
       storeFund: typeof parsed.storeFund === 'number' ? parsed.storeFund : 0,
+      savingsFund: typeof parsed.savingsFund === 'number' ? parsed.savingsFund : 0,
       deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : []
     };
   } catch (err) {
@@ -543,106 +545,105 @@ export function deleteSupplierAccount(id: string): { success: boolean; error?: s
   return { success: true };
 }
 
-// Transfer funds from Store Business Fund (Fondo Tienda) to Cuenta Casa Accounting
-export function transferStoreFundToCasa(amount: number, notes?: string): { success: boolean; error?: string } {
+export function getSavingsFund(): number {
   const db = getRawDatabase();
+  return db.savingsFund || 0;
+}
+
+export interface UniversalTransferRequest {
+  fromAccount: FundAccountType;
+  toAccount: FundAccountType;
+  amount: number;
+  notes?: string;
+}
+
+export function executeUniversalTransfer(req: UniversalTransferRequest): { success: boolean; error?: string } {
+  const { fromAccount, toAccount, amount, notes } = req;
+
   if (amount <= 0) {
     return { success: false, error: 'Ingresa un monto mayor a 0 para transferir.' };
   }
-  const currentFund = db.storeFund || 0;
-  if (amount > currentFund) {
-    return { success: false, error: `Saldo en Fondo Tienda insuficiente ($${currentFund}). Intenta un monto menor.` };
+
+  if (fromAccount === toAccount) {
+    return { success: false, error: 'La cuenta de origen y destino deben ser distintas.' };
   }
 
-  // Deduct from storeFund
-  db.storeFund = currentFund - amount;
+  const db = getRawDatabase();
+  const currentStoreFund = db.storeFund || 0;
+  const currentSavingsFund = db.savingsFund || 0;
 
+  // Validate balance of source account if store or savings
+  if (fromAccount === 'tienda' && amount > currentStoreFund) {
+    return { success: false, error: `Saldo insuficiente en Fondo Tienda ($${currentStoreFund}).` };
+  }
+
+  if (fromAccount === 'ahorro' && amount > currentSavingsFund) {
+    return { success: false, error: `Saldo insuficiente en Fondo de Ahorro ($${currentSavingsFund}).` };
+  }
+
+  // Deduct from source
+  if (fromAccount === 'tienda') db.storeFund = currentStoreFund - amount;
+  if (fromAccount === 'ahorro') db.savingsFund = currentSavingsFund - amount;
+
+  // Add to destination
+  if (toAccount === 'tienda') db.storeFund = (db.storeFund || 0) + amount;
+  if (toAccount === 'ahorro') db.savingsFund = (db.savingsFund || 0) + amount;
+
+  const fundLabels: Record<FundAccountType, string> = {
+    casa: 'Cuenta Casa',
+    tienda: 'Fondo Tienda',
+    ahorro: 'Fondo de Ahorro'
+  };
+
+  const fromLabel = fundLabels[fromAccount];
+  const toLabel = fundLabels[toAccount];
   const todayISO = new Date().toISOString().split('T')[0];
   const now = Date.now();
 
   // Dual Registration:
-  // 1. Outgoing from Store
-  const storeExpenseTx: Transaction = {
-    id: `tx-trf-out-store-${now}`,
+  // 1. Outgoing from Source Account
+  const outgoingTx: Transaction = {
+    id: `tx-trf-out-${now}`,
     type: 'gasto',
-    concept: 'Transferencia Saliente: Fondo Tienda ➔ Cuenta Casa',
+    concept: `Transferencia Saliente: ${fromLabel} ➔ ${toLabel}`,
     category: 'Transferencia Entre Cuentas',
     amount: amount,
     date: todayISO,
-    accountSource: 'tienda',
-    notes: notes?.trim() || `Retiro de ganancias del negocio. Saldo restante tienda: $${db.storeFund}`,
+    accountSource: fromAccount,
+    notes: notes?.trim() || `Transferencia efectuada desde ${fromLabel} hacia ${toLabel}.`,
     createdAt: now,
     updatedAt: now,
     synced: false
   };
 
-  // 2. Incoming to House
-  const houseIncomeTx: Transaction = {
-    id: `tx-trf-in-casa-${now}`,
+  // 2. Incoming to Destination Account
+  const incomingTx: Transaction = {
+    id: `tx-trf-in-${now}`,
     type: 'ingreso',
-    concept: 'Transferencia Entrante: Fondo Tienda ➔ Cuenta Casa',
+    concept: `Transferencia Entrante: ${fromLabel} ➔ ${toLabel}`,
     category: 'Transferencia Entre Cuentas',
     amount: amount,
     date: todayISO,
-    accountSource: 'casa',
-    notes: notes?.trim() || `Ingreso recibido desde Fondo Tienda a Cuenta Casa.`,
+    accountSource: toAccount,
+    notes: notes?.trim() || `Ingreso por transferencia recibido desde ${fromLabel}.`,
     createdAt: now + 1,
     updatedAt: now + 1,
     synced: false
   };
 
-  db.transactions.unshift(houseIncomeTx, storeExpenseTx);
+  db.transactions.unshift(incomingTx, outgoingTx);
   saveRawDatabase(db);
   return { success: true };
 }
 
+// Transfer funds from Store Business Fund (Fondo Tienda) to Cuenta Casa Accounting
+export function transferStoreFundToCasa(amount: number, notes?: string): { success: boolean; error?: string } {
+  return executeUniversalTransfer({ fromAccount: 'tienda', toAccount: 'casa', amount, notes });
+}
+
 // Transfer funds from House (Cuenta Casa) to Store Business Fund (Fondo Tienda)
 export function transferCasaToStoreFund(amount: number, notes?: string): { success: boolean; error?: string } {
-  const db = getRawDatabase();
-  if (amount <= 0) {
-    return { success: false, error: 'Ingresa un monto mayor a 0 para transferir.' };
-  }
-
-  // Add to storeFund
-  db.storeFund = (db.storeFund || 0) + amount;
-
-  const todayISO = new Date().toISOString().split('T')[0];
-  const now = Date.now();
-
-  // Dual Registration:
-  // 1. Outgoing from House
-  const houseExpenseTx: Transaction = {
-    id: `tx-trf-out-casa-${now}`,
-    type: 'gasto',
-    concept: 'Transferencia Saliente: Cuenta Casa ➔ Fondo Tienda',
-    category: 'Transferencia Entre Cuentas',
-    amount: amount,
-    date: todayISO,
-    accountSource: 'casa',
-    notes: notes?.trim() || `Aporte de fondos de Casa al negocio. Saldo nuevo tienda: $${db.storeFund}`,
-    createdAt: now,
-    updatedAt: now,
-    synced: false
-  };
-
-  // 2. Incoming to Store
-  const storeIncomeTx: Transaction = {
-    id: `tx-trf-in-store-${now}`,
-    type: 'ingreso',
-    concept: 'Transferencia Entrante: Cuenta Casa ➔ Fondo Tienda',
-    category: 'Transferencia Entre Cuentas',
-    amount: amount,
-    date: todayISO,
-    accountSource: 'tienda',
-    notes: notes?.trim() || `Inyección de capital recibida desde Cuenta Casa.`,
-    createdAt: now + 1,
-    updatedAt: now + 1,
-    synced: false
-  };
-
-  db.transactions.unshift(storeIncomeTx, houseExpenseTx);
-  saveRawDatabase(db);
-  return { success: true };
+  return executeUniversalTransfer({ fromAccount: 'casa', toAccount: 'tienda', amount, notes });
 }
 
 // Download DB as JSON file

@@ -1,5 +1,6 @@
 export type TransactionType = 'ingreso' | 'gasto';
 export type SupplierType = 'propia' | 'proveedor';
+export type FundAccountType = 'casa' | 'tienda' | 'ahorro';
 
 export interface Transaction {
   id: string;
@@ -9,7 +10,7 @@ export interface Transaction {
   amount: number;          // Monto total
   date: string;            // ISO String YYYY-MM-DD
   notes?: string;
-  accountSource?: 'casa' | 'tienda'; // Source account identifier
+  accountSource?: FundAccountType; // Source account identifier ('casa', 'tienda', 'ahorro')
   createdAt: number;       // Timestamp
   updatedAt: number;       // Timestamp
   synced?: boolean;        // Cloud sync status
@@ -92,6 +93,7 @@ export interface RawDatabase {
   storeSales?: StoreSaleRecord[];
   supplierAccounts?: SupplierAccount[];
   storeFund?: number;      // Fondo propio acumulado en caja de la tienda
+  savingsFund?: number;    // Fondo de Ahorro acumulado de Cuenta Casa
   settings: {
     currency: string;
     appName: string;

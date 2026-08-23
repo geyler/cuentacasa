@@ -1,0 +1,337 @@
+'use client';
+
+import React, { useState } from 'react';
+import { FundAccountType } from '@/types';
+import { getRawDatabase, getSavingsFund, executeUniversalTransfer } from '@/lib/storage';
+import { formatCurrency, calculateFinancialSummary } from '@/lib/invoice';
+import { useActionFeedback } from '@/components/ActionFeedbackProvider';
+import { AppInput } from '@/components/common/AppInput';
+import { ArrowRightLeft, X, PiggyBank, Store, Home } from 'lucide-react';
+
+interface TransferModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  defaultFrom?: FundAccountType;
+  defaultTo?: FundAccountType;
+}
+
+export const TransferModal: React.FC<TransferModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  defaultFrom = 'casa',
+  defaultTo = 'ahorro'
+}) => {
+  const { showActionResult, showToast, confirmAction } = useActionFeedback();
+  const [fromAccount, setFromAccount] = useState<FundAccountType>(defaultFrom);
+  const [toAccount, setToAccount] = useState<FundAccountType>(
+    defaultTo !== defaultFrom ? defaultTo : (defaultFrom === 'casa' ? 'ahorro' : 'casa')
+  );
+  const [amount, setAmount] = useState<number | ''>('');
+  const [notes, setNotes] = useState('');
+
+  if (!isOpen) return null;
+
+  const rawDb = getRawDatabase();
+  const currency = rawDb.settings?.currency || '$';
+  
+  // Real-time available balances
+  const casaSummary = calculateFinancialSummary(rawDb.transactions || []);
+  const casaBalance = casaSummary.netBalance;
+  const storeBalance = rawDb.storeFund || 0;
+  const savingsBalance = getSavingsFund();
+
+  const getAccountBalance = (acc: FundAccountType): number => {
+    switch (acc) {
+      case 'casa': return casaBalance;
+      case 'tienda': return storeBalance;
+      case 'ahorro': return savingsBalance;
+    }
+  };
+
+  const getAccountLabel = (acc: FundAccountType): string => {
+    switch (acc) {
+      case 'casa': return '🏡 Cuenta Casa';
+      case 'tienda': return '🏦 Fondo Tienda';
+      case 'ahorro': return '🐷 Fondo Ahorro';
+    }
+  };
+
+  const availableSourceBalance = getAccountBalance(fromAccount);
+
+  const handleFromChange = (acc: FundAccountType) => {
+    setFromAccount(acc);
+    if (toAccount === acc) {
+      // Pick another default destination
+      const remaining: FundAccountType[] = (['casa', 'tienda', 'ahorro'] as FundAccountType[]).filter(a => a !== acc);
+      setToAccount(remaining[0]);
+    }
+  };
+
+  const handleExecuteTransfer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || Number(amount) <= 0) {
+      showToast({ title: 'Monto Inválido', message: 'Ingresa un monto mayor a 0 para transferir.', type: 'warning' });
+      return;
+    }
+
+    const numAmount = Number(amount);
+
+    if ((fromAccount === 'tienda' || fromAccount === 'ahorro') && numAmount > availableSourceBalance) {
+      showToast({
+        title: 'Saldo Insuficiente',
+        message: `El saldo disponible en ${getAccountLabel(fromAccount)} es $${availableSourceBalance}.`,
+        type: 'error'
+      });
+      return;
+    }
+
+    const fromLabel = getAccountLabel(fromAccount);
+    const toLabel = getAccountLabel(toAccount);
+
+    confirmAction({
+      title: '¿Confirmar Transferencia?',
+      message: `Se moverán ${formatCurrency(numAmount, currency, true)} de ${fromLabel} hacia ${toLabel}. Se registrarán 2 transacciones simultáneas.`,
+      variant: 'info',
+      confirmText: 'Confirmar y Transferir',
+      onConfirm: () => {
+        const res = executeUniversalTransfer({
+          fromAccount,
+          toAccount,
+          amount: numAmount,
+          notes
+        });
+
+        if (res.success) {
+          setAmount('');
+          setNotes('');
+          onSuccess();
+          onClose();
+
+          showActionResult({
+            title: '¡Transferencia Registrada!',
+            message: `Movimiento exitoso de $${numAmount} desde ${fromLabel} a ${toLabel}.`,
+            type: 'success'
+          });
+        } else {
+          showToast({
+            title: 'Error al Transferir',
+            message: res.error || 'No se pudo completar la transferencia.',
+            type: 'error'
+          });
+        }
+      }
+    });
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.70)',
+      backdropFilter: 'blur(8px)',
+      zIndex: 150,
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      padding: '0'
+    }} onClick={onClose}>
+      
+      <form
+        onClick={e => e.stopPropagation()}
+        onSubmit={handleExecuteTransfer}
+        className="bottom-sheet-modal"
+        style={{
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          color: 'var(--md-sys-color-on-surface)',
+          width: '100%',
+          maxWidth: '480px',
+          padding: '20px 20px 28px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          boxShadow: 'var(--md-shadow-elevation-4)',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}
+      >
+        {/* Handle Drag Indicator */}
+        <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto', opacity: 0.8 }} />
+
+        {/* Modal Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              color: 'var(--md-sys-color-on-primary-container)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <ArrowRightLeft size={20} />
+            </div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Transferir entre Cuentas</h3>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}>
+            <X size={22} />
+          </button>
+        </div>
+
+        {/* Account Selector Grid: FROM */}
+        <div>
+          <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+            1. Cuenta Origen (Desde donde sale):
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+            {(['casa', 'tienda', 'ahorro'] as FundAccountType[]).map((acc) => {
+              const isSelected = fromAccount === acc;
+              return (
+                <button
+                  key={`from-${acc}`}
+                  type="button"
+                  onClick={() => handleFromChange(acc)}
+                  style={{
+                    padding: '10px 4px',
+                    borderRadius: '12px',
+                    border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                    color: isSelected ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                    fontWeight: isSelected ? 800 : 600,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {acc === 'casa' && <Home size={16} />}
+                  {acc === 'tienda' && <Store size={16} />}
+                  {acc === 'ahorro' && <PiggyBank size={16} />}
+                  <span>{getAccountLabel(acc).replace(/^[^\s]+\s*/, '')}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Account Selector Grid: TO */}
+        <div>
+          <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+            2. Cuenta Destino (Hacia donde ingresa):
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+            {(['casa', 'tienda', 'ahorro'] as FundAccountType[]).map((acc) => {
+              const isDisabled = fromAccount === acc;
+              const isSelected = toAccount === acc;
+              return (
+                <button
+                  key={`to-${acc}`}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => setToAccount(acc)}
+                  style={{
+                    padding: '10px 4px',
+                    borderRadius: '12px',
+                    border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                    color: isSelected ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                    fontWeight: isSelected ? 800 : 600,
+                    fontSize: '0.78rem',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    opacity: isDisabled ? 0.4 : 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {acc === 'casa' && <Home size={16} />}
+                  {acc === 'tienda' && <Store size={16} />}
+                  {acc === 'ahorro' && <PiggyBank size={16} />}
+                  <span>{getAccountLabel(acc).replace(/^[^\s]+\s*/, '')}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Balance Display Banner */}
+        <div style={{
+          padding: '12px 14px',
+          borderRadius: '12px',
+          backgroundColor: 'var(--md-sys-color-surface)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+            Saldo Disponible en Origen:
+          </span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
+            {formatCurrency(availableSourceBalance, currency, true)}
+          </span>
+        </div>
+
+        {/* Input Amount */}
+        <div>
+          <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+            Monto a Transferir ({currency}):
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            pattern="[0-9]*"
+            step="any"
+            required
+            max={fromAccount === 'casa' ? undefined : availableSourceBalance}
+            placeholder="Monto..."
+            value={amount}
+            onChange={e => setAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
+            className="app-input-numeric"
+            style={{
+              width: '100%',
+              padding: '12px',
+              borderRadius: '12px',
+              border: '2px solid var(--md-sys-color-primary)',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              fontSize: '1.2rem',
+              fontWeight: 800,
+              textAlign: 'center'
+            }}
+          />
+        </div>
+
+        {/* Input Notes */}
+        <div>
+          <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+            Nota / Concepto opcional:
+          </label>
+          <AppInput
+            type="text"
+            placeholder="Ej. Depósito mensual de ahorro..."
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+          />
+        </div>
+
+        {/* Submit Action */}
+        <button
+          type="submit"
+          className="md-btn md-btn-primary"
+          style={{ width: '100%', padding: '14px', marginTop: '4px', fontSize: '0.95rem' }}
+        >
+          <ArrowRightLeft size={18} />
+          <span>Confirmar y Transferir {currency}{amount ? amount : 0}</span>
+        </button>
+
+      </form>
+
+    </div>
+  );
+};

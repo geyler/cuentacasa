@@ -3,20 +3,26 @@
 import React from 'react';
 import { FinancialSummary } from '@/types';
 import { formatCurrency } from '@/lib/invoice';
-import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Store, ArrowRightLeft } from 'lucide-react';
 
 interface StatCardsProps {
   summary: FinancialSummary;
   currency?: string;
   showBalance?: boolean;
   isLoading?: boolean;
+  storeFund?: number;
+  savingsFund?: number;
+  onOpenTransfer?: () => void;
 }
 
 export const StatCards: React.FC<StatCardsProps> = ({ 
   summary, 
   currency = '$',
   showBalance = true,
-  isLoading = false
+  isLoading = false,
+  storeFund = 0,
+  savingsFund = 0,
+  onOpenTransfer
 }) => {
   if (isLoading) {
     return (
@@ -42,7 +48,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* 3 Primary Metric Cards Grid */}
+      {/* Primary Metric Cards Grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -75,7 +81,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
             {formatCurrency(summary.netBalance, currency, showBalance)}
           </div>
           <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
-            Total acumulado de entradas - salidas
+            Presupuesto disponible en Cuenta Casa
           </div>
         </div>
 
@@ -132,6 +138,117 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
           <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
             Comida, pan, arroz, servicios, etc.
+          </div>
+        </div>
+
+      </div>
+
+      {/* Secondary Funds Grid: Savings & Store Fund */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '16px'
+      }}>
+        
+        {/* Savings Fund Card */}
+        <div className="md-card" style={{
+          background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
+          color: '#FFFFFF',
+          border: 'none',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.9 }}>Fondo de Ahorro Casa</span>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <PiggyBank size={20} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '12px 0 6px 0', letterSpacing: '-0.02em' }}>
+            {formatCurrency(savingsFund, currency, showBalance)}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', opacity: 0.85 }}>Reserva acumulada</span>
+            {onOpenTransfer && (
+              <button
+                type="button"
+                onClick={onOpenTransfer}
+                style={{
+                  background: 'rgba(255,255,255,0.25)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <ArrowRightLeft size={12} /> Transferir
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Store Fund Card */}
+        <div className="md-card" style={{
+          background: 'linear-gradient(135deg, #059669 0%, #064E3B 100%)',
+          color: '#FFFFFF',
+          border: 'none',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.9 }}>Fondo Tienda (Caja)</span>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Store size={20} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '12px 0 6px 0', letterSpacing: '-0.02em' }}>
+            {formatCurrency(storeFund, currency, showBalance)}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', opacity: 0.85 }}>Efectivo del negocio</span>
+            {onOpenTransfer && (
+              <button
+                type="button"
+                onClick={onOpenTransfer}
+                style={{
+                  background: 'rgba(255,255,255,0.25)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <ArrowRightLeft size={12} /> Transferir
+              </button>
+            )}
           </div>
         </div>
 

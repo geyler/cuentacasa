@@ -1,18 +1,20 @@
 'use client';
 
 import React from 'react';
-import { ArrowDownRight, ArrowUpRight, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, ArrowRightLeft, LayoutDashboard, ShieldCheck, PiggyBank } from 'lucide-react';
 
 interface QuickEntryViewProps {
   onOpenGasto: () => void;
   onOpenIngreso: () => void;
   onOpenDashboard: () => void;
+  onOpenTransfer?: () => void;
 }
 
 export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   onOpenGasto,
   onOpenIngreso,
-  onOpenDashboard
+  onOpenDashboard,
+  onOpenTransfer
 }) => {
   return (
     <div style={{
@@ -99,6 +101,32 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             <ArrowUpRight size={26} />
             <span>REGISTRAR INGRESO</span>
           </button>
+
+          {/* Transfer & Savings Button */}
+          {onOpenTransfer && (
+            <button
+              onClick={onOpenTransfer}
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '16px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
+                color: '#FFFFFF',
+                fontSize: '1rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: 'var(--md-shadow-elevation-1)'
+              }}
+            >
+              <PiggyBank size={22} />
+              <span>AHORRO / TRANSFERIR</span>
+            </button>
+          )}
 
         </div>
 

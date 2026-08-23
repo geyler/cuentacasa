@@ -12,7 +12,8 @@ import {
   saveRawDatabase, 
   addTransaction, 
   updateTransaction, 
-  deleteTransaction 
+  deleteTransaction,
+  getSavingsFund
 } from '@/lib/storage';
 import { syncDatabaseWithCloud, getPendingSyncCount } from '@/lib/sync';
 import { calculateFinancialSummary, isTransactionEditable } from '@/lib/invoice';
@@ -23,6 +24,7 @@ import { QuickEntryView } from '@/components/QuickEntryView';
 import { TransactionList } from '@/components/TransactionList';
 import { TransactionModal } from '@/components/TransactionModal';
 import { TransactionDetailModal } from '@/components/TransactionDetailModal';
+import { TransferModal } from '@/components/TransferModal';
 import { ReportView } from '@/components/ReportView';
 import { StoreManagementView } from '@/components/StoreManagementView';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
@@ -48,6 +50,7 @@ function AccountingAppContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRawDbModalOpen, setIsRawDbModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [selectedTxForDetailModal, setSelectedTxForDetailModal] = useState<Transaction | null>(null);
 
   // Loaders and Sync state
@@ -610,6 +613,7 @@ function AccountingAppContent() {
             onOpenGasto={() => handleOpenAddTx('gasto')}
             onOpenIngreso={() => handleOpenAddTx('ingreso')}
             onOpenDashboard={() => handleTabChange('dashboard')}
+            onOpenTransfer={() => setIsTransferModalOpen(true)}
           />
         )}
 
@@ -643,6 +647,9 @@ function AccountingAppContent() {
               currency={db.settings.currency} 
               showBalance={showBalance} 
               isLoading={isTabTransitioning}
+              storeFund={db.storeFund || 0}
+              savingsFund={db.savingsFund || 0}
+              onOpenTransfer={() => setIsTransferModalOpen(true)}
             />
 
             {/* Recent Transactions */}
@@ -802,6 +809,13 @@ function AccountingAppContent() {
           handleDeleteTransaction(id);
         }}
         currency={db.settings.currency}
+      />
+
+      {/* Universal Transfer Bottom Sheet Modal */}
+      <TransferModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        onSuccess={loadDatabase}
       />
 
     </div>

@@ -20,6 +20,7 @@ import {
 import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
+import { TransferModal } from '@/components/TransferModal';
 import { AppInput } from '@/components/common/AppInput';
 import { 
   Store, 
@@ -70,6 +71,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
   // Modal State for Add / Edit Store Product
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUniversalTransferModalOpen, setIsUniversalTransferModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
 
   // Form State
@@ -1015,10 +1017,35 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Transferencias entre Cuentas</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                Transfiere entre el Fondo de la Tienda y tu Cuenta Casa. Cada movimiento registrará automáticamente 2 transacciones (una saliente y una entrante).
+                Transfiere entre el Fondo de la Tienda, Fondo de Ahorro y Cuenta Casa. Cada movimiento registrará automáticamente 2 transacciones.
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsUniversalTransferModalOpen(true)}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: '14px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
+              color: '#FFFFFF',
+              fontWeight: 800,
+              fontSize: '0.88rem',
+              marginBottom: '16px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: 'var(--md-shadow-elevation-1)'
+            }}
+          >
+            <PiggyBank size={20} />
+            <span>Abrir Asistente de Transferencias (Incluye Ahorro)</span>
+          </button>
 
           {/* Direction Selector Switcher */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
@@ -1837,6 +1864,16 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         allProducts={products}
         currency={currency}
         isAdmin={true}
+      />
+
+      {/* Universal Transfer Modal */}
+      <TransferModal
+        isOpen={isUniversalTransferModalOpen}
+        onClose={() => setIsUniversalTransferModalOpen(false)}
+        onSuccess={() => {
+          setProducts(getStoreProducts());
+          setSuppliers(getSupplierAccounts());
+        }}
       />
 
     </div>
