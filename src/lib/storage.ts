@@ -303,6 +303,10 @@ export function deleteStoreProduct(id: string): void {
   const db = getRawDatabase();
   if (db.storeProducts) {
     db.storeProducts = db.storeProducts.filter(p => p.id !== id);
+    if (!db.deletedProductIds) db.deletedProductIds = [];
+    if (!db.deletedProductIds.includes(id)) {
+      db.deletedProductIds.push(id);
+    }
     saveRawDatabase(db);
   }
 }

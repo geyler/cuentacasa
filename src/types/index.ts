@@ -92,6 +92,7 @@ export interface RawDatabase {
   lastSync?: string;
   transactions: Transaction[];
   deletedIds?: string[];
+  deletedProductIds?: string[];
   storeProducts?: StoreProduct[];
   storeSales?: StoreSaleRecord[];
   supplierAccounts?: SupplierAccount[];

@@ -1,5 +1,5 @@
 import { getRawDatabase, saveRawDatabase } from './storage';
-import { Transaction, RawDatabase } from '@/types';
+import { Transaction, StoreProduct, RawDatabase } from '@/types';
 
 export interface SyncStatus {
   isOnline: boolean;
@@ -11,13 +11,14 @@ export function getPendingSyncCount(): number {
   const db = getRawDatabase();
   const pendingTxs = db.transactions.filter(t => !t.synced).length;
   const pendingDeletes = (db.deletedIds || []).length;
-  return pendingTxs + pendingDeletes;
+  const pendingProductDeletes = (db.deletedProductIds || []).length;
+  return pendingTxs + pendingDeletes + pendingProductDeletes;
 }
 
-export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ success: boolean; syncedCount: number; message: string }> {
+export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ success: boolean; syncedCount: number; productCount?: number; message: string }> {
   const db = getRawDatabase();
   
-  if (!navigator.onLine) {
+  if (typeof window !== 'undefined' && !navigator.onLine) {
     return {
       success: false,
       syncedCount: 0,
@@ -34,13 +35,14 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     return {
       success: true,
       syncedCount: db.transactions.length,
+      productCount: (db.storeProducts || []).length,
       message: 'La base de datos está al día.'
     };
   }
 
-  // AbortController with 4s timeout for slow/unstable connection resilience
+  // AbortController with 6s timeout for slow/unstable connection resilience
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
 
   try {
     const res = await fetch('/api/sync', {
@@ -51,7 +53,9 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       },
       body: JSON.stringify({
         transactions: db.transactions,
-        deletedIds: db.deletedIds || []
+        deletedIds: db.deletedIds || [],
+        storeProducts: db.storeProducts || [],
+        deletedProductIds: db.deletedProductIds || []
       }),
       signal: controller.signal
     });
@@ -69,10 +73,16 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         synced: true
       }));
 
+      const mergedProducts: StoreProduct[] = Array.isArray(data.storeProducts) 
+        ? data.storeProducts 
+        : (db.storeProducts || []);
+
       const updatedDb: RawDatabase = {
         ...db,
         transactions: mergedTransactions,
+        storeProducts: mergedProducts,
         deletedIds: [], // Cleared deletedIds after successful server sync
+        deletedProductIds: [], // Cleared deletedProductIds after successful server sync
         lastSync: new Date().toISOString()
       };
 
@@ -81,7 +91,8 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       return {
         success: true,
         syncedCount: mergedTransactions.length,
-        message: `Sincronización exitosa con la base de datos (${data.storage || 'Cloud'}). ${mergedTransactions.length} registros actualizados.`
+        productCount: mergedProducts.length,
+        message: `Sincronización exitosa con la base de datos (${data.storage || 'Cloud'}). ${mergedTransactions.length} movimientos y ${mergedProducts.length} productos actualizados.`
       };
     } else {
       throw new Error(data.message || 'Error en respuesta del servidor');
@@ -92,6 +103,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     return {
       success: false,
       syncedCount: 0,
+      productCount: 0,
       message: 'Conexión inestable. Se está trabajando 100% offline con datos locales.'
     };
   }

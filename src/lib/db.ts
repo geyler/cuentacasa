@@ -45,9 +45,42 @@ export async function ensureTableExists() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `;
 
+  const createProductsQuery = `
+    CREATE TABLE IF NOT EXISTS store_products (
+      id VARCHAR(64) PRIMARY KEY,
+      barcode VARCHAR(64) UNIQUE NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      cost_price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+      price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+      category VARCHAR(100) NOT NULL,
+      description TEXT NULL,
+      stock INT NOT NULL DEFAULT 0,
+      photo_url LONGTEXT NULL,
+      published TINYINT(1) NOT NULL DEFAULT 1,
+      sales_count INT NOT NULL DEFAULT 0,
+      supplier_type VARCHAR(50) NULL,
+      supplier_name VARCHAR(255) NULL,
+      is_external TINYINT(1) NOT NULL DEFAULT 0,
+      external_url TEXT NULL,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL,
+      INDEX idx_barcode (barcode),
+      INDEX idx_category (category)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
+  const createDeletedProductsQuery = `
+    CREATE TABLE IF NOT EXISTS deleted_store_products (
+      id VARCHAR(64) PRIMARY KEY,
+      deleted_at BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
   try {
     await pool.query(createTransactionsQuery);
     await pool.query(createDeletedQuery);
+    await pool.query(createProductsQuery);
+    await pool.query(createDeletedProductsQuery);
     tableEnsured = true;
   } catch (error) {
     console.error('Error ensuring tables exist in Hostinger MySQL:', error);

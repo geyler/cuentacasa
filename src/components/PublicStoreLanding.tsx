@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { StoreProduct } from '@/types';
 import { getStoreProducts, getStoreWhatsappNumber } from '@/lib/storage';
+import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { 
@@ -45,10 +46,20 @@ export const PublicStoreLanding: React.FC = () => {
   const [isCubasoftModalOpen, setIsCubasoftModalOpen] = useState(false);
 
   useEffect(() => {
-    // Load published products from storage
+    // 1. Initial immediate load from local storage
     const all = getStoreProducts();
     const publishedList = all.filter(p => p.published);
     setProducts(publishedList);
+
+    // 2. Background sync with Cloud to retrieve products created/updated on other devices (e.g. mobile vs PC)
+    syncDatabaseWithCloud(true).then(res => {
+      if (res.success) {
+        const syncedAll = getStoreProducts();
+        setProducts(syncedAll.filter(p => p.published));
+      }
+    }).catch(err => {
+      console.warn('Silent cloud sync warning on landing:', err);
+    });
 
     // Check if user is logged into accounting system
     if (typeof window !== 'undefined') {

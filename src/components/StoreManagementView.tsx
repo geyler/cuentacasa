@@ -19,6 +19,7 @@ import {
   getStoreWhatsappNumber,
   saveStoreWhatsappNumber
 } from '@/lib/storage';
+import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
@@ -322,6 +323,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
     refreshData();
     setIsModalOpen(false);
+
+    // Trigger cloud sync to propagate product to other devices
+    syncDatabaseWithCloud(true).catch(err => console.warn('Product sync warning:', err));
     
     showActionResult({
       title: editingProduct ? '¡Producto Actualizado!' : '¡Producto Creado!',
@@ -341,6 +345,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       published: isNowPublished
     });
     refreshData();
+    syncDatabaseWithCloud(true).catch(err => console.warn('Product sync warning:', err));
 
     showActionResult({
       title: isNowPublished ? '¡Producto Publicado!' : '¡Producto en Borrador!',
@@ -361,6 +366,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       onConfirm: () => {
         deleteStoreProduct(id);
         refreshData();
+        syncDatabaseWithCloud(true).catch(err => console.warn('Product sync warning:', err));
         showActionResult({
           title: '¡Producto Eliminado!',
           message: `"${prodName}" fue retirado del inventario de la tienda.`,
