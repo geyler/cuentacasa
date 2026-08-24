@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
-import { getStoreProducts, getStoreWhatsappNumber } from '@/lib/storage';
+import { getStoreProducts, getStoreWhatsappNumber, formatPhotoUrl } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
@@ -24,10 +24,8 @@ import {
   ShieldCheck,
   Zap,
   CheckCircle2,
-  Flame,
   X,
-  Layers,
-  ChevronRight
+  Layers
 } from 'lucide-react';
 import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
 import { STORE_SEO_CONFIG, getCategorySeoDescription, getProductSeoMeta } from '@/lib/seoHelper';
@@ -111,17 +109,19 @@ export const PublicStoreLanding: React.FC = () => {
     return matchesSearch && matchesCat;
   });
 
-  // Calculate Featured Products (Top 4 by Sales or Random/Recency if no sales exist)
-  const getFeaturedProducts = (): StoreProduct[] => {
-    const sortedBySales = [...products].sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
-    const withSales = sortedBySales.filter(p => (p.salesCount || 0) > 0);
-    if (withSales.length >= 4) {
-      return withSales.slice(0, 4);
+  const handleOpenProductModal = (product: StoreProduct) => {
+    setSelectedProductForModal(product);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ productId: product.id }, '', `/producto/${product.id}`);
     }
-    return [...products].slice(0, 4);
   };
 
-  const featuredProducts = getFeaturedProducts();
+  const handleCloseProductModal = () => {
+    setSelectedProductForModal(null);
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/');
+    }
+  };
 
   const handleOpenAddToCartSheet = (product: StoreProduct) => {
     if (product.isExternal) return;
@@ -243,7 +243,7 @@ export const PublicStoreLanding: React.FC = () => {
             </div>
           </div>
 
-          {/* Mercado Libre Header Search Bar (Hidden on ultra small screens, visible on header) */}
+          {/* Mercado Libre Header Search Bar */}
           <div style={{ flex: 1, maxWidth: '400px', display: 'flex', position: 'relative' }} className="hidden-mobile">
             <Search 
               size={17} 
@@ -287,8 +287,7 @@ export const PublicStoreLanding: React.FC = () => {
                 padding: '0 14px',
                 borderRadius: '9999px',
                 border: 'none',
-                backgroundColor: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
-                background: '#EC4899',
+                backgroundColor: '#EC4899',
                 color: '#FFFFFF',
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -491,189 +490,7 @@ export const PublicStoreLanding: React.FC = () => {
       {/* Main Container - Enforcing 5xl (1024px max width) */}
       <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
         
-        {/* SECTION 1: 4 Featured / Best Selling Products */}
-        {featuredProducts.length > 0 && selectedCategory === 'todas' && !searchTerm && (
-          <div style={{ marginBottom: '32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  backgroundColor: '#FEE2E2',
-                  color: '#EF4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Flame size={20} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.1' }}>
-                    Destacados & Más Vendidos
-                  </h3>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                    Los artículos preferidos de nuestros clientes
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 4 Cards Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-              gap: '14px'
-            }}>
-              {featuredProducts.map(product => {
-                const inCart = cart.find(item => item.product.id === product.id);
-                const cardSeo = getProductSeoMeta(product.barcode, product.price);
-
-                return (
-                  <div
-                    key={`feat-${product.id}`}
-                    onClick={() => setSelectedProductForModal(product)}
-                    style={{
-                      padding: '12px',
-                      borderRadius: '20px',
-                      backgroundColor: 'var(--md-sys-color-surface-container)',
-                      border: '1px solid #FBCFE8',
-                      boxShadow: '0 4px 16px rgba(236, 72, 153, 0.08)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      position: 'relative',
-                      transition: 'transform 0.15s ease'
-                    }}
-                  >
-                    <div>
-                      {/* Photo Container */}
-                      <div style={{
-                        width: '100%',
-                        aspectRatio: '1/1',
-                        borderRadius: '14px',
-                        overflow: 'hidden',
-                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                        position: 'relative',
-                        marginBottom: '10px'
-                      }}>
-                        <img
-                          src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
-                          alt={product.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-
-                        {/* HOT Featured Badge */}
-                        <span style={{
-                          position: 'absolute',
-                          top: '8px',
-                          left: '8px',
-                          backgroundColor: '#EF4444',
-                          color: '#FFFFFF',
-                          fontSize: '0.65rem',
-                          fontWeight: 900,
-                          padding: '3px 8px',
-                          borderRadius: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                        }}>
-                          <Flame size={11} fill="#FFF" /> DESTACADO
-                        </span>
-
-                        {/* Rating Pill */}
-                        <span style={{
-                          position: 'absolute',
-                          bottom: '6px',
-                          left: '6px',
-                          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                          backdropFilter: 'blur(4px)',
-                          color: '#FBBF24',
-                          fontSize: '0.65rem',
-                          fontWeight: 800,
-                          padding: '2px 6px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '2px'
-                        }}>
-                          <Star size={10} fill="#FBBF24" /> {cardSeo.ratingValue}
-                        </span>
-                      </div>
-
-                      <h4 style={{
-                        fontSize: '0.9rem',
-                        fontWeight: 800,
-                        color: 'var(--md-sys-color-on-surface)',
-                        lineHeight: '1.3',
-                        marginBottom: '4px',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}>
-                        {product.name}
-                      </h4>
-                    </div>
-
-                    <div style={{
-                      paddingTop: '8px',
-                      borderTop: '1px solid var(--md-sys-color-surface-variant)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                        ${Math.round(product.price)} <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>CUP</span>
-                      </span>
-
-                      {!inCart ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenAddToCartSheet(product);
-                          }}
-                          disabled={product.stock <= 0}
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '0.78rem',
-                            borderRadius: '9999px',
-                            backgroundColor: '#EC4899',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            boxShadow: '0 2px 8px rgba(236, 72, 153, 0.3)'
-                          }}
-                        >
-                          <Plus size={14} /> + Agregar
-                        </button>
-                      ) : (
-                        <span style={{
-                          backgroundColor: 'var(--md-sys-color-primary-container)',
-                          color: 'var(--md-sys-color-on-primary-container)',
-                          padding: '3px 10px',
-                          borderRadius: '9999px',
-                          fontSize: '0.75rem',
-                          fontWeight: 800
-                        }}>
-                          {inCart.quantity}u
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* SECTION 2: Category Button Cards (Facebook Menu Style - Screenshot 3) */}
+        {/* SECTION 1: Category Button Cards (Facebook Menu Style - Screenshot 3) */}
         {categories.length > 0 && (
           <div style={{ marginBottom: '28px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
@@ -798,7 +615,7 @@ export const PublicStoreLanding: React.FC = () => {
           </div>
         )}
 
-        {/* SECTION 3: All Products Feed */}
+        {/* SECTION 2: All Products Feed */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
             {selectedCategory === 'todas' ? 'Todos los Productos' : `Categoría: ${selectedCategory}`} ({filteredProducts.length})
@@ -816,18 +633,19 @@ export const PublicStoreLanding: React.FC = () => {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
             gap: '14px'
           }}>
             {filteredProducts.map(product => {
               const inCart = cart.find(item => item.product.id === product.id);
               const cardSeo = getProductSeoMeta(product.barcode, product.price);
+              const formattedImage = formatPhotoUrl(product.photoUrl);
 
               return (
                 <div
                   key={product.id}
                   className="md-card"
-                  onClick={() => setSelectedProductForModal(product)}
+                  onClick={() => handleOpenProductModal(product)}
                   style={{
                     padding: '12px',
                     display: 'flex',
@@ -843,7 +661,7 @@ export const PublicStoreLanding: React.FC = () => {
                   }}
                 >
                   <div>
-                    {/* Product Image (1:1 Aspect Ratio) */}
+                    {/* Product Image (1:1 Aspect Ratio with formatPhotoUrl) */}
                     <div style={{
                       width: '100%',
                       aspectRatio: '1/1',
@@ -854,7 +672,7 @@ export const PublicStoreLanding: React.FC = () => {
                       position: 'relative'
                     }}>
                       <img 
-                        src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
+                        src={formattedImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
                         alt={product.name} 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                       />
@@ -943,7 +761,7 @@ export const PublicStoreLanding: React.FC = () => {
                           if (product.externalUrl) {
                             window.open(product.externalUrl, '_blank');
                           } else {
-                            setSelectedProductForModal(product);
+                            handleOpenProductModal(product);
                           }
                         }}
                         style={{
@@ -1003,7 +821,7 @@ export const PublicStoreLanding: React.FC = () => {
         {/* Modal Card with Product Details */}
         <ProductDetailModal
           product={selectedProductForModal}
-          onClose={() => setSelectedProductForModal(null)}
+          onClose={handleCloseProductModal}
           onAddToCart={handleOpenAddToCartSheet}
           allProducts={products}
           currency="$"
@@ -1159,7 +977,7 @@ export const PublicStoreLanding: React.FC = () => {
                 flexShrink: 0
               }}>
                 <img
-                  src={productToAddToCart.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
+                  src={formatPhotoUrl(productToAddToCart.photoUrl) || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
                   alt={productToAddToCart.name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
@@ -1520,7 +1338,7 @@ export const PublicStoreLanding: React.FC = () => {
                         flexShrink: 0
                       }}>
                         <img
-                          src={item.product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
+                          src={formatPhotoUrl(item.product.photoUrl) || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
                           alt={item.product.name}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />

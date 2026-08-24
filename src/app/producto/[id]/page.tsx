@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { INITIAL_SEED_PRODUCTS } from '@/lib/storage';
+import { INITIAL_SEED_PRODUCTS, formatPhotoUrl } from '@/lib/storage';
 import { StoreProduct } from '@/types';
 import Link from 'next/link';
 import { 
@@ -13,8 +13,11 @@ import {
   Tag, 
   Store, 
   Sparkles,
-  Share2
+  Share2,
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
+import { STORE_SEO_CONFIG, getProductSeoMeta } from '@/lib/seoHelper';
 
 interface ProductPageProps {
   params: Promise<{ id: string }>;
@@ -33,14 +36,14 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
   if (!product) {
     return {
-      title: 'Producto No Encontrado - Tienda Casa',
-      description: 'El producto solicitado no está disponible en la Tienda Casa.'
+      title: 'Producto No Encontrado - Samy Store Cuba',
+      description: 'El producto solicitado no está disponible en Samy Store.'
     };
   }
 
   const roundedPrice = Math.round(product.price);
-  const title = `${product.name} - $${roundedPrice} | Tienda Casa`;
-  const description = product.description || `Compra ${product.name} en la Tienda Casa por $${roundedPrice}. Envíos directos y pedidos por WhatsApp.`;
+  const title = `${product.name} - $${roundedPrice} CUP | Samy Store Cuba`;
+  const description = product.description || `Compra ${product.name} en Samy Store Cuba por $${roundedPrice} CUP. Envíos directos y pedidos por WhatsApp.`;
 
   return {
     title,
@@ -51,7 +54,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
       type: 'website',
       images: [
         {
-          url: product.photoUrl || '/icons/icon-192.svg',
+          url: formatPhotoUrl(product.photoUrl) || '/icons/icon-192.svg',
           width: 400,
           height: 400,
           alt: product.name
@@ -62,7 +65,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
       card: 'summary_large_image',
       title,
       description,
-      images: [product.photoUrl || '/icons/icon-192.svg']
+      images: [formatPhotoUrl(product.photoUrl) || '/icons/icon-192.svg']
     }
   };
 }
@@ -76,13 +79,14 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   }
 
   const roundedPrice = Math.round(product.price);
+  const seoMeta = getProductSeoMeta(product.barcode, product.price);
 
   // Related products in the same category
   const relatedProducts = INITIAL_SEED_PRODUCTS.filter(p => 
     p.category === product.category && p.id !== product.id && p.published
   );
 
-  const whatsappMessage = `🛒 *CONSULTA / PEDIDO EN TIENDA CASA*\n\nHola! Me interesa comprar el producto:\n*${product.name}*\n• Código: #${product.barcode}\n• Precio: $${roundedPrice}\n• Categoría: ${product.category}\n\n¿Tienen disponibilidad para entrega o envío?`;
+  const whatsappMessage = `🛒 *CONSULTA / PEDIDO EN SAMY STORE*\n\nHola! Me interesa comprar el producto:\n*${product.name}*\n• Código: #${product.barcode}\n• Precio: $${roundedPrice} CUP\n• Categoría: ${product.category}\n\n¿Tienen disponibilidad para entrega o envío?`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
 
   // JSON-LD Structured Data Schema for Google Product SEO
@@ -90,8 +94,8 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    image: product.photoUrl,
-    description: product.description || `${product.name} disponible en Tienda Casa.`,
+    image: formatPhotoUrl(product.photoUrl),
+    description: product.description || `${product.name} disponible en Samy Store Cuba.`,
     sku: product.barcode,
     offers: {
       '@type': 'Offer',
@@ -99,6 +103,11 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
       priceCurrency: 'CUP',
       availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       url: `https://cuentacasa.app/producto/${product.id}`
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: seoMeta.ratingValue,
+      reviewCount: seoMeta.reviewCount
     }
   };
 
@@ -113,15 +122,16 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
       {/* Header Bar */}
       <header style={{
-        backgroundColor: 'var(--md-sys-color-surface-container)',
-        borderBottom: '1px solid var(--md-sys-color-surface-variant)',
-        padding: '14px 16px',
+        backgroundColor: '#0F172A',
+        color: '#FFFFFF',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        padding: '12px 16px',
         position: 'sticky',
         top: 0,
         zIndex: 80
       }}>
         <div style={{
-          maxWidth: '800px',
+          maxWidth: '1024px',
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
@@ -133,43 +143,54 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              color: 'var(--md-sys-color-primary)',
+              color: '#EC4899',
               fontWeight: 800,
               fontSize: '0.9rem',
               textDecoration: 'none'
             }}
           >
             <ArrowLeft size={18} />
-            <span>Volver a la Tienda</span>
+            <span>Volver a Samy Store</span>
           </Link>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Store size={20} color="var(--md-sys-color-primary)" />
-            <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--md-sys-color-on-surface)' }}>
-              Tienda Casa
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #EC4899 0%, #D946EF 100%)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Store size={18} />
+            </div>
+            <span style={{ fontWeight: 900, fontSize: '1.05rem', color: '#FFFFFF' }}>
+              Samy Store
             </span>
           </div>
         </div>
       </header>
 
-      {/* Main Product SEO Page Layout */}
-      <main style={{ maxWidth: '800px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
+      {/* Main Product SEO Page Layout (5XL Enforced) */}
+      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
         
-        <div className="md-card" style={{ padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="md-card" style={{ padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: 'var(--md-sys-color-surface-container)' }}>
           
           {/* Category Tag & Barcode */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{
-              fontSize: '0.78rem',
+              fontSize: '0.8rem',
               fontWeight: 800,
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
+              backgroundColor: '#FCE7F3',
+              color: '#831843',
               padding: '4px 12px',
               borderRadius: '9999px'
             }}>
               {product.category}
             </span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800, fontFamily: 'monospace' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800, fontFamily: 'monospace' }}>
               Código #{product.barcode}
             </span>
           </div>
@@ -177,14 +198,14 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
           {/* Product Image Showcase */}
           <div style={{
             width: '100%',
-            height: '320px',
+            height: '360px',
             borderRadius: '20px',
             overflow: 'hidden',
             backgroundColor: 'var(--md-sys-color-surface-container-high)',
             position: 'relative'
           }}>
             <img 
-              src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">TIENDA CASA</text></svg>`} 
+              src={formatPhotoUrl(product.photoUrl) || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
               alt={product.name} 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             />
@@ -207,16 +228,16 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
           {/* Title & Price */}
           <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.25', marginBottom: '8px' }}>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.25', marginBottom: '8px' }}>
               {product.name}
             </h1>
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-              <span style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+              <span style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
                 ${roundedPrice}
               </span>
-              <span style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                (Precio final sin decimales)
+              <span style={{ fontSize: '0.9rem', color: '#EC4899', fontWeight: 800, backgroundColor: '#FCE7F3', padding: '2px 8px', borderRadius: '6px' }}>
+                CUP
               </span>
             </div>
           </div>
@@ -229,7 +250,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
               borderRadius: '16px'
             }}>
               <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
-                DESCRIPCIÓN DEL PRODUCTO
+                DESCRIPCIÓN DETALLADA DEL PRODUCTO
               </span>
               <p style={{ fontSize: '0.95rem', color: 'var(--md-sys-color-on-surface)', lineHeight: '1.5', margin: 0 }}>
                 {product.description}
@@ -242,7 +263,6 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="md-btn"
             style={{
               backgroundColor: '#25D366',
               color: '#FFFFFF',
@@ -251,6 +271,11 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
               fontSize: '1.05rem',
               fontWeight: 800,
               textDecoration: 'none',
+              borderRadius: '9999px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
               boxShadow: '0 4px 20px rgba(37, 211, 102, 0.4)'
             }}
           >
@@ -273,9 +298,9 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Truck size={20} color="var(--md-sys-color-primary)" />
+              <Truck size={20} color="#EC4899" />
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface)' }}>
-                Envío Rápido Directo
+                Envío Rápido a Domicilio
               </span>
             </div>
           </div>
@@ -286,7 +311,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
         {relatedProducts.length > 0 && (
           <div style={{ marginTop: '32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <Sparkles size={20} style={{ color: 'var(--md-sys-color-primary)' }} />
+              <Sparkles size={20} style={{ color: '#EC4899' }} />
               <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
                 Más productos en {product.category}
               </h2>
@@ -294,7 +319,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
               gap: '14px'
             }}>
               {relatedProducts.map(rel => (
@@ -306,7 +331,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                   <div
                     className="md-card"
                     style={{
-                      padding: '10px',
+                      padding: '12px',
                       borderRadius: '16px',
                       display: 'flex',
                       flexDirection: 'column',
@@ -317,10 +342,11 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                       width: '100%',
                       aspectRatio: '1/1',
                       borderRadius: '12px',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      backgroundColor: 'var(--md-sys-color-surface-container-high)'
                     }}>
                       <img 
-                        src={rel.photoUrl || '/icons/icon-192.svg'} 
+                        src={formatPhotoUrl(rel.photoUrl) || '/icons/icon-192.svg'} 
                         alt={rel.name} 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                       />
@@ -329,7 +355,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                       {rel.name}
                     </h3>
                     <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                      ${Math.round(rel.price)}
+                      ${Math.round(rel.price)} CUP
                     </span>
                   </div>
                 </Link>

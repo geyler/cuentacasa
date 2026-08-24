@@ -317,3 +317,27 @@ input:focus, select:focus, textarea:focus, .input-spotlight:focus {
   object-fit: cover !important;
   object-position: center center !important;
 }
+
+/* PC Imperceptible Scrollbar for Modals & Containers */
+::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25) !important;
+  border-radius: 9999px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(236, 72, 153, 0.5) !important;
+}
+
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent !important;
+}

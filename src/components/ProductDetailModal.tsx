@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { StoreProduct } from '@/types';
 import { formatCurrency } from '@/lib/invoice';
+import { formatPhotoUrl } from '@/lib/storage';
 import { 
   X, 
   Tag, 
@@ -169,7 +170,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         }}>
           {!imageError && activeProduct.photoUrl ? (
             <img 
-              src={activeProduct.photoUrl} 
+              src={formatPhotoUrl(activeProduct.photoUrl)} 
               alt={activeProduct.name} 
               onError={() => setImageError(true)}
               style={{
@@ -531,6 +532,27 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   >
                     <MessageCircle size={22} />
                     <span>Consultar / Pedir por WhatsApp</span>
+                  </button>
+
+                  {/* Shareable SEO Direct URL Button */}
+                  <button
+                    onClick={() => {
+                      const seoUrl = `${window.location.origin}/producto/${activeProduct.id}`;
+                      navigator.clipboard.writeText(seoUrl);
+                      alert(`¡Enlace SEO copiado al portapapeles!\n${seoUrl}`);
+                    }}
+                    className="md-btn"
+                    style={{
+                      backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      width: '100%',
+                      padding: '10px',
+                      fontSize: '0.85rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    <Globe size={16} />
+                    <span>Copiar Enlace SEO Único (/producto/{activeProduct.id})</span>
                   </button>
                 </>
               )}
