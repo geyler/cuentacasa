@@ -335,9 +335,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
                     placeholder="Ej. 5351234567 o 53999999"
                     value={whatsappPhone}
-                    onChange={e => setWhatsappPhone(e.target.value)}
+                    onChange={e => setWhatsappPhone(e.target.value.replace(/\D/g, ''))}
                     className="input-spotlight"
                     style={{
                       flex: 1,
@@ -424,6 +427,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
                     maxLength={4}
                     placeholder="Ej. 1234"
                     value={newPin}

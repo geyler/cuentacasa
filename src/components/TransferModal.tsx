@@ -320,15 +320,26 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           />
         </div>
 
-        {/* Submit Action */}
-        <button
-          type="submit"
-          className="md-btn md-btn-primary"
-          style={{ width: '100%', padding: '14px', marginTop: '4px', fontSize: '0.95rem' }}
-        >
-          <ArrowRightLeft size={18} />
-          <span>Confirmar y Transferir {currency}{amount ? amount : 0}</span>
-        </button>
+        {/* Submit Actions */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '6px', paddingTop: '10px', borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="md-btn md-btn-secondary"
+            style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 700 }}
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            className="md-btn md-btn-primary"
+            style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            <ArrowRightLeft size={18} />
+            <span>Transferir {currency}{amount ? amount : 0}</span>
+          </button>
+        </div>
 
       </form>
 

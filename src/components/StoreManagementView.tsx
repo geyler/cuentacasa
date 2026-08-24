@@ -86,7 +86,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [costPrice, setCostPrice] = useState<number | ''>('');
   const [price, setPrice] = useState<number | ''>('');
   const [category, setCategory] = useState('');
-  const [stock, setStock] = useState<number>(10);
+  const [stock, setStock] = useState<number | ''>('');
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [published, setPublished] = useState(true);
@@ -182,7 +182,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     setCostPrice('');
     setPrice('');
     setCategory('');
-    setStock(10);
+    setStock('');
     setDescription('');
     setPhotoUrl('');
     setPublished(true);
@@ -2092,9 +2092,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               inputMode="numeric"
               pattern="[0-9]*"
               isNumeric
-              placeholder="10"
+              placeholder="Ej. 10"
               value={stock}
-              onChange={e => setStock(parseInt(e.target.value, 10) || 0)}
+              onChange={e => setStock(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
               focusedField={focusedField}
               fieldName="stock"
               onFocus={() => setFocusedField('stock')}
@@ -2337,14 +2337,42 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             </label>
 
             {/* Modal Actions */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '12px',
+              paddingTop: '14px',
+              borderTop: '1px solid var(--md-sys-color-outline-variant)',
+              flexShrink: 0
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                  }
+                  setFocusedField(null);
+                  setIsModalOpen(false);
+                }}
+                className="md-btn md-btn-secondary"
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  borderRadius: '16px'
+                }}
+              >
+                Cancelar
+              </button>
+
               <button
                 type="submit"
                 className="md-btn md-btn-primary"
                 style={{ 
-                  width: '100%', 
-                  padding: '16px', 
-                  fontSize: '1rem', 
+                  flex: 1, 
+                  padding: '14px', 
+                  fontSize: '0.92rem', 
                   fontWeight: 800,
                   borderRadius: '16px',
                   display: 'flex',
@@ -2353,8 +2381,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   gap: '8px'
                 }}
               >
-                <Check size={20} />
-                <span>{editingProduct ? 'Guardar Cambios del Producto' : 'Guardar Producto en Inventario'}</span>
+                <Check size={18} />
+                <span>{editingProduct ? 'Guardar Cambios' : 'Guardar Producto'}</span>
               </button>
             </div>
 
