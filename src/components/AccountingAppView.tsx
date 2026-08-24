@@ -34,7 +34,7 @@ import { LoginScreen } from '@/components/LoginScreen';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
 import { ActionFeedbackProvider, useActionFeedback } from '@/components/ActionFeedbackProvider';
 
-import { Plus, Loader2, Home, Scan, Receipt, Menu } from 'lucide-react';
+import { Plus, Loader2, Home, Scan, Receipt, Menu, FileText, Store, LayoutDashboard } from 'lucide-react';
 
 function AccountingAppContent() {
   const { showToast, confirmAction, showActionResult } = useActionFeedback();
@@ -154,37 +154,23 @@ function AccountingAppContent() {
       }
     }
 
-    // Auto sync function
+    // Background Auto sync function
     const autoSync = async (isBackgroundReconnection: boolean = false) => {
       if (navigator.onLine) {
         try {
           setIsSyncing(true);
-          if (isBackgroundReconnection) {
-            setSyncBanner({
-              show: true,
-              status: 'syncing',
-              message: '🔄 Sincronizando en segundo plano con Base de Datos Hostinger...'
-            });
-          }
-          await syncDatabaseWithCloud();
+          const res = await syncDatabaseWithCloud();
           loadDatabase();
-          if (isBackgroundReconnection) {
+          if (isBackgroundReconnection && res.success) {
             setSyncBanner({
               show: true,
               status: 'success',
-              message: '✅ Base de Datos Hostinger sincronizada. ¡Todo en caja!'
+              message: '✅ Sincronizado en segundo plano.'
             });
-            setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 3800);
+            setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 3000);
           }
         } catch (e) {
-          if (isBackgroundReconnection) {
-            setSyncBanner({
-              show: true,
-              status: 'offline',
-              message: '⚠️ Error de conexión a la nube. Operando en modo local.'
-            });
-            setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 3500);
-          }
+          // Ignore network errors in background auto-sync
         } finally {
           setIsSyncing(false);
         }
@@ -202,12 +188,6 @@ function AccountingAppContent() {
     };
     const handleOffline = () => {
       setIsOnline(false);
-      setSyncBanner({
-        show: true,
-        status: 'offline',
-        message: '📶 Modo 100% Offline activo. Los datos permanecen guardados en tu dispositivo.'
-      });
-      setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 3800);
     };
 
     window.addEventListener('online', handleOnline);
@@ -354,15 +334,15 @@ function AccountingAppContent() {
       const res = await syncDatabaseWithCloud(true);
       loadDatabase();
       showToast({
-        title: '¡Sincronización Exitosa!',
+        title: res.success ? '¡Sincronización Exitosa!' : 'Modo 100% Offline',
         message: res.message,
-        type: 'success'
+        type: res.success ? 'success' : 'info'
       });
     } catch (e) {
       showToast({
-        title: 'Error de Sincronización',
-        message: 'No se pudo alinear los datos con la nube. Comprueba tu conexión.',
-        type: 'error'
+        title: 'Modo Offline Activo',
+        message: 'Trabajando localmente. Tus datos permanecen guardados en este dispositivo.',
+        type: 'info'
       });
     } finally {
       setIsSyncing(false);
@@ -433,14 +413,9 @@ function AccountingAppContent() {
     }
     loadDatabase();
 
+    // Non-blocking background sync attempt
     if (navigator.onLine) {
-      setIsSyncing(true);
-      try {
-        await syncDatabaseWithCloud();
-        loadDatabase();
-      } finally {
-        setIsSyncing(false);
-      }
+      syncDatabaseWithCloud().then(() => loadDatabase()).catch(() => {});
     }
   };
 
@@ -457,29 +432,24 @@ function AccountingAppContent() {
 
     confirmAction({
       title: '¿Eliminar Movimiento?',
-      message: `¿Estás seguro de eliminar "${targetTx?.concept || 'esta transacción'}"? Esta acción se sincronizará con la nube.`,
+      message: `¿Estás seguro de eliminar "${targetTx?.concept || 'esta transacción'}"?`,
       variant: 'danger',
       confirmText: 'Eliminar Movimiento',
       onConfirm: async () => {
         setDeletingId(id);
-        try {
-          deleteTransaction(id);
-          loadDatabase();
+        deleteTransaction(id);
+        loadDatabase();
+        setDeletingId(null);
 
-          if (navigator.onLine) {
-            setIsSyncing(true);
-            await syncDatabaseWithCloud();
-            loadDatabase();
-          }
+        showToast({
+          title: '¡Movimiento Eliminado!',
+          message: 'La transacción fue removida exitosamente.',
+          type: 'success'
+        });
 
-          showToast({
-            title: '¡Movimiento Eliminado!',
-            message: 'La transacción fue removida exitosamente.',
-            type: 'success'
-          });
-        } finally {
-          setDeletingId(null);
-          setIsSyncing(false);
+        // Non-blocking background sync attempt
+        if (navigator.onLine) {
+          syncDatabaseWithCloud().then(() => loadDatabase()).catch(() => {});
         }
       }
     });
@@ -608,6 +578,8 @@ function AccountingAppContent() {
   const summary = calculateFinancialSummary(transactions);
   const pendingCount = getPendingSyncCount();
 
+  const isAnyModalOpen = isTxModalOpen || isSettingsOpen || isRawDbModalOpen || isScannerOpen || isTransferModalOpen || !!selectedTxForDetailModal || isNavMenuOpen;
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       
@@ -663,6 +635,7 @@ function AccountingAppContent() {
             onOpenIngreso={() => handleOpenAddTx('ingreso')}
             onOpenDashboard={() => handleTabChange('dashboard')}
             onOpenStore={() => handleTabChange('store')}
+            onOpenPublicStore={() => window.open('/', '_blank')}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
             onOpenPOS={() => setIsScannerOpen(true)}
           />
@@ -674,14 +647,6 @@ function AccountingAppContent() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Dashboard Contable</h2>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => setIsScannerOpen(true)}
-                  className="md-btn"
-                  style={{ padding: '8px 14px', fontSize: '0.85rem', backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}
-                >
-                  <Scan size={16} /> Escáner
-                </button>
-
                 <button
                   onClick={() => handleOpenAddTx('gasto')}
                   className="md-btn md-btn-primary"
@@ -775,65 +740,184 @@ function AccountingAppContent() {
 
       </main>
 
-      {/* Persistent Stacked Floating Action Buttons (Bottom-Right Corner) */}
-      <div 
-        className="no-print"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          gap: '10px',
-          zIndex: 90
-        }}
-      >
-        {/* Top Button: Context Action Button (Scanner POS / Vender) */}
-        <button
-          onClick={() => setIsScannerOpen(true)}
-          title="Escáner POS para Vender"
+      {/* Mobile-Only Floating Bottom Navigation Bar (Hidden on PC & Hidden when any modal is open) */}
+      {!isAnyModalOpen && (
+        <div 
+          className="no-print hidden-pc"
           style={{
-            height: '48px',
-            padding: '0 18px',
+            position: 'fixed',
+            bottom: '16px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'calc(100% - 32px)',
+            maxWidth: '440px',
+            backgroundColor: 'var(--md-sys-color-surface-container)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
             borderRadius: '9999px',
-            backgroundColor: 'var(--md-sys-color-primary)',
-            color: '#FFFFFF',
-            border: 'none',
-            fontWeight: 800,
-            fontSize: '0.85rem',
+            padding: '6px 8px',
             boxShadow: 'var(--md-shadow-elevation-3)',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer'
+            justifyContent: 'space-around',
+            zIndex: 90
           }}
         >
-          <Scan size={20} />
-          <span>Vender / Escáner</span>
-        </button>
+          <button
+            onClick={() => handleTabChange('quick')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              padding: '4px 0',
+              border: 'none',
+              background: 'transparent',
+              color: activeTab === 'quick' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeTab === 'quick' ? 800 : 600,
+              fontSize: '0.7rem',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{
+              padding: '4px 12px',
+              borderRadius: '9999px',
+              backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Home size={18} />
+            </div>
+            <span>Inicio</span>
+          </button>
 
-        {/* Bottom Button (Sostenido en Todo el Admin): Hamburger Menu Button */}
-        <button
-          onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-          title="Menú Principal de Navegación"
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: 'var(--md-sys-color-surface-container-high)',
-            color: 'var(--md-sys-color-on-surface)',
-            border: '1px solid var(--md-sys-color-outline-variant)',
-            boxShadow: 'var(--md-shadow-elevation-2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
-          }}
-        >
-          <Menu size={22} />
-        </button>
-      </div>
+          <button
+            onClick={() => handleTabChange('dashboard')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              padding: '4px 0',
+              border: 'none',
+              background: 'transparent',
+              color: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeTab === 'dashboard' ? 800 : 600,
+              fontSize: '0.7rem',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{
+              padding: '4px 12px',
+              borderRadius: '9999px',
+              backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <LayoutDashboard size={18} />
+            </div>
+            <span>Dashboard</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('store')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              padding: '4px 0',
+              border: 'none',
+              background: 'transparent',
+              color: activeTab === 'store' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeTab === 'store' ? 800 : 600,
+              fontSize: '0.7rem',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{
+              padding: '4px 12px',
+              borderRadius: '9999px',
+              backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Store size={18} />
+            </div>
+            <span>Tienda</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('transactions')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              padding: '4px 0',
+              border: 'none',
+              background: 'transparent',
+              color: activeTab === 'transactions' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeTab === 'transactions' ? 800 : 600,
+              fontSize: '0.7rem',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{
+              padding: '4px 12px',
+              borderRadius: '9999px',
+              backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Receipt size={18} />
+            </div>
+            <span>Movimientos</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('reports')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              padding: '4px 0',
+              border: 'none',
+              background: 'transparent',
+              color: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeTab === 'reports' ? 800 : 600,
+              fontSize: '0.7rem',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{
+              padding: '4px 12px',
+              borderRadius: '9999px',
+              backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <FileText size={18} />
+            </div>
+            <span>Reportes</span>
+          </button>
+        </div>
+      )}
 
       {/* Barcode Scanner Modal (0001-9999) */}
       <BarcodeScannerModal

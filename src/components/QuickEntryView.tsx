@@ -17,6 +17,7 @@ interface QuickEntryViewProps {
   onOpenIngreso: () => void;
   onOpenDashboard: () => void;
   onOpenStore?: () => void;
+  onOpenPublicStore?: () => void;
   onOpenTransfer?: () => void;
   onOpenPOS?: () => void;
 }
@@ -26,6 +27,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   onOpenIngreso,
   onOpenDashboard,
   onOpenStore,
+  onOpenPublicStore,
   onOpenTransfer,
   onOpenPOS
 }) => {
@@ -165,9 +167,15 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: '10px'
           }}>
-            {/* Card 1: Tienda Pública */}
+            {/* Card 1: Tienda Pública (Versión cliente que ve todo el mundo) */}
             <div
-              onClick={() => onOpenStore && onOpenStore()}
+              onClick={() => {
+                if (onOpenPublicStore) {
+                  onOpenPublicStore();
+                } else if (typeof window !== 'undefined') {
+                  window.open('/', '_blank');
+                }
+              }}
               style={{
                 padding: '12px 14px',
                 borderRadius: '16px',
@@ -196,17 +204,17 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               </div>
               <div style={{ overflow: 'hidden' }}>
                 <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                  Tienda
+                  Tienda Pública
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                  Catálogo
+                  Ver como Cliente
                 </span>
               </div>
             </div>
 
-            {/* Card 2: Home */}
+            {/* Card 2: Dashboard Contable */}
             <div
-              onClick={() => window.location.reload()}
+              onClick={onOpenDashboard}
               style={{
                 padding: '12px 14px',
                 borderRadius: '16px',
@@ -231,21 +239,21 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <Home size={18} />
+                <LayoutDashboard size={18} />
               </div>
               <div style={{ overflow: 'hidden' }}>
                 <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                  Inicio
+                  Dashboard Contable
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                  Principal
+                  Finanzas Casa
                 </span>
               </div>
             </div>
 
-            {/* Card 3: Dashboard */}
+            {/* Card 3: Dashboard Tienda / Inventario */}
             <div
-              onClick={onOpenDashboard}
+              onClick={() => onOpenStore && onOpenStore()}
               style={{
                 padding: '12px 14px',
                 borderRadius: '16px',
@@ -270,14 +278,14 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <LayoutDashboard size={18} />
+                <Home size={18} />
               </div>
               <div style={{ overflow: 'hidden' }}>
                 <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                  Dashboard
+                  Dashboard Tienda
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                  Estadísticas
+                  Gestión & Inventario
                 </span>
               </div>
             </div>
@@ -313,7 +321,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               </div>
               <div style={{ overflow: 'hidden' }}>
                 <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                  Ahorros
+                  Cuenta Ahorro
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
                   Transferencias

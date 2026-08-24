@@ -194,12 +194,12 @@ body {
   box-shadow: var(--md-shadow-elevation-3);
 }
 
-/* Mobile Responsive Helpers */
+/* Mobile vs Desktop Responsive Helpers */
 .mobile-only-btn {
   display: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .hidden-mobile {
     display: none !important;
   }
@@ -220,6 +220,13 @@ body {
     right: 20px !important;
   }
 }
+
+@media (min-width: 768px) {
+  .hidden-pc {
+    display: none !important;
+  }
+}
+
 
 /* Strict Bottom Sheet Modal Container (Straight bottom corners 0 0, rounded top 28px 28px) */
 .bottom-sheet-modal {

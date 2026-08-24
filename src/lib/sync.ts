@@ -22,7 +22,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     return {
       success: false,
       syncedCount: 0,
-      message: 'Sin conexión a internet. Los datos permanecerán guardados localmente.'
+      message: '📶 Modo 100% Offline activo. Los datos permanecen guardados localmente.'
     };
   }
 
@@ -30,19 +30,19 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
   const lastSyncTime = db.lastSync ? new Date(db.lastSync).getTime() : 0;
   const timeSinceLastSync = Date.now() - lastSyncTime;
 
-  // Optimize Vercel requests: skip redundant request if no changes and synced recently (< 5 mins) unless forced
+  // Optimize Vercel traffic: skip request if no pending changes and synced < 5 mins ago (unless forced)
   if (!force && pendingCount === 0 && timeSinceLastSync < 5 * 60 * 1000) {
     return {
       success: true,
       syncedCount: db.transactions.length,
       productCount: (db.storeProducts || []).length,
-      message: 'La base de datos está al día con Hostinger.'
+      message: 'La base de datos está al día.'
     };
   }
 
-  // AbortController with 7s timeout for slow/unstable connection resilience
+  // 4s AbortController timeout to prevent UI freezes on slow/unstable networks
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 7000);
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
 
   try {
     const res = await fetch('/api/sync', {
@@ -68,7 +68,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      throw new Error(`HTTP error ${res.status}`);
+      throw new Error(`HTTP ${res.status}`);
     }
 
     const data = await res.json();
@@ -102,8 +102,8 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
           ...db.settings,
           ...(data.settings || {})
         },
-        deletedIds: [], // Cleared deletedIds after successful server sync
-        deletedProductIds: [], // Cleared deletedProductIds after successful server sync
+        deletedIds: [],
+        deletedProductIds: [],
         lastSync: new Date().toISOString()
       };
 
@@ -113,19 +113,20 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         success: true,
         syncedCount: mergedTransactions.length,
         productCount: mergedProducts.length,
-        message: `Sincronización exitosa con Hostinger MySQL. ${mergedTransactions.length} movimientos y ${mergedProducts.length} productos unificados.`
+        message: `Sincronización exitosa. ${mergedTransactions.length} movimientos y ${mergedProducts.length} productos unificados.`
       };
     } else {
-      throw new Error(data.message || 'Error en respuesta del servidor');
+      throw new Error(data.message || 'Respuesta inválida del servidor');
     }
   } catch (error) {
     clearTimeout(timeoutId);
-    console.warn('Conexión lenta o inaccesible, trabajando en modo offline:', error);
+    console.warn('Conexión inestable o sin internet, trabajando offline:', error);
     return {
       success: false,
       syncedCount: 0,
       productCount: 0,
-      message: 'Conexión inestable. Se está trabajando 100% offline con datos locales.'
+      message: '📶 Operando en modo offline. Los cambios permanecen guardados en este dispositivo.'
     };
   }
 }
+

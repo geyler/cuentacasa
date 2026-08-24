@@ -107,55 +107,117 @@ export const Header: React.FC<HeaderProps> = ({
           </h1>
         </button>
 
-        {/* Right Actions: Quick Dashboard + Quick Scanner + Eye + Hamburger Menu */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          
-          {/* Quick Access 1: Dashboard */}
+        {/* Navigation Tabs (PC Only - Hidden on Mobile) */}
+        <nav className="hidden-mobile" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
-            onClick={() => setActiveTab('dashboard')}
-            title="Ir al Dashboard Contable"
+            onClick={() => setActiveTab('quick')}
             style={{
-              padding: '7px 12px',
+              padding: '8px 14px',
               borderRadius: '9999px',
               border: 'none',
-              backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-              color: activeTab === 'dashboard' ? '#FFFFFF' : 'var(--md-sys-color-on-surface)',
+              backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: activeTab === 'quick' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
               fontWeight: 800,
-              fontSize: '0.82rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Home size={16} />
+            <span>Inicio</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: activeTab === 'dashboard' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
             }}
           >
             <LayoutDashboard size={16} />
-            <span className="hidden-mobile">Dashboard</span>
+            <span>Dashboard</span>
           </button>
 
-          {/* Quick Access 2: Barcode Scanner */}
-          {onOpenScanner && (
-            <button
-              onClick={onOpenScanner}
-              title="Escáner de Productos (Venta Instantánea)"
-              style={{
-                padding: '7px 12px',
-                borderRadius: '9999px',
-                border: 'none',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                color: 'var(--md-sys-color-on-primary-container)',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <Scan size={16} />
-              <span className="hidden-mobile">Escáner</span>
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('store')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: activeTab === 'store' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Store size={16} />
+            <span>Tienda</span>
+          </button>
 
+          <button
+            onClick={() => setActiveTab('transactions')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: activeTab === 'transactions' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Receipt size={16} />
+            <span>Movimientos</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('reports')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: activeTab === 'reports' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <FileText size={16} />
+            <span>Reportes</span>
+          </button>
+        </nav>
+
+        {/* Right Utility Actions (Both Mobile & PC): Eye Balance Privacy + Settings Gear */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          
           {/* Eye Balance Privacy Toggle */}
           <button
             onClick={toggleShowBalance}
@@ -175,29 +237,28 @@ export const Header: React.FC<HeaderProps> = ({
             {showBalance ? <Eye size={19} /> : <EyeOff size={19} />}
           </button>
 
-          {/* Hamburger Menu Button */}
+          {/* Settings & Cloud Sync Modal Trigger Button */}
           <button
-            onClick={() => setIsMenuOpen(true)}
-            title="Abrir Menú Principal"
+            onClick={onOpenSettings}
+            title="Ajustes y Configuración"
             style={{
-              padding: '8px 12px',
-              borderRadius: '12px',
+              padding: '8px',
+              borderRadius: '50%',
               border: 'none',
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              color: 'var(--md-sys-color-on-surface)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              fontWeight: 800
+              justifyContent: 'center'
             }}
           >
-            <Menu size={20} />
-            <span className="hidden-mobile">Menú</span>
+            {isSyncing ? <Loader2 size={19} className="animate-spin" /> : <Settings size={19} />}
           </button>
 
         </div>
       </div>
+
 
       {/* Hamburger Navigation MD3 Bottom Sheet Modal (Sliding from bottom) */}
       {isMenuOpen && (

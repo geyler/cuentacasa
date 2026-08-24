@@ -60,8 +60,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   // Filtered transactions by movementScope, search & type
   const filtered = transactions.filter(tx => {
-    const isStoreTx = tx.category.includes('Tienda') || (tx.notes && tx.notes.includes('Tienda'));
-    const matchesScope = movementScope === 'casa' ? !tx.category.includes('Fondo Tienda') : isStoreTx;
+    const isStoreTx = tx.category.toLowerCase().includes('tienda') || 
+                      tx.category.toLowerCase().includes('fondo tienda') || 
+                      tx.category.toLowerCase().includes('proveedor') ||
+                      (tx.notes && tx.notes.toLowerCase().includes('tienda')) || 
+                      tx.concept.toLowerCase().includes('venta pos') || 
+                      tx.concept.toLowerCase().includes('tienda');
+
+    // Scope filter: Casa movements strictly exclude store transactions; Tienda movements strictly include them.
+    const matchesScope = movementScope === 'casa' ? !isStoreTx : isStoreTx;
     const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase()) || tx.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'todos' || tx.type === typeFilter;
     return matchesScope && matchesSearch && matchesType;
@@ -73,7 +80,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   // Reset pagination when search or filters change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchTerm, typeFilter]);
+  }, [searchTerm, typeFilter, movementScope]);
 
   // Infinite Scroll Trigger on Window Scroll (only when no limit)
   useEffect(() => {
@@ -242,6 +249,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             const isDeleting = deletingId === tx.id;
             const editable = isTransactionEditable(tx.createdAt);
             const remainingTime = getRemainingEditableTime(tx.createdAt);
+            const isStoreTx = tx.category.toLowerCase().includes('tienda') || 
+                              tx.category.toLowerCase().includes('fondo tienda') || 
+                              tx.category.toLowerCase().includes('proveedor') ||
+                              (tx.notes && tx.notes.toLowerCase().includes('tienda')) || 
+                              tx.concept.toLowerCase().includes('venta pos') || 
+                              tx.concept.toLowerCase().includes('tienda');
 
             return (
               <div
@@ -279,16 +292,35 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
                   {/* Concept & Date */}
                   <div style={{ overflow: 'hidden' }}>
-                    <h4 style={{ 
-                      fontSize: '0.88rem', 
-                      fontWeight: 700, 
-                      color: 'var(--md-sys-color-on-surface)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {tx.concept}
-                    </h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h4 style={{ 
+                        fontSize: '0.88rem', 
+                        fontWeight: 700, 
+                        color: 'var(--md-sys-color-on-surface)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {tx.concept}
+                      </h4>
+
+                      {/* Explicit Casa vs Tienda Badge */}
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        padding: '1px 6px',
+                        borderRadius: '6px',
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        backgroundColor: isStoreTx ? '#FCE7F3' : '#E0F2FE',
+                        color: isStoreTx ? '#DB2777' : '#0284C7',
+                        border: isStoreTx ? '1px solid #FBCFE8' : '1px solid #BAE6FD',
+                        flexShrink: 0
+                      }}>
+                        {isStoreTx ? '🏪 Tienda' : '🏠 Casa'}
+                      </span>
+                    </div>
 
                     <div style={{
                       display: 'flex',
@@ -302,6 +334,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         <Calendar size={11} />
                         <span>{tx.date}</span>
                       </div>
+
+                      {/* Category Pill */}
+                      <span style={{ opacity: 0.8 }}>• {tx.category}</span>
 
                       {/* Remaining Editable Time Badge if active */}
                       {editable && remainingTime && (

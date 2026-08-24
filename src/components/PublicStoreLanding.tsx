@@ -196,15 +196,15 @@ export const PublicStoreLanding: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Store Top Header - Mercado Libre Style */}
+      {/* Store Top Header - Modern Feminine White & Pink Style */}
       <header style={{
-        backgroundColor: '#0F172A',
-        color: '#FFFFFF',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        backgroundColor: '#FFFFFF',
+        color: '#1E293B',
+        borderBottom: '1px solid #FCE7F3',
         position: 'sticky',
         top: 0,
         zIndex: 80,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+        boxShadow: '0 2px 12px rgba(236, 72, 153, 0.08)'
       }}>
         <div style={{
           maxWidth: '1024px',
@@ -224,26 +224,26 @@ export const PublicStoreLanding: React.FC = () => {
               width: '40px',
               height: '40px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #EC4899 0%, #D946EF 100%)',
+              background: 'linear-gradient(135deg, #EC4899 0%, #F472B6 100%)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.4)'
+              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
             }}>
               <Store size={22} />
             </div>
             <div>
-              <h1 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+              <h1 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: '1.1' }}>
                 Samy Store
               </h1>
-              <span style={{ fontSize: '0.68rem', color: '#EC4899', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '0.68rem', color: '#DB2777', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Catálogo Digital Cuba
               </span>
             </div>
           </div>
 
-          {/* Mercado Libre Header Search Bar */}
+          {/* Header Search Bar */}
           <div style={{ flex: 1, maxWidth: '400px', display: 'flex', position: 'relative' }} className="hidden-mobile">
             <Search 
               size={17} 
@@ -252,7 +252,7 @@ export const PublicStoreLanding: React.FC = () => {
                 left: '14px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: '#64748B'
+                color: '#EC4899'
               }} 
             />
             <input
@@ -264,9 +264,9 @@ export const PublicStoreLanding: React.FC = () => {
                 width: '100%',
                 padding: '8px 14px 8px 38px',
                 borderRadius: '9999px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                color: '#FFFFFF',
+                border: '1px solid #FBCFE8',
+                backgroundColor: '#FDF2F8',
+                color: '#0F172A',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 outline: 'none'
@@ -337,9 +337,9 @@ export const PublicStoreLanding: React.FC = () => {
                   width: '40px',
                   height: '40px',
                   borderRadius: '9999px',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  backgroundColor: 'rgba(255,255,255,0.08)',
-                  color: '#FFFFFF',
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#F8FAFC',
+                  color: '#475569',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -524,10 +524,10 @@ export const PublicStoreLanding: React.FC = () => {
                       borderRadius: '18px',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      border: '2px solid #EC4899',
+                      border: '1px solid var(--md-sys-color-outline-variant)',
                       backgroundColor: 'var(--md-sys-color-surface)',
                       position: 'relative',
-                      boxShadow: '0 4px 14px rgba(236, 72, 153, 0.15)'
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
                     }}
                   >
                     <div>
