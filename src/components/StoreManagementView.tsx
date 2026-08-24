@@ -589,62 +589,62 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </div>
       </div>
 
-      {/* Dual Funds Accounting Metrics */}
+      {/* Dual Funds Accounting Metrics (2 Columns on Mobile) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '12px'
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '10px'
       }}>
         
         {/* House Net Profit */}
-        <div className="md-card" style={{ padding: '14px 16px', backgroundColor: 'var(--md-sys-color-income-container)' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-income-container)', display: 'block' }}>
-            Ganancias a CuentaCasa
+        <div className="md-card" style={{ padding: '12px 14px', backgroundColor: 'var(--md-sys-color-income-container)' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-income-container)', display: 'block' }}>
+            Ganancias a Casa
           </span>
-          <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-income)', display: 'block', margin: '4px 0 2px 0' }}>
             +{formatCurrency(totalHouseProfit, currency, true)}
           </span>
-          <span style={{ fontSize: '0.7rem', opacity: 0.8, display: 'block', marginTop: '2px' }}>
-            Transferido al balance general
+          <span style={{ fontSize: '0.68rem', opacity: 0.8, display: 'block' }}>
+            A balance general
           </span>
         </div>
 
         {/* Store Fund (Caja Chica) */}
-        <div className="md-card" style={{ padding: '14px 16px' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            Fondo Recaudado Tienda
+        <div className="md-card" style={{ padding: '12px 14px' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+            Fondo Tienda (Caja)
           </span>
-          <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
+          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-primary)', display: 'block', margin: '4px 0 2px 0' }}>
             {formatCurrency(totalStoreFund, currency, true)}
           </span>
-          <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
-            Dinero para reposición propia
+          <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+            Caja de reposición
           </span>
         </div>
 
         {/* Supplier Debts */}
-        <div className="md-card" style={{ padding: '14px 16px' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            Por Pagar a Proveedores
+        <div className="md-card" style={{ padding: '12px 14px' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+            Por Pagar Proveedor
           </span>
-          <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--md-sys-color-expense)' }}>
+          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-expense)', display: 'block', margin: '4px 0 2px 0' }}>
             {formatCurrency(totalPendingSupplierDebt, currency, true)}
           </span>
-          <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
-            Maikel, Carlos, etc.
+          <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+            Deudas pendientes
           </span>
         </div>
 
         {/* Total Stock Capital */}
-        <div className="md-card" style={{ padding: '14px 16px' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            Capital en Almacén
+        <div className="md-card" style={{ padding: '12px 14px' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+            Capital Almacén
           </span>
-          <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', display: 'block', margin: '4px 0 2px 0' }}>
             {formatCurrency(totalCostValueInStock, currency, true)}
           </span>
-          <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
-            {totalStockUnits} unidades en existencia
+          <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+            {totalStockUnits}u en stock
           </span>
         </div>
 
@@ -1049,9 +1049,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             const totalPaidAll = suppliers.reduce((sum, s) => sum + s.totalPaid, 0);
 
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                 <div style={{
-                  padding: '14px 16px',
+                  padding: '12px 14px',
                   borderRadius: '16px',
                   backgroundColor: 'var(--md-sys-color-surface-container)',
                   border: '1px solid var(--md-sys-color-outline-variant)',
@@ -1059,19 +1059,19 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   flexDirection: 'column',
                   gap: '4px'
                 }}>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    📦 Mercancía Sin Vender (Costo Neto)
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    📦 Mercancía Stock
                   </span>
                   <strong style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
                     {formatCurrency(totalUnsoldNet, currency, true)}
                   </strong>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    {consignmentProds.reduce((s, p) => s + p.stock, 0)} unidades en stock
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    {consignmentProds.reduce((s, p) => s + p.stock, 0)}u en inventario
                   </span>
                 </div>
 
                 <div style={{
-                  padding: '14px 16px',
+                  padding: '12px 14px',
                   borderRadius: '16px',
                   backgroundColor: 'var(--md-sys-color-expense-container)',
                   border: '1px solid var(--md-sys-color-expense)',
@@ -1079,33 +1079,34 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   flexDirection: 'column',
                   gap: '4px'
                 }}>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--md-sys-color-expense)' }}>
-                    ⏳ Por Liquidar (Ventas Realizadas)
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-expense)' }}>
+                    ⏳ Por Liquidar
                   </span>
                   <strong style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-expense)' }}>
                     {formatCurrency(totalPendingDebt, currency, true)}
                   </strong>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-expense)' }}>
-                    Pendiente de entregar a proveedores
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-expense)' }}>
+                    Ventas pendientes
                   </span>
                 </div>
 
                 <div style={{
-                  padding: '14px 16px',
+                  padding: '12px 14px',
                   borderRadius: '16px',
                   backgroundColor: 'var(--md-sys-color-income-container)',
                   border: '1px solid var(--md-sys-color-income)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '4px'
+                  gap: '4px',
+                  gridColumn: 'span 2'
                 }}>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--md-sys-color-income)' }}>
-                    ✅ Total Ya Liquidado (Pagado)
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                    ✅ Total Ya Liquidado (Pagado a Proveedores)
                   </span>
                   <strong style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
                     {formatCurrency(totalPaidAll, currency, true)}
                   </strong>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-income)' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-income)' }}>
                     Entregado en efectivo a proveedores
                   </span>
                 </div>
@@ -1196,8 +1197,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                     )}
                   </div>
 
-                  {/* Financial Grid (4 Pills) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                  {/* Financial Grid (4 Pills in 2x2 Grid) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                     
                     <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                       <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', fontWeight: 700 }}>

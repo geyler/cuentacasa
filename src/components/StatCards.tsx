@@ -46,42 +46,45 @@ export const StatCards: React.FC<StatCardsProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       
-      {/* Primary Metric Cards Grid */}
+      {/* Primary Balance Cards Grid (2 Columns on Mobile) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '16px'
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '10px'
       }}>
         
-        {/* Balance Card */}
+        {/* Balance Card - Cuenta Casa */}
         <div className="md-card" style={{
           background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #004B77 100%)',
           color: '#FFFFFF',
           border: 'none',
-          position: 'relative',
-          overflow: 'hidden'
+          padding: '14px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, opacity: 0.9 }}>Saldo Neto Casa</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, opacity: 0.9 }}>🏡 Saldo Neto Casa</span>
             <div style={{
-              width: '36px',
-              height: '36px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               backgroundColor: 'rgba(255,255,255,0.2)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}>
-              <Wallet size={20} />
+              <Wallet size={16} />
             </div>
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, margin: '14px 0 6px 0', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', letterSpacing: '-0.02em', wordBreak: 'break-word' }}>
             {formatCurrency(summary.netBalance, currency, showBalance)}
           </div>
-          <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
-            Presupuesto disponible en Cuenta Casa
+          <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+            Presupuesto Cuenta Casa
           </div>
         </div>
 
@@ -89,27 +92,32 @@ export const StatCards: React.FC<StatCardsProps> = ({
         <div className="md-card" style={{
           backgroundColor: 'var(--md-sys-color-income-container)',
           color: 'var(--md-sys-color-on-income-container)',
-          borderColor: 'rgba(0, 135, 90, 0.2)'
+          borderColor: 'rgba(0, 135, 90, 0.2)',
+          padding: '14px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Total Ingresos</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>Total Ingresos</span>
             <div style={{
-              width: '36px',
-              height: '36px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               backgroundColor: 'rgba(0, 135, 90, 0.15)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}>
-              <TrendingUp size={20} color="var(--md-sys-color-income)" />
+              <TrendingUp size={16} color="var(--md-sys-color-income)" />
             </div>
           </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-income)' }}>
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)', wordBreak: 'break-word' }}>
             + {formatCurrency(summary.totalIncome, currency, showBalance)}
           </div>
-          <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
-            Pagos por webs, ventas y salarios
+          <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+            Pagos, ventas y salarios
           </div>
         </div>
 
@@ -117,37 +125,96 @@ export const StatCards: React.FC<StatCardsProps> = ({
         <div className="md-card" style={{
           backgroundColor: 'var(--md-sys-color-expense-container)',
           color: 'var(--md-sys-color-on-expense-container)',
-          borderColor: 'rgba(211, 47, 47, 0.2)'
+          borderColor: 'rgba(211, 47, 47, 0.2)',
+          padding: '14px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Total Gastos</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>Total Gastos</span>
             <div style={{
-              width: '36px',
-              height: '36px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               backgroundColor: 'rgba(211, 47, 47, 0.15)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}>
-              <TrendingDown size={20} color="var(--md-sys-color-expense)" />
+              <TrendingDown size={16} color="var(--md-sys-color-expense)" />
             </div>
           </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '14px 0 6px 0', color: 'var(--md-sys-color-expense)' }}>
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-expense)', wordBreak: 'break-word' }}>
             - {formatCurrency(summary.totalExpense, currency, showBalance)}
           </div>
-          <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
-            Comida, pan, arroz, servicios, etc.
+          <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+            Gastos de hogar y compras
+          </div>
+        </div>
+
+        {/* Store Fund Card (Fondo Tienda / Almacén) */}
+        <div className="md-card" style={{
+          background: 'linear-gradient(135deg, #059669 0%, #064E3B 100%)',
+          color: '#FFFFFF',
+          border: 'none',
+          padding: '14px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, opacity: 0.9 }}>🏦 Fondo Tienda</span>
+            <div style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Store size={16} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', letterSpacing: '-0.02em', wordBreak: 'break-word' }}>
+            {formatCurrency(storeFund, currency, showBalance)}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>Almacén / Caja</span>
+            {onOpenTransfer && (
+              <button
+                type="button"
+                onClick={onOpenTransfer}
+                style={{
+                  background: 'rgba(255,255,255,0.25)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  padding: '2px 6px',
+                  borderRadius: '9999px',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px'
+                }}
+              >
+                <ArrowRightLeft size={10} /> Mover
+              </button>
+            )}
           </div>
         </div>
 
       </div>
 
-      {/* Secondary Funds Grid: Savings & Store Fund */}
+      {/* Savings Fund Row Card (2 Columns or Single Wide) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '16px'
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '10px'
       }}>
         
         {/* Savings Fund Card */}
@@ -155,100 +222,51 @@ export const StatCards: React.FC<StatCardsProps> = ({
           background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
           color: '#FFFFFF',
           border: 'none',
-          position: 'relative',
-          overflow: 'hidden'
+          padding: '14px 12px',
+          gridColumn: 'span 2'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.9 }}>Fondo de Ahorro Casa</span>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <PiggyBank size={20} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <PiggyBank size={16} />
+              </div>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, opacity: 0.9 }}>🐷 Fondo de Ahorro Casa</span>
             </div>
+            {onOpenTransfer && (
+              <button
+                type="button"
+                onClick={onOpenTransfer}
+                style={{
+                  background: 'rgba(255,255,255,0.25)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <ArrowRightLeft size={12} /> Transferir
+              </button>
+            )}
           </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '12px 0 6px 0', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: '1.4rem', fontWeight: 900, margin: '8px 0 2px 0', letterSpacing: '-0.02em' }}>
             {formatCurrency(savingsFund, currency, showBalance)}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', opacity: 0.85 }}>Reserva acumulada</span>
-            {onOpenTransfer && (
-              <button
-                type="button"
-                onClick={onOpenTransfer}
-                style={{
-                  background: 'rgba(255,255,255,0.25)',
-                  border: 'none',
-                  color: '#FFFFFF',
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <ArrowRightLeft size={12} /> Transferir
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Store Fund Card */}
-        <div className="md-card" style={{
-          background: 'linear-gradient(135deg, #059669 0%, #064E3B 100%)',
-          color: '#FFFFFF',
-          border: 'none',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.9 }}>Fondo Tienda (Caja)</span>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Store size={20} />
-            </div>
-          </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, margin: '12px 0 6px 0', letterSpacing: '-0.02em' }}>
-            {formatCurrency(storeFund, currency, showBalance)}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', opacity: 0.85 }}>Efectivo del negocio</span>
-            {onOpenTransfer && (
-              <button
-                type="button"
-                onClick={onOpenTransfer}
-                style={{
-                  background: 'rgba(255,255,255,0.25)',
-                  border: 'none',
-                  color: '#FFFFFF',
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <ArrowRightLeft size={12} /> Transferir
-              </button>
-            )}
+          <div style={{ fontSize: '0.7rem', opacity: 0.85, fontWeight: 600 }}>
+            Reserva acumulada de ahorros del hogar
           </div>
         </div>
 
