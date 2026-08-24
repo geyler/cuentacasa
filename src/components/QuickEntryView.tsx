@@ -33,15 +33,13 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
 }) => {
   return (
     <div style={{
-      minHeight: '75vh',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: '16px 12px 60px 12px',
+      padding: '8px 12px 60px 12px',
       textAlign: 'center'
     }}>
-      <div style={{ maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
         
         {/* App Title Header */}
         <div>

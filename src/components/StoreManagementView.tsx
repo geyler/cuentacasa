@@ -512,44 +512,45 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       
       {/* Header Banner */}
       <div className="md-card" style={{
-        background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #00385E 100%)',
+        background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
         color: '#FFFFFF',
         padding: '20px',
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '12px'
+        flexDirection: 'column',
+        gap: '14px'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <Store size={22} />
+            <Store size={22} color="#F472B6" />
             <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Inventario y Cuentas de Tienda</h2>
           </div>
-          <p style={{ fontSize: '0.8rem', opacity: 0.85 }}>
+          <p style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
             Separación de Fondos: El margen de ganancias se envía a CuentaCasa y el costo permanece en el Fondo Tienda / Proveedores.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '320px' }}>
+        {/* 50 / 50 Equal Width Action Buttons */}
+        <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
           {onOpenScanner && (
             <button
               onClick={onOpenScanner}
               className="md-btn"
               style={{
-                flex: 1,
-                backgroundColor: 'rgba(255,255,255,0.25)',
+                flex: '1 1 0px',
+                width: '50%',
+                backgroundColor: 'rgba(255,255,255,0.12)',
                 color: '#FFFFFF',
                 fontSize: '0.92rem',
                 fontWeight: 800,
                 padding: '12px 16px',
-                border: '1px solid rgba(255,255,255,0.4)',
+                border: '1px solid rgba(255,255,255,0.2)',
                 backdropFilter: 'blur(4px)',
-                borderRadius: '16px',
+                borderRadius: '14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                whiteSpace: 'nowrap'
               }}
             >
               <Scan size={20} />
@@ -561,21 +562,24 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             onClick={handleOpenAdd}
             className="md-btn"
             style={{
-              flex: 1,
+              flex: '1 1 0px',
+              width: '50%',
               backgroundColor: '#FFFFFF',
-              color: 'var(--md-sys-color-primary)',
+              color: '#0F172A',
               fontSize: '0.92rem',
               fontWeight: 800,
               padding: '12px 16px',
-              borderRadius: '16px',
+              border: 'none',
+              borderRadius: '14px',
               boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '8px',
+              whiteSpace: 'nowrap'
             }}
           >
-            <Plus size={20} />
+            <Plus size={20} color="#EC4899" />
             <span>Publicar</span>
           </button>
         </div>

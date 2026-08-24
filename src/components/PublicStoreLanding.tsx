@@ -354,38 +354,15 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero Banner Section - Sandra Shein / Temu Style */}
+      {/* Soft & Professional Feminine Hero Banner Section */}
       <div style={{
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #831843 100%)',
-        color: '#FFFFFF',
-        padding: '28px 16px 36px 16px',
+        background: 'linear-gradient(135deg, #FFF7F9 0%, #FDF2F8 60%, #FCE7F3 100%)',
+        color: '#1E293B',
+        padding: '32px 16px 40px 16px',
         textAlign: 'center',
         position: 'relative',
-        overflow: 'hidden',
-        boxShadow: 'inset 0 -10px 20px rgba(0,0,0,0.2)'
+        borderBottom: '1px solid #FBCFE8'
       }}>
-        {/* Glow circles background */}
-        <div style={{
-          position: 'absolute',
-          top: '-30px',
-          left: '15%',
-          width: '180px',
-          height: '180px',
-          borderRadius: '9999px',
-          background: 'radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, rgba(0,0,0,0) 70%)',
-          pointerEvents: 'none'
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '-40px',
-          right: '10%',
-          width: '220px',
-          height: '220px',
-          borderRadius: '9999px',
-          background: 'radial-gradient(circle, rgba(255, 241, 0, 0.2) 0%, rgba(0,0,0,0) 70%)',
-          pointerEvents: 'none'
-        }} />
-
         <div style={{ maxWidth: '1024px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           
           {/* Store Badge */}
@@ -393,10 +370,9 @@ export const PublicStoreLanding: React.FC = () => {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            backgroundColor: 'rgba(255, 255, 255, 0.12)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            color: '#FFF100',
+            backgroundColor: '#FCE7F3',
+            border: '1px solid #FBCFE8',
+            color: '#DB2777',
             padding: '5px 16px',
             borderRadius: '9999px',
             fontSize: '0.78rem',
@@ -404,7 +380,7 @@ export const PublicStoreLanding: React.FC = () => {
             letterSpacing: '0.04em',
             marginBottom: '14px'
           }}>
-            <Sparkles size={14} color="#FFF100" />
+            <Sparkles size={14} color="#EC4899" />
             <span>BIENVENIDO A SAMY STORE</span>
           </div>
 
@@ -414,41 +390,39 @@ export const PublicStoreLanding: React.FC = () => {
             lineHeight: '1.2', 
             marginBottom: '10px',
             letterSpacing: '-0.02em',
-            background: 'linear-gradient(180deg, #FFFFFF 0%, #FCE7F3 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            color: '#831843'
           }}>
             Tu Tienda Online Preferida
           </h2>
 
           <p style={{ 
             fontSize: '0.92rem', 
-            color: 'rgba(255, 255, 255, 0.9)', 
+            color: '#64748B', 
             lineHeight: '1.5', 
             maxWidth: '560px', 
-            margin: '0 auto 18px auto',
+            margin: '0 auto 20px auto',
             fontWeight: 500
           }}>
             Explora nuestro catálogo variado. Agrega tus artículos al carrito con un toque y realiza tu pedido directo por WhatsApp con entrega rápida.
           </p>
 
-          {/* Quick Advantage Pills */}
+          {/* Advantage Pills */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '10px',
             flexWrap: 'wrap',
-            marginBottom: '20px'
+            marginBottom: '22px'
           }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '5px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <Truck size={14} color="#FFF100" /> Envíos Rápidos
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: '#FFFFFF', color: '#475569', padding: '6px 14px', borderRadius: '12px', border: '1px solid #F1F5F9', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+              <Truck size={14} color="#EC4899" /> Envíos Rápidos
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '5px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: '#FFFFFF', color: '#475569', padding: '6px 14px', borderRadius: '12px', border: '1px solid #F1F5F9', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
               <MessageCircle size={14} color="#25D366" /> Atención por WhatsApp
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '5px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <ShieldCheck size={14} color="#60A5FA" /> Calidad Garantizada
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: '#FFFFFF', color: '#475569', padding: '6px 14px', borderRadius: '12px', border: '1px solid #F1F5F9', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+              <ShieldCheck size={14} color="#0284C7" /> Calidad Garantizada
             </span>
           </div>
 
@@ -473,13 +447,13 @@ export const PublicStoreLanding: React.FC = () => {
                 width: '100%',
                 padding: '14px 18px 14px 50px',
                 borderRadius: '9999px',
-                border: '2px solid rgba(236, 72, 153, 0.6)',
+                border: '1px solid #FBCFE8',
                 backgroundColor: '#FFFFFF',
                 color: '#0F172A',
-                fontSize: '0.96rem',
+                fontSize: '0.94rem',
                 fontWeight: 700,
                 outline: 'none',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+                boxShadow: '0 4px 16px rgba(236, 72, 153, 0.08)'
               }}
             />
           </div>

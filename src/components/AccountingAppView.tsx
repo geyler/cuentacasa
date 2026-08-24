@@ -624,7 +624,7 @@ function AccountingAppContent() {
         maxWidth: '1024px',
         width: '100%',
         margin: '0 auto',
-        padding: activeTab === 'quick' ? '8px 16px' : '16px 16px 90px 16px',
+        padding: '16px 16px 130px 16px',
         flex: 1
       }}>
 
