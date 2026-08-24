@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { StoreProduct } from '@/types';
 import { getStoreProducts, getStoreWhatsappNumber } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
@@ -15,17 +14,20 @@ import {
   Minus, 
   Trash2, 
   Lock, 
-  Check, 
   MessageCircle, 
   Sparkles, 
   Store,
   Truck,
   ExternalLink,
-  Info,
   Globe,
   Star,
   ShieldCheck,
-  Zap
+  Zap,
+  CheckCircle2,
+  Flame,
+  X,
+  Layers,
+  ChevronRight
 } from 'lucide-react';
 import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
 import { STORE_SEO_CONFIG, getCategorySeoDescription, getProductSeoMeta } from '@/lib/seoHelper';
@@ -45,13 +47,23 @@ export const PublicStoreLanding: React.FC = () => {
   const [selectedProductForModal, setSelectedProductForModal] = useState<StoreProduct | null>(null);
   const [isCubasoftModalOpen, setIsCubasoftModalOpen] = useState(false);
 
+  // Facebook-Style Bottom Sheet state for quantity selection & confirmation
+  const [productToAddToCart, setProductToAddToCart] = useState<StoreProduct | null>(null);
+  const [addQty, setAddQty] = useState<number>(1);
+  const [addedSuccessModal, setAddedSuccessModal] = useState<{
+    show: boolean;
+    productName: string;
+    quantity: number;
+    totalPrice: number;
+  } | null>(null);
+
   useEffect(() => {
     // 1. Initial immediate load from local storage
     const all = getStoreProducts();
     const publishedList = all.filter(p => p.published);
     setProducts(publishedList);
 
-    // 2. Background sync with Cloud to retrieve products created/updated on other devices (e.g. mobile vs PC)
+    // 2. Background sync with Cloud to retrieve products created/updated on other devices
     syncDatabaseWithCloud(true).then(res => {
       if (res.success) {
         const syncedAll = getStoreProducts();
@@ -99,14 +111,47 @@ export const PublicStoreLanding: React.FC = () => {
     return matchesSearch && matchesCat;
   });
 
-  const addToCart = (product: StoreProduct) => {
-    if (product.isExternal) return; // External products bypass cart
+  // Calculate Featured Products (Top 4 by Sales or Random/Recency if no sales exist)
+  const getFeaturedProducts = (): StoreProduct[] => {
+    const sortedBySales = [...products].sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+    const withSales = sortedBySales.filter(p => (p.salesCount || 0) > 0);
+    if (withSales.length >= 4) {
+      return withSales.slice(0, 4);
+    }
+    return [...products].slice(0, 4);
+  };
+
+  const featuredProducts = getFeaturedProducts();
+
+  const handleOpenAddToCartSheet = (product: StoreProduct) => {
+    if (product.isExternal) return;
+    setProductToAddToCart(product);
+    setAddQty(1);
+  };
+
+  const handleConfirmAddToCart = () => {
+    if (!productToAddToCart) return;
+
+    const qty = addQty;
+    const prod = productToAddToCart;
+    const subtotal = prod.price * qty;
+
     setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+      const existing = prev.find(item => item.product.id === prod.id);
       if (existing) {
-        return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+        return prev.map(item => item.product.id === prod.id ? { ...item, quantity: item.quantity + qty } : item);
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product: prod, quantity: qty }];
+    });
+
+    setProductToAddToCart(null);
+
+    // Trigger Facebook-Style confirmation bottom sheet
+    setAddedSuccessModal({
+      show: true,
+      productName: prod.name,
+      quantity: qty,
+      totalPrice: subtotal
     });
   };
 
@@ -134,7 +179,7 @@ export const PublicStoreLanding: React.FC = () => {
     const cartQuery = cart.map(i => `${i.product.barcode}:${i.quantity}`).join(',');
     const cartLink = `${window.location.origin}/app?cart=${encodeURIComponent(cartQuery)}`;
 
-    let text = `🛒 *NUEVO PEDIDO - CUBASOFT STORE*\n📍 *Las Tunas, Cuba*\n----------------------------------\n`;
+    let text = `🛒 *NUEVO PEDIDO - SAMY STORE*\n📍 *Cuba*\n----------------------------------\n`;
     cart.forEach((item, index) => {
       text += `${index + 1}. *${item.product.name}* (Cod: #${item.product.barcode})\n   Cant: ${item.quantity}u | Subtotal: $${item.product.price * item.quantity} CUP\n`;
     });
@@ -151,18 +196,18 @@ export const PublicStoreLanding: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Store Top Header */}
+      {/* Store Top Header - Mercado Libre Style */}
       <header style={{
-        backgroundColor: 'var(--md-sys-color-surface-container)',
-        borderBottom: '1px solid var(--md-sys-color-surface-variant)',
+        backgroundColor: '#0F172A',
+        color: '#FFFFFF',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
         position: 'sticky',
         top: 0,
         zIndex: 80,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+        boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
       }}>
-        {/* Store Header Row */}
         <div style={{
-          maxWidth: '1200px',
+          maxWidth: '1024px',
           margin: '0 auto',
           padding: '10px 16px',
           display: 'flex',
@@ -170,91 +215,139 @@ export const PublicStoreLanding: React.FC = () => {
           justifyContent: 'space-between',
           gap: '12px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Logo & Brand Name */}
+          <div 
+            onClick={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+          >
             <div style={{
-              width: '38px',
-              height: '38px',
+              width: '40px',
+              height: '40px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #004D7A 100%)',
+              background: 'linear-gradient(135deg, #EC4899 0%, #D946EF 100%)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 3px 10px rgba(0, 99, 155, 0.3)'
+              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.4)'
             }}>
               <Store size={22} />
             </div>
-            <h1 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em', display: 'flex', flexDirection: 'column' }}>
-              <span>Cubasoft Store</span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>Catálogo & Ventas Cuba</span>
-            </h1>
+            <div>
+              <h1 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+                Samy Store
+              </h1>
+              <span style={{ fontSize: '0.68rem', color: '#EC4899', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Catálogo Digital Cuba
+              </span>
+            </div>
           </div>
 
-          {/* Cart Icon & Admin Access Link */}
+          {/* Mercado Libre Header Search Bar (Hidden on ultra small screens, visible on header) */}
+          <div style={{ flex: 1, maxWidth: '400px', display: 'flex', position: 'relative' }} className="hidden-mobile">
+            <Search 
+              size={17} 
+              style={{
+                position: 'absolute',
+                left: '14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#64748B'
+              }} 
+            />
+            <input
+              type="text"
+              placeholder="Buscar en Samy Store..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 14px 8px 38px',
+                borderRadius: '9999px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                color: '#FFFFFF',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          {/* Right Action Icons: Cart & Dashboard Lock */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             
-            {/* Shopping Cart Button (Icon Only) */}
+            {/* Cart Button */}
             <button
               onClick={() => setIsCartOpen(!isCartOpen)}
               title="Ver Carrito de Compras"
               style={{
                 position: 'relative',
-                width: '42px',
-                height: '42px',
+                height: '40px',
+                padding: '0 14px',
                 borderRadius: '9999px',
                 border: 'none',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                color: 'var(--md-sys-color-on-primary-container)',
+                backgroundColor: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
+                background: '#EC4899',
+                color: '#FFFFFF',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.35)'
               }}
             >
-              <ShoppingBag size={20} />
+              <ShoppingBag size={19} />
+              {totalCartCount > 0 ? (
+                <span style={{ fontSize: '0.85rem' }}>
+                  {totalCartCount} ({formatCurrency(totalCartPrice, '$', true)})
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.82rem' }} className="hidden-mobile">Carrito</span>
+              )}
+
               {totalCartCount > 0 && (
                 <span style={{
                   position: 'absolute',
-                  top: '-2px',
-                  right: '-2px',
-                  backgroundColor: 'var(--md-sys-color-expense)',
-                  color: '#FFF',
+                  top: '-4px',
+                  right: '-4px',
+                  backgroundColor: '#FFF100',
+                  color: '#0F172A',
                   width: '20px',
                   height: '20px',
                   borderRadius: '9999px',
                   fontSize: '0.72rem',
-                  fontWeight: 800,
+                  fontWeight: 900,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
                 }}>
                   {totalCartCount}
                 </span>
               )}
             </button>
 
-            {/* ONLY DISPLAY DASHBOARD ICON BUTTON IF LOGGED IN */}
+            {/* Dashboard Access Link (Only if Logged In) */}
             {isUserLoggedIn && (
               <a
                 href="/login"
                 title="Ir al Dashboard Contable"
                 style={{
-                  width: '42px',
-                  height: '42px',
+                  width: '40px',
+                  height: '40px',
                   borderRadius: '9999px',
-                  border: '1px solid var(--md-sys-color-primary)',
-                  backgroundColor: 'var(--md-sys-color-surface)',
-                  color: 'var(--md-sys-color-primary)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  color: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   textDecoration: 'none'
                 }}
               >
-                <Lock size={19} />
+                <Lock size={18} />
               </a>
             )}
 
@@ -262,41 +355,41 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       </header>
 
-      {/* Premium Multi-Category Hero Showcase Banner */}
+      {/* Hero Banner Section - Sandra Shein / Temu Style */}
       <div style={{
-        background: 'linear-gradient(135deg, #002B49 0%, #001529 50%, #003E6B 100%)',
+        background: 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #831843 100%)',
         color: '#FFFFFF',
         padding: '28px 16px 36px 16px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: 'inset 0 -10px 20px rgba(0,0,0,0.15)'
+        boxShadow: 'inset 0 -10px 20px rgba(0,0,0,0.2)'
       }}>
-        {/* Decorative Background Glass Glow Circles */}
+        {/* Glow circles background */}
         <div style={{
           position: 'absolute',
-          top: '-40px',
-          left: '10%',
+          top: '-30px',
+          left: '15%',
           width: '180px',
           height: '180px',
           borderRadius: '9999px',
-          background: 'radial-gradient(circle, rgba(0, 255, 136, 0.15) 0%, rgba(0,0,0,0) 70%)',
+          background: 'radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, rgba(0,0,0,0) 70%)',
           pointerEvents: 'none'
         }} />
         <div style={{
           position: 'absolute',
-          bottom: '-50px',
-          right: '8%',
+          bottom: '-40px',
+          right: '10%',
           width: '220px',
           height: '220px',
           borderRadius: '9999px',
-          background: 'radial-gradient(circle, rgba(0, 153, 255, 0.2) 0%, rgba(0,0,0,0) 70%)',
+          background: 'radial-gradient(circle, rgba(255, 241, 0, 0.2) 0%, rgba(0,0,0,0) 70%)',
           pointerEvents: 'none'
         }} />
 
-        <div style={{ maxWidth: '680px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+        <div style={{ maxWidth: '1024px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           
-          {/* Versatile Store Badge */}
+          {/* Store Badge */}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -304,17 +397,16 @@ export const PublicStoreLanding: React.FC = () => {
             backgroundColor: 'rgba(255, 255, 255, 0.12)',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
-            color: '#00FF88',
+            color: '#FFF100',
             padding: '5px 16px',
             borderRadius: '9999px',
             fontSize: '0.78rem',
             fontWeight: 800,
             letterSpacing: '0.04em',
-            marginBottom: '14px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            marginBottom: '14px'
           }}>
-            <Sparkles size={14} color="#00FF88" />
-            <span>TIENDA VARIADA & MULTIRRUBRO</span>
+            <Sparkles size={14} color="#FFF100" />
+            <span>BIENVENIDO A SAMY STORE</span>
           </div>
 
           <h2 style={{ 
@@ -323,46 +415,46 @@ export const PublicStoreLanding: React.FC = () => {
             lineHeight: '1.2', 
             marginBottom: '10px',
             letterSpacing: '-0.02em',
-            background: 'linear-gradient(180deg, #FFFFFF 0%, #E2F1FF 100%)',
+            background: 'linear-gradient(180deg, #FFFFFF 0%, #FCE7F3 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
           }}>
-            Todo lo que Necesitas en un Solo Lugar
+            Tu Tienda Online Preferida
           </h2>
 
           <p style={{ 
             fontSize: '0.92rem', 
-            color: 'rgba(255, 255, 255, 0.88)', 
+            color: 'rgba(255, 255, 255, 0.9)', 
             lineHeight: '1.5', 
             maxWidth: '560px', 
-            margin: '0 auto 16px auto',
+            margin: '0 auto 18px auto',
             fontWeight: 500
           }}>
-            Víveres • Panadería • Bebidas • Aseo • Electrónica • Golosinas y Más. Explora el catálogo y encarga directo por WhatsApp.
+            Explora nuestro catálogo variado. Agrega tus artículos al carrito con un toque y realiza tu pedido directo por WhatsApp con entrega rápida.
           </p>
 
-          {/* Quick Advantage Badges */}
+          {/* Quick Advantage Pills */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '12px',
+            gap: '10px',
             flexWrap: 'wrap',
             marginBottom: '20px'
           }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.9, display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '4px 10px', borderRadius: '8px' }}>
-              <Truck size={13} color="#00FF88" /> Envíos Directos
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '5px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <Truck size={14} color="#FFF100" /> Envíos Rápidos
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.9, display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '4px 10px', borderRadius: '8px' }}>
-              <MessageCircle size={13} color="#25D366" /> Atención Inmediata
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '5px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <MessageCircle size={14} color="#25D366" /> Atención por WhatsApp
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.9, display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '4px 10px', borderRadius: '8px' }}>
-              <ShieldCheck size={13} color="#60A5FA" /> Garantía de Calidad
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '5px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <ShieldCheck size={14} color="#60A5FA" /> Calidad Garantizada
             </span>
           </div>
 
-          {/* Search bar inside Hero */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '500px', margin: '0 auto' }}>
+          {/* Main Hero Search Bar Input */}
+          <div style={{ position: 'relative', width: '100%', maxWidth: '480px', margin: '0 auto' }}>
             <Search 
               size={20} 
               style={{
@@ -370,26 +462,25 @@ export const PublicStoreLanding: React.FC = () => {
                 left: '18px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--md-sys-color-primary)'
+                color: '#EC4899'
               }} 
             />
             <input
               type="text"
-              placeholder="¿Qué estás buscando hoy? Ej. Arroz, Café, Pan..."
+              placeholder="¿Qué deseas comprar hoy? Ej. Arroz, Café..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
                 padding: '14px 18px 14px 50px',
                 borderRadius: '9999px',
-                border: '2px solid rgba(255, 255, 255, 0.4)',
+                border: '2px solid rgba(236, 72, 153, 0.6)',
                 backgroundColor: '#FFFFFF',
-                color: '#1A1C1E',
+                color: '#0F172A',
                 fontSize: '0.96rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 outline: 'none',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-                transition: 'box-shadow 0.2s ease'
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
               }}
             />
           </div>
@@ -397,64 +488,184 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Body Section */}
-      <main style={{ maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
+      {/* Main Container - Enforcing 5xl (1024px max width) */}
+      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
         
-        {/* Category Showcase Grid (ERP-Style) */}
-        {categories.length > 0 && selectedCategory === 'todas' && !searchTerm && (
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Tag size={16} color="var(--md-sys-color-primary)" />
-              <span>Categorías del Catálogo</span>
-            </h3>
+        {/* SECTION 1: 4 Featured / Best Selling Products */}
+        {featuredProducts.length > 0 && selectedCategory === 'todas' && !searchTerm && (
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FEE2E2',
+                  color: '#EF4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Flame size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.1' }}>
+                    Destacados & Más Vendidos
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                    Los artículos preferidos de nuestros clientes
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Cards Grid */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-              gap: '10px'
+              gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+              gap: '14px'
             }}>
-              {categories.map(cat => {
-                const catProds = products.filter(p => p.category === cat);
-                const samplePhoto = catProds.find(p => p.photoUrl)?.photoUrl;
+              {featuredProducts.map(product => {
+                const inCart = cart.find(item => item.product.id === product.id);
+                const cardSeo = getProductSeoMeta(product.barcode, product.price);
 
                 return (
                   <div
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
+                    key={`feat-${product.id}`}
+                    onClick={() => setSelectedProductForModal(product)}
                     style={{
                       padding: '12px',
-                      borderRadius: '16px',
+                      borderRadius: '20px',
                       backgroundColor: 'var(--md-sys-color-surface-container)',
+                      border: '1px solid #FBCFE8',
+                      boxShadow: '0 4px 16px rgba(236, 72, 153, 0.08)',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
-                      alignItems: 'center',
-                      textAlign: 'center',
-                      gap: '6px',
-                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      justifyContent: 'space-between',
+                      position: 'relative',
                       transition: 'transform 0.15s ease'
                     }}
                   >
+                    <div>
+                      {/* Photo Container */}
+                      <div style={{
+                        width: '100%',
+                        aspectRatio: '1/1',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                        position: 'relative',
+                        marginBottom: '10px'
+                      }}>
+                        <img
+                          src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
+                          alt={product.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+
+                        {/* HOT Featured Badge */}
+                        <span style={{
+                          position: 'absolute',
+                          top: '8px',
+                          left: '8px',
+                          backgroundColor: '#EF4444',
+                          color: '#FFFFFF',
+                          fontSize: '0.65rem',
+                          fontWeight: 900,
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                        }}>
+                          <Flame size={11} fill="#FFF" /> DESTACADO
+                        </span>
+
+                        {/* Rating Pill */}
+                        <span style={{
+                          position: 'absolute',
+                          bottom: '6px',
+                          left: '6px',
+                          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                          backdropFilter: 'blur(4px)',
+                          color: '#FBBF24',
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}>
+                          <Star size={10} fill="#FBBF24" /> {cardSeo.ratingValue}
+                        </span>
+                      </div>
+
+                      <h4 style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 800,
+                        color: 'var(--md-sys-color-on-surface)',
+                        lineHeight: '1.3',
+                        marginBottom: '4px',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {product.name}
+                      </h4>
+                    </div>
+
                     <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '12px',
-                      backgroundColor: 'var(--md-sys-color-primary-container)',
-                      color: 'var(--md-sys-color-on-primary-container)',
+                      paddingTop: '8px',
+                      borderTop: '1px solid var(--md-sys-color-surface-variant)',
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'hidden'
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
                     }}>
-                      {samplePhoto ? (
-                        <img src={samplePhoto} alt={cat} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                        ${Math.round(product.price)} <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>CUP</span>
+                      </span>
+
+                      {!inCart ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenAddToCartSheet(product);
+                          }}
+                          disabled={product.stock <= 0}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.78rem',
+                            borderRadius: '9999px',
+                            backgroundColor: '#EC4899',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            boxShadow: '0 2px 8px rgba(236, 72, 153, 0.3)'
+                          }}
+                        >
+                          <Plus size={14} /> + Agregar
+                        </button>
                       ) : (
-                        <Tag size={20} />
+                        <span style={{
+                          backgroundColor: 'var(--md-sys-color-primary-container)',
+                          color: 'var(--md-sys-color-on-primary-container)',
+                          padding: '3px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 800
+                        }}>
+                          {inCart.quantity}u
+                        </span>
                       )}
                     </div>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>{cat}</span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                      {catProds.length} {catProds.length === 1 ? 'producto' : 'productos'}
-                    </span>
                   </div>
                 );
               })}
@@ -462,45 +673,110 @@ export const PublicStoreLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Category Filter Chips */}
-        <div style={{ marginBottom: '24px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setSelectedCategory('todas')}
-            style={{
-              padding: '8px 18px',
-              borderRadius: '9999px',
-              border: 'none',
-              fontSize: '0.85rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              backgroundColor: selectedCategory === 'todas' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-              color: selectedCategory === 'todas' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              boxShadow: selectedCategory === 'todas' ? '0 4px 12px rgba(0, 99, 155, 0.3)' : 'none'
-            }}
-          >
-            Todas ({products.length})
-          </button>
+        {/* SECTION 2: Category Button Cards (Facebook Menu Style - Screenshot 3) */}
+        {categories.length > 0 && (
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Layers size={18} color="#EC4899" />
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                Categorías de Productos
+              </h3>
+            </div>
 
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              style={{
-                padding: '8px 18px',
-                borderRadius: '9999px',
-                border: 'none',
-                fontSize: '0.85rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                backgroundColor: selectedCategory === cat ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-                color: selectedCategory === cat ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                boxShadow: selectedCategory === cat ? '0 4px 12px rgba(0, 99, 155, 0.3)' : 'none'
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+            {/* Grid of Facebook Menu Style Rounded Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+              gap: '10px'
+            }}>
+              {/* "Todas las Categorías" Card */}
+              <div
+                onClick={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '16px',
+                  backgroundColor: selectedCategory === 'todas' ? '#FCE7F3' : 'var(--md-sys-color-surface-container)',
+                  border: selectedCategory === 'todas' ? '2px solid #EC4899' : '1px solid var(--md-sys-color-outline-variant)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  backgroundColor: selectedCategory === 'todas' ? '#EC4899' : 'var(--md-sys-color-surface-container-high)',
+                  color: selectedCategory === 'todas' ? '#FFFFFF' : '#EC4899',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Tag size={19} />
+                </div>
+                <div style={{ overflow: 'hidden' }}>
+                  <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
+                    Todas
+                  </h4>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                    {products.length} prods
+                  </span>
+                </div>
+              </div>
+
+              {/* Dynamic Categories Cards */}
+              {categories.map(cat => {
+                const catCount = products.filter(p => p.category === cat).length;
+                const isSelected = selectedCategory === cat;
+
+                return (
+                  <div
+                    key={`cat-btn-${cat}`}
+                    onClick={() => { setSelectedCategory(cat); setSearchTerm(''); }}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '16px',
+                      backgroundColor: isSelected ? '#FCE7F3' : 'var(--md-sys-color-surface-container)',
+                      border: isSelected ? '2px solid #EC4899' : '1px solid var(--md-sys-color-outline-variant)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '12px',
+                      backgroundColor: isSelected ? '#EC4899' : 'var(--md-sys-color-surface-container-high)',
+                      color: isSelected ? '#FFFFFF' : '#EC4899',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Tag size={19} />
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {cat}
+                      </h4>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                        {catCount} {catCount === 1 ? 'prod' : 'prods'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Category SEO Description Banner */}
         {selectedCategory !== 'todas' && (
@@ -508,33 +784,39 @@ export const PublicStoreLanding: React.FC = () => {
             marginBottom: '20px',
             padding: '12px 16px',
             borderRadius: '14px',
-            backgroundColor: 'var(--md-sys-color-primary-container)',
-            color: 'var(--md-sys-color-on-primary-container)',
+            backgroundColor: '#FCE7F3',
+            color: '#831843',
             fontSize: '0.85rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            border: '1px solid #FBCFE8'
           }}>
-            <Sparkles size={16} color="var(--md-sys-color-primary)" />
+            <Sparkles size={16} color="#EC4899" />
             <span>{getCategorySeoDescription(selectedCategory)}</span>
           </div>
         )}
 
-        {/* Products Grid - 2 columns on mobile */}
+        {/* SECTION 3: All Products Feed */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+            {selectedCategory === 'todas' ? 'Todos los Productos' : `Categoría: ${selectedCategory}`} ({filteredProducts.length})
+          </h3>
+        </div>
+
         {filteredProducts.length === 0 ? (
           <div className="md-card" style={{ textAlign: 'center', padding: '50px 20px', maxWidth: '420px', margin: '40px auto' }}>
             <ShoppingBag size={44} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '12px' }} />
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>No se encontraron productos</h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px' }}>
-              Intenta buscar con otra categoría o término de búsqueda.
+              Intenta cambiar la categoría o limpiar tu búsqueda.
             </p>
           </div>
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))',
             gap: '14px'
           }}>
             {filteredProducts.map(product => {
@@ -561,7 +843,7 @@ export const PublicStoreLanding: React.FC = () => {
                   }}
                 >
                   <div>
-                    {/* Product Image Showcase (1:1 aspect ratio) */}
+                    {/* Product Image (1:1 Aspect Ratio) */}
                     <div style={{
                       width: '100%',
                       aspectRatio: '1/1',
@@ -569,21 +851,20 @@ export const PublicStoreLanding: React.FC = () => {
                       overflow: 'hidden',
                       marginBottom: '8px',
                       backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                      boxShadow: 'inset 0 0 10px rgba(0,0,0,0.03)',
                       position: 'relative'
                     }}>
                       <img 
-                        src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">CUBASOFT</text></svg>`} 
+                        src={product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
                         alt={product.name} 
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                       />
 
-                      {/* Stock AGOTADO Badge Overlay */}
+                      {/* Out of stock overlay */}
                       {!product.isExternal && product.stock <= 0 && (
                         <div style={{
                           position: 'absolute',
                           top: 0, left: 0, right: 0, bottom: 0,
-                          backgroundColor: 'rgba(255, 255, 255, 0.45)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.55)',
                           backdropFilter: 'blur(2px)',
                           display: 'flex',
                           alignItems: 'center',
@@ -596,32 +877,11 @@ export const PublicStoreLanding: React.FC = () => {
                             fontWeight: 900,
                             padding: '2px 8px',
                             borderRadius: '6px',
-                            transform: 'rotate(-10deg)',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                            transform: 'rotate(-8deg)'
                           }}>
                             AGOTADO
                           </span>
                         </div>
-                      )}
-
-                      {/* External Link Pill */}
-                      {product.isExternal && (
-                        <span style={{
-                          position: 'absolute',
-                          top: '6px',
-                          right: '6px',
-                          backgroundColor: '#059669',
-                          color: '#FFFFFF',
-                          fontSize: '0.62rem',
-                          fontWeight: 800,
-                          padding: '2px 6px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px'
-                        }}>
-                          <ExternalLink size={10} /> Externo
-                        </span>
                       )}
 
                       {/* Rating Stars Overlay Pill */}
@@ -671,7 +931,7 @@ export const PublicStoreLanding: React.FC = () => {
                       <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
                         ${Math.round(product.price)}
                       </span>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '1px 4px', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#EC4899', backgroundColor: '#FCE7F3', padding: '1px 4px', borderRadius: '4px' }}>
                         CUP
                       </span>
                     </div>
@@ -686,14 +946,15 @@ export const PublicStoreLanding: React.FC = () => {
                             setSelectedProductForModal(product);
                           }
                         }}
-                        className="md-btn"
                         style={{
                           padding: '6px 10px',
                           fontSize: '0.75rem',
                           borderRadius: '9999px',
-                          backgroundColor: 'var(--md-sys-color-primary-container)',
-                          color: 'var(--md-sys-color-on-primary-container)',
-                          fontWeight: 800
+                          backgroundColor: '#059669',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          fontWeight: 800,
+                          cursor: 'pointer'
                         }}
                       >
                         <ExternalLink size={14} />
@@ -702,14 +963,18 @@ export const PublicStoreLanding: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          addToCart(product);
+                          handleOpenAddToCartSheet(product);
                         }}
                         disabled={product.stock <= 0}
-                        className="md-btn md-btn-primary"
                         style={{
                           padding: '6px 10px',
                           fontSize: '0.75rem',
                           borderRadius: '9999px',
+                          backgroundColor: '#EC4899',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          fontWeight: 800,
+                          cursor: 'pointer',
                           opacity: product.stock <= 0 ? 0.5 : 1
                         }}
                       >
@@ -717,8 +982,8 @@ export const PublicStoreLanding: React.FC = () => {
                       </button>
                     ) : (
                       <span style={{
-                        backgroundColor: 'var(--md-sys-color-primary-container)',
-                        color: 'var(--md-sys-color-on-primary-container)',
+                        backgroundColor: '#FCE7F3',
+                        color: '#831843',
                         padding: '3px 10px',
                         borderRadius: '9999px',
                         fontSize: '0.75rem',
@@ -735,11 +1000,11 @@ export const PublicStoreLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Modal Card with Details, Related Products, and WhatsApp */}
+        {/* Modal Card with Product Details */}
         <ProductDetailModal
           product={selectedProductForModal}
           onClose={() => setSelectedProductForModal(null)}
-          onAddToCart={addToCart}
+          onAddToCart={handleOpenAddToCartSheet}
           allProducts={products}
           currency="$"
           isAdmin={false}
@@ -747,19 +1012,20 @@ export const PublicStoreLanding: React.FC = () => {
 
       </main>
 
-      {/* Floating Bottom Cart Bar (Sandra Shein Style) */}
+      {/* Floating Bottom Cart Bar */}
       {totalCartCount > 0 && !isCartOpen && (
         <div style={{
           position: 'fixed',
           bottom: 0, left: 0, right: 0,
-          backgroundColor: 'var(--md-sys-color-surface-container)',
-          borderTop: '1px solid var(--md-sys-color-surface-variant)',
+          backgroundColor: '#0F172A',
+          color: '#FFFFFF',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
           padding: '12px 16px',
-          boxShadow: '0 -6px 20px rgba(0,0,0,0.12)',
+          boxShadow: '0 -6px 20px rgba(0,0,0,0.3)',
           zIndex: 90
         }}>
           <div style={{
-            maxWidth: '1200px',
+            maxWidth: '1024px',
             margin: '0 auto',
             display: 'flex',
             alignItems: 'center',
@@ -770,10 +1036,10 @@ export const PublicStoreLanding: React.FC = () => {
               onClick={() => setIsCartOpen(true)}
               style={{ cursor: 'pointer' }}
             >
-              <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
+              <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 700, display: 'block' }}>
                 🛒 Ver Carrito ({totalCartCount} artículos)
               </span>
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+              <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#00FF88' }}>
                 {formatCurrency(totalCartPrice, '$', true)}
               </span>
             </div>
@@ -781,21 +1047,34 @@ export const PublicStoreLanding: React.FC = () => {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => setIsCartOpen(true)}
-                className="md-btn md-btn-secondary"
-                style={{ padding: '12px 16px', fontSize: '0.85rem', fontWeight: 800 }}
+                style={{
+                  padding: '12px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  borderRadius: '9999px',
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  cursor: 'pointer'
+                }}
               >
                 Abrir Carrito
               </button>
 
               <button
                 onClick={handleSendWhatsAppOrder}
-                className="md-btn"
                 style={{
                   backgroundColor: '#25D366',
                   color: '#FFFFFF',
                   padding: '12px 18px',
                   fontSize: '0.92rem',
                   fontWeight: 800,
+                  borderRadius: '9999px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)'
                 }}
               >
@@ -807,7 +1086,326 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       )}
 
-      {/* ERP Bottom Sheet Cart Modal */}
+      {/* FACEBOOK-STYLE BOTTOM SHEET 1: Select Quantity Modal */}
+      {productToAddToCart && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.70)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 120,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center'
+          }}
+          onClick={() => setProductToAddToCart(null)}
+        >
+          <div
+            className="bottom-sheet-modal"
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '500px',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              borderRadius: '28px 28px 0 0',
+              padding: '20px 24px 28px 24px',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              position: 'relative'
+            }}
+          >
+            {/* Drag Handle Indicator */}
+            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
+
+            {/* Header & Top Close X Button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                Agregar al Carrito de Compra
+              </h3>
+              <button
+                onClick={() => setProductToAddToCart(null)}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: 'var(--md-sys-color-on-surface-variant)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '50%'
+                }}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Product Summary Frame */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              padding: '12px',
+              borderRadius: '16px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: '1px solid var(--md-sys-color-outline-variant)'
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                flexShrink: 0
+              }}>
+                <img
+                  src={productToAddToCart.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
+                  alt={productToAddToCart.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#EC4899', backgroundColor: '#FCE7F3', padding: '2px 6px', borderRadius: '4px' }}>
+                  #{productToAddToCart.barcode}
+                </span>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {productToAddToCart.name}
+                </h4>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                  ${productToAddToCart.price} CUP c/u
+                </span>
+              </div>
+            </div>
+
+            {/* Stepper Quantity Selector */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '14px',
+              borderRadius: '16px',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)'
+            }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase' }}>
+                Selecciona la Cantidad
+              </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <button
+                  onClick={() => setAddQty(prev => Math.max(1, prev - 1))}
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    color: 'var(--md-sys-color-on-surface)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    fontSize: '1.2rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Minus size={20} />
+                </button>
+
+                <span style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', minWidth: '40px', textAlign: 'center' }}>
+                  {addQty}
+                </span>
+
+                <button
+                  onClick={() => setAddQty(prev => prev + 1)}
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: '#EC4899',
+                    color: '#FFFFFF',
+                    boxShadow: '0 4px 12px rgba(236, 72, 153, 0.4)',
+                    fontSize: '1.2rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Subtotal & Action Button */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>Subtotal:</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                  ${productToAddToCart.price * addQty} CUP
+                </span>
+              </div>
+
+              <button
+                onClick={handleConfirmAddToCart}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: '#EC4899',
+                  color: '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+                }}
+              >
+                <ShoppingBag size={20} />
+                <span>Añadir al Carrito de Compra</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FACEBOOK-STYLE BOTTOM SHEET 2: Added Success Alert */}
+      {addedSuccessModal?.show && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.70)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 130,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center'
+          }}
+          onClick={() => setAddedSuccessModal(null)}
+        >
+          <div
+            className="bottom-sheet-modal"
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '500px',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              borderRadius: '28px 28px 0 0',
+              padding: '24px',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: '14px',
+              position: 'relative'
+            }}
+          >
+            {/* Drag Handle */}
+            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', marginBottom: '4px' }} />
+
+            {/* Top Close X Button */}
+            <button
+              onClick={() => setAddedSuccessModal(null)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                border: 'none',
+                background: 'none',
+                color: 'var(--md-sys-color-on-surface-variant)',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '50%'
+              }}
+            >
+              <X size={22} />
+            </button>
+
+            {/* Checkmark Icon Circle */}
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: '#E6F4EA',
+              color: '#00875A',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: '6px',
+              boxShadow: '0 4px 14px rgba(0, 135, 90, 0.2)'
+            }}>
+              <CheckCircle2 size={38} />
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                ¡Agregado al Carrito Exitosamente!
+              </h3>
+              <p style={{ fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px', fontWeight: 600 }}>
+                Se añadieron {addedSuccessModal.quantity} unidad(es) de <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>"{addedSuccessModal.productName}"</strong> a tu pedido.
+              </p>
+            </div>
+
+            {/* Action Buttons: Seguir Navegando & Ver Carrito */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+              <button
+                onClick={() => setAddedSuccessModal(null)}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '0.98rem',
+                  fontWeight: 800,
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: '#EC4899',
+                  color: '#FFFFFF',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 16px rgba(236, 72, 153, 0.35)'
+                }}
+              >
+                <span>Seguir Navegando</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setAddedSuccessModal(null);
+                  setIsCartOpen(true);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  borderRadius: '9999px',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <ShoppingBag size={18} />
+                <span>Ver Carrito ({totalCartCount} artículos • ${totalCartPrice} CUP)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FULL CART BOTTOM SHEET MODAL */}
       {isCartOpen && (
         <div
           style={{
@@ -828,7 +1426,7 @@ export const PublicStoreLanding: React.FC = () => {
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '600px',
+              maxWidth: '550px',
               backgroundColor: 'var(--md-sys-color-surface)',
               borderRadius: '24px 24px 0 0',
               padding: '20px',
@@ -850,8 +1448,8 @@ export const PublicStoreLanding: React.FC = () => {
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  backgroundColor: 'var(--md-sys-color-primary-container)',
-                  color: 'var(--md-sys-color-on-primary-container)',
+                  backgroundColor: '#FCE7F3',
+                  color: '#EC4899',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -860,7 +1458,7 @@ export const PublicStoreLanding: React.FC = () => {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                    Carrito de Compra ERP
+                    Carrito de Compra Samy Store
                   </h3>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
                     {totalCartCount} {totalCartCount === 1 ? 'producto seleccionado' : 'productos seleccionados'}
@@ -922,7 +1520,7 @@ export const PublicStoreLanding: React.FC = () => {
                         flexShrink: 0
                       }}>
                         <img
-                          src={item.product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">TIENDA CASA</text></svg>`}
+                          src={item.product.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
                           alt={item.product.name}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
@@ -930,7 +1528,7 @@ export const PublicStoreLanding: React.FC = () => {
 
                       <div style={{ overflow: 'hidden' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 800, backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)', padding: '1px 5px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 800, backgroundColor: '#FCE7F3', color: '#EC4899', padding: '1px 5px', borderRadius: '4px' }}>
                             #{item.product.barcode}
                           </span>
                           <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
@@ -994,20 +1592,26 @@ export const PublicStoreLanding: React.FC = () => {
                   <span style={{ fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
                     Total a Pagar:
                   </span>
-                  <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
                     {formatCurrency(totalCartPrice, '$', true)}
                   </span>
                 </div>
 
                 <button
                   onClick={handleSendWhatsAppOrder}
-                  className="md-btn"
                   style={{
                     backgroundColor: '#25D366',
                     color: '#FFFFFF',
                     padding: '14px',
+                    borderRadius: '9999px',
+                    border: 'none',
                     fontSize: '1rem',
                     fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
                     boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)'
                   }}
                 >
@@ -1020,26 +1624,25 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       )}
 
-    {/* Footer referencing Cubasoft.net as developer */}
+      {/* Footer referencing Cubasoft.net */}
       <footer style={{
-        backgroundColor: '#001529',
+        backgroundColor: '#0F172A',
         color: '#E2E8F0',
         padding: '32px 16px 40px 16px',
         marginTop: 'auto',
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
         textAlign: 'center'
       }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+        <div style={{ maxWidth: '1024px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Store size={22} color="#00FF88" />
-            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#FFFFFF' }}>Cubasoft Store Cuba</span>
+            <Store size={22} color="#EC4899" />
+            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#FFFFFF' }}>Samy Store Cuba</span>
           </div>
 
           <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: '600px', margin: 0, lineHeight: '1.5' }}>
-            La plataforma líder de comercio electrónico y catálogo digital en Cuba. Impulsada por <strong>Cubasoft ERP v2.5</strong> con catálogo PWA, pedidos automatizados por WhatsApp y punto de venta offline-first.
+            La tienda online preferida de catálogo digital. Impulsada por <strong>Cubasoft ERP</strong> con catálogo PWA, pedidos por WhatsApp y punto de venta offline sincronizado.
           </p>
 
-          {/* Clean Footer Text Links (Not bulky buttons) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', justifyContent: 'center', alignItems: 'center', marginTop: '6px' }}>
             <a
               href="#"
@@ -1048,7 +1651,7 @@ export const PublicStoreLanding: React.FC = () => {
                 setIsCubasoftModalOpen(true);
               }}
               style={{
-                color: '#60A5FA',
+                color: '#EC4899',
                 textDecoration: 'none',
                 fontWeight: 700,
                 fontSize: '0.85rem',
@@ -1057,7 +1660,7 @@ export const PublicStoreLanding: React.FC = () => {
                 gap: '5px'
               }}
             >
-              <Zap size={14} /> Ver Demo & Precios Cubasoft ERP
+              <Zap size={14} /> Ver Sistema Cubasoft ERP
             </a>
 
             <span style={{ color: '#475569' }}>•</span>
@@ -1081,7 +1684,7 @@ export const PublicStoreLanding: React.FC = () => {
           </div>
 
           <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '8px' }}>
-            © {new Date().getFullYear()} Cubasoft Store Cuba. Todos los derechos reservados.
+            © {new Date().getFullYear()} Samy Store Cuba. Todos los derechos reservados.
           </span>
         </div>
       </footer>
@@ -1099,8 +1702,8 @@ export const PublicStoreLanding: React.FC = () => {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Store",
-            "name": STORE_SEO_CONFIG.fullName,
-            "description": "Tienda Online en Cuba. Alimentos, electrodomésticos, tecnología y productos del hogar gestionados por Cubasoft ERP.",
+            "name": "Samy Store",
+            "description": "Tienda Online en Cuba. Alimentos, electrodomésticos, tecnología y productos del hogar.",
             "url": typeof window !== 'undefined' ? window.location.origin : 'https://cubasoft.net',
             "telephone": STORE_SEO_CONFIG.contactWhatsapp,
             "priceRange": "$$$",

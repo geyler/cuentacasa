@@ -65,7 +65,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   );
 
   const handleWhatsAppOrder = () => {
-    const text = `🛒 *CONSULTA / PEDIDO EN CUBASOFT STORE*\n\nHola! Me interesa comprar el producto:\n*${activeProduct.name}*\n• Código: #${activeProduct.barcode}\n• Precio: ${formatCurrency(activeProduct.price, currency, true)}\n• Categoría: ${activeProduct.category}\n\n¿Tienen disponibilidad para entrega?`;
+    const text = `🛒 *CONSULTA / PEDIDO EN SAMY STORE*\n\nHola! Me interesa comprar el producto:\n*${activeProduct.name}*\n• Código: #${activeProduct.barcode}\n• Precio: ${formatCurrency(activeProduct.price, currency, true)}\n• Categoría: ${activeProduct.category}\n\n¿Tienen disponibilidad para entrega?`;
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
   };
@@ -290,7 +290,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
             <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.03em' }}>
-              {formatCurrency(activeProduct.price, '$', false)}
+              {formatCurrency(activeProduct.price, currency, true)}
             </span>
             <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '2px 8px', borderRadius: '6px' }}>
               CUP

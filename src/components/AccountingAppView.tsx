@@ -646,7 +646,7 @@ function AccountingAppContent() {
 
       {/* Main Content Area */}
       <main style={{
-        maxWidth: '1000px',
+        maxWidth: '1024px',
         width: '100%',
         margin: '0 auto',
         padding: activeTab === 'quick' ? '8px 16px' : '16px 16px 90px 16px',

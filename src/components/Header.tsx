@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
       
       {/* Clean Single Bar */}
       <div style={{
-        maxWidth: '1200px',
+        maxWidth: '1024px',
         margin: '0 auto',
         padding: '8px 16px',
         display: 'flex',
