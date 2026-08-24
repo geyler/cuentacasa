@@ -149,10 +149,12 @@ function AccountingAppContent() {
             message: `Se cargaron ${itemsToLoad.length} productos en la pantalla de cobro del POS.`,
             type: 'success'
           });
-          window.history.replaceState({}, '', window.location.pathname);
         }
       }
     }
+
+    // Scroll to top automatically when activeTab changes (preserves scroll when opening/closing modals)
+    window.scrollTo({ top: 0, behavior: 'instant' });
 
     // Background Auto sync function
     const autoSync = async (isBackgroundReconnection: boolean = false) => {

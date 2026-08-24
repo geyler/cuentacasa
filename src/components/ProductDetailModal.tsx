@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { StoreProduct } from '@/types';
 import { formatCurrency } from '@/lib/invoice';
-import { formatPhotoUrl } from '@/lib/storage';
+import { formatPhotoUrl, getStoreWhatsappNumber } from '@/lib/storage';
 import { 
   X, 
   Tag, 
@@ -66,9 +66,24 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   );
 
   const handleWhatsAppOrder = () => {
-    const text = `🛒 *CONSULTA / PEDIDO EN SAMY STORE*\n\nHola! Me interesa comprar el producto:\n*${activeProduct.name}*\n• Código: #${activeProduct.barcode}\n• Precio: ${formatCurrency(activeProduct.price, currency, true)}\n• Categoría: ${activeProduct.category}\n\n¿Tienen disponibilidad para entrega?`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const cartQuery = `${activeProduct.barcode}:1`;
+    const checkoutLink = `${origin}/app?cart=${encodeURIComponent(cartQuery)}`;
+    const productSeoLink = `${origin}/producto/${activeProduct.id}`;
+
+    let text = `🛒 *SOLICITUD DE COMPRA - SAMY STORE*\n📍 *Cuba*\n----------------------------------\n`;
+    text += `1. *${activeProduct.name}* (Cod: #${activeProduct.barcode})\n`;
+    text += `   Cant: 1u | Precio: ${formatCurrency(activeProduct.price, currency, true)} CUP\n`;
+    text += `----------------------------------\n💰 *TOTAL A PAGAR: ${formatCurrency(activeProduct.price, currency, true)} CUP*\n\n`;
+    text += `🔗 *Enlace Directo al Artículo:*\n${productSeoLink}\n\n`;
+    text += `🛒 *Abrir Pedido / Cobro Inmediato:*\n${checkoutLink}\n\n`;
+    text += `_(Si eres cliente este enlace llena tu pedido. Si eres Administrador abre la pantalla de cobro directo en POS)_`;
+
+    const targetPhone = getStoreWhatsappNumber();
     const encoded = encodeURIComponent(text);
-    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
+    const waUrl = cleanPhone ? `https://wa.me/+${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    window.open(waUrl, '_blank');
   };
 
   return (
@@ -89,14 +104,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '620px',
+          maxWidth: '560px',
           backgroundColor: 'var(--md-sys-color-surface)',
-          padding: '24px',
+          padding: '24px 20px 40px 20px',
           borderRadius: '28px 28px 0 0',
           boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px',
+          gap: '18px',
           maxHeight: '92vh',
           overflowY: 'auto',
           animation: 'modalPop 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)'
@@ -111,9 +126,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <span style={{
               fontSize: '0.74rem',
               fontWeight: 800,
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
-              padding: '3px 12px',
+              backgroundColor: '#FCE7F3',
+              color: '#831843',
+              padding: '4px 12px',
               borderRadius: '9999px'
             }}>
               {activeProduct.category}
@@ -154,15 +169,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </button>
         </div>
 
-        {/* Product HD Image 1:1 Showcase Frame (Sandra Shein ERP Style) */}
+        {/* Featured Product HD Image Showcase Frame */}
         <div style={{
           width: '100%',
-          aspectRatio: '1/1',
-          maxHeight: '300px',
-          borderRadius: '22px',
+          height: '280px',
+          borderRadius: '20px',
           overflow: 'hidden',
-          backgroundColor: 'var(--md-sys-color-surface-container-high)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          backgroundColor: '#F8FAFC',
+          border: '1px solid #F1F5F9',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
@@ -177,7 +192,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 width: '100%',
                 height: '100%',
                 objectFit: 'contain',
-                backgroundColor: 'var(--md-sys-color-surface-container-low)'
+                backgroundColor: '#FFFFFF'
               }} 
             />
           ) : (
@@ -189,26 +204,26 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              backgroundColor: 'var(--md-sys-color-surface-container-high)',
-              color: 'var(--md-sys-color-on-surface-variant)',
+              backgroundColor: '#F8FAFC',
+              color: '#64748B',
               padding: '20px'
             }}>
               <div style={{
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
+                backgroundColor: '#E2E8F0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <ShoppingBag size={32} opacity={0.4} />
+                <ShoppingBag size={32} opacity={0.5} />
               </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, opacity: 0.7 }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>
                 {activeProduct.name}
               </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.5, backgroundColor: 'var(--md-sys-color-surface)', padding: '2px 8px', borderRadius: '6px' }}>
-                Sin imagen disponible
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, backgroundColor: '#E2E8F0', padding: '2px 8px', borderRadius: '6px' }}>
+                Sin foto disponible
               </span>
             </div>
           )}
@@ -218,7 +233,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div style={{
               position: 'absolute',
               top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: 'rgba(255, 255, 255, 0.45)',
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
               backdropFilter: 'blur(3px)',
               display: 'flex',
               alignItems: 'center',
@@ -226,7 +241,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               zIndex: 10
             }}>
               <div style={{
-                backgroundColor: 'var(--md-sys-color-expense)',
+                backgroundColor: '#EF4444',
                 color: '#FFF',
                 fontWeight: 900,
                 fontSize: '1.2rem',
@@ -269,13 +284,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               position: 'absolute',
               bottom: '12px',
               right: '12px',
-              backgroundColor: activeProduct.stock > 0 ? '#00875A' : 'var(--md-sys-color-expense)',
+              backgroundColor: activeProduct.stock > 0 ? '#059669' : '#EF4444',
               color: '#FFFFFF',
               fontSize: '0.76rem',
               fontWeight: 800,
               padding: '4px 12px',
               borderRadius: '9999px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
               zIndex: 12
             }}>
               {activeProduct.stock > 0 ? `Stock: ${activeProduct.stock}u` : 'Agotado'}
@@ -285,7 +300,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         {/* Product Title & Price Block */}
         <div>
-          <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', marginBottom: '6px', lineHeight: '1.25' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', marginBottom: '6px', lineHeight: '1.25' }}>
             {activeProduct.name}
           </h2>
 
@@ -293,7 +308,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.03em' }}>
               {formatCurrency(activeProduct.price, currency, true)}
             </span>
-            <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '2px 8px', borderRadius: '6px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#EC4899', backgroundColor: '#FCE7F3', padding: '2px 8px', borderRadius: '6px' }}>
               CUP
             </span>
           </div>
@@ -310,7 +325,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           )}
         </div>
 
-        {/* Detalles del Artículo Grid (Sandra Shein ERP Specs) */}
+        {/* Detalles del Artículo Grid */}
         <div style={{
           backgroundColor: 'var(--md-sys-color-surface-container-high)',
           borderRadius: '18px',
@@ -320,7 +335,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           gap: '10px'
         }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Detalles del Artículo
+            Especificaciones Técnicas
           </span>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
@@ -336,13 +351,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   <Globe size={13} /> Afiliado / Externo
                 </span>
               ) : activeProduct.stock > 0 ? (
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#00875A', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00875A', display: 'inline-block' }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#059669', display: 'inline-block' }} />
                   {activeProduct.stock} disponible{activeProduct.stock > 1 ? 's' : ''}
                 </span>
               ) : (
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-expense)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--md-sys-color-expense)', display: 'inline-block' }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444', display: 'inline-block' }} />
                   Agotado
                 </span>
               )}
@@ -387,7 +402,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <span style={{ fontSize: '0.68rem', fontWeight: 700, display: 'block', opacity: 0.8 }}>
                 GANANCIA NETA
               </span>
-              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#00875A' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#059669' }}>
                 +{formatCurrency(profitMargin, '$', true)}
               </span>
             </div>
@@ -406,7 +421,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Action Buttons Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {isAdmin ? (
-            /* ADMIN VIEW: No self-contact WhatsApp links! Only Inventory POS & Management Actions */
+            /* ADMIN VIEW */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {onAddToCart && !activeProduct.isExternal && activeProduct.stock > 0 && (
                 <button
@@ -468,7 +483,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               )}
             </div>
           ) : (
-            /* PUBLIC STORE CUSTOMER VIEW: Carrito, WhatsApp, Enlace Externo */
+            /* PUBLIC STORE CUSTOMER VIEW: Carrito, WhatsApp */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {activeProduct.isExternal ? (
                 <button
@@ -531,7 +546,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     }}
                   >
                     <MessageCircle size={22} />
-                    <span>Consultar / Pedir por WhatsApp</span>
+                    <span>Comprar / Pedir por WhatsApp</span>
                   </button>
 
                   {/* Shareable SEO Direct URL Button */}
@@ -559,63 +574,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
           )}
         </div>
-
-        {/* Related Products Showcase */}
-        {relatedProducts.length > 0 && (
-          <div style={{ borderTop: '1px solid var(--md-sys-color-surface-variant)', paddingTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-              <Sparkles size={16} style={{ color: 'var(--md-sys-color-primary)' }} />
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                También te puede interesar ({relatedProducts.length})
-              </h3>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              overflowX: 'auto',
-              paddingBottom: '8px',
-              scrollbarWidth: 'thin'
-            }}>
-              {relatedProducts.map(rel => (
-                <div
-                  key={rel.id}
-                  onClick={() => setActiveProduct(rel)}
-                  style={{
-                    minWidth: '140px',
-                    maxWidth: '140px',
-                    backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                    borderRadius: '14px',
-                    padding: '10px',
-                    cursor: 'pointer',
-                    transition: 'transform 0.15s ease'
-                  }}
-                >
-                  <div style={{
-                    width: '100%',
-                    height: '90px',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    marginBottom: '6px'
-                  }}>
-                    <img 
-                      src={rel.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">CUBASOFT</text></svg>`} 
-                      alt={rel.name} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    />
-                  </div>
-
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {rel.name}
-                  </span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-income)', display: 'block' }}>
-                    {formatCurrency(rel.price, '$', true)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Structured JSON-LD Schema */}
         <script

@@ -101,6 +101,10 @@ export const PublicStoreLanding: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [selectedCategory]);
+
   const categories = Array.from(new Set(products.map(p => p.category)));
 
   const filteredProducts = products.filter(p => {
@@ -462,7 +466,7 @@ export const PublicStoreLanding: React.FC = () => {
       </div>
 
       {/* Main Container - Enforcing 5xl (1024px max width) */}
-      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
+      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 140px 16px', flex: 1 }}>
         
         {/* SECTION 0: Featured Products (Grid Aligned with Highlight Badge) */}
         {products.length > 0 && selectedCategory === 'todas' && !searchTerm && (

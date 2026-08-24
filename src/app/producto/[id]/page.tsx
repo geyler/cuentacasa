@@ -81,12 +81,18 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const roundedPrice = Math.round(product.price);
   const seoMeta = getProductSeoMeta(product.barcode, product.price);
 
-  // Related products in the same category
-  const relatedProducts = INITIAL_SEED_PRODUCTS.filter(p => 
-    p.category === product.category && p.id !== product.id && p.published
-  );
+  const cartQuery = `${product.barcode}:1`;
+  const checkoutLink = `https://cuentacasa.app/app?cart=${encodeURIComponent(cartQuery)}`;
+  const productSeoLink = `https://cuentacasa.app/producto/${product.id}`;
 
-  const whatsappMessage = `🛒 *CONSULTA / PEDIDO EN SAMY STORE*\n\nHola! Me interesa comprar el producto:\n*${product.name}*\n• Código: #${product.barcode}\n• Precio: $${roundedPrice} CUP\n• Categoría: ${product.category}\n\n¿Tienen disponibilidad para entrega o envío?`;
+  let whatsappMessage = `🛒 *SOLICITUD DE COMPRA - SAMY STORE*\n📍 *Cuba*\n----------------------------------\n`;
+  whatsappMessage += `1. *${product.name}* (Cod: #${product.barcode})\n`;
+  whatsappMessage += `   Cant: 1u | Precio: $${roundedPrice} CUP\n`;
+  whatsappMessage += `----------------------------------\n💰 *TOTAL A PAGAR: $${roundedPrice} CUP*\n\n`;
+  whatsappMessage += `🔗 *Enlace Directo al Artículo:*\n${productSeoLink}\n\n`;
+  whatsappMessage += `🛒 *Abrir Pedido / Cobro Inmediato:*\n${checkoutLink}\n\n`;
+  whatsappMessage += `_(Si eres cliente este enlace llena tu pedido. Si eres Administrador abre la pantalla de cobro directo en POS)_`;
+
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
 
   // JSON-LD Structured Data Schema for Google Product SEO
@@ -173,8 +179,8 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
         </div>
       </header>
 
-      {/* Main Product SEO Page Layout (5XL Enforced) */}
-      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
+      {/* Main Product SEO Page Layout */}
+      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 140px 16px', flex: 1 }}>
         
         <div className="md-card" style={{ padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: 'var(--md-sys-color-surface-container)' }}>
           
@@ -306,63 +312,6 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
           </div>
 
         </div>
-
-        {/* Related Products Showcase */}
-        {relatedProducts.length > 0 && (
-          <div style={{ marginTop: '32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <Sparkles size={20} style={{ color: '#EC4899' }} />
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                Más productos en {product.category}
-              </h2>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-              gap: '14px'
-            }}>
-              {relatedProducts.map(rel => (
-                <Link
-                  key={rel.id}
-                  href={`/producto/${rel.id}`}
-                  style={{ textDecoration: 'none' }}
-                >
-                  <div
-                    className="md-card"
-                    style={{
-                      padding: '12px',
-                      borderRadius: '16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px'
-                    }}
-                  >
-                    <div style={{
-                      width: '100%',
-                      aspectRatio: '1/1',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      backgroundColor: 'var(--md-sys-color-surface-container-high)'
-                    }}>
-                      <img 
-                        src={formatPhotoUrl(rel.photoUrl) || '/icons/icon-192.svg'} 
-                        alt={rel.name} 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                      />
-                    </div>
-                    <h3 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {rel.name}
-                    </h3>
-                    <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                      ${Math.round(rel.price)} CUP
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
 
       </main>
 
