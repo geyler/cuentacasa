@@ -358,14 +358,17 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       </header>
 
-      {/* Soft & Professional Feminine Hero Banner Section */}
+      {/* Soft & Professional Feminine Hero Banner Section with Aesthetic Image Overlay */}
       <div style={{
-        background: 'linear-gradient(135deg, #FFF7F9 0%, #FDF2F8 60%, #FCE7F3 100%)',
+        backgroundImage: 'linear-gradient(180deg, rgba(255, 247, 249, 0.84) 0%, rgba(253, 242, 248, 0.92) 100%), url("/images/store_hero_bg.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         color: '#1E293B',
-        padding: '32px 16px 40px 16px',
+        padding: '38px 16px 46px 16px',
         textAlign: 'center',
         position: 'relative',
-        borderBottom: '1px solid #FBCFE8'
+        borderBottom: '1px solid #FBCFE8',
+        boxShadow: 'inset 0 -10px 30px rgba(236, 72, 153, 0.05)'
       }}>
         <div style={{ maxWidth: '1024px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           
