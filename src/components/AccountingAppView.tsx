@@ -497,16 +497,15 @@ function AccountingAppContent() {
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: '20px',
-          boxShadow: '0 12px 32px rgba(0, 99, 155, 0.15)'
+          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.08)'
         }}>
           <img 
-            src="/icons/icon-192.svg" 
-            alt="Cuenta Casa Logo" 
+            src="/images/logo-loading.png" 
+            alt="Samy Store Logo" 
             style={{ 
-              width: '42px', 
-              height: '42px', 
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))'
+              width: '48px', 
+              height: '48px', 
+              objectFit: 'contain'
             }} 
           />
         </div>
@@ -514,13 +513,13 @@ function AccountingAppContent() {
         {/* Branding & Title */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <h1 style={{
-            fontSize: '1.4rem',
-            fontWeight: 800,
+            fontSize: '1.45rem',
+            fontWeight: 900,
             letterSpacing: '-0.02em',
             color: 'var(--md-sys-color-on-surface)',
             marginBottom: '4px'
           }}>
-            Cuenta Casa
+            Samy Store
           </h1>
           <p style={{
             fontSize: '0.8rem',

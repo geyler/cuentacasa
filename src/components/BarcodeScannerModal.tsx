@@ -92,26 +92,28 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     const rawStr = decodedText.trim();
     if (!rawStr) return;
 
-    const numericOnly = rawStr.replace(/\D/g, '');
-    let searchCode = rawStr;
-    if (numericOnly.length > 0) {
-      searchCode = numericOnly.slice(-4).padStart(4, '0');
-    }
-
     const now = Date.now();
     if (now - lastScanTimeRef.current < 1800) return; // Cooldown 1.8s
     lastScanTimeRef.current = now;
 
     playScanBeep();
 
-    const product = getStoreProductByBarcode(searchCode) || getStoreProductByBarcode(rawStr);
+    const numericOnly = rawStr.replace(/\D/g, '');
+    const searchCode = (numericOnly.length > 0 && rawStr.length <= 4) ? rawStr.padStart(4, '0') : rawStr;
+
+    const product = getStoreProductByBarcode(rawStr) || getStoreProductByBarcode(searchCode) || getStoreProductByBarcode(numericOnly);
 
     if (product) {
       setLastScanned(product.barcode);
       addItemToTicket(product);
     } else {
-      setLastScanned(searchCode);
-      triggerSuccessEffect(`Código #${searchCode} escaneado (No encontrado)`);
+      setLastScanned(rawStr);
+      showToast({
+        title: 'Producto No Encontrado',
+        message: `El producto con código "${rawStr}" no existe en el inventario.`,
+        type: 'warning'
+      });
+      triggerSuccessEffect(`⚠️ Código #${rawStr} no encontrado`);
     }
   };
 
@@ -518,8 +520,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             type="submit"
             className="md-btn md-btn-primary"
             style={{
-              padding: '8px 14px',
-              fontSize: '0.82rem',
+              padding: '8px 12px',
+              fontSize: '0.8rem',
               fontWeight: 800,
               backgroundColor: 'var(--md-sys-color-primary)',
               color: 'var(--md-sys-color-on-primary)',
@@ -527,8 +529,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               flexShrink: 0
             }}
           >
-            <Plus size={16} />
-            <span>Sumar al Ticket</span>
+            <Plus size={15} />
+            <span>+ Sumar</span>
           </button>
         </form>
 

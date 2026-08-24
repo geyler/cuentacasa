@@ -552,15 +552,20 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
   const handleDeleteSupplierAccount = (sup: SupplierAccount) => {
     confirmAction({
-      title: `¿Eliminar a ${sup.name}?`,
-      message: `Esta acción quitará a ${sup.name} del listado de proveedores.`,
+      title: `¿Eliminar Proveedor "${sup.name}"?`,
+      message: `Se eliminará a ${sup.name} del registro de proveedores y sus productos asignados pasarán a mercadería propia.`,
       variant: 'danger',
-      confirmText: 'Eliminar',
+      confirmText: 'Sí, Eliminar Proveedor',
       onConfirm: () => {
         const res = deleteSupplierAccount(sup.id);
         if (res.success) {
           refreshData();
-          showActionResult({ title: 'Proveedor Eliminado', message: `"${sup.name}" fue removido del sistema.`, type: 'info' });
+          syncDatabaseWithCloud(true).catch(() => {});
+          showActionResult({
+            title: '¡Proveedor Eliminado!',
+            message: `"${sup.name}" fue borrado exitosamente del sistema.`,
+            type: 'success'
+          });
         } else {
           showToast({ title: 'No se pudo eliminar', message: res.error || '', type: 'error' });
         }

@@ -88,22 +88,23 @@ export const Header: React.FC<HeaderProps> = ({
             width: '36px',
             height: '36px',
             borderRadius: '12px',
-            backgroundColor: 'var(--md-sys-color-primary)',
-            color: '#FFF',
+            backgroundColor: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0, 99, 155, 0.25)'
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            overflow: 'hidden',
+            flexShrink: 0
           }}>
-            <Home size={20} />
+            <img src="/images/logo-nav.png" alt="Samy Store" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
           </div>
           <h1 style={{ 
-            fontSize: '1.1rem', 
-            fontWeight: 800, 
+            fontSize: '1.15rem', 
+            fontWeight: 900, 
             letterSpacing: '-0.02em',
             color: 'var(--md-sys-color-on-surface)'
           }}>
-            Cuenta Casa
+            Samy Store
           </h1>
         </button>
 

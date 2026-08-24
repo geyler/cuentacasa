@@ -272,28 +272,40 @@ export function getStoreProductByBarcode(barcode: string): StoreProduct | undefi
   const products = getStoreProducts();
   if (!barcode) return undefined;
   const str = barcode.toString().trim();
+  if (!str) return undefined;
+
   const numericOnly = str.replace(/\D/g, '');
-  const cleanPadded = (numericOnly.length > 0 ? numericOnly : str).padStart(4, '0');
+  const paddedFour = (numericOnly.length > 0 && str.length <= 4) ? str.padStart(4, '0') : str;
   const numVal = parseInt(numericOnly || str, 10);
 
   return products.find(p => {
-    if (p.barcode === cleanPadded || p.barcode === str) return true;
-    if (!isNaN(numVal) && parseInt(p.barcode, 10) === numVal) return true;
+    if (p.barcode === str || p.barcode === paddedFour) return true;
+    if (p.barcode.toLowerCase() === str.toLowerCase()) return true;
+    if (!isNaN(numVal) && parseInt(p.barcode, 10) === numVal && str.length <= 4) return true;
     return false;
   });
 }
 
-export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' | 'updatedAt'>): StoreProduct {
+export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): StoreProduct {
   const db = getRawDatabase();
   if (!db.storeProducts) db.storeProducts = [];
   
-  const cleanBarcode = product.barcode.padStart(4, '0');
-  const existingIndex = db.storeProducts.findIndex(p => p.barcode === cleanBarcode);
+  const rawBarcode = product.barcode ? product.barcode.toString().trim() : '';
+  const numericOnly = rawBarcode.replace(/\D/g, '');
+  const cleanBarcode = (numericOnly.length > 0 && rawBarcode.length <= 4) ? rawBarcode.padStart(4, '0') : rawBarcode;
+
+  let existingIndex = -1;
+  if (product.id) {
+    existingIndex = db.storeProducts.findIndex(p => p.id === product.id);
+  }
+  if (existingIndex === -1 && cleanBarcode) {
+    existingIndex = db.storeProducts.findIndex(p => p.barcode === cleanBarcode || p.barcode === rawBarcode);
+  }
 
   const newProduct: StoreProduct = {
     ...product,
     barcode: cleanBarcode,
-    id: existingIndex !== -1 ? db.storeProducts[existingIndex].id : `sp-${Date.now()}`,
+    id: existingIndex !== -1 ? db.storeProducts[existingIndex].id : (product.id || `sp-${Date.now()}`),
     createdAt: existingIndex !== -1 ? db.storeProducts[existingIndex].createdAt : Date.now(),
     updatedAt: Date.now()
   };
@@ -301,7 +313,7 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
   if (existingIndex !== -1) {
     db.storeProducts[existingIndex] = newProduct;
   } else {
-    db.storeProducts.unshift(newProduct);
+    db.storeProducts.push(newProduct);
   }
 
   saveRawDatabase(db);
@@ -559,15 +571,30 @@ export function saveSupplierAccount(supplierName: string): SupplierAccount {
   return existing;
 }
 
-// Delete supplier account if no pending debt
+// Delete supplier account permanently and unlink associated products
 export function deleteSupplierAccount(id: string): { success: boolean; error?: string } {
   const db = getRawDatabase();
   const target = db.supplierAccounts?.find(s => s.id === id);
   if (!target) return { success: false, error: 'Proveedor no encontrado.' };
-  if (target.pendingPayout > 0) {
-    return { success: false, error: `No se puede eliminar a "${target.name}" porque tiene $${target.pendingPayout} pendiente de pago.` };
+
+  // Remove from supplierAccounts array
+  db.supplierAccounts = (db.supplierAccounts || []).filter(s => s.id !== id);
+
+  // Unlink supplier from products so they don't auto-recreate on new sales
+  if (db.storeProducts) {
+    db.storeProducts = db.storeProducts.map(p => {
+      if (p.supplierName && p.supplierName.toLowerCase() === target.name.toLowerCase()) {
+        return {
+          ...p,
+          supplierType: 'propia' as const,
+          supplierName: undefined,
+          updatedAt: Date.now()
+        };
+      }
+      return p;
+    });
   }
-  db.supplierAccounts = db.supplierAccounts?.filter(s => s.id !== id);
+
   saveRawDatabase(db);
   return { success: true };
 }

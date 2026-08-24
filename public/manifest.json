@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Cuenta Casa",
-  "short_name": "CuentaCasa",
-  "description": "Control de Gastos e Ingresos Residencial PWA 100% Offline",
+  "name": "Samy Store",
+  "short_name": "Samy Store",
+  "description": "Samy Store POS & Gestión de Tienda 100% Offline",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
