@@ -1027,7 +1027,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               style={{ padding: '8px 16px', fontSize: '0.85rem' }}
             >
               <UserPlus size={16} />
-              <span>+ Nuevo Proveedor</span>
+              <span>Nuevo Proveedor</span>
             </button>
           </div>
 

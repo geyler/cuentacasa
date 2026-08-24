@@ -490,6 +490,171 @@ export const PublicStoreLanding: React.FC = () => {
       {/* Main Container - Enforcing 5xl (1024px max width) */}
       <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 100px 16px', flex: 1 }}>
         
+        {/* SECTION 0: Featured Products (Grid Aligned with Highlight Badge) */}
+        {products.length > 0 && selectedCategory === 'todas' && !searchTerm && (
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Sparkles size={18} color="#EF4444" />
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                🔥 Productos Destacados & Más Vendidos
+              </h3>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+              gap: '14px'
+            }}>
+              {products.slice(0, 4).map(product => {
+                const inCart = cart.find(item => item.product.id === product.id);
+                const cardSeo = getProductSeoMeta(product.barcode, product.price);
+                const formattedImage = formatPhotoUrl(product.photoUrl);
+
+                return (
+                  <div
+                    key={`feat-${product.id}`}
+                    className="md-card"
+                    onClick={() => handleOpenProductModal(product)}
+                    style={{
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      borderRadius: '18px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      border: '2px solid #EC4899',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      position: 'relative',
+                      boxShadow: '0 4px 14px rgba(236, 72, 153, 0.15)'
+                    }}
+                  >
+                    <div>
+                      {/* Product Image (1:1 Aspect Ratio) */}
+                      <div style={{
+                        width: '100%',
+                        aspectRatio: '1/1',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        marginBottom: '8px',
+                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                        position: 'relative'
+                      }}>
+                        <img 
+                          src={formattedImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
+                          alt={product.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+
+                        {/* Top Highlight Badge */}
+                        <span style={{
+                          position: 'absolute',
+                          top: '6px',
+                          right: '6px',
+                          backgroundColor: '#EF4444',
+                          color: '#FFFFFF',
+                          fontSize: '0.62rem',
+                          fontWeight: 900,
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                        }}>
+                          🔥 DESTACADO
+                        </span>
+
+                        {/* Rating Stars Overlay Pill */}
+                        <span style={{
+                          position: 'absolute',
+                          bottom: '6px',
+                          left: '6px',
+                          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                          backdropFilter: 'blur(4px)',
+                          color: '#FBBF24',
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}>
+                          <Star size={10} fill="#FBBF24" /> {cardSeo.ratingValue}
+                        </span>
+                      </div>
+
+                      <h3 style={{ 
+                        fontSize: '0.88rem', 
+                        fontWeight: 800, 
+                        color: 'var(--md-sys-color-on-surface)',
+                        lineHeight: '1.25',
+                        marginBottom: '4px',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {product.name}
+                      </h3>
+                    </div>
+
+                    {/* Price & Action Button */}
+                    <div style={{
+                      paddingTop: '8px',
+                      borderTop: '1px solid var(--md-sys-color-surface-variant)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                          ${Math.round(product.price)}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#EC4899', backgroundColor: '#FCE7F3', padding: '1px 4px', borderRadius: '4px' }}>
+                          CUP
+                        </span>
+                      </div>
+
+                      {!inCart ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenAddToCartSheet(product);
+                          }}
+                          disabled={product.stock <= 0}
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '0.75rem',
+                            borderRadius: '9999px',
+                            backgroundColor: '#EC4899',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      ) : (
+                        <span style={{
+                          backgroundColor: '#FCE7F3',
+                          color: '#831843',
+                          padding: '3px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 800
+                        }}>
+                          {inCart.quantity}u
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* SECTION 1: Category Button Cards (Facebook Menu Style - Screenshot 3) */}
         {categories.length > 0 && (
           <div style={{ marginBottom: '28px' }}>

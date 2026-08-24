@@ -34,7 +34,7 @@ import { LoginScreen } from '@/components/LoginScreen';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
 import { ActionFeedbackProvider, useActionFeedback } from '@/components/ActionFeedbackProvider';
 
-import { Plus, Loader2, Home, Scan, Receipt } from 'lucide-react';
+import { Plus, Loader2, Home, Scan, Receipt, Menu } from 'lucide-react';
 
 function AccountingAppContent() {
   const { showToast, confirmAction, showActionResult } = useActionFeedback();
@@ -42,6 +42,7 @@ function AccountingAppContent() {
   const [activeTab, setActiveTab] = useState<AppTab>('quick');
   const [showBalance, setShowBalance] = useState<boolean>(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState<boolean>(false);
 
   // Modals state
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -642,6 +643,8 @@ function AccountingAppContent() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenScanner={() => setIsScannerOpen(true)}
         isSyncing={isSyncing}
+        isMenuOpen={isNavMenuOpen}
+        setIsMenuOpen={setIsNavMenuOpen}
       />
 
       {/* Main Content Area */}
@@ -661,6 +664,7 @@ function AccountingAppContent() {
             onOpenDashboard={() => handleTabChange('dashboard')}
             onOpenStore={() => handleTabChange('store')}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
+            onOpenPOS={() => setIsScannerOpen(true)}
           />
         )}
 
@@ -771,27 +775,65 @@ function AccountingAppContent() {
 
       </main>
 
-      {/* Context-Aware Floating Action Button (FAB) */}
-      {activeTab === 'store' ? (
+      {/* Persistent Stacked Floating Action Buttons (Bottom-Right Corner) */}
+      <div 
+        className="no-print"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '10px',
+          zIndex: 90
+        }}
+      >
+        {/* Top Button: Context Action Button (Scanner POS / Vender) */}
         <button
-          className="fab no-print"
           onClick={() => setIsScannerOpen(true)}
-          title="Abrir Escáner POS para Vender"
-          style={{ backgroundColor: 'var(--md-sys-color-primary)', color: '#FFFFFF' }}
+          title="Escáner POS para Vender"
+          style={{
+            height: '48px',
+            padding: '0 18px',
+            borderRadius: '9999px',
+            backgroundColor: 'var(--md-sys-color-primary)',
+            color: '#FFFFFF',
+            border: 'none',
+            fontWeight: 800,
+            fontSize: '0.85rem',
+            boxShadow: 'var(--md-shadow-elevation-3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer'
+          }}
         >
-          <Scan size={22} />
-          <span>Vender / Escanear</span>
+          <Scan size={20} />
+          <span>Vender / Escáner</span>
         </button>
-      ) : (
+
+        {/* Bottom Button (Sostenido en Todo el Admin): Hamburger Menu Button */}
         <button
-          className="fab no-print"
-          onClick={() => handleOpenAddTx('gasto')}
-          title="Registrar nuevo movimiento de gasto o ingreso"
+          onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+          title="Menú Principal de Navegación"
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            color: 'var(--md-sys-color-on-surface)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            boxShadow: 'var(--md-shadow-elevation-2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer'
+          }}
         >
-          <Plus size={22} />
-          <span>Registrar Movimiento</span>
+          <Menu size={22} />
         </button>
-      )}
+      </div>
 
       {/* Barcode Scanner Modal (0001-9999) */}
       <BarcodeScannerModal

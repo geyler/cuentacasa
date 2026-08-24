@@ -26,6 +26,8 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onOpenScanner?: () => void;
   isSyncing?: boolean;
+  isMenuOpen?: boolean;
+  setIsMenuOpen?: (open: boolean) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,9 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
   toggleShowBalance,
   onOpenSettings,
   onOpenScanner,
-  isSyncing = false
+  isSyncing = false,
+  isMenuOpen: externalMenuOpen,
+  setIsMenuOpen: setExternalMenuOpen
 }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [internalMenuOpen, setInternalMenuOpen] = useState(false);
+  const isMenuOpen = externalMenuOpen !== undefined ? externalMenuOpen : internalMenuOpen;
+  const setIsMenuOpen = setExternalMenuOpen || setInternalMenuOpen;
 
   const handleNavClick = (tab: AppTab) => {
     setActiveTab(tab);
