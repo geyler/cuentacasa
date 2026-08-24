@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { StoreProduct, SupplierType, SupplierAccount } from '@/types';
 import { 
   getStoreProducts, 
@@ -25,6 +26,146 @@ import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { TransferModal } from '@/components/TransferModal';
 import { AppInput } from '@/components/common/AppInput';
+
+const FormBarcodeScannerOverlay: React.FC<{
+  onScan: (code: string) => void;
+  onClose: () => void;
+}> = ({ onScan, onClose }) => {
+  const containerId = 'form-barcode-scanner-box';
+  const html5QrRef = useRef<Html5Qrcode | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const startScanner = async () => {
+      try {
+        const scanner = new Html5Qrcode(containerId, {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.ITF
+          ],
+          verbose: false
+        });
+        html5QrRef.current = scanner;
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 20, qrbox: { width: 240, height: 110 }, aspectRatio: 1.777778 },
+          (decodedText) => {
+            if (isMounted) {
+              const code = decodedText.trim();
+              if (code) {
+                try {
+                  const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                  if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1050, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.14);
+                  }
+                } catch (e) {}
+                onScan(code);
+              }
+            }
+          },
+          () => {}
+        );
+      } catch (err) {
+        console.warn('Camera start error:', err);
+      }
+    };
+
+    const stop = async () => {
+      if (html5QrRef.current) {
+        try {
+          if (html5QrRef.current.isScanning) {
+            await html5QrRef.current.stop();
+          }
+          html5QrRef.current.clear();
+        } catch (e) {}
+        html5QrRef.current = null;
+      }
+    };
+
+    const timer = setTimeout(startScanner, 150);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      stop();
+    };
+  }, [onScan]);
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.92)',
+      backdropFilter: 'blur(8px)',
+      zIndex: 200,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }} onClick={onClose}>
+      <div style={{
+        width: '100%',
+        maxWidth: '360px',
+        backgroundColor: 'var(--md-sys-color-surface-container)',
+        borderRadius: '24px',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        textAlign: 'center'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Scan size={18} color="var(--md-sys-color-primary)" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Escanear Código de Producto</h3>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{
+          width: '100%',
+          height: '200px',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          backgroundColor: '#000',
+          position: 'relative'
+        }}>
+          <div id={containerId} style={{ width: '100%', height: '100%' }} />
+          <div className="scanner-laser-line" style={{ top: '50%' }} />
+        </div>
+
+        <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+          Apunta la cámara al código de barras del producto para capturarlo automáticamente.
+        </p>
+
+        <button onClick={onClose} className="md-btn md-btn-secondary" style={{ width: '100%', padding: '10px' }}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+};
 import { 
   Store, 
   Plus, 
@@ -78,6 +219,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   // Modal State for Add / Edit Store Product
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUniversalTransferModalOpen, setIsUniversalTransferModalOpen] = useState(false);
+  const [isScanningForFormBarcode, setIsScanningForFormBarcode] = useState(false);
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
 
   // Form State
@@ -1912,7 +2054,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               required
             />
 
-            {/* Category Select & Auto-generated Barcode Tag */}
+            {/* Dedicated Barcode / SKU Field with Camera Scan Button */}
             <div style={{
               opacity: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 0.35 : 1,
               filter: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 'blur(3px)' : 'none',
@@ -1921,26 +2063,60 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               flexDirection: 'column',
               gap: '6px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                  Categoría del Producto *
-                </label>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  backgroundColor: 'var(--md-sys-color-primary-container)',
-                  color: 'var(--md-sys-color-on-primary-container)',
-                  fontSize: '0.75rem',
-                  fontFamily: 'monospace',
-                  fontWeight: 800
-                }}>
-                  <Tag size={13} />
-                  <span>Código: #{barcode}</span>
-                </div>
+              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Código de Barras / SKU *
+              </label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Ej. 0005 o escanea del empaque"
+                  value={barcode}
+                  onChange={e => setBarcode(e.target.value)}
+                  className="input-spotlight"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--md-sys-color-primary)',
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    color: 'var(--md-sys-color-on-surface)',
+                    fontSize: '0.95rem',
+                    fontFamily: 'monospace',
+                    fontWeight: 800
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsScanningForFormBarcode(true)}
+                  className="md-btn md-btn-secondary"
+                  style={{
+                    padding: '10px 14px',
+                    fontSize: '0.82rem',
+                    borderColor: 'var(--md-sys-color-primary)',
+                    color: 'var(--md-sys-color-primary)',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                >
+                  <Camera size={16} />
+                  <span>Escanear Código</span>
+                </button>
               </div>
+            </div>
+
+            {/* Category Select Dropdown */}
+            <div style={{
+              opacity: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 0.35 : 1,
+              filter: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 'blur(3px)' : 'none',
+              transition: 'all 0.25s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Categoría del Producto *
+              </label>
 
               {/* Standardized Category Select Dropdown */}
               <select
@@ -2616,6 +2792,22 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           setSuppliers(getSupplierAccounts());
         }}
       />
+
+      {/* Form Barcode Scanner Camera Overlay Modal */}
+      {isScanningForFormBarcode && (
+        <FormBarcodeScannerOverlay
+          onScan={(scannedCode) => {
+            setBarcode(scannedCode);
+            setIsScanningForFormBarcode(false);
+            showToast({
+              title: '¡Código Escaneado!',
+              message: `Asignado código de barras #${scannedCode} al producto.`,
+              type: 'success'
+            });
+          }}
+          onClose={() => setIsScanningForFormBarcode(false)}
+        />
+      )}
 
     </div>
   );

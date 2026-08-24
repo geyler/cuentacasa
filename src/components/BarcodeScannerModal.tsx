@@ -348,10 +348,26 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
   const handleManualFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (manualCode.trim()) {
-      const codeToScan = manualCode.trim().padStart(4, '0');
-      handleDecodedBarcode(codeToScan);
-      setManualCode('');
+    const rawCode = manualCode.trim();
+    if (rawCode) {
+      const searchCode = rawCode.replace(/\D/g, '').length > 0 && rawCode.length <= 4 
+        ? rawCode.padStart(4, '0') 
+        : rawCode;
+      
+      const product = getStoreProductByBarcode(searchCode) || getStoreProductByBarcode(rawCode);
+
+      if (product) {
+        setLastScanned(product.barcode);
+        addItemToTicket(product);
+        setManualCode('');
+      } else {
+        showToast({
+          title: 'Producto No Encontrado',
+          message: `El producto con código "${rawCode}" no existe en el inventario.`,
+          type: 'warning'
+        });
+        triggerSuccessEffect(`⚠️ Código #${rawCode} no existe`);
+      }
     }
   };
 
@@ -458,9 +474,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         )}
       </div>
 
-      {/* FIXED TOOLBAR BAR: ONLY MANUAL CODE ENTRY / CAMERA */}
+      {/* FIXED TOOLBAR BAR: POWERFUL MANUAL CODE ENTRY */}
       <div style={{
-        padding: '8px 14px',
+        padding: '10px 14px',
         backgroundColor: 'var(--md-sys-color-surface-container)',
         borderBottom: '1px solid var(--md-sys-color-outline-variant)',
         display: 'flex',
@@ -470,30 +486,26 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         flexShrink: 0
       }}>
         <form onSubmit={handleManualFormSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap' }}>
             Código Manual:
           </span>
           <input
             type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={4}
-            placeholder="0001"
+            placeholder="Ej. 00968 o barcode"
             value={manualCode}
-            onChange={e => {
-              const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-              setManualCode(val);
-              if (val.length === 4) {
-                handleDecodedBarcode(val);
-                setManualCode('');
-              }
+            onChange={e => setManualCode(e.target.value)}
+            onFocus={(e) => {
+              setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 150);
             }}
             className="input-spotlight"
             style={{
-              width: '90px',
-              padding: '5px 8px',
-              borderRadius: '8px',
-              border: '1.5px solid var(--md-sys-color-primary)',
+              flex: 1,
+              maxWidth: '160px',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              border: '2px solid var(--md-sys-color-primary)',
               backgroundColor: 'var(--md-sys-color-surface)',
               color: 'var(--md-sys-color-on-surface)',
               fontFamily: 'monospace',
@@ -505,13 +517,22 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           <button
             type="submit"
             className="md-btn md-btn-primary"
-            style={{ padding: '5px 10px', fontSize: '0.75rem', fontWeight: 800 }}
+            style={{
+              padding: '8px 14px',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              backgroundColor: 'var(--md-sys-color-primary)',
+              color: 'var(--md-sys-color-on-primary)',
+              boxShadow: '0 2px 8px rgba(0, 99, 155, 0.3)',
+              flexShrink: 0
+            }}
           >
-            Sumar
+            <Plus size={16} />
+            <span>Sumar al Ticket</span>
           </button>
         </form>
 
-        <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+        <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, flexShrink: 0 }}>
           📷 Escáner activo
         </span>
       </div>

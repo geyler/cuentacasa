@@ -318,21 +318,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             {!isEditingPhone ? (
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span style={{ flex: 1, fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ flex: '1 1 180px', fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
                   Número al que llegarán los encargos realizados desde la tienda pública.
                 </span>
                 <button
                   onClick={() => setIsEditingPhone(true)}
                   className="md-btn md-btn-secondary"
-                  style={{ padding: '8px 12px', fontSize: '0.82rem', borderColor: '#25D366', color: '#25D366' }}
+                  style={{ padding: '8px 12px', fontSize: '0.82rem', borderColor: '#25D366', color: '#25D366', flexShrink: 0 }}
                 >
                   {whatsappPhone ? 'Editar Número' : 'Configurar Número'}
                 </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <input
                     type="tel"
                     inputMode="numeric"
@@ -344,25 +344,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     className="input-spotlight"
                     style={{
                       flex: 1,
-                      padding: '8px 12px',
+                      minWidth: 0,
+                      padding: '8px 10px',
                       borderRadius: '10px',
                       border: '1.5px solid #25D366',
                       backgroundColor: 'var(--md-sys-color-surface)',
                       color: 'var(--md-sys-color-on-surface)',
-                      fontSize: '0.92rem',
+                      fontSize: '0.88rem',
                       fontWeight: 700
                     }}
                   />
                   <button
                     onClick={handleSavePhone}
                     className="md-btn"
-                    style={{ backgroundColor: '#25D366', color: '#FFF', padding: '8px 14px', fontSize: '0.82rem', fontWeight: 800 }}
+                    style={{ backgroundColor: '#25D366', color: '#FFF', padding: '8px 12px', fontSize: '0.8rem', fontWeight: 800, flexShrink: 0 }}
                   >
                     <Save size={14} /> Guardar
                   </button>
                   <button
                     onClick={() => setIsEditingPhone(false)}
-                    style={{ background: 'none', border: 'none', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--md-sys-color-on-surface-variant)' }}
+                    style={{ background: 'none', border: 'none', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--md-sys-color-on-surface-variant)', flexShrink: 0, padding: '4px' }}
                   >
                     Cancelar
                   </button>
@@ -384,12 +385,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             flexDirection: 'column',
             gap: '10px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Hash size={18} color="var(--md-sys-color-primary)" />
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>PIN Rápido (4 Dígitos)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                <Hash size={18} color="var(--md-sys-color-primary)" style={{ flexShrink: 0 }} />
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>PIN Rápido (4 Dígitos)</span>
               </div>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: pin ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: pin ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)', flexShrink: 0 }}>
                 {pin ? `Activo (${pin})` : 'Desactivado'}
               </span>
             </div>
@@ -424,7 +425,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <input
                     type="password"
                     inputMode="numeric"
@@ -436,26 +437,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     style={{
                       flex: 1,
-                      padding: '8px 12px',
+                      minWidth: 0,
+                      padding: '8px 10px',
                       borderRadius: '10px',
                       border: '1px solid var(--md-sys-color-outline)',
                       backgroundColor: 'var(--md-sys-color-surface-container)',
                       color: 'var(--md-sys-color-on-surface)',
-                      fontSize: '1rem',
-                      letterSpacing: '0.2rem',
+                      fontSize: '0.95rem',
+                      letterSpacing: '0.15rem',
                       textAlign: 'center'
                     }}
                   />
                   <button
                     onClick={handleSavePin}
                     className="md-btn md-btn-primary"
-                    style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+                    style={{ padding: '8px 12px', fontSize: '0.8rem', flexShrink: 0 }}
                   >
                     Guardar
                   </button>
                   <button
                     onClick={() => setIsEditingPin(false)}
-                    style={{ background: 'none', border: 'none', fontSize: '0.8rem', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--md-sys-color-on-surface-variant)', flexShrink: 0, padding: '4px' }}
                   >
                     Cancelar
                   </button>
