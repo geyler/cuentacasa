@@ -83,7 +83,7 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
                   fontSize: '0.75rem',
                   fontWeight: 800,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(0, 99, 155, 0.2)'
+                  boxShadow: '0 2px 6px rgba(236, 72, 153, 0.25)'
                 }}
               >
                 <Check size={13} />
@@ -122,7 +122,7 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
           fontSize: isNumeric ? '1.12rem' : '0.98rem',
           fontWeight: isNumeric ? 800 : 700,
           outline: 'none',
-          boxShadow: isSelfFocused ? '0 0 0 4px rgba(0, 99, 155, 0.25)' : 'none',
+          boxShadow: isSelfFocused ? '0 0 0 4px rgba(236, 72, 153, 0.25)' : 'none',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           ...style
         }}

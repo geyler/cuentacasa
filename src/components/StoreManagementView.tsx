@@ -292,7 +292,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 padding: '14px 16px',
                 borderRadius: '16px',
                 border: 'none',
-                background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #004B77 100%)',
+                background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #DB2777 100%)',
                 color: '#FFFFFF',
                 fontSize: '1rem',
                 fontWeight: 900,
@@ -301,7 +301,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 12px rgba(0, 99, 155, 0.3)'
+                boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)'
               }}
             >
               <Plus size={22} />
