@@ -1,6 +1,18 @@
-import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase, FundAccountType } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole } from '@/types';
 
 const STORAGE_KEY = 'cuentacasa_raw_db_v5';
+
+export const INITIAL_USERS: AppUser[] = [
+  {
+    id: 'usr-geyler',
+    username: 'geyler',
+    password: 'Del1Al9#',
+    name: 'Geyler',
+    role: 'propietario',
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  }
+];
 
 export function formatPhotoUrl(url?: string): string {
   if (!url) return '';
@@ -118,6 +130,7 @@ export const INITIAL_DB: RawDatabase = {
   storeProducts: INITIAL_SEED_PRODUCTS,
   storeSales: [],
   supplierAccounts: INITIAL_SUPPLIERS,
+  users: INITIAL_USERS,
   storeFund: 0,
   savingsFund: 0,
   deletedIds: []
@@ -144,6 +157,101 @@ export function validateMasterPassword(inputPass: string): boolean {
   return trimmed === current || trimmed === 'Del1Al9';
 }
 
+// User & Roles Authentication Helpers
+export function getAppUsers(): AppUser[] {
+  const db = getRawDatabase();
+  return (Array.isArray(db.users) && db.users.length > 0) ? db.users : INITIAL_USERS;
+}
+
+export function saveAppUser(user: Omit<AppUser, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): AppUser {
+  const db = getRawDatabase();
+  const users = getAppUsers();
+  
+  let targetUser: AppUser;
+  if (user.id) {
+    targetUser = {
+      ...user,
+      id: user.id,
+      createdAt: users.find(u => u.id === user.id)?.createdAt || Date.now(),
+      updatedAt: Date.now()
+    } as AppUser;
+    const idx = users.findIndex(u => u.id === user.id);
+    if (idx >= 0) users[idx] = targetUser;
+    else users.push(targetUser);
+  } else {
+    targetUser = {
+      ...user,
+      id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    users.push(targetUser);
+  }
+  
+  db.users = users;
+  saveRawDatabase(db);
+  return targetUser;
+}
+
+export function deleteAppUser(userId: string): { success: boolean; message: string } {
+  const db = getRawDatabase();
+  const users = getAppUsers();
+  const target = users.find(u => u.id === userId);
+  
+  if (!target) return { success: false, message: 'Usuario no encontrado.' };
+  
+  if (target.role === 'propietario') {
+    const ownerCount = users.filter(u => u.role === 'propietario').length;
+    if (ownerCount <= 1) {
+      return { success: false, message: 'No se puede eliminar el único usuario Propietario del sistema.' };
+    }
+  }
+
+  db.users = users.filter(u => u.id !== userId);
+  saveRawDatabase(db);
+  return { success: true, message: 'Usuario eliminado exitosamente.' };
+}
+
+export function authenticateUser(username: string, password: string): AppUser | null {
+  const users = getAppUsers();
+  const cleanUser = username.trim().toLowerCase();
+  const cleanPass = password.trim();
+  
+  const found = users.find(u => u.username.trim().toLowerCase() === cleanUser && u.password.trim() === cleanPass);
+  return found || null;
+}
+
+export function getLoggedInUser(): AppUser | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('cuentacasa_active_user') || sessionStorage.getItem('cuentacasa_active_user');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+export function setLoggedInUser(user: AppUser | null): void {
+  if (typeof window === 'undefined') return;
+  if (!user) {
+    localStorage.removeItem('cuentacasa_active_user');
+    sessionStorage.removeItem('cuentacasa_active_user');
+    localStorage.removeItem('cuentacasa_auth');
+    sessionStorage.removeItem('cuentacasa_auth');
+  } else {
+    const serialized = JSON.stringify(user);
+    localStorage.setItem('cuentacasa_active_user', serialized);
+    sessionStorage.setItem('cuentacasa_active_user', serialized);
+    localStorage.setItem('cuentacasa_auth', 'true');
+    sessionStorage.setItem('cuentacasa_auth', 'true');
+  }
+}
+
+export function getUserRole(): UserRole {
+  const loggedUser = getLoggedInUser();
+  return loggedUser?.role || 'vendedor';
+}
 
 // Retrieve full raw DB
 export function getRawDatabase(): RawDatabase {
@@ -161,6 +269,7 @@ export function getRawDatabase(): RawDatabase {
       storeProducts: Array.isArray(parsed.storeProducts) ? parsed.storeProducts : INITIAL_SEED_PRODUCTS,
       storeSales: Array.isArray(parsed.storeSales) ? parsed.storeSales : [],
       supplierAccounts: Array.isArray(parsed.supplierAccounts) ? parsed.supplierAccounts : INITIAL_SUPPLIERS,
+      users: (Array.isArray(parsed.users) && parsed.users.length > 0) ? parsed.users : INITIAL_USERS,
       storeFund: typeof parsed.storeFund === 'number' ? parsed.storeFund : 0,
       savingsFund: typeof parsed.savingsFund === 'number' ? parsed.savingsFund : 0,
       deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : []
@@ -182,15 +291,8 @@ export function saveRawDatabase(db: RawDatabase): void {
 export function clearAllDatabaseRecords(): void {
   if (typeof window === 'undefined') return;
   try {
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith('cuentacasa_') || key.startsWith('samy_'))) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.clear();
+    sessionStorage.clear();
   } catch (e) {}
 
   // Purge Service Worker Caches
@@ -203,12 +305,23 @@ export function clearAllDatabaseRecords(): void {
   }
 
   const resetDb: RawDatabase = {
-    ...INITIAL_DB,
+    version: '1.0.0',
+    lastUpdated: new Date().toISOString(),
+    settings: {
+      currency: '$',
+      appName: 'Samy Store',
+      autoSync: true,
+      masterPassword: 'Del1Al9'
+    },
     transactions: [],
+    storeProducts: [],
     storeSales: [],
+    supplierAccounts: [],
     storeFund: 0,
+    savingsFund: 0,
     deletedIds: [],
-    supplierAccounts: INITIAL_SUPPLIERS.map(s => ({ ...s, pendingPayout: 0, totalPaid: 0, updatedAt: Date.now() }))
+    deletedProductIds: [],
+    lastSync: new Date().toISOString()
   };
   saveRawDatabase(resetDb);
 }
@@ -736,15 +849,9 @@ export function formatCubanPhone(phoneRaw?: string): { display: string; cleanDig
   if (digits.startsWith('53') && digits.length >= 10) {
     localPart = digits.slice(2);
   }
-  if (localPart.length === 8) {
-    return {
-      display: `+53 ${localPart}`,
-      cleanDigits: `53${localPart}`
-    };
-  }
   return {
-    display: digits.startsWith('53') ? `+${digits}` : `+53 ${digits}`,
-    cleanDigits: digits.startsWith('53') ? digits : `53${digits}`
+    display: `+53 ${localPart}`,
+    cleanDigits: `53${localPart}`
   };
 }
 
@@ -778,7 +885,8 @@ export function rateStoreProduct(productId: string, stars: number): { success: b
   localStorage.setItem(`cuentacasa_rating_dev_${productId}`, devId);
 
   const db = getRawDatabase();
-  const product = db.storeProducts.find(p => p.id === productId);
+  const products = Array.isArray(db.storeProducts) ? db.storeProducts : [];
+  const product = products.find(p => p.id === productId);
   if (product) {
     let currentScore = product.ratingScore || (4.5 + Math.random() * 0.4);
     let currentCount = product.ratingCount || Math.floor(8 + Math.random() * 12);

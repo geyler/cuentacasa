@@ -425,14 +425,22 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
                 };
 
                 if (act.href) {
+                  const isInternal = act.href.startsWith('/') || !act.href.startsWith('http');
+                  const targetAttr = act.target || (isInternal ? '_self' : '_blank');
                   return (
                     <a
                       key={idx}
                       href={act.href}
-                      target={act.target || '_blank'}
-                      rel="noopener noreferrer"
+                      target={targetAttr}
+                      rel={isInternal ? undefined : "noopener noreferrer"}
                       className="md-btn md-btn-primary"
-                      onClick={() => setActionResult(null)}
+                      onClick={(e) => {
+                        setActionResult(null);
+                        if (isInternal) {
+                          e.preventDefault();
+                          window.location.href = act.href!;
+                        }
+                      }}
                       style={btnStyle}
                     >
                       {act.icon}

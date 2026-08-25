@@ -405,6 +405,46 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // 0. Process Full Database Reset
+    if (body.resetAll) {
+      if (isMySQLConfigured() && pool) {
+        try {
+          await pool.query('DELETE FROM transactions');
+          await pool.query('DELETE FROM store_products');
+          await pool.query('DELETE FROM store_sales');
+          await pool.query('DELETE FROM supplier_accounts');
+          await pool.query('DELETE FROM app_state');
+          await pool.query('DELETE FROM deleted_transactions');
+          await pool.query('DELETE FROM deleted_store_products');
+        } catch (dbErr) {
+          console.warn('MySQL reset error:', dbErr);
+        }
+      }
+      saveFileData({
+        transactions: [],
+        storeProducts: [],
+        storeSales: [],
+        supplierAccounts: [],
+        storeFund: 0,
+        savingsFund: 0,
+        settings: {}
+      });
+      return NextResponse.json({
+        success: true,
+        transactions: [],
+        storeProducts: [],
+        storeSales: [],
+        supplierAccounts: [],
+        storeFund: 0,
+        savingsFund: 0,
+        settings: {},
+        count: 0,
+        productCount: 0,
+        message: 'Base de datos vaciada y reiniciada a cero en la nube exitosamente.'
+      });
+    }
+
     const clientTransactions: Transaction[] = Array.isArray(body.transactions) ? body.transactions : [];
     const deletedIds: string[] = Array.isArray(body.deletedIds) ? body.deletedIds : [];
     const clientProducts: StoreProduct[] = Array.isArray(body.storeProducts) ? body.storeProducts : [];

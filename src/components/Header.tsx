@@ -18,6 +18,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 
+import { getLoggedInUser } from '@/lib/storage';
+
 interface HeaderProps {
   activeTab: AppTab;
   setActiveTab: (tab: AppTab) => void;
@@ -44,6 +46,9 @@ export const Header: React.FC<HeaderProps> = ({
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const isMenuOpen = externalMenuOpen !== undefined ? externalMenuOpen : internalMenuOpen;
   const setIsMenuOpen = setExternalMenuOpen || setInternalMenuOpen;
+
+  const currentUser = getLoggedInUser();
+  const isOwner = !currentUser || currentUser.role === 'propietario';
 
   const handleNavClick = (tab: AppTab) => {
     setActiveTab(tab);
@@ -73,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
         
         {/* Brand logo & Title */}
         <button
-          onClick={() => setActiveTab('quick')}
+          onClick={() => isOwner && setActiveTab('quick')}
           style={{
             background: 'none',
             border: 'none',
@@ -107,47 +112,51 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Navigation Tabs (PC Only - Hidden on Mobile) */}
         <nav className="hidden-mobile" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button
-            onClick={() => setActiveTab('quick')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary)' : 'transparent',
-              color: activeTab === 'quick' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Home size={16} />
-            <span>Inicio</span>
-          </button>
+          {isOwner && (
+            <>
+              <button
+                onClick={() => setActiveTab('quick')}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary)' : 'transparent',
+                  color: activeTab === 'quick' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Home size={16} />
+                <span>Inicio</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'transparent',
-              color: activeTab === 'dashboard' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <LayoutDashboard size={16} />
-            <span>Dashboard</span>
-          </button>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'transparent',
+                  color: activeTab === 'dashboard' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <LayoutDashboard size={16} />
+                <span>Dashboard</span>
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => setActiveTab('store')}
@@ -170,47 +179,51 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Tienda</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('transactions')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary)' : 'transparent',
-              color: activeTab === 'transactions' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Receipt size={16} />
-            <span>Movimientos</span>
-          </button>
+          {isOwner && (
+            <>
+              <button
+                onClick={() => setActiveTab('transactions')}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary)' : 'transparent',
+                  color: activeTab === 'transactions' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Receipt size={16} />
+                <span>Movimientos</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab('reports')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'transparent',
-              color: activeTab === 'reports' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <FileText size={16} />
-            <span>Reportes</span>
-          </button>
+              <button
+                onClick={() => setActiveTab('reports')}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'transparent',
+                  color: activeTab === 'reports' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <FileText size={16} />
+                <span>Reportes</span>
+              </button>
+            </>
+          )}
         </nav>
 
         {/* Right Utility Actions (Both Mobile & PC): Eye Balance Privacy + Settings Gear */}
@@ -311,51 +324,55 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Menu Options List */}
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               
-              <button
-                onClick={() => handleNavClick('quick')}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                  color: activeTab === 'quick' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Home size={20} />
-                  <span>Inicio Rápido</span>
-                </div>
-                <ChevronRight size={18} opacity={0.6} />
-              </button>
+              {isOwner && (
+                <>
+                  <button
+                    onClick={() => handleNavClick('quick')}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '16px',
+                      border: 'none',
+                      backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                      color: activeTab === 'quick' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <Home size={20} />
+                      <span>Inicio Rápido</span>
+                    </div>
+                    <ChevronRight size={18} opacity={0.6} />
+                  </button>
 
-              <button
-                onClick={() => handleNavClick('dashboard')}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                  color: activeTab === 'dashboard' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <LayoutDashboard size={20} />
-                  <span>Dashboard Contable</span>
-                </div>
-                <ChevronRight size={18} opacity={0.6} />
-              </button>
+                  <button
+                    onClick={() => handleNavClick('dashboard')}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '16px',
+                      border: 'none',
+                      backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                      color: activeTab === 'dashboard' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <LayoutDashboard size={20} />
+                      <span>Dashboard Contable</span>
+                    </div>
+                    <ChevronRight size={18} opacity={0.6} />
+                  </button>
+                </>
+              )}
 
               <button
                 onClick={() => handleNavClick('store')}
@@ -380,51 +397,55 @@ export const Header: React.FC<HeaderProps> = ({
                 <ChevronRight size={18} opacity={0.6} />
               </button>
 
-              <button
-                onClick={() => handleNavClick('transactions')}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                  color: activeTab === 'transactions' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Receipt size={20} />
-                  <span>Movimientos</span>
-                </div>
-                <ChevronRight size={18} opacity={0.6} />
-              </button>
+              {isOwner && (
+                <>
+                  <button
+                    onClick={() => handleNavClick('transactions')}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '16px',
+                      border: 'none',
+                      backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                      color: activeTab === 'transactions' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <Receipt size={20} />
+                      <span>Movimientos</span>
+                    </div>
+                    <ChevronRight size={18} opacity={0.6} />
+                  </button>
 
-              <button
-                onClick={() => handleNavClick('reports')}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                  color: activeTab === 'reports' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <FileText size={20} />
-                  <span>Reportes por Fechas</span>
-                </div>
-                <ChevronRight size={18} opacity={0.6} />
-              </button>
+                  <button
+                    onClick={() => handleNavClick('reports')}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '16px',
+                      border: 'none',
+                      backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                      color: activeTab === 'reports' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <FileText size={20} />
+                      <span>Reportes por Fechas</span>
+                    </div>
+                    <ChevronRight size={18} opacity={0.6} />
+                  </button>
+                </>
+              )}
 
               <div style={{ margin: '8px 0', borderTop: '1px solid var(--md-sys-color-outline-variant)' }} />
 

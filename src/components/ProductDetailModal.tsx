@@ -28,22 +28,24 @@ import {
 import { STORE_SEO_CONFIG, getProductSeoMeta } from '@/lib/seoHelper';
 
 interface ProductDetailModalProps {
-  initialProduct: StoreProduct | null;
+  product?: StoreProduct | null;
+  initialProduct?: StoreProduct | null;
   allProducts?: StoreProduct[];
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   currency?: string;
   onAddToCart?: (product: StoreProduct) => void;
   onSelectProduct?: (product: StoreProduct) => void;
   onEditProduct?: (product: StoreProduct) => void;
-  onDeleteProduct?: (productId: string) => void;
+  onDeleteProduct?: (productId: string, name?: string) => void;
   isAdmin?: boolean;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
+  product,
   initialProduct,
   allProducts = [],
-  isOpen,
+  isOpen = true,
   onClose,
   currency = 'CUP',
   onAddToCart,
@@ -52,22 +54,25 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onDeleteProduct,
   isAdmin = false
 }) => {
-  const [activeProduct, setActiveProduct] = useState<StoreProduct | null>(initialProduct);
+  const currentProduct = product || initialProduct || null;
+  const [activeProduct, setActiveProduct] = useState<StoreProduct | null>(currentProduct);
   const [imageError, setImageError] = useState(false);
   const [userRating, setUserRating] = useState<number>(0);
-  const [ratingScore, setRatingScore] = useState<number>(5.0);
-  const [ratingCount, setRatingCount] = useState<number>(1);
 
   React.useEffect(() => {
-    setActiveProduct(initialProduct);
+    setActiveProduct(currentProduct);
     setImageError(false);
-    if (initialProduct?.id) {
-      const seo = getProductSeoMeta(initialProduct.barcode, initialProduct.price);
-      setUserRating(getUserProductRating(initialProduct.id));
-      setRatingScore(initialProduct.ratingScore || seo.ratingValue);
-      setRatingCount(initialProduct.ratingCount || seo.reviewCount);
+    if (currentProduct?.id) {
+      setUserRating(getUserProductRating(currentProduct.id));
     }
-  }, [initialProduct]);
+  }, [currentProduct]);
+
+  const seoMeta = activeProduct 
+    ? getProductSeoMeta(activeProduct.barcode, activeProduct.price)
+    : { ratingValue: 5.0, reviewCount: 1, datePublished: '', dateModified: '' };
+
+  const ratingScore = activeProduct?.ratingScore || seoMeta.ratingValue;
+  const ratingCount = activeProduct?.ratingCount || seoMeta.reviewCount;
 
   if (!isOpen || !activeProduct) return null;
 
@@ -82,8 +87,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     if (!activeProduct) return;
     const res = rateStoreProduct(activeProduct.id, stars);
     setUserRating(stars);
-    setRatingScore(res.newAvg);
-    setRatingCount(res.newCount);
+    setActiveProduct(prev => prev ? {
+      ...prev,
+      ratingScore: res.newAvg,
+      ratingCount: res.newCount
+    } : null);
   };
 
   const handleWhatsAppOrder = () => {

@@ -239,7 +239,7 @@ export const PublicStoreLanding: React.FC = () => {
         borderBottom: '1px solid #F1F5F9',
         position: 'sticky',
         top: 0,
-        zIndex: 1000,
+        zIndex: 1100,
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
       }}>
         <div style={{
@@ -277,8 +277,8 @@ export const PublicStoreLanding: React.FC = () => {
               title="Ver Carrito de Compras"
               style={{
                 position: 'relative',
+                width: '42px',
                 height: '42px',
-                padding: '0 18px',
                 borderRadius: '9999px',
                 border: 'none',
                 background: 'linear-gradient(135deg, #EC4899 0%, #D946EF 100%)',
@@ -287,19 +287,12 @@ export const PublicStoreLanding: React.FC = () => {
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                justifyContent: 'center',
                 boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)',
                 transition: 'all 0.2s ease'
               }}
             >
-              <ShoppingBag size={19} />
-              {totalCartCount > 0 ? (
-                <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>
-                  {totalCartCount} ({formatCurrency(totalCartPrice, '$', true)})
-                </span>
-              ) : (
-                <span style={{ fontSize: '0.85rem', fontWeight: 800 }} className="hidden-mobile">Carrito</span>
-              )}
+              <ShoppingBag size={20} />
 
               {totalCartCount > 0 && (
                 <span style={{
@@ -1239,17 +1232,18 @@ export const PublicStoreLanding: React.FC = () => {
 
       </main>
 
-      {/* Floating Bottom Cart Bar */}
+      {/* Floating Bottom Cart Bar (White theme matching top header) */}
       {totalCartCount > 0 && !isCartOpen && (
         <div style={{
           position: 'fixed',
           bottom: 0, left: 0, right: 0,
-          backgroundColor: '#0F172A',
-          color: '#FFFFFF',
-          borderTop: '1px solid rgba(255,255,255,0.1)',
-          padding: '12px 16px',
-          boxShadow: '0 -6px 20px rgba(0,0,0,0.3)',
-          zIndex: 90
+          backgroundColor: 'rgba(255, 255, 255, 0.96)',
+          backdropFilter: 'blur(16px)',
+          color: '#0F172A',
+          borderTop: '1px solid #F1F5F9',
+          padding: '12px 18px',
+          boxShadow: '0 -6px 24px rgba(0,0,0,0.08)',
+          zIndex: 1000
         }}>
           <div style={{
             maxWidth: '1024px',
@@ -1261,54 +1255,36 @@ export const PublicStoreLanding: React.FC = () => {
           }}>
             <div 
               onClick={() => setIsCartOpen(true)}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
             >
-              <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 700, display: 'block' }}>
-                🛒 Ver Carrito ({totalCartCount} artículos)
+              <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 700 }}>
+                Carrito ({totalCartCount} {totalCartCount === 1 ? 'ítem' : 'ítems'})
               </span>
-              <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#00FF88' }}>
-                {formatCurrency(totalCartPrice, '$', true)}
+              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669' }}>
+                {formatCurrency(totalCartPrice, '$', true)} <span style={{ fontSize: '0.78rem', color: '#EC4899', fontWeight: 800 }}>CUP</span>
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setIsCartOpen(true)}
-                style={{
-                  padding: '12px 16px',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  borderRadius: '9999px',
-                  backgroundColor: 'rgba(255,255,255,0.15)',
-                  color: '#FFFFFF',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  cursor: 'pointer'
-                }}
-              >
-                Abrir Carrito
-              </button>
-
-              <button
-                onClick={handleSendWhatsAppOrder}
-                style={{
-                  backgroundColor: '#25D366',
-                  color: '#FFFFFF',
-                  padding: '12px 18px',
-                  fontSize: '0.92rem',
-                  fontWeight: 800,
-                  borderRadius: '9999px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)'
-                }}
-              >
-                <MessageCircle size={20} />
-                <span>Encargar</span>
-              </button>
-            </div>
+            <button
+              onClick={handleSendWhatsAppOrder}
+              style={{
+                backgroundColor: '#25D366',
+                color: '#FFFFFF',
+                padding: '12px 22px',
+                fontSize: '0.95rem',
+                fontWeight: 800,
+                borderRadius: '9999px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)'
+              }}
+            >
+              <MessageCircle size={20} />
+              <span>Encargar</span>
+            </button>
           </div>
         </div>
       )}

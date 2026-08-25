@@ -13,7 +13,9 @@ import {
   addTransaction, 
   updateTransaction, 
   deleteTransaction,
-  getSavingsFund
+  getSavingsFund,
+  getLoggedInUser,
+  setLoggedInUser
 } from '@/lib/storage';
 import { syncDatabaseWithCloud, getPendingSyncCount } from '@/lib/sync';
 import { calculateFinancialSummary, isTransactionEditable } from '@/lib/invoice';
@@ -90,10 +92,14 @@ function AccountingAppContent() {
     // Check session auth & daily PIN unlock
     const localAuth = localStorage.getItem('cuentacasa_auth');
     const sessionAuth = sessionStorage.getItem('cuentacasa_auth');
-    const hasMasterAuth = localAuth === 'true' || sessionAuth === 'true';
+    const activeUser = getLoggedInUser();
+    const hasMasterAuth = (localAuth === 'true' || sessionAuth === 'true') && activeUser !== null;
 
     if (hasMasterAuth) {
       setIsAuthenticated(true);
+      if (activeUser && activeUser.role !== 'propietario') {
+        setActiveTab('store');
+      }
       const localPin = localStorage.getItem('cuentacasa_pin');
       const lastUnlock = localStorage.getItem('cuentacasa_last_pin_unlock');
       const today = new Date().toISOString().split('T')[0];
@@ -271,6 +277,10 @@ function AccountingAppContent() {
   }, [loadDatabase]);
 
   const handleTabChange = (tab: AppTab) => {
+    const activeUser = getLoggedInUser();
+    if (activeUser && activeUser.role !== 'propietario' && tab !== 'store') {
+      return;
+    }
     setIsTabTransitioning(true);
     setActiveTab(tab);
     setTimeout(() => {
@@ -283,6 +293,11 @@ function AccountingAppContent() {
     sessionStorage.setItem('cuentacasa_auth', 'true');
     setIsAuthenticated(true);
 
+    const activeUser = getLoggedInUser();
+    if (activeUser && activeUser.role !== 'propietario') {
+      setActiveTab('store');
+    }
+
     const localPin = localStorage.getItem('cuentacasa_pin');
     const lastUnlock = localStorage.getItem('cuentacasa_last_pin_unlock');
     const today = new Date().toISOString().split('T')[0];
@@ -292,7 +307,7 @@ function AccountingAppContent() {
     } else {
       setIsPinUnlocked(true);
     }
-    showToast({ title: '¡Sesión Iniciada!', message: 'Bienvenido a Cuenta Casa.', type: 'success' });
+    showToast({ title: '¡Sesión Iniciada!', message: `Bienvenido/a ${activeUser?.name || ''}.`, type: 'success' });
   };
 
   const handlePinUnlockSuccess = () => {
@@ -302,11 +317,12 @@ function AccountingAppContent() {
 
   const handleLogout = () => {
     confirmAction({
-      title: '¿Cerrar Sesión en Cuenta Casa?',
-      message: 'Se cerrará la sesión actual. Tendrás que ingresar tu clave maestra para volver a acceder.',
+      title: '¿Cerrar Sesión en Samy Store?',
+      message: 'Se cerrará la sesión actual. Tendrás que ingresar tus credenciales para volver a acceder.',
       variant: 'danger',
       confirmText: 'Cerrar Sesión',
       onConfirm: () => {
+        setLoggedInUser(null);
         localStorage.removeItem('cuentacasa_auth');
         sessionStorage.removeItem('cuentacasa_auth');
         localStorage.removeItem('cuentacasa_last_pin_unlock');
@@ -708,6 +724,7 @@ function AccountingAppContent() {
           <StoreManagementView
             currency={db.settings.currency}
             onOpenScanner={() => setIsScannerOpen(true)}
+            userRole={getLoggedInUser()?.role || 'propietario'}
           />
         )}
 
@@ -771,67 +788,71 @@ function AccountingAppContent() {
             zIndex: 90
           }}
         >
-          <button
-            onClick={() => handleTabChange('quick')}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              padding: '4px 0',
-              border: 'none',
-              background: 'transparent',
-              color: activeTab === 'quick' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: activeTab === 'quick' ? 800 : 600,
-              fontSize: '0.7rem',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{
-              padding: '4px 12px',
-              borderRadius: '9999px',
-              backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Home size={18} />
-            </div>
-            <span>Inicio</span>
-          </button>
+          {getLoggedInUser()?.role === 'propietario' && (
+            <>
+              <button
+                onClick={() => handleTabChange('quick')}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px',
+                  padding: '4px 0',
+                  border: 'none',
+                  background: 'transparent',
+                  color: activeTab === 'quick' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: activeTab === 'quick' ? 800 : 600,
+                  fontSize: '0.7rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Home size={18} />
+                </div>
+                <span>Inicio</span>
+              </button>
 
-          <button
-            onClick={() => handleTabChange('dashboard')}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              padding: '4px 0',
-              border: 'none',
-              background: 'transparent',
-              color: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: activeTab === 'dashboard' ? 800 : 600,
-              fontSize: '0.7rem',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{
-              padding: '4px 12px',
-              borderRadius: '9999px',
-              backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <LayoutDashboard size={18} />
-            </div>
-            <span>Dashboard</span>
-          </button>
+              <button
+                onClick={() => handleTabChange('dashboard')}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px',
+                  padding: '4px 0',
+                  border: 'none',
+                  background: 'transparent',
+                  color: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: activeTab === 'dashboard' ? 800 : 600,
+                  fontSize: '0.7rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <LayoutDashboard size={18} />
+                </div>
+                <span>Dashboard</span>
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => handleTabChange('store')}
@@ -864,67 +885,71 @@ function AccountingAppContent() {
             <span>Tienda</span>
           </button>
 
-          <button
-            onClick={() => handleTabChange('transactions')}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              padding: '4px 0',
-              border: 'none',
-              background: 'transparent',
-              color: activeTab === 'transactions' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: activeTab === 'transactions' ? 800 : 600,
-              fontSize: '0.7rem',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{
-              padding: '4px 12px',
-              borderRadius: '9999px',
-              backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Receipt size={18} />
-            </div>
-            <span>Movimientos</span>
-          </button>
+          {getLoggedInUser()?.role === 'propietario' && (
+            <>
+              <button
+                onClick={() => handleTabChange('transactions')}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px',
+                  padding: '4px 0',
+                  border: 'none',
+                  background: 'transparent',
+                  color: activeTab === 'transactions' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: activeTab === 'transactions' ? 800 : 600,
+                  fontSize: '0.7rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Receipt size={18} />
+                </div>
+                <span>Movimientos</span>
+              </button>
 
-          <button
-            onClick={() => handleTabChange('reports')}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              padding: '4px 0',
-              border: 'none',
-              background: 'transparent',
-              color: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: activeTab === 'reports' ? 800 : 600,
-              fontSize: '0.7rem',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{
-              padding: '4px 12px',
-              borderRadius: '9999px',
-              backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <FileText size={18} />
-            </div>
-            <span>Reportes</span>
-          </button>
+              <button
+                onClick={() => handleTabChange('reports')}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px',
+                  padding: '4px 0',
+                  border: 'none',
+                  background: 'transparent',
+                  color: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: activeTab === 'reports' ? 800 : 600,
+                  fontSize: '0.7rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FileText size={18} />
+                </div>
+                <span>Reportes</span>
+              </button>
+            </>
+          )}
         </div>
       )}
 

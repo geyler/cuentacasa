@@ -18,8 +18,10 @@ import {
   getRawDatabase,
   compressImageToBase64,
   getStoreWhatsappNumber,
-  saveStoreWhatsappNumber
+  saveStoreWhatsappNumber,
+  getUserRole
 } from '@/lib/storage';
+import { UserRole } from '@/types';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
@@ -109,13 +111,15 @@ const FormBarcodeScannerOverlay: React.FC<{
     };
   }, [onScan]);
 
+  const [manualCode, setManualCode] = useState('');
+
   return (
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
       backgroundColor: 'rgba(0,0,0,0.92)',
       backdropFilter: 'blur(8px)',
-      zIndex: 200,
+      zIndex: 9999,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -124,28 +128,29 @@ const FormBarcodeScannerOverlay: React.FC<{
     }} onClick={onClose}>
       <div style={{
         width: '100%',
-        maxWidth: '360px',
+        maxWidth: '380px',
         backgroundColor: 'var(--md-sys-color-surface-container)',
         borderRadius: '24px',
         padding: '20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        textAlign: 'center'
+        gap: '14px',
+        textAlign: 'center',
+        boxShadow: 'var(--md-shadow-elevation-3)'
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Scan size={18} color="var(--md-sys-color-primary)" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Escanear Código de Producto</h3>
+            <Scan size={20} color="var(--md-sys-color-primary)" />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>Escanear Código de Barras / SKU</h3>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--md-sys-color-on-surface-variant)' }}>
             <X size={20} />
           </button>
         </div>
 
         <div style={{
           width: '100%',
-          height: '200px',
+          height: '210px',
           borderRadius: '16px',
           overflow: 'hidden',
           backgroundColor: '#000',
@@ -155,9 +160,42 @@ const FormBarcodeScannerOverlay: React.FC<{
           <div className="scanner-laser-line" style={{ top: '50%' }} />
         </div>
 
-        <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-          Apunta la cámara al código de barras del producto para capturarlo automáticamente.
+        <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, margin: 0 }}>
+          Apunta la cámara al código de barras del producto para tomar el SKU automáticamente.
         </p>
+
+        {/* Manual SKU fallback */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+          <input
+            type="text"
+            placeholder="O escribe el SKU manualmente..."
+            value={manualCode}
+            onChange={e => setManualCode(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '10px 12px',
+              borderRadius: '12px',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              color: 'var(--md-sys-color-on-surface)',
+              fontSize: '0.88rem',
+              fontWeight: 700
+            }}
+          />
+          <button
+            type="button"
+            disabled={!manualCode.trim()}
+            onClick={() => {
+              if (manualCode.trim()) {
+                onScan(manualCode.trim());
+              }
+            }}
+            className="md-btn md-btn-primary"
+            style={{ padding: '8px 14px', fontSize: '0.82rem', flexShrink: 0 }}
+          >
+            Usar
+          </button>
+        </div>
 
         <button onClick={onClose} className="md-btn md-btn-secondary" style={{ width: '100%', padding: '10px' }}>
           Cancelar
@@ -200,12 +238,19 @@ import {
 interface StoreManagementViewProps {
   currency?: string;
   onOpenScanner?: () => void;
+  userRole?: UserRole;
 }
 
 export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   currency = '$',
-  onOpenScanner
+  onOpenScanner,
+  userRole: propUserRole
 }) => {
+  const effectiveRole = propUserRole || getUserRole();
+  const isOwner = effectiveRole === 'propietario';
+  const isAdmin = effectiveRole === 'administrador';
+  const isVendor = effectiveRole === 'vendedor';
+
   const { showToast, confirmAction, showActionResult } = useActionFeedback();
   const rawDb = getRawDatabase();
   const [products, setProducts] = useState<StoreProduct[]>(() => getStoreProducts());
@@ -709,93 +754,97 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             </button>
           )}
 
-          <button
-            onClick={handleOpenAdd}
-            className="md-btn"
-            style={{
-              flex: '1 1 0px',
-              width: '50%',
-              backgroundColor: '#FFFFFF',
-              color: '#0F172A',
-              fontSize: '0.92rem',
-              fontWeight: 800,
-              padding: '12px 16px',
-              border: 'none',
-              borderRadius: '14px',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Plus size={20} color="#EC4899" />
-            <span>Publicar</span>
-          </button>
+          {!isVendor && (
+            <button
+              onClick={handleOpenAdd}
+              className="md-btn"
+              style={{
+                flex: '1 1 0px',
+                width: '50%',
+                backgroundColor: '#FFFFFF',
+                color: '#0F172A',
+                fontSize: '0.92rem',
+                fontWeight: 800,
+                padding: '12px 16px',
+                border: 'none',
+                borderRadius: '14px',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Plus size={20} color="#EC4899" />
+              <span>Publicar</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Dual Funds Accounting Metrics (2 Columns on Mobile) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '10px'
-      }}>
-        
-        {/* House Net Profit */}
-        <div className="md-card" style={{ padding: '12px 14px', backgroundColor: 'var(--md-sys-color-income-container)' }}>
-          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-income-container)', display: 'block' }}>
-            Ganancias a Casa
-          </span>
-          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-income)', display: 'block', margin: '4px 0 2px 0' }}>
-            +{formatCurrency(totalHouseProfit, currency, true)}
-          </span>
-          <span style={{ fontSize: '0.68rem', opacity: 0.8, display: 'block' }}>
-            A balance general
-          </span>
-        </div>
+      {!isVendor && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '10px'
+        }}>
+          
+          {/* House Net Profit */}
+          <div className="md-card" style={{ padding: '12px 14px', backgroundColor: 'var(--md-sys-color-income-container)' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-income-container)', display: 'block' }}>
+              {isOwner ? 'Ganancias a Casa' : 'Ganancias a Propietario'}
+            </span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-income)', display: 'block', margin: '4px 0 2px 0' }}>
+              +{formatCurrency(totalHouseProfit, currency, true)}
+            </span>
+            <span style={{ fontSize: '0.68rem', opacity: 0.8, display: 'block' }}>
+              {isOwner ? 'A balance general' : 'Transferido a Propietario'}
+            </span>
+          </div>
 
-        {/* Store Fund (Caja Chica) */}
-        <div className="md-card" style={{ padding: '12px 14px' }}>
-          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            Fondo Tienda (Caja)
-          </span>
-          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-primary)', display: 'block', margin: '4px 0 2px 0' }}>
-            {formatCurrency(totalStoreFund, currency, true)}
-          </span>
-          <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            Caja de reposición
-          </span>
-        </div>
+          {/* Store Fund (Caja Chica) */}
+          <div className="md-card" style={{ padding: '12px 14px' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+              Fondo Tienda (Caja)
+            </span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-primary)', display: 'block', margin: '4px 0 2px 0' }}>
+              {formatCurrency(totalStoreFund, currency, true)}
+            </span>
+            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+              Caja de reposición
+            </span>
+          </div>
 
-        {/* Supplier Debts */}
-        <div className="md-card" style={{ padding: '12px 14px' }}>
-          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            Por Pagar Proveedor
-          </span>
-          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-expense)', display: 'block', margin: '4px 0 2px 0' }}>
-            {formatCurrency(totalPendingSupplierDebt, currency, true)}
-          </span>
-          <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            Deudas pendientes
-          </span>
-        </div>
+          {/* Supplier Debts */}
+          <div className="md-card" style={{ padding: '12px 14px' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+              Por Pagar Proveedor
+            </span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-expense)', display: 'block', margin: '4px 0 2px 0' }}>
+              {formatCurrency(totalPendingSupplierDebt, currency, true)}
+            </span>
+            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+              Deudas pendientes
+            </span>
+          </div>
 
-        {/* Total Stock Capital */}
-        <div className="md-card" style={{ padding: '12px 14px' }}>
-          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            Capital Almacén
-          </span>
-          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', display: 'block', margin: '4px 0 2px 0' }}>
-            {formatCurrency(totalCostValueInStock, currency, true)}
-          </span>
-          <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-            {totalStockUnits}u en stock
-          </span>
-        </div>
+          {/* Total Stock Capital */}
+          <div className="md-card" style={{ padding: '12px 14px' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+              Capital Almacén
+            </span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', display: 'block', margin: '4px 0 2px 0' }}>
+              {formatCurrency(totalCostValueInStock, currency, true)}
+            </span>
+            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+              {totalStockUnits}u en stock
+            </span>
+          </div>
 
-      </div>
+        </div>
+      )}
 
       {/* Navigation Sub-Tabs Bar */}
       <div style={{
@@ -830,53 +879,57 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           <span>Productos</span>
         </button>
 
-        <button
-          onClick={() => setActiveSubTab('suppliers')}
-          style={{
-            flex: '1 1 auto',
-            padding: '10px 14px',
-            borderRadius: '12px',
-            border: 'none',
-            fontWeight: 800,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            backgroundColor: activeSubTab === 'suppliers' ? 'var(--md-sys-color-surface)' : 'transparent',
-            color: activeSubTab === 'suppliers' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-            boxShadow: activeSubTab === 'suppliers' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <Users size={16} />
-          <span>Proveedores ({suppliers.length})</span>
-        </button>
+        {!isVendor && (
+          <button
+            onClick={() => setActiveSubTab('suppliers')}
+            style={{
+              flex: '1 1 auto',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              backgroundColor: activeSubTab === 'suppliers' ? 'var(--md-sys-color-surface)' : 'transparent',
+              color: activeSubTab === 'suppliers' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+              boxShadow: activeSubTab === 'suppliers' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Users size={16} />
+            <span>Proveedores ({suppliers.length})</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveSubTab('transfer')}
-          style={{
-            flex: '1 1 auto',
-            padding: '10px 14px',
-            borderRadius: '12px',
-            border: 'none',
-            fontWeight: 800,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            backgroundColor: activeSubTab === 'transfer' ? 'var(--md-sys-color-surface)' : 'transparent',
-            color: activeSubTab === 'transfer' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-            boxShadow: activeSubTab === 'transfer' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <ArrowRightLeft size={16} />
-          <span>Transferir a Casa</span>
-        </button>
+        {isOwner && (
+          <button
+            onClick={() => setActiveSubTab('transfer')}
+            style={{
+              flex: '1 1 auto',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              backgroundColor: activeSubTab === 'transfer' ? 'var(--md-sys-color-surface)' : 'transparent',
+              color: activeSubTab === 'transfer' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+              boxShadow: activeSubTab === 'transfer' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <ArrowRightLeft size={16} />
+            <span>Transferir a Casa</span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveSubTab('sales')}
@@ -1092,65 +1145,73 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                       <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
                         {formatCurrency(prod.price, currency, true)}
                       </div>
-                      <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-                        Costo: ${prod.costPrice || 0}
-                      </span>
+                      {!isVendor && (
+                        <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+                          Costo: ${prod.costPrice || 0}
+                        </span>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => handleTogglePublish(prod)}
-                        title={prod.published ? 'Publicado en Tienda' : 'Borrador (Oculto)'}
-                        style={{
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '6px',
-                          cursor: 'pointer',
-                          backgroundColor: prod.published ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-surface-container-high)',
-                          color: prod.published ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {prod.published ? <Eye size={16} /> : <EyeOff size={16} />}
-                      </button>
+                      {!isVendor && (
+                        <button
+                          onClick={() => handleTogglePublish(prod)}
+                          title={prod.published ? 'Publicado en Tienda' : 'Borrador (Oculto)'}
+                          style={{
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '6px',
+                            cursor: 'pointer',
+                            backgroundColor: prod.published ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-surface-container-high)',
+                            color: prod.published ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {prod.published ? <Eye size={16} /> : <EyeOff size={16} />}
+                        </button>
+                      )}
 
-                      <button
-                        onClick={() => handleOpenEdit(prod)}
-                        title="Editar producto"
-                        style={{
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '6px',
-                          cursor: 'pointer',
-                          backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                          color: 'var(--md-sys-color-on-surface)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Edit3 size={16} />
-                      </button>
+                      {!isVendor && (
+                        <button
+                          onClick={() => handleOpenEdit(prod)}
+                          title="Editar producto"
+                          style={{
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '6px',
+                            cursor: 'pointer',
+                            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                      )}
 
-                      <button
-                        onClick={() => handleDelete(prod.id, prod.name)}
-                        title="Eliminar producto"
-                        style={{
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '6px',
-                          cursor: 'pointer',
-                          backgroundColor: 'var(--md-sys-color-expense-container)',
-                          color: 'var(--md-sys-color-expense)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {!isVendor && (
+                        <button
+                          onClick={() => handleDelete(prod.id, prod.name)}
+                          title="Eliminar producto"
+                          style={{
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '6px',
+                            cursor: 'pointer',
+                            backgroundColor: 'var(--md-sys-color-expense-container)',
+                            color: 'var(--md-sys-color-expense)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -2778,13 +2839,13 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           setSelectedProductForDetailModal(null);
           handleOpenEdit(p);
         }}
-        onDeleteProduct={(id, name) => {
+        onDeleteProduct={(id: string, name?: string) => {
           setSelectedProductForDetailModal(null);
-          handleDelete(id, name);
+          handleDelete(id, name || '');
         }}
         allProducts={products}
         currency={currency}
-        isAdmin={true}
+        isAdmin={!isVendor}
       />
 
       {/* Universal Transfer Modal */}

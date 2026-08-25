@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
-import { clearAllDatabaseRecords, validateMasterPassword, setMasterPassword, getStoreWhatsappNumber, saveStoreWhatsappNumber } from '@/lib/storage';
+import { clearAllDatabaseRecords, validateMasterPassword, setMasterPassword, getStoreWhatsappNumber, saveStoreWhatsappNumber, getAppUsers, saveAppUser, deleteAppUser, getLoggedInUser } from '@/lib/storage';
+import { AppUser, UserRole } from '@/types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -70,6 +71,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [isEditingPhone, setIsEditingPhone] = useState(false);
 
+  // User Roles & Management State
+  const currentUser = getLoggedInUser();
+  const isOwner = currentUser?.role === 'propietario';
+  const [usersList, setUsersList] = useState<AppUser[]>([]);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserUsername, setNewUserUsername] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<UserRole>('administrador');
+
   useEffect(() => {
     if (isOpen) {
       const currentPin = localStorage.getItem('cuentacasa_pin');
@@ -81,10 +92,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setMasterPassError('');
       setWhatsappPhone(getStoreWhatsappNumber());
       setIsEditingPhone(false);
+      setUsersList(getAppUsers());
+      setShowAddUserModal(false);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserUsername.trim() || !newUserPassword.trim()) {
+      showToast({ title: 'Campos Incompletos', message: 'Por favor completa todos los datos del usuario.', type: 'error' });
+      return;
+    }
+    saveAppUser({
+      name: newUserName.trim(),
+      username: newUserUsername.trim().toLowerCase(),
+      password: newUserPassword.trim(),
+      role: newUserRole
+    });
+    setUsersList(getAppUsers());
+    setShowAddUserModal(false);
+    setNewUserName('');
+    setNewUserUsername('');
+    setNewUserPassword('');
+    showToast({ title: '¡Usuario Creado!', message: `El usuario @${newUserUsername} ha sido creado.`, type: 'success' });
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    const target = usersList.find(u => u.id === userId);
+    confirmAction({
+      title: '¿Eliminar Usuario?',
+      message: `¿Estás seguro de eliminar el acceso para @${target?.username}?`,
+      variant: 'danger',
+      confirmText: 'Eliminar Acceso',
+      onConfirm: () => {
+        const res = deleteAppUser(userId);
+        if (res.success) {
+          setUsersList(getAppUsers());
+          showToast({ title: 'Usuario Eliminado', message: res.message, type: 'info' });
+        } else {
+          showToast({ title: 'No permitido', message: res.message, type: 'error' });
+        }
+      }
+    });
+  };
 
   const handleSavePhone = () => {
     let clean = whatsappPhone.replace(/\D/g, '');
@@ -126,7 +178,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsMasterPassModalOpen(true);
   };
 
-  const handleConfirmMasterPassReset = (e: React.FormEvent) => {
+  const handleConfirmMasterPassReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setMasterPassError('');
 
@@ -143,17 +195,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     // Save/update password in DB as requested
     setMasterPassword(masterPasswordInput.trim());
 
-    // Perform database reset
+    // Perform database reset locally
     clearAllDatabaseRecords();
+
+    // Trigger cloud reset if online
+    try {
+      if (typeof window !== 'undefined' && navigator.onLine) {
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resetAll: true })
+        });
+      }
+    } catch (err) {}
+
     showToast({
-      title: '¡Base de Datos Reiniciada!',
-      message: 'Se han eliminado todos los registros y vaciado la caché.',
+      title: '¡Base de Datos Reiniciada a 0!',
+      message: 'Se han eliminado todos los registros locales y en la nube.',
       type: 'success'
     });
     
     setTimeout(() => {
       window.location.reload();
-    }, 500);
+    }, 600);
   };
 
   const handleRemovePin = () => {
@@ -613,29 +677,139 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </button>
           )}
 
-          {/* Reset / Purge DB to 0 Button */}
-          <button
-            onClick={handleOpenMasterPassModal}
-            style={{
+          {/* User Management Section (Accessible ONLY to propietario) */}
+          {isOwner && (
+            <div style={{
+              padding: '16px',
+              borderRadius: '16px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
               display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '14px 16px',
-              borderRadius: '14px',
-              border: 'none',
-              backgroundColor: 'var(--md-sys-color-expense)',
-              color: '#FFFFFF',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              marginTop: '6px',
-              boxShadow: '0 4px 12px rgba(211, 47, 47, 0.25)'
-            }}
-          >
-            <Trash2 size={18} />
-            <span>Reiniciar Base de Datos a 0 y Limpiar Caché</span>
-          </button>
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 800 }}>👥 Gestión de Usuarios y Roles</span>
+                <button
+                  type="button"
+                  onClick={() => setShowAddUserModal(!showAddUserModal)}
+                  className="md-btn md-btn-primary"
+                  style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                >
+                  {showAddUserModal ? 'Cancelar' : '+ Agregar Usuario'}
+                </button>
+              </div>
+
+              {/* Form to create a new user */}
+              {showAddUserModal && (
+                <form onSubmit={handleCreateUser} style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  backgroundColor: 'var(--md-sys-color-surface-container)',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--md-sys-color-primary-container)'
+                }}>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nombre completo (ej. María)"
+                    value={newUserName}
+                    onChange={e => setNewUserName(e.target.value)}
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                  />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nombre de usuario (ej. maria)"
+                    value={newUserUsername}
+                    onChange={e => setNewUserUsername(e.target.value)}
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                  />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Contraseña de acceso"
+                    value={newUserPassword}
+                    onChange={e => setNewUserPassword(e.target.value)}
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                  />
+                  <select
+                    value={newUserRole}
+                    onChange={e => setNewUserRole(e.target.value as UserRole)}
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: 700 }}
+                  >
+                    <option value="propietario">Propietario (Acceso Total)</option>
+                    <option value="administrador">Administrador (Solo Tienda)</option>
+                    <option value="vendedor">Vendedor (Solo Vender POS)</option>
+                  </select>
+                  <button type="submit" className="md-btn md-btn-primary" style={{ padding: '10px', fontSize: '0.85rem', fontWeight: 800 }}>
+                    Guardar Usuario
+                  </button>
+                </form>
+              )}
+
+              {/* Registered Users List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {usersList.map(u => (
+                  <div key={u.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                    fontSize: '0.82rem'
+                  }}>
+                    <div>
+                      <span style={{ fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>{u.name}</span>{' '}
+                      <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.75rem' }}>@{u.username}</span>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: u.role === 'propietario' ? '#EC4899' : u.role === 'administrador' ? '#059669' : '#3B82F6' }}>
+                        Rol: {u.role.toUpperCase()}
+                      </div>
+                    </div>
+
+                    {u.username !== currentUser?.username && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteUser(u.id)}
+                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reset / Purge DB to 0 Button (Accessible ONLY to propietario) */}
+          {isOwner && (
+            <button
+              onClick={handleOpenMasterPassModal}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                border: 'none',
+                backgroundColor: 'var(--md-sys-color-expense)',
+                color: '#FFFFFF',
+                fontWeight: 800,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                marginTop: '6px',
+                boxShadow: '0 4px 12px rgba(211, 47, 47, 0.25)'
+              }}
+            >
+              <Trash2 size={18} />
+              <span>Reiniciar Base de Datos a 0 y Limpiar Caché</span>
+            </button>
+          )}
 
           {/* Logout Button */}
           <button

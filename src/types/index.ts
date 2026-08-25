@@ -88,6 +88,18 @@ export interface FinancialSummary {
   categoryBreakdown: { [category: string]: number };
 }
 
+export type UserRole = 'propietario' | 'administrador' | 'vendedor';
+
+export interface AppUser {
+  id: string;
+  username: string;        // Nombre de usuario único e.g. "geyler"
+  password: string;        // Contraseña e.g. "Del1Al9#"
+  name: string;            // Nombre a mostrar e.g. "Geyler"
+  role: UserRole;          // 'propietario' | 'administrador' | 'vendedor'
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface RawDatabase {
   version: string;
   lastUpdated: string;
@@ -98,6 +110,7 @@ export interface RawDatabase {
   storeProducts?: StoreProduct[];
   storeSales?: StoreSaleRecord[];
   supplierAccounts?: SupplierAccount[];
+  users?: AppUser[];
   storeFund?: number;      // Fondo propio acumulado en caja de la tienda
   savingsFund?: number;    // Fondo de Ahorro acumulado de Cuenta Casa
   settings: {
