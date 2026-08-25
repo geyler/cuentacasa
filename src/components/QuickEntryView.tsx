@@ -31,15 +31,103 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   onOpenTransfer,
   onOpenPOS
 }) => {
+  const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
+  const [isInstalled, setIsInstalled] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+      setIsInstalled(isStandalone);
+
+      const handleBeforeInstall = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+
+      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+      return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    }
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setIsInstalled(true);
+      }
+    } else {
+      alert('📱 Para instalar la App de Samy Store:\n\n1. En Chrome/Android: Toca los 3 puntos del navegador y elige "Añadir a la pantalla de inicio" o "Instalar aplicación".\n2. En iPhone/Safari: Toca el botón Compartir y elige "Añadir a pantalla de inicio".');
+    }
+  };
+
   return (
     <div style={{
+      minHeight: '80vh',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '8px 12px 60px 12px',
+      justifyContent: 'center',
+      padding: '24px 16px',
       textAlign: 'center'
     }}>
       <div style={{ maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        
+        {/* PWA Install Call-to-Action Banner */}
+        {!isInstalled && (
+          <div style={{
+            backgroundColor: '#EFF6FF',
+            border: '1px solid #BFDBFE',
+            borderRadius: '18px',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 4px 14px rgba(59, 130, 246, 0.12)',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                backgroundColor: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+                flexShrink: 0
+              }}>
+                <img src="/images/logo-nav.png" alt="Samy Store" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#1E40AF', margin: 0 }}>
+                  Instalar App Samy Store
+                </h4>
+                <p style={{ fontSize: '0.74rem', color: '#3B82F6', margin: '2px 0 0 0', fontWeight: 600 }}>
+                  Acceso directo 100% offline
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleInstallPwa}
+              className="md-btn md-btn-primary"
+              style={{
+                padding: '7px 14px',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                borderRadius: '9999px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
+              }}
+            >
+              Instalar
+            </button>
+          </div>
+        )}
         
         {/* App Title Header */}
         <div>

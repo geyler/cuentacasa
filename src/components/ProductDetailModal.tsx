@@ -67,23 +67,41 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const handleWhatsAppOrder = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const cartQuery = `${activeProduct.barcode}:1`;
-    const checkoutLink = `${origin}/app?cart=${encodeURIComponent(cartQuery)}`;
     const productSeoLink = `${origin}/producto/${activeProduct.id}`;
 
-    let text = `🛒 *SOLICITUD DE COMPRA - SAMY STORE*\n📍 *Cuba*\n----------------------------------\n`;
-    text += `1. *${activeProduct.name}* (Cod: #${activeProduct.barcode})\n`;
-    text += `   Cant: 1u | Precio: ${formatCurrency(activeProduct.price, currency, true)} CUP\n`;
-    text += `----------------------------------\n💰 *TOTAL A PAGAR: ${formatCurrency(activeProduct.price, currency, true)} CUP*\n\n`;
-    text += `🔗 *Enlace Directo al Artículo:*\n${productSeoLink}\n\n`;
-    text += `🛒 *Abrir Pedido / Cobro Inmediato:*\n${checkoutLink}\n\n`;
-    text += `_(Si eres cliente este enlace llena tu pedido. Si eres Administrador abre la pantalla de cobro directo en POS)_`;
+    let text = `🛒 *PEDIDO SAMY STORE*\n`;
+    text += `----------------------------------\n`;
+    text += `• 1x *${activeProduct.name}* (Cod: #${activeProduct.barcode})\n`;
+    text += `----------------------------------\n`;
+    text += `💰 *Total*: ${formatCurrency(activeProduct.price, currency, true)} CUP\n\n`;
+    text += `🔗 *Ver producto en Samy Store:*\n${productSeoLink}`;
 
     const targetPhone = getStoreWhatsappNumber();
     const encoded = encodeURIComponent(text);
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
     const waUrl = cleanPhone ? `https://wa.me/+${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
     window.open(waUrl, '_blank');
+  };
+
+  const handleShareProduct = async () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const productSeoLink = `${origin}/producto/${activeProduct.id}`;
+    const shareText = `🛍️ *${activeProduct.name}*\n💰 Precio: ${formatCurrency(activeProduct.price, currency, true)} CUP\n\n🔗 Ver en Samy Store:\n${productSeoLink}`;
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: activeProduct.name,
+          text: shareText,
+          url: productSeoLink
+        });
+      } catch (e) {
+        // User cancelled
+      }
+    } else {
+      navigator.clipboard.writeText(shareText);
+      alert(`¡Enlace del producto copiado al portapapeles!\n${productSeoLink}`);
+    }
   };
 
   return (
@@ -512,26 +530,52 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </button>
               ) : (
                 <>
-                  {onAddToCart && activeProduct.stock > 0 && (
+                  {/* Row 1: Compartir y Agregar al Carrito side-by-side */}
+                  <div style={{ display: 'flex', gap: '10px' }}>
                     <button
-                      onClick={() => {
-                        onAddToCart(activeProduct);
-                        onClose();
-                      }}
-                      className="md-btn md-btn-primary"
+                      onClick={handleShareProduct}
+                      className="md-btn md-btn-secondary"
                       style={{
-                        width: '100%',
-                        padding: '14px',
-                        fontSize: '1rem',
+                        flex: 1,
+                        padding: '12px',
+                        fontSize: '0.88rem',
                         fontWeight: 800,
-                        boxShadow: '0 4px 16px rgba(0, 99, 155, 0.3)'
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
                       }}
                     >
-                      <Plus size={20} />
-                      <span>Agregar al Carrito de Compra</span>
+                      <Globe size={18} />
+                      <span>Compartir</span>
                     </button>
-                  )}
 
+                    {onAddToCart && activeProduct.stock > 0 && (
+                      <button
+                        onClick={() => {
+                          onAddToCart(activeProduct);
+                          onClose();
+                        }}
+                        className="md-btn md-btn-primary"
+                        style={{
+                          flex: 1,
+                          padding: '12px',
+                          fontSize: '0.88rem',
+                          fontWeight: 800,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          boxShadow: '0 4px 14px rgba(0, 99, 155, 0.25)'
+                        }}
+                      >
+                        <ShoppingBag size={18} />
+                        <span>Al Carrito</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Row 2: Pedir por WhatsApp solo abajo */}
                   <button
                     onClick={handleWhatsAppOrder}
                     className="md-btn"
@@ -540,34 +584,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       color: '#FFFFFF',
                       width: '100%',
                       padding: '14px',
-                      fontSize: '1rem',
+                      fontSize: '0.98rem',
                       fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
                       boxShadow: '0 4px 16px rgba(37, 211, 102, 0.35)'
                     }}
                   >
                     <MessageCircle size={22} />
-                    <span>Comprar / Pedir por WhatsApp</span>
-                  </button>
-
-                  {/* Shareable SEO Direct URL Button */}
-                  <button
-                    onClick={() => {
-                      const seoUrl = `${window.location.origin}/producto/${activeProduct.id}`;
-                      navigator.clipboard.writeText(seoUrl);
-                      alert(`¡Enlace SEO copiado al portapapeles!\n${seoUrl}`);
-                    }}
-                    className="md-btn"
-                    style={{
-                      backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                      color: 'var(--md-sys-color-on-surface)',
-                      width: '100%',
-                      padding: '10px',
-                      fontSize: '0.85rem',
-                      fontWeight: 700
-                    }}
-                  >
-                    <Globe size={16} />
-                    <span>Copiar Enlace SEO Único (/producto/{activeProduct.id})</span>
+                    <span>Pedir por WhatsApp</span>
                   </button>
                 </>
               )}

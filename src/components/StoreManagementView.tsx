@@ -965,8 +965,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
               <a
                 href="/"
-                target="_blank"
-                rel="noopener noreferrer"
+                target="_self"
                 style={{
                   fontSize: '0.8rem',
                   fontWeight: 700,
@@ -978,7 +977,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 }}
               >
                 <span>Ver Tienda Pública</span>
-                <ExternalLink size={14} />
+                <Store size={14} />
               </a>
 
             </div>

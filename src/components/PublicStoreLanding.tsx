@@ -45,6 +45,10 @@ export const PublicStoreLanding: React.FC = () => {
   const [selectedProductForModal, setSelectedProductForModal] = useState<StoreProduct | null>(null);
   const [isCubasoftModalOpen, setIsCubasoftModalOpen] = useState(false);
 
+  // PWA Install prompt state
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState<boolean>(false);
+
   // Facebook-Style Bottom Sheet state for quantity selection & confirmation
   const [productToAddToCart, setProductToAddToCart] = useState<StoreProduct | null>(null);
   const [addQty, setAddQty] = useState<number>(1);
@@ -54,6 +58,34 @@ export const PublicStoreLanding: React.FC = () => {
     quantity: number;
     totalPrice: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+      setIsInstalled(isStandalone);
+
+      const handleBeforeInstall = (e: Event) => {
+        e.preventDefault();
+        setDeferredInstallPrompt(e);
+      };
+
+      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+      return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    }
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredInstallPrompt(null);
+        setIsInstalled(true);
+      }
+    } else {
+      alert('📱 Para instalar la App de Samy Store:\n\n1. En Chrome/Android: Toca los 3 puntos del navegador y elige "Añadir a la pantalla de inicio" o "Instalar aplicación".\n2. En iPhone/Safari: Toca el botón Compartir y elige "Añadir a pantalla de inicio".');
+    }
+  };
 
   useEffect(() => {
     // 1. Initial immediate load from local storage
@@ -183,13 +215,12 @@ export const PublicStoreLanding: React.FC = () => {
     const cartQuery = cart.map(i => `${i.product.barcode}:${i.quantity}`).join(',');
     const cartLink = `${window.location.origin}/app?cart=${encodeURIComponent(cartQuery)}`;
 
-    let text = `🛒 *NUEVO PEDIDO - SAMY STORE*\n📍 *Cuba*\n----------------------------------\n`;
+    let text = `🛒 *PEDIDO SAMY STORE*\n----------------------------------\n`;
     cart.forEach((item, index) => {
-      text += `${index + 1}. *${item.product.name}* (Cod: #${item.product.barcode})\n   Cant: ${item.quantity}u | Subtotal: $${item.product.price * item.quantity} CUP\n`;
+      text += `${index + 1}. *${item.product.name}*\n   Cant: ${item.quantity}u | Subtotal: $${item.product.price * item.quantity} CUP\n`;
     });
     text += `----------------------------------\n💰 *TOTAL A PAGAR: $${totalCartPrice} CUP*\n\n`;
-    text += `🛒 *Ver / Cargar este Carrito:*\n${cartLink}\n\n`;
-    text += `_(Si eres cliente este enlace llena tu carrito. Si eres Administrador abre la pantalla de cobro en POS)_`;
+    text += `🔗 *Ver pedido en Samy Store:*\n${cartLink}`;
 
     const encoded = encodeURIComponent(text);
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
@@ -353,10 +384,67 @@ export const PublicStoreLanding: React.FC = () => {
                 <Lock size={18} />
               </a>
             )}
-
           </div>
         </div>
       </header>
+
+      {/* PWA Install Call-To-Action Banner (Visible on browser when not installed) */}
+      {!isInstalled && (
+        <div style={{
+          backgroundColor: '#FCE7F3',
+          border: '1px solid #F472B6',
+          borderRadius: '16px',
+          padding: '12px 16px',
+          margin: '12px 16px 0 16px',
+          maxWidth: '1024px',
+          alignSelf: 'center',
+          width: 'calc(100% - 32px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          boxShadow: '0 4px 14px rgba(236, 72, 153, 0.12)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              backgroundColor: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              flexShrink: 0
+            }}>
+              <img src="/images/logo-nav.png" alt="Samy Store" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#831843', margin: 0 }}>
+                ¡Instala la App de Samy Store!
+              </h4>
+              <p style={{ fontSize: '0.75rem', color: '#BE185D', margin: '2px 0 0 0', fontWeight: 600 }}>
+                Acceso 100% directo, ultra rápido y sin conexión.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleInstallPwa}
+            className="md-btn md-btn-primary"
+            style={{
+              padding: '8px 16px',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              borderRadius: '9999px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}
+          >
+            Instalar App
+          </button>
+        </div>
+      )}
 
       {/* Soft & Professional Feminine Hero Banner Section with Aesthetic Image Overlay */}
       <div style={{
