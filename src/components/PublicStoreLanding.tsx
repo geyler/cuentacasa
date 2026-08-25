@@ -352,134 +352,91 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       </header>
 
-      {/* PWA Install Call-To-Action Banner (Visible on browser when not installed) */}
-      {!isInstalled && (
-        <div style={{
-          backgroundColor: '#FFF1F2',
-          border: '1px solid #FBCFE8',
-          borderRadius: '20px',
-          padding: '14px 20px',
-          margin: '16px auto 0 auto',
-          maxWidth: '1024px',
-          width: 'calc(100% - 32px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '14px',
-          boxShadow: '0 6px 20px rgba(236, 72, 153, 0.08)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '42px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
-            <div style={{ textAlign: 'left' }}>
-              <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#831843', margin: 0 }}>
-                ¡Instala la App de Samy Store!
-              </h4>
-              <p style={{ fontSize: '0.78rem', color: '#BE185D', margin: '2px 0 0 0', fontWeight: 600 }}>
-                Acceso 100% directo, ultra rápido y sin conexión.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleInstallPwa}
-            className="md-btn md-btn-primary"
-            style={{
-              padding: '9px 18px',
-              fontSize: '0.84rem',
-              fontWeight: 800,
-              borderRadius: '9999px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-          >
-            Instalar App
-          </button>
-        </div>
-      )}
-
-      {/* Soft & Professional Feminine Hero Banner Section */}
+      {/* Ultra-Modern E-Commerce Hero Section */}
       <div style={{
-        backgroundImage: 'linear-gradient(180deg, rgba(255, 245, 247, 0.9) 0%, rgba(253, 242, 248, 0.95) 100%), url("/images/store_hero_bg.png")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        color: '#1E293B',
-        padding: '44px 20px 48px 20px',
-        textAlign: 'center',
+        maxWidth: '1024px',
+        width: 'calc(100% - 32px)',
+        margin: '20px auto 12px auto',
+        borderRadius: '28px',
+        background: 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #31103F 100%)',
+        color: '#FFFFFF',
+        padding: '36px 24px',
         position: 'relative',
-        borderBottom: '1px solid #FBCFE8',
-        boxShadow: 'inset 0 -10px 30px rgba(236, 72, 153, 0.04)'
+        overflow: 'hidden',
+        boxShadow: '0 12px 36px rgba(15, 23, 42, 0.25)'
       }}>
-        <div style={{ maxWidth: '1024px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          
+        {/* Decorative Ambient Background Glows */}
+        <div style={{
+          position: 'absolute',
+          top: '-40%',
+          right: '-10%',
+          width: '320px',
+          height: '320px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(236, 72, 153, 0.35) 0%, rgba(236, 72, 153, 0) 70%)',
+          pointerEvents: 'none'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '-40%',
+          left: '-10%',
+          width: '320px',
+          height: '320px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
+          pointerEvents: 'none'
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: '640px', margin: '0 auto' }}>
           {/* Store Pill Badge */}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            backgroundColor: '#FCE7F3',
-            border: '1px solid #FBCFE8',
-            color: '#DB2777',
-            padding: '6px 18px',
+            backgroundColor: 'rgba(255, 255, 255, 0.12)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: '#F472B6',
+            padding: '5px 16px',
             borderRadius: '9999px',
-            fontSize: '0.78rem',
+            fontSize: '0.76rem',
             fontWeight: 800,
-            letterSpacing: '0.04em',
-            marginBottom: '16px',
-            boxShadow: '0 2px 8px rgba(236, 72, 153, 0.1)'
+            letterSpacing: '0.05em',
+            marginBottom: '14px'
           }}>
-            <Sparkles size={14} color="#EC4899" />
-            <span>BIENVENIDO A SAMY STORE</span>
+            <Sparkles size={14} color="#F472B6" />
+            <span>SAMY STORE • CATÁLOGO DIGITAL</span>
           </div>
 
-          <h2 style={{ 
-            fontSize: '2.3rem', 
-            fontWeight: 900, 
-            lineHeight: '1.25', 
-            marginBottom: '12px',
+          {/* Hero Heading */}
+          <h2 style={{
+            fontSize: '2.1rem',
+            fontWeight: 900,
+            lineHeight: '1.2',
+            marginBottom: '10px',
             letterSpacing: '-0.02em',
-            color: '#831843'
+            color: '#FFFFFF'
           }}>
-            Tu Tienda Online Preferida
+            Encuentra lo que buscas y pide al instante
           </h2>
 
-          <p style={{ 
-            fontSize: '0.94rem', 
-            color: '#64748B', 
-            lineHeight: '1.6', 
-            maxWidth: '580px', 
-            margin: '0 auto 24px auto',
+          <p style={{
+            fontSize: '0.9rem',
+            color: '#CBD5E1',
+            lineHeight: '1.5',
+            marginBottom: '20px',
             fontWeight: 500
           }}>
-            Explora nuestro catálogo exclusivo. Agrega tus artículos al carrito con un toque y realiza tu pedido directo por WhatsApp con entrega rápida.
+            Explora nuestro catálogo, agrega tus productos al carrito y realiza tu pedido directo por WhatsApp con entrega rápida.
           </p>
 
-          {/* Advantage Pills */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-            flexWrap: 'wrap',
-            marginBottom: '26px'
-          }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', color: '#475569', padding: '7px 16px', borderRadius: '9999px', border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <Truck size={15} color="#EC4899" /> Envíos Rápidos
-            </span>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', color: '#475569', padding: '7px 16px', borderRadius: '9999px', border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <MessageCircle size={15} color="#25D366" /> Atención por WhatsApp
-            </span>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', color: '#475569', padding: '7px 16px', borderRadius: '9999px', border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <ShieldCheck size={15} color="#0284C7" /> Calidad Garantizada
-            </span>
-          </div>
-
-          {/* SINGLE Hero Search Bar (Ultra-Modern High-Impact Bar) */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '540px', margin: '0 auto' }}>
+          {/* SINGLE Hero Search Input */}
+          <div style={{ position: 'relative', width: '100%', maxWidth: '500px', margin: '0 auto 16px auto' }}>
             <Search 
-              size={22} 
+              size={20} 
               style={{
                 position: 'absolute',
-                left: '20px',
+                left: '18px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: '#EC4899'
@@ -492,16 +449,15 @@ export const PublicStoreLanding: React.FC = () => {
               onChange={e => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '16px 46px 16px 54px',
+                padding: '14px 44px 14px 50px',
                 borderRadius: '9999px',
-                border: '2px solid #FBCFE8',
-                backgroundColor: '#FFFFFF',
+                border: '2px solid rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.96)',
                 color: '#0F172A',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 fontWeight: 700,
                 outline: 'none',
-                boxShadow: '0 10px 30px rgba(236, 72, 153, 0.12)',
-                transition: 'all 0.2s ease'
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)'
               }}
             />
             {searchTerm && (
@@ -509,20 +465,20 @@ export const PublicStoreLanding: React.FC = () => {
                 onClick={() => setSearchTerm('')}
                 style={{
                   position: 'absolute',
-                  right: '16px',
+                  right: '14px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  background: '#F1F5F9',
+                  background: '#E2E8F0',
                   border: 'none',
-                  color: '#64748B',
-                  width: '26px',
-                  height: '26px',
+                  color: '#475569',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '9999px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  fontSize: '0.85rem',
+                  fontSize: '0.8rem',
                   fontWeight: 900
                 }}
               >
@@ -531,8 +487,83 @@ export const PublicStoreLanding: React.FC = () => {
             )}
           </div>
 
+          {/* Quick Popular Search Chips */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}>
+            <span style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: 700 }}>Popular:</span>
+            {['Pan', 'Arroz', 'Café', 'Aceite'].map(chip => (
+              <button
+                key={chip}
+                onClick={() => setSearchTerm(chip)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#F1F5F9',
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* PWA Install Call-To-Action Banner (Positioned BELOW Hero, visible ONLY on mobile & tablet browsers when not installed) */}
+      {!isInstalled && (
+        <div className="hidden-pc" style={{
+          backgroundColor: '#FFF1F2',
+          border: '1px solid #FBCFE8',
+          borderRadius: '16px',
+          padding: '8px 14px',
+          margin: '8px auto 0 auto',
+          maxWidth: '1024px',
+          width: 'calc(100% - 32px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '10px',
+          boxShadow: '0 4px 12px rgba(236, 72, 153, 0.06)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '28px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+            <div style={{ textAlign: 'left', overflow: 'hidden' }}>
+              <h4 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#831843', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                ¡Instala la App de Samy Store!
+              </h4>
+              <p style={{ fontSize: '0.7rem', color: '#BE185D', margin: 0, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Acceso 100% directo y sin conexión.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleInstallPwa}
+            className="md-btn md-btn-primary"
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.76rem',
+              fontWeight: 800,
+              borderRadius: '9999px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}
+          >
+            Instalar App
+          </button>
+        </div>
+      )}
 
       {/* Main Container - Enforcing 5xl (1024px max width) with Generous Spacing */}
       <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '36px 20px 140px 20px', flex: 1 }}>
