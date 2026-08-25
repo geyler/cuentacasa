@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cuenta Casa - Control Contable e Ingresos PWA",
-  description: "Aplicación WebAPK contable 100% offline para el control de gastos, ingresos y facturación de la casa.",
+  title: "Samy Store - POS & Gestión de Tienda PWA",
+  description: "Aplicación PWA / WebAPK 100% offline para POS, ventas, gestión de inventario y finanzas de Samy Store.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Cuenta Casa",
+    title: "Samy Store",
   },
   formatDetection: {
     telephone: false,
@@ -31,8 +31,26 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+        <link rel="icon" href="/icons/icon-192.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('Samy Store PWA Service Worker registered with scope: ', registration.scope);
+                    },
+                    function(err) {
+                      console.log('ServiceWorker registration failed: ', err);
+                    }
+                  );
+                });
+              }
+            `
+          }}
+        />
       </head>
       <body>
         {children}

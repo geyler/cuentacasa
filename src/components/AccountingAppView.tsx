@@ -158,18 +158,27 @@ function AccountingAppContent() {
 
     // Background Auto sync function
     const autoSync = async (isBackgroundReconnection: boolean = false) => {
-      if (navigator.onLine) {
+      if (typeof window !== 'undefined' && navigator.onLine) {
         try {
           setIsSyncing(true);
-          const res = await syncDatabaseWithCloud();
+          if (isBackgroundReconnection) {
+            setSyncBanner({
+              show: true,
+              status: 'syncing',
+              message: '📶 Conexión restablecida: Sincronizando datos con la nube...'
+            });
+          }
+
+          const res = await syncDatabaseWithCloud(isBackgroundReconnection);
           loadDatabase();
+
           if (isBackgroundReconnection && res.success) {
             setSyncBanner({
               show: true,
               status: 'success',
-              message: '✅ Sincronizado en segundo plano.'
+              message: '✅ Conexión restablecida: Datos sincronizados con la nube.'
             });
-            setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 3000);
+            setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 4000);
           }
         } catch (e) {
           // Ignore network errors in background auto-sync
@@ -182,14 +191,25 @@ function AccountingAppContent() {
     // Auto sync on mount if online
     autoSync(false);
 
+    // Periodic sync every 2 minutes if online
+    const syncInterval = setInterval(() => {
+      if (navigator.onLine) autoSync(false);
+    }, 120 * 1000);
+
     // Online/Offline Listeners
-    setIsOnline(navigator.onLine);
+    setIsOnline(typeof window !== 'undefined' ? navigator.onLine : true);
     const handleOnline = async () => {
       setIsOnline(true);
       await autoSync(true);
     };
     const handleOffline = () => {
       setIsOnline(false);
+      setSyncBanner({
+        show: true,
+        status: 'offline',
+        message: '📶 Modo Offline Activo: Todos los movimientos se guardan localmente.'
+      });
+      setTimeout(() => setSyncBanner(prev => ({ ...prev, show: false })), 4000);
     };
 
     window.addEventListener('online', handleOnline);
