@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoreProduct, SupplierAccount, UserRole } from '@/types';
-import { 
-  getStoreProducts, 
-  saveStoreProduct, 
+import {
+  getStoreProducts,
+  saveStoreProduct,
   deleteStoreProduct,
   getStoreSales,
   getSupplierAccounts,
@@ -22,7 +22,7 @@ import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { TransferModal } from '@/components/TransferModal';
 
-import { 
+import {
   FormBarcodeScannerOverlay,
   ProductFormModal,
   SupplierFormModal,
@@ -34,13 +34,13 @@ import {
   StoreSettingsTab
 } from '@/components/store';
 
-import { 
-  Store, 
-  Plus, 
-  Package, 
-  Users, 
-  ArrowRightLeft, 
-  Receipt, 
+import {
+  Store,
+  Plus,
+  Package,
+  Users,
+  ArrowRightLeft,
+  Receipt,
   MessageCircle,
   TrendingUp,
   DollarSign,
@@ -72,7 +72,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [suppliers, setSuppliers] = useState<SupplierAccount[]>(() => getSupplierAccounts());
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProductForDetailModal, setSelectedProductForDetailModal] = useState<StoreProduct | null>(null);
-  
+
   // Navigation Sub-Tabs
   const [activeSubTab, setActiveSubTab] = useState<'products' | 'suppliers' | 'transfer' | 'sales' | 'settings'>('products');
 
@@ -242,7 +242,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '32px' }}>
-      
+
       {/* Dynamic Header Metrics Bar */}
       <div className="md-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
