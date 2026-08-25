@@ -509,16 +509,6 @@ function AccountingAppContent() {
         zIndex: 9999,
         padding: '24px'
       }}>
-        {/* Glow backdrop effect */}
-        <div style={{
-          position: 'absolute',
-          width: '240px',
-          height: '240px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, rgba(255, 255, 255, 0) 70%)',
-          filter: 'blur(24px)',
-          pointerEvents: 'none'
-        }} />
 
         {/* Large Clean Transparent Logo */}
         <img 

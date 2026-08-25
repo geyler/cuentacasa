@@ -103,9 +103,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       padding: '20px',
-      backgroundColor: '#FFF0F5',
-      backgroundImage: 'radial-gradient(#FBCFE8 1px, transparent 1px)',
-      backgroundSize: '24px 24px'
+      backgroundColor: '#FFFFFF'
     }}>
       <div style={{
         maxWidth: '420px',

@@ -10,7 +10,7 @@
   "prefer_related_applications": false,
   "orientation": "portrait",
   "background_color": "#FFFFFF",
-  "theme_color": "#00639B",
+  "theme_color": "#EC4899",
   "categories": ["finance", "utilities", "lifestyle"],
   "icons": [
     {
