@@ -504,29 +504,18 @@ function AccountingAppContent() {
           pointerEvents: 'none'
         }} />
 
-        {/* Large Clean Logo Badge */}
-        <div style={{
-          position: 'relative',
-          width: '120px',
-          height: '120px',
-          borderRadius: '28px',
-          backgroundColor: '#FFFFFF',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '16px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)'
-        }}>
-          <img 
-            src="/images/logo-loading.png" 
-            alt="Samy Store Logo" 
-            style={{ 
-              width: '108px', 
-              height: '108px', 
-              objectFit: 'contain'
-            }} 
-          />
-        </div>
+        {/* Large Clean Transparent Logo */}
+        <img 
+          src="/images/logo-loading.png" 
+          alt="Samy Store Logo" 
+          style={{ 
+            height: '140px', 
+            width: 'auto', 
+            objectFit: 'contain',
+            marginBottom: '16px',
+            position: 'relative'
+          }} 
+        />
 
         {/* Branding & Title */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>

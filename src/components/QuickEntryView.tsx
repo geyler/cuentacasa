@@ -89,19 +89,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             textAlign: 'left'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
-                backgroundColor: '#FFFFFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-                flexShrink: 0
-              }}>
-                <img src="/images/logo-nav.png" alt="Samy Store" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
-              </div>
+              <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '36px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
               <div>
                 <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#1E40AF', margin: 0 }}>
                   Instalar App Samy Store
@@ -131,21 +119,18 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
         
         {/* App Title Header */}
         <div>
-          <div style={{
-            width: '68px',
-            height: '68px',
-            borderRadius: '20px',
-            backgroundColor: '#FFFFFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 8px auto',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
-            overflow: 'hidden'
-          }}>
-            <img src="/images/logo-loading.png" alt="Samy Store Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
-          </div>
-          <h2 className="font-logo-script" style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.01em', lineHeight: 1 }}>
+          <img 
+            src="/images/logo-loading.png" 
+            alt="Samy Store Logo" 
+            style={{ 
+              height: '110px', 
+              width: 'auto', 
+              objectFit: 'contain', 
+              margin: '0 auto 4px auto',
+              display: 'block'
+            }} 
+          />
+          <h2 className="font-logo-script" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.01em', lineHeight: 1 }}>
             Samy Store
           </h2>
           <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>

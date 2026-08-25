@@ -84,22 +84,18 @@ export const Header: React.FC<HeaderProps> = ({
             padding: 0
           }}
         >
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            backgroundColor: '#FFFFFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-            overflow: 'hidden',
-            flexShrink: 0
-          }}>
-            <img src="/images/logo-nav.png" alt="Samy Store" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-          </div>
+          <img 
+            src="/images/logo-nav.png" 
+            alt="Samy Store" 
+            style={{ 
+              height: '46px', 
+              width: 'auto', 
+              objectFit: 'contain', 
+              flexShrink: 0 
+            }} 
+          />
           <h1 className="font-logo-script" style={{ 
-            fontSize: '1.65rem', 
+            fontSize: '1.75rem', 
             fontWeight: 900, 
             letterSpacing: '-0.01em',
             color: 'var(--md-sys-color-on-surface)',

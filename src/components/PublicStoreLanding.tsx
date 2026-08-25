@@ -253,28 +253,17 @@ export const PublicStoreLanding: React.FC = () => {
           {/* Logo & Brand Name */}
           <div 
             onClick={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
           >
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #EC4899 0%, #F472B6 100%)',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
-            }}>
-              <Store size={22} />
-            </div>
+            <img 
+              src="/images/logo-nav.png" 
+              alt="Samy Store" 
+              style={{ height: '46px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} 
+            />
             <div>
-              <h1 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+              <h1 className="font-logo-script" style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', lineHeight: '1' }}>
                 Samy Store
               </h1>
-              <span style={{ fontSize: '0.68rem', color: '#DB2777', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Catálogo Digital Cuba
-              </span>
             </div>
           </div>
 
@@ -406,19 +395,7 @@ export const PublicStoreLanding: React.FC = () => {
           boxShadow: '0 4px 14px rgba(236, 72, 153, 0.12)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              backgroundColor: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-              flexShrink: 0
-            }}>
-              <img src="/images/logo-nav.png" alt="Samy Store" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-            </div>
+            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '38px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
             <div style={{ textAlign: 'left' }}>
               <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#831843', margin: 0 }}>
                 ¡Instala la App de Samy Store!
