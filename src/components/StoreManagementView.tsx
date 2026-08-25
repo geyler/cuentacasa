@@ -312,35 +312,35 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
         {/* Dashboard Accounting Financial Cards (2 Columns Grid) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-          {/* Card 1: Fondo Tienda */}
+          {/* Card 1: Fondo Tienda (Clean Emerald) */}
           <div className="md-card" style={{
-            background: 'linear-gradient(135deg, #059669 0%, #064E3B 100%)',
-            color: '#FFFFFF',
-            border: 'none',
+            backgroundColor: '#ECFDF5',
+            color: '#064E3B',
+            border: '1px solid #A7F3D0',
             padding: '14px 12px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, opacity: 0.9 }}>🏦 Fondo Tienda</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏦 Fondo Tienda</span>
               <div style={{
                 width: '28px',
                 height: '28px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255,255,255,0.2)',
+                backgroundColor: 'rgba(5, 150, 105, 0.18)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <Wallet size={16} />
+                <Wallet size={16} color="#059669" />
               </div>
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: '#047857', letterSpacing: '-0.02em' }}>
               {formatCurrency(totalStoreFund, currency, true)}
             </div>
-            <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+            <div style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 700 }}>
               Caja disponible en almacén
             </div>
           </div>
