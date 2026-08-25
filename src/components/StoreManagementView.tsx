@@ -56,7 +56,7 @@ const FormBarcodeScannerOverlay: React.FC<{
 
         await scanner.start(
           { facingMode: 'environment' },
-          { fps: 20, qrbox: { width: 240, height: 110 }, aspectRatio: 1.777778 },
+          { fps: 25, qrbox: (w, h) => ({ width: Math.min(Math.floor(w * 0.9), 320), height: Math.min(Math.floor(h * 0.85), 180) }), aspectRatio: 1.777778 },
           (decodedText) => {
             if (isMounted) {
               const code = decodedText.trim();
@@ -1901,8 +1901,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
             {/* Origen del Financiamiento y Proveedores (Immediately Below Header) */}
             <div style={{
-              opacity: focusedField !== null ? 0.35 : 1,
-              filter: focusedField !== null ? 'blur(3px)' : 'none',
+              opacity: focusedField !== null ? 0.85 : 1,
+              filter: focusedField !== null ? 'blur(1px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
@@ -2060,8 +2060,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
             {/* Dedicated Barcode / SKU Field with Camera Scan Button */}
             <div style={{
-              opacity: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 0.35 : 1,
-              filter: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 'blur(3px)' : 'none',
+              opacity: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 0.85 : 1,
+              filter: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 'blur(1px)' : 'none',
               transition: 'all 0.25s ease',
               display: 'flex',
               flexDirection: 'column',
@@ -2111,8 +2111,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
             {/* Category Select Dropdown */}
             <div style={{
-              opacity: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 0.35 : 1,
-              filter: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 'blur(3px)' : 'none',
+              opacity: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 0.85 : 1,
+              filter: focusedField !== null && focusedField !== 'category' && focusedField !== 'newCategory' ? 'blur(1px)' : 'none',
               transition: 'all 0.25s ease',
               display: 'flex',
               flexDirection: 'column',
@@ -2253,8 +2253,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   fontSize: '0.8rem',
-                  opacity: focusedField !== null ? 0.35 : 1,
-                  filter: focusedField !== null ? 'blur(3px)' : 'none',
+                  opacity: focusedField !== null ? 0.85 : 1,
+                  filter: focusedField !== null ? 'blur(1px)' : 'none',
                   transition: 'all 0.25s ease'
                 }}>
                   <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>Estimación de Ganancia:</span>
@@ -2297,8 +2297,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
-              opacity: focusedField !== null && focusedField !== 'externalUrl' ? 0.35 : 1,
-              filter: focusedField !== null && focusedField !== 'externalUrl' ? 'blur(3px)' : 'none',
+              opacity: focusedField !== null && focusedField !== 'externalUrl' ? 0.85 : 1,
+              filter: focusedField !== null && focusedField !== 'externalUrl' ? 'blur(1px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
@@ -2387,8 +2387,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: '4px',
-              opacity: focusedField !== null && focusedField !== 'description' ? 0.35 : 1,
-              filter: focusedField !== null && focusedField !== 'description' ? 'blur(3px)' : 'none',
+              opacity: focusedField !== null && focusedField !== 'description' ? 0.85 : 1,
+              filter: focusedField !== null && focusedField !== 'description' ? 'blur(1px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -2429,8 +2429,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               backgroundColor: 'var(--md-sys-color-surface)',
               border: '1px solid var(--md-sys-color-outline-variant)',
               gap: '10px',
-              opacity: focusedField !== null ? 0.35 : 1,
-              filter: focusedField !== null ? 'blur(3px)' : 'none',
+              opacity: focusedField !== null ? 0.85 : 1,
+              filter: focusedField !== null ? 'blur(1px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
               {photoUrl ? (
@@ -2504,8 +2504,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               cursor: 'pointer',
               fontSize: '0.85rem',
               fontWeight: 700,
-              opacity: focusedField !== null ? 0.35 : 1,
-              filter: focusedField !== null ? 'blur(3px)' : 'none',
+              opacity: focusedField !== null ? 0.85 : 1,
+              filter: focusedField !== null ? 'blur(1px)' : 'none',
               transition: 'all 0.25s ease'
             }}>
               <input

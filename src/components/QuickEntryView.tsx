@@ -244,7 +244,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 if (onOpenPublicStore) {
                   onOpenPublicStore();
                 } else if (typeof window !== 'undefined') {
-                  window.open('/', '_blank');
+                  window.location.href = '/';
                 }
               }}
               style={{

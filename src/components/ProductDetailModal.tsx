@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { StoreProduct } from '@/types';
 import { formatCurrency } from '@/lib/invoice';
-import { formatPhotoUrl, getStoreWhatsappNumber } from '@/lib/storage';
+import { formatPhotoUrl, getStoreWhatsappNumber, formatCubanPhone, getUserProductRating, rateStoreProduct } from '@/lib/storage';
 import { 
   X, 
   Tag, 
@@ -22,48 +22,69 @@ import {
   Star,
   Globe,
   CheckCircle2,
-  Scan
+  Scan,
+  Share2
 } from 'lucide-react';
-import { getProductSeoMeta, STORE_SEO_CONFIG } from '@/lib/seoHelper';
+import { STORE_SEO_CONFIG, getProductSeoMeta } from '@/lib/seoHelper';
 
 interface ProductDetailModalProps {
-  product: StoreProduct | null;
-  onClose: () => void;
-  onAddToCart?: (p: StoreProduct) => void;
-  onEditProduct?: (p: StoreProduct) => void;
-  onDeleteProduct?: (id: string, name: string) => void;
+  initialProduct: StoreProduct | null;
   allProducts?: StoreProduct[];
+  isOpen: boolean;
+  onClose: () => void;
   currency?: string;
+  onAddToCart?: (product: StoreProduct) => void;
+  onSelectProduct?: (product: StoreProduct) => void;
+  onEditProduct?: (product: StoreProduct) => void;
+  onDeleteProduct?: (productId: string) => void;
   isAdmin?: boolean;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
-  product: initialProduct,
+  initialProduct,
+  allProducts = [],
+  isOpen,
   onClose,
+  currency = 'CUP',
   onAddToCart,
+  onSelectProduct,
   onEditProduct,
   onDeleteProduct,
-  allProducts = [],
-  currency = '$',
   isAdmin = false
 }) => {
   const [activeProduct, setActiveProduct] = useState<StoreProduct | null>(initialProduct);
   const [imageError, setImageError] = useState(false);
+  const [userRating, setUserRating] = useState<number>(0);
+  const [ratingScore, setRatingScore] = useState<number>(5.0);
+  const [ratingCount, setRatingCount] = useState<number>(1);
 
   React.useEffect(() => {
     setActiveProduct(initialProduct);
     setImageError(false);
+    if (initialProduct?.id) {
+      const seo = getProductSeoMeta(initialProduct.barcode, initialProduct.price);
+      setUserRating(getUserProductRating(initialProduct.id));
+      setRatingScore(initialProduct.ratingScore || seo.ratingValue);
+      setRatingCount(initialProduct.ratingCount || seo.reviewCount);
+    }
   }, [initialProduct]);
 
-  if (!activeProduct) return null;
+  if (!isOpen || !activeProduct) return null;
 
   const cost = activeProduct.costPrice || Math.round(activeProduct.price * 0.7);
   const profitMargin = activeProduct.price - cost;
-  const seoMeta = getProductSeoMeta(activeProduct.barcode, activeProduct.price);
 
   const relatedProducts = allProducts.filter(p => 
     p.category === activeProduct.category && p.id !== activeProduct.id && p.published
   );
+
+  const handleRateProduct = (stars: number) => {
+    if (!activeProduct) return;
+    const res = rateStoreProduct(activeProduct.id, stars);
+    setUserRating(stars);
+    setRatingScore(res.newAvg);
+    setRatingCount(res.newCount);
+  };
 
   const handleWhatsAppOrder = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -77,9 +98,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     text += `🔗 *Ver producto en Samy Store:*\n${productSeoLink}`;
 
     const targetPhone = getStoreWhatsappNumber();
+    const formattedPhone = formatCubanPhone(targetPhone);
     const encoded = encodeURIComponent(text);
-    const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
-    const waUrl = cleanPhone ? `https://wa.me/+${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    const waUrl = formattedPhone.cleanDigits 
+      ? `https://wa.me/${formattedPhone.cleanDigits}?text=${encoded}` 
+      : `https://wa.me/?text=${encoded}`;
     window.open(waUrl, '_blank');
   };
 
@@ -435,6 +458,60 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Interactive 5-Star Rating Section */}
+        <div style={{
+          backgroundColor: '#FFFDF5',
+          borderRadius: '16px',
+          padding: '14px 16px',
+          border: '1.5px solid #FDE68A',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
+          textAlign: 'center',
+          boxShadow: '0 2px 10px rgba(217, 119, 6, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#92400E' }}>
+              Calificación general:
+            </span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#D97706', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Star size={16} fill="#D97706" color="#D97706" />
+              {ratingScore} / 5.0 ({ratingCount} votos)
+            </span>
+          </div>
+
+          <div style={{ fontSize: '0.78rem', color: '#B45309', fontWeight: 700 }}>
+            {userRating > 0 
+              ? `✨ Tu voto registrado en este dispositivo: ${userRating} estrella${userRating > 1 ? 's' : ''}`
+              : 'Toca una estrella para calificar este artículo desde tu dispositivo:'}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+            {[1, 2, 3, 4, 5].map((starIndex) => (
+              <button
+                key={starIndex}
+                type="button"
+                onClick={() => handleRateProduct(starIndex)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  transition: 'transform 0.15s ease'
+                }}
+                title={`Calificar con ${starIndex} estrellas`}
+              >
+                <Star
+                  size={28}
+                  fill={starIndex <= userRating ? '#F59E0B' : '#E2E8F0'}
+                  color={starIndex <= userRating ? '#D97706' : '#CBD5E1'}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Action Buttons Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

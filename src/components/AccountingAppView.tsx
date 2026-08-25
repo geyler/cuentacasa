@@ -644,7 +644,7 @@ function AccountingAppContent() {
             onOpenIngreso={() => handleOpenAddTx('ingreso')}
             onOpenDashboard={() => handleTabChange('dashboard')}
             onOpenStore={() => handleTabChange('store')}
-            onOpenPublicStore={() => window.open('/', '_blank')}
+            onOpenPublicStore={() => { window.location.href = '/'; }}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
             onOpenPOS={() => setIsScannerOpen(true)}
           />

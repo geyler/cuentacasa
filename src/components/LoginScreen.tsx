@@ -121,28 +121,33 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         transition: 'all 0.2s ease'
       }}>
         
-        {/* App Icon */}
+        {/* App Icon / Logo */}
         <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '20px',
-          background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #003B63 100%)',
+          width: '72px',
+          height: '72px',
+          borderRadius: '24px',
+          background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
           color: '#FFF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 20px auto',
-          boxShadow: '0 8px 24px rgba(0, 99, 155, 0.3)'
+          margin: '0 auto 16px auto',
+          boxShadow: '0 8px 24px rgba(236, 72, 153, 0.35)',
+          padding: '10px'
         }}>
-          {mode === 'pin' ? <Hash size={34} /> : <ShieldCheck size={36} />}
+          <img src="/images/logo-nav.png" alt="Samy Store" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
         </div>
 
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-          Cuenta Casa
+        <h1 className="font-logo-script" style={{ fontSize: '2rem', fontWeight: 900, color: '#831843', margin: 0 }}>
+          Samy Store
         </h1>
+        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#DB2777', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '8px' }}>
+          POS & Gestión Administrativa
+        </span>
+
         <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px', marginBottom: '24px' }}>
           {mode === 'pin' 
-            ? 'Desbloqueo diario. Ingrese su PIN de 4 dígitos para acceder hoy.' 
+            ? 'Desbloqueo diario. Ingrese su PIN de 4 dígitos para acceder a la administración.' 
             : 'Acceso inicial. Introduzca la contraseña maestra para continuar.'}
         </p>
 

@@ -182,12 +182,25 @@ export function saveRawDatabase(db: RawDatabase): void {
 export function clearAllDatabaseRecords(): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.removeItem('cuentacasa_raw_db_v1');
-    localStorage.removeItem('cuentacasa_raw_db_v2');
-    localStorage.removeItem('cuentacasa_raw_db_v3');
-    localStorage.removeItem('cuentacasa_raw_db_v4');
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('cuentacasa_') || key.startsWith('samy_'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
     localStorage.removeItem(STORAGE_KEY);
   } catch (e) {}
+
+  // Purge Service Worker Caches
+  if (typeof window !== 'undefined' && 'caches' in window) {
+    caches.keys().then((names) => {
+      names.forEach((name) => {
+        caches.delete(name);
+      });
+    }).catch(() => {});
+  }
 
   const resetDb: RawDatabase = {
     ...INITIAL_DB,
@@ -714,3 +727,85 @@ export function exportDatabaseFile(): void {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+// Cuban phone formatting helper (Returns +53 5XXXXXXX for 8-digit numbers)
+export function formatCubanPhone(phoneRaw?: string): { display: string; cleanDigits: string } {
+  if (!phoneRaw) return { display: '+53 51234567', cleanDigits: '5351234567' };
+  const digits = phoneRaw.replace(/\D/g, '');
+  let localPart = digits;
+  if (digits.startsWith('53') && digits.length >= 10) {
+    localPart = digits.slice(2);
+  }
+  if (localPart.length === 8) {
+    return {
+      display: `+53 ${localPart}`,
+      cleanDigits: `53${localPart}`
+    };
+  }
+  return {
+    display: digits.startsWith('53') ? `+${digits}` : `+53 ${digits}`,
+    cleanDigits: digits.startsWith('53') ? digits : `53${digits}`
+  };
+}
+
+// Get or generate persistent unique device ID
+export function getDeviceId(): string {
+  if (typeof window === 'undefined') return 'device_server';
+  let devId = localStorage.getItem('cuentacasa_device_id');
+  if (!devId) {
+    devId = 'dev_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
+    localStorage.setItem('cuentacasa_device_id', devId);
+  }
+  return devId;
+}
+
+// Get user rating for a specific product on this device
+export function getUserProductRating(productId: string): number {
+  if (typeof window === 'undefined') return 0;
+  const ratingStr = localStorage.getItem(`cuentacasa_user_rating_${productId}`);
+  return ratingStr ? parseInt(ratingStr, 10) || 0 : 0;
+}
+
+// Submit a star rating (1-5) for a product on this device
+export function rateStoreProduct(productId: string, stars: number): { success: boolean; newAvg: number; newCount: number } {
+  if (typeof window === 'undefined') return { success: false, newAvg: 5.0, newCount: 1 };
+  const validStars = Math.max(1, Math.min(5, Math.round(stars)));
+  const devId = getDeviceId();
+  const prevRating = getUserProductRating(productId);
+
+  // Save vote to local storage for this device
+  localStorage.setItem(`cuentacasa_user_rating_${productId}`, validStars.toString());
+  localStorage.setItem(`cuentacasa_rating_dev_${productId}`, devId);
+
+  const db = getRawDatabase();
+  const product = db.storeProducts.find(p => p.id === productId);
+  if (product) {
+    let currentScore = product.ratingScore || (4.5 + Math.random() * 0.4);
+    let currentCount = product.ratingCount || Math.floor(8 + Math.random() * 12);
+
+    if (prevRating > 0) {
+      // Recalculate existing vote adjustment
+      const totalScore = currentScore * currentCount - prevRating + validStars;
+      currentScore = Math.min(5, Math.max(1, totalScore / currentCount));
+    } else {
+      // New vote
+      const totalScore = currentScore * currentCount + validStars;
+      currentCount += 1;
+      currentScore = Math.min(5, Math.max(1, totalScore / currentCount));
+    }
+
+    product.ratingScore = Number(currentScore.toFixed(1));
+    product.ratingCount = currentCount;
+    product.updatedAt = Date.now();
+    saveRawDatabase(db);
+
+    return {
+      success: true,
+      newAvg: product.ratingScore,
+      newCount: product.ratingCount
+    };
+  }
+
+  return { success: true, newAvg: validStars, newCount: 1 };
+}
+

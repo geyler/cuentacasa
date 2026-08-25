@@ -239,7 +239,7 @@ export const PublicStoreLanding: React.FC = () => {
         borderBottom: '1px solid #F1F5F9',
         position: 'sticky',
         top: 0,
-        zIndex: 80,
+        zIndex: 1000,
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
       }}>
         <div style={{
@@ -265,9 +265,6 @@ export const PublicStoreLanding: React.FC = () => {
               <h1 className="font-logo-script" style={{ fontSize: '1.9rem', fontWeight: 900, color: '#0F172A', lineHeight: '1' }}>
                 Samy Store
               </h1>
-              <span style={{ fontSize: '0.64rem', color: '#DB2777', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Catálogo Digital
-              </span>
             </div>
           </div>
 
@@ -390,26 +387,6 @@ export const PublicStoreLanding: React.FC = () => {
         }}>
           {/* Left Column: Heading, Subtitle & Action Buttons */}
           <div>
-            {/* Store Pill Badge */}
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'rgba(255, 255, 255, 0.18)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              color: '#FFFFFF',
-              padding: '6px 16px',
-              borderRadius: '9999px',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              letterSpacing: '0.05em',
-              marginBottom: '16px'
-            }}>
-              <Sparkles size={14} color="#FFD700" />
-              <span>SAMY STORE • TIENDA DIGITAL</span>
-            </div>
-
             {/* CubaSoft Style Main Title - Las Tunas */}
             <h2 style={{
               fontSize: '2.4rem',
@@ -1874,23 +1851,23 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       )}
 
-      {/* Footer referencing Cubasoft.net */}
+      {/* Light & Feminine Clean Footer */}
       <footer style={{
-        backgroundColor: '#0F172A',
-        color: '#E2E8F0',
-        padding: '32px 16px 40px 16px',
+        backgroundColor: '#FFF0F5',
+        color: '#831843',
+        padding: '36px 16px 44px 16px',
         marginTop: 'auto',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        borderTop: '1px solid #FBCFE8',
         textAlign: 'center'
       }}>
         <div style={{ maxWidth: '1024px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Store size={22} color="#EC4899" />
-            <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#FFFFFF' }}>Samy Store Cuba</span>
+            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '28px', width: 'auto' }} />
+            <span className="font-logo-script" style={{ fontSize: '1.5rem', fontWeight: 900, color: '#831843' }}>Samy Store Las Tunas</span>
           </div>
 
-          <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: '600px', margin: 0, lineHeight: '1.5' }}>
-            La tienda online preferida de catálogo digital. Impulsada por <strong>Cubasoft ERP</strong> con catálogo PWA, pedidos por WhatsApp y punto de venta offline sincronizado.
+          <p style={{ fontSize: '0.84rem', color: '#9D174D', maxWidth: '600px', margin: 0, lineHeight: '1.5', fontWeight: 600 }}>
+            Tu tienda preferida en Las Tunas. Insumos, electrodomésticos y variadas ofertas con pedido directo por WhatsApp y entregas rápidas. Impulsada por <strong>Cubasoft ERP</strong>.
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', justifyContent: 'center', alignItems: 'center', marginTop: '6px' }}>
@@ -1901,9 +1878,9 @@ export const PublicStoreLanding: React.FC = () => {
                 setIsCubasoftModalOpen(true);
               }}
               style={{
-                color: '#EC4899',
+                color: '#DB2777',
                 textDecoration: 'none',
-                fontWeight: 700,
+                fontWeight: 800,
                 fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
@@ -1913,14 +1890,14 @@ export const PublicStoreLanding: React.FC = () => {
               <Zap size={14} /> Ver Sistema Cubasoft ERP
             </a>
 
-            <span style={{ color: '#475569' }}>•</span>
+            <span style={{ color: '#F472B6' }}>•</span>
 
             <a
               href="https://cubasoft.net"
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                color: '#94A3B8',
+                color: '#BE185D',
                 textDecoration: 'none',
                 fontWeight: 700,
                 fontSize: '0.85rem',
@@ -1933,8 +1910,8 @@ export const PublicStoreLanding: React.FC = () => {
             </a>
           </div>
 
-          <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '8px' }}>
-            © {new Date().getFullYear()} Samy Store Cuba. Todos los derechos reservados.
+          <span style={{ fontSize: '0.75rem', color: '#9D174D', marginTop: '8px', opacity: 0.8 }}>
+            © {new Date().getFullYear()} Samy Store. Todos los derechos reservados.
           </span>
         </div>
       </footer>

@@ -41,6 +41,8 @@ export interface StoreProduct {
   isExternal?: boolean;       // Si es un producto de enlace externo/afiliado
   externalType?: 'link' | 'whatsapp'; // 'link' | 'whatsapp'
   externalUrl?: string;       // WhatsApp o URL de referido/tienda externa
+  ratingScore?: number;       // Promedio de estrellas (1.0 a 5.0)
+  ratingCount?: number;       // Cantidad de votos recibidos
   createdAt: number;
   updatedAt: number;
 }

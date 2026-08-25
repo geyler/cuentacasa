@@ -38,9 +38,9 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
 
   return (
     <div style={{
-      opacity: isOtherFieldFocused ? 0.35 : 1,
-      filter: isOtherFieldFocused ? 'blur(3px)' : 'none',
-      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+      opacity: isOtherFieldFocused ? 0.85 : 1,
+      filter: isOtherFieldFocused ? 'blur(1px)' : 'none',
+      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       width: '100%'
     }}>
       {/* Label / Active Spotlight Header */}
@@ -58,49 +58,33 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
 
           {isSelfFocused && (
             <div>
-              {onNextField ? (
-                <button
-                  type="button"
-                  onClick={onNextField}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 8px',
-                    borderRadius: '9999px',
-                    border: 'none',
-                    backgroundColor: 'var(--md-sys-color-primary)',
-                    color: 'var(--md-sys-color-on-primary)',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <span>Siguiente</span>
-                  <ArrowRight size={12} />
-                </button>
-              ) : onDone ? (
-                <button
-                  type="button"
-                  onClick={onDone}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 8px',
-                    borderRadius: '9999px',
-                    border: 'none',
-                    backgroundColor: 'var(--md-sys-color-primary)',
-                    color: 'var(--md-sys-color-on-primary)',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Check size={12} />
-                  <span>Listo</span>
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (onDone) onDone();
+                  else if (onNextField) onNextField();
+                  else (document.activeElement as HTMLElement)?.blur();
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: 'var(--md-sys-color-primary)',
+                  color: 'var(--md-sys-color-on-primary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0, 99, 155, 0.2)'
+                }}
+              >
+                <Check size={13} />
+                <span>Aceptar</span>
+              </button>
             </div>
           )}
         </div>
