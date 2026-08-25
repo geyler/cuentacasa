@@ -43,7 +43,10 @@ import {
   Receipt, 
   MessageCircle,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Scan,
+  Wallet,
+  TrendingDown
 } from 'lucide-react';
 
 interface StoreManagementViewProps {
@@ -244,77 +247,189 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       <div className="md-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Store size={22} color="var(--md-sys-color-primary)" />
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Store size={24} color="var(--md-sys-color-primary)" />
               <span>Samy Store • Gestión & Inventario</span>
             </h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
               Control multi-rol, productos en stock, liquidación a proveedores y POS.
             </p>
           </div>
-
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {onOpenScanner && (
-              <button
-                onClick={onOpenScanner}
-                className="md-btn md-btn-secondary"
-                style={{ padding: '8px 14px', fontSize: '0.82rem', gap: '6px' }}
-              >
-                <Store size={16} />
-                <span>Abrir POS / Vender</span>
-              </button>
-            )}
-
-            {!isVendor && (
-              <button
-                onClick={handleOpenAdd}
-                className="md-btn md-btn-primary"
-                style={{ padding: '8px 16px', fontSize: '0.85rem', gap: '6px' }}
-              >
-                <Plus size={18} />
-                <span>Publicar</span>
-              </button>
-            )}
-          </div>
         </div>
 
-        {/* Dashboard Financial Summary Pills */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginTop: '4px' }}>
-          <div style={{ padding: '8px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface-container)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>Productos Stock</span>
-            <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>{products.length} u</strong>
-          </div>
-
-          <div style={{ padding: '8px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface-container)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>Valor Inventario</span>
-            <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>{formatCurrency(totalStoreProductsValue, currency, true)}</strong>
-          </div>
-
-          {!isVendor && (
-            <div style={{ padding: '8px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface-container)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>Costo Total Stock</span>
-              <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>{formatCurrency(totalStoreProductsCost, currency, true)}</strong>
-            </div>
-          )}
-
-          {!isVendor && isOwner && (
-            <div style={{ padding: '8px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-income-container)', border: '1px solid var(--md-sys-color-income)' }}>
-              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-income)', fontWeight: 700, display: 'block' }}>Ganancias a Casa</span>
-              <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>{formatCurrency(totalAccumulatedHouseProfits, currency, true)}</strong>
-            </div>
-          )}
-
-          {!isVendor && !isOwner && (
-            <div style={{ padding: '8px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-income-container)', border: '1px solid var(--md-sys-color-income)' }}>
-              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-income)', fontWeight: 700, display: 'block' }}>Ganancias a Propietario</span>
-              <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>{formatCurrency(totalAccumulatedHouseProfits, currency, true)}</strong>
-            </div>
+        {/* Main Action Buttons Grid (Vender / POS & Publicar) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+          {onOpenScanner && (
+            <button
+              onClick={onOpenScanner}
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '16px',
+                border: '2px solid var(--md-sys-color-primary)',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                color: 'var(--md-sys-color-primary)',
+                fontSize: '1rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 8px rgba(0, 99, 155, 0.1)'
+              }}
+            >
+              <Scan size={22} color="var(--md-sys-color-primary)" />
+              <span>VENDER / POS</span>
+            </button>
           )}
 
           {!isVendor && (
-            <div style={{ padding: '8px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-expense-container)', border: '1px solid var(--md-sys-color-expense)' }}>
-              <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-expense)', fontWeight: 700, display: 'block' }}>Deuda Proveedores</span>
-              <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-expense)' }}>{formatCurrency(totalPendingSupplierDebt, currency, true)}</strong>
+            <button
+              onClick={handleOpenAdd}
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '16px',
+                border: 'none',
+                background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #004B77 100%)',
+                color: '#FFFFFF',
+                fontSize: '1rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(0, 99, 155, 0.3)'
+              }}
+            >
+              <Plus size={22} />
+              <span>PUBLICAR PRODUCTO</span>
+            </button>
+          )}
+        </div>
+
+        {/* Dashboard Accounting Financial Cards (2 Columns Grid) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+          {/* Card 1: Fondo Tienda */}
+          <div className="md-card" style={{
+            background: 'linear-gradient(135deg, #059669 0%, #064E3B 100%)',
+            color: '#FFFFFF',
+            border: 'none',
+            padding: '14px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, opacity: 0.9 }}>🏦 Fondo Tienda</span>
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Wallet size={16} />
+              </div>
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', letterSpacing: '-0.02em' }}>
+              {formatCurrency(totalStoreFund, currency, true)}
+            </div>
+            <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+              Caja disponible en almacén
+            </div>
+          </div>
+
+          {/* Card 2: Valor Inventario */}
+          <div className="md-card" style={{
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            padding: '14px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📦 Valor Inventario</span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 6px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
+                {products.length} u
+              </span>
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
+              {formatCurrency(totalStoreProductsValue, currency, true)}
+            </div>
+            <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+              {!isVendor ? `Costo Stock: ${formatCurrency(totalStoreProductsCost, currency, true)}` : 'Precio público'}
+            </div>
+          </div>
+
+          {/* Card 3: Ventas Acumuladas */}
+          <div className="md-card" style={{
+            backgroundColor: 'var(--md-sys-color-income-container)',
+            color: 'var(--md-sys-color-on-income-container)',
+            borderColor: 'rgba(0, 135, 90, 0.2)',
+            padding: '14px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🛒 Ventas Acumuladas</span>
+              <TrendingUp size={16} color="var(--md-sys-color-income)" />
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
+              +{formatCurrency(totalAccumulatedSalesRevenue, currency, true)}
+            </div>
+            <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+              Ingreso total por ventas POS
+            </div>
+          </div>
+
+          {/* Card 4: Deuda Proveedores / Ganancias Casa */}
+          {!isVendor ? (
+            <div className="md-card" style={{
+              backgroundColor: 'var(--md-sys-color-expense-container)',
+              color: 'var(--md-sys-color-on-expense-container)',
+              borderColor: 'rgba(211, 47, 47, 0.2)',
+              padding: '14px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🤝 Deuda Proveedores</span>
+                <TrendingDown size={16} color="var(--md-sys-color-expense)" />
+              </div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-expense)' }}>
+                {formatCurrency(totalPendingSupplierDebt, currency, true)}
+              </div>
+              <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+                Pendiente por liquidar consignación
+              </div>
+            </div>
+          ) : (
+            <div className="md-card" style={{
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              padding: '14px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🛍️ Artículos Stock</span>
+              </div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0' }}>
+                {products.filter(p => p.stock > 0).length} en stock
+              </div>
+              <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                Disponibles para venta
+              </div>
             </div>
           )}
         </div>
