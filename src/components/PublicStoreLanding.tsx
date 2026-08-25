@@ -352,171 +352,333 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       </header>
 
-      {/* Ultra-Modern E-Commerce Hero Section */}
+      {/* CubaSoft-Inspired Feminine & Elegant Hero Section */}
       <div style={{
         maxWidth: '1024px',
         width: 'calc(100% - 32px)',
-        margin: '20px auto 12px auto',
+        margin: '20px auto 16px auto',
         borderRadius: '28px',
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #31103F 100%)',
+        background: 'linear-gradient(135deg, #EC4899 0%, #D946EF 50%, #9D174D 100%)',
+        backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px), linear-gradient(135deg, #EC4899 0%, #C026D3 50%, #831843 100%)',
+        backgroundSize: '32px 32px, 32px 32px, 100% 100%',
         color: '#FFFFFF',
-        padding: '36px 24px',
+        padding: '36px 28px',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: '0 12px 36px rgba(15, 23, 42, 0.25)'
+        boxShadow: '0 16px 40px rgba(236, 72, 153, 0.22)'
       }}>
-        {/* Decorative Ambient Background Glows */}
+        {/* Decorative Ambient Radial Glow */}
         <div style={{
           position: 'absolute',
-          top: '-40%',
+          top: '-30%',
           right: '-10%',
-          width: '320px',
-          height: '320px',
+          width: '360px',
+          height: '360px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(236, 72, 153, 0.35) 0%, rgba(236, 72, 153, 0) 70%)',
-          pointerEvents: 'none'
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '-40%',
-          left: '-10%',
-          width: '320px',
-          height: '320px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
+          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 70%)',
           pointerEvents: 'none'
         }} />
 
-        <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: '640px', margin: '0 auto' }}>
-          {/* Store Pill Badge */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            backgroundColor: 'rgba(255, 255, 255, 0.12)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            color: '#F472B6',
-            padding: '5px 16px',
-            borderRadius: '9999px',
-            fontSize: '0.76rem',
-            fontWeight: 800,
-            letterSpacing: '0.05em',
-            marginBottom: '14px'
-          }}>
-            <Sparkles size={14} color="#F472B6" />
-            <span>SAMY STORE • CATÁLOGO DIGITAL</span>
+        <div style={{
+          position: 'relative',
+          zIndex: 2,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+          gap: '32px',
+          alignItems: 'center'
+        }}>
+          {/* Left Column: Heading, Subtitle & Action Buttons */}
+          <div>
+            {/* Store Pill Badge */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(255, 255, 255, 0.18)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              color: '#FFFFFF',
+              padding: '6px 16px',
+              borderRadius: '9999px',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              marginBottom: '16px'
+            }}>
+              <Sparkles size={14} color="#FFD700" />
+              <span>SAMY STORE • TIENDA DIGITAL</span>
+            </div>
+
+            {/* CubaSoft Style Main Title */}
+            <h2 style={{
+              fontSize: '2.4rem',
+              fontWeight: 900,
+              lineHeight: '1.18',
+              marginBottom: '14px',
+              letterSpacing: '-0.02em',
+              color: '#FFFFFF'
+            }}>
+              Compra en Samy Store <span style={{ color: '#FFD700', textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>Fácil</span> en Cuba
+            </h2>
+
+            <p style={{
+              fontSize: '0.96rem',
+              color: 'rgba(255, 255, 255, 0.92)',
+              lineHeight: '1.6',
+              marginBottom: '26px',
+              fontWeight: 500
+            }}>
+              El catálogo digital ideal para comprar productos de calidad de forma rápida, simple y directa por WhatsApp.
+            </p>
+
+            {/* Action Pill Buttons (Explorar Productos + Ver Ofertas) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => {
+                  const searchEl = document.getElementById('store-hero-search-input');
+                  searchEl?.focus();
+                }}
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: '#831843',
+                  padding: '13px 24px',
+                  borderRadius: '9999px',
+                  fontWeight: 900,
+                  fontSize: '0.92rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Search size={18} color="#EC4899" />
+                Explorar Productos
+              </button>
+
+              <button
+                onClick={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
+                style={{
+                  backgroundColor: '#FFD700',
+                  color: '#0F172A',
+                  padding: '13px 24px',
+                  borderRadius: '9999px',
+                  fontWeight: 900,
+                  fontSize: '0.92rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 6px 20px rgba(255, 215, 0, 0.35)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Sparkles size={18} color="#0F172A" />
+                Ver Ofertas
+              </button>
+            </div>
           </div>
 
-          {/* Hero Heading */}
-          <h2 style={{
-            fontSize: '2.1rem',
-            fontWeight: 900,
-            lineHeight: '1.2',
-            marginBottom: '10px',
-            letterSpacing: '-0.02em',
-            color: '#FFFFFF'
+          {/* Right Column: CubaSoft 2x2 Showcase Card Box */}
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.14)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.28)',
+            borderRadius: '24px',
+            padding: '20px',
+            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.15)',
+            position: 'relative'
           }}>
-            Encuentra lo que buscas y pide al instante
-          </h2>
-
-          <p style={{
-            fontSize: '0.9rem',
-            color: '#CBD5E1',
-            lineHeight: '1.5',
-            marginBottom: '20px',
-            fontWeight: 500
-          }}>
-            Explora nuestro catálogo, agrega tus productos al carrito y realiza tu pedido directo por WhatsApp con entrega rápida.
-          </p>
-
-          {/* SINGLE Hero Search Input */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '500px', margin: '0 auto 16px auto' }}>
-            <Search 
-              size={20} 
-              style={{
-                position: 'absolute',
-                left: '18px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#EC4899'
-              }} 
-            />
-            <input
-              type="text"
-              placeholder="¿Qué deseas comprar hoy? Ej. Arroz, Café..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '14px 44px 14px 50px',
-                borderRadius: '9999px',
-                border: '2px solid rgba(255, 255, 255, 0.2)',
-                backgroundColor: 'rgba(255, 255, 255, 0.96)',
-                color: '#0F172A',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                outline: 'none',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)'
-              }}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                style={{
-                  position: 'absolute',
-                  right: '14px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: '#E2E8F0',
-                  border: 'none',
-                  color: '#475569',
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '9999px',
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '12px'
+            }}>
+              {/* Product Preview 1 */}
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '16px',
+                padding: '12px',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+                transform: 'rotate(-2deg)',
+                transition: 'all 0.2s ease'
+              }}>
+                <div style={{
+                  height: '60px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FFF0F5',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: 900
-                }}
-              >
-                ✕
-              </button>
-            )}
-          </div>
+                  fontSize: '1.8rem',
+                  marginBottom: '8px'
+                }}>
+                  🥐
+                </div>
+                <h4 style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0F172A', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Pan Dulce Casero
+                </h4>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#EC4899' }}>
+                  $350.00
+                </span>
+                <div style={{ height: '4px', backgroundColor: '#EC4899', borderRadius: '9999px', marginTop: '6px' }} />
+              </div>
 
-          {/* Quick Popular Search Chips */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            flexWrap: 'wrap'
-          }}>
-            <span style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: 700 }}>Popular:</span>
-            {['Pan', 'Arroz', 'Café', 'Aceite'].map(chip => (
-              <button
-                key={chip}
-                onClick={() => setSearchTerm(chip)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#F1F5F9',
-                  padding: '3px 10px',
-                  borderRadius: '9999px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {chip}
-              </button>
-            ))}
+              {/* Product Preview 2 */}
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '16px',
+                padding: '12px',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+                transform: 'rotate(2deg)',
+                transition: 'all 0.2s ease'
+              }}>
+                <div style={{
+                  height: '60px',
+                  borderRadius: '10px',
+                  backgroundColor: '#ECFDF5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.8rem',
+                  marginBottom: '8px'
+                }}>
+                  🌾
+                </div>
+                <h4 style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0F172A', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Arroz Selección
+                </h4>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#10B981' }}>
+                  $520.00
+                </span>
+                <div style={{ height: '4px', backgroundColor: '#10B981', borderRadius: '9999px', marginTop: '6px' }} />
+              </div>
+
+              {/* Product Preview 3 */}
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '16px',
+                padding: '12px',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+                transform: 'rotate(1deg)',
+                transition: 'all 0.2s ease'
+              }}>
+                <div style={{
+                  height: '60px',
+                  borderRadius: '10px',
+                  backgroundColor: '#FEF3C7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.8rem',
+                  marginBottom: '8px'
+                }}>
+                  ☕
+                </div>
+                <h4 style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0F172A', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Café Gourmet
+                </h4>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#F59E0B' }}>
+                  $850.00
+                </span>
+                <div style={{ height: '4px', backgroundColor: '#F59E0B', borderRadius: '9999px', marginTop: '6px' }} />
+              </div>
+
+              {/* Product Preview 4 */}
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '16px',
+                padding: '12px',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+                transform: 'rotate(-1deg)',
+                transition: 'all 0.2s ease'
+              }}>
+                <div style={{
+                  height: '60px',
+                  borderRadius: '10px',
+                  backgroundColor: '#EFF6FF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.8rem',
+                  marginBottom: '8px'
+                }}>
+                  🧴
+                </div>
+                <h4 style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0F172A', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Aceite Puro 1L
+                </h4>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#3B82F6' }}>
+                  $950.00
+                </span>
+                <div style={{ height: '4px', backgroundColor: '#3B82F6', borderRadius: '9999px', marginTop: '6px' }} />
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Main Search Input Bar Component (Centered Container) */}
+      <div style={{ maxWidth: '1024px', width: 'calc(100% - 32px)', margin: '14px auto 0 auto', position: 'relative' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
+          <Search 
+            size={22} 
+            style={{
+              position: 'absolute',
+              left: '20px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#EC4899'
+            }} 
+          />
+          <input
+            id="store-hero-search-input"
+            type="text"
+            placeholder="¿Qué estás buscando? Ej. Arroz, Café, Pan..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '16px 48px 16px 54px',
+              borderRadius: '9999px',
+              border: '2px solid #FBCFE8',
+              backgroundColor: '#FFFFFF',
+              color: '#0F172A',
+              fontSize: '0.98rem',
+              fontWeight: 700,
+              outline: 'none',
+              boxShadow: '0 6px 20px rgba(236, 72, 153, 0.08)',
+              transition: 'all 0.2s ease'
+            }}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: '#F1F5F9',
+                border: 'none',
+                color: '#64748B',
+                width: '26px',
+                height: '26px',
+                borderRadius: '9999px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 900
+              }}
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
