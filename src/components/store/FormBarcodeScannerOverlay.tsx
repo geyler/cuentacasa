@@ -154,33 +154,36 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.93)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         backdropFilter: 'blur(10px)',
         zIndex: 9999,
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        padding: '20px'
+        padding: '0'
       }}
       onClick={onClose}
     >
       <div
+        className="bottom-sheet-modal"
         style={{
           width: '100%',
-          maxWidth: '400px',
+          maxWidth: '480px',
           backgroundColor: 'var(--md-sys-color-surface-container)',
-          borderRadius: '24px',
-          padding: '20px',
+          padding: '16px 20px 24px 20px',
           display: 'flex',
           flexDirection: 'column',
           gap: '14px',
           textAlign: 'center',
           boxShadow: 'var(--md-shadow-elevation-4)',
-          position: 'relative'
+          position: 'relative',
+          maxHeight: '92vh',
+          overflowY: 'auto'
         }}
         onClick={e => e.stopPropagation()}
       >
+        {/* Material Drag Handle */}
+        <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto', opacity: 0.8 }} />
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -7,29 +7,29 @@
 :root {
   --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   
-  /* Material 3 Light Color System */
+  /* Material 3 / Material UI Pink & Soft Tonal Color System */
   --md-sys-color-primary: #EC4899;
   --md-sys-color-on-primary: #FFFFFF;
   --md-sys-color-primary-container: #FCE7F3;
   --md-sys-color-on-primary-container: #831843;
   
-  --md-sys-color-income: #00875A;
-  --md-sys-color-income-container: #E6F4EA;
-  --md-sys-color-on-income-container: #003822;
+  --md-sys-color-income: #059669;
+  --md-sys-color-income-container: #ECFDF5;
+  --md-sys-color-on-income-container: #065F46;
 
-  --md-sys-color-expense: #D32F2F;
-  --md-sys-color-expense-container: #FCE8E6;
-  --md-sys-color-on-expense-container: #410E0B;
+  --md-sys-color-expense: #E11D48;
+  --md-sys-color-expense-container: #FFF1F2;
+  --md-sys-color-on-expense-container: #9F1239;
 
-  --md-sys-color-surface: #F8F9FA;
-  --md-sys-color-on-surface: #1B1C1E;
+  --md-sys-color-surface: #FDFBFD;
+  --md-sys-color-on-surface: #1E293B;
   --md-sys-color-surface-container: #FFFFFF;
-  --md-sys-color-surface-container-high: #F1F3F4;
-  --md-sys-color-surface-variant: #E1E2EC;
-  --md-sys-color-on-surface-variant: #44474F;
+  --md-sys-color-surface-container-high: #F8FAFC;
+  --md-sys-color-surface-variant: #F1F5F9;
+  --md-sys-color-on-surface-variant: #64748B;
   
-  --md-sys-color-outline: #74777F;
-  --md-sys-color-outline-variant: #C4C6D0;
+  --md-sys-color-outline: #CBD5E1;
+  --md-sys-color-outline-variant: #F1F5F9;
   
   --md-shadow-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.08), 0px 1px 2px rgba(0, 0, 0, 0.12);
   --md-shadow-elevation-2: 0px 4px 12px rgba(0, 0, 0, 0.08), 0px 2px 4px rgba(0, 0, 0, 0.06);
@@ -42,11 +42,11 @@
 }
 
 [data-theme="dark"] {
-  /* Material 3 Dark Color System */
-  --md-sys-color-primary: #9ECAFF;
-  --md-sys-color-on-primary: #003258;
-  --md-sys-color-primary-container: #004B77;
-  --md-sys-color-on-primary-container: #C2E8FF;
+  /* Material 3 Dark Pink Color System */
+  --md-sys-color-primary: #F472B6;
+  --md-sys-color-on-primary: #831843;
+  --md-sys-color-primary-container: #500724;
+  --md-sys-color-on-primary-container: #FCE7F3;
 
   --md-sys-color-income: #36B37E;
   --md-sys-color-income-container: #003822;
