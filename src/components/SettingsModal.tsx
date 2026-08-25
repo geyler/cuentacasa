@@ -16,16 +16,30 @@ import {
   Settings,
   Hash,
   KeyRound,
-  Trash2,
   RotateCcw,
-  Zap,
   MessageCircle,
-  Save
+  Save,
+  Users,
+  Lock,
+  CheckCircle2
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
-import { clearAllDatabaseRecords, validateMasterPassword, setMasterPassword, getStoreWhatsappNumber, saveStoreWhatsappNumber, getAppUsers, saveAppUser, deleteAppUser, getLoggedInUser } from '@/lib/storage';
-import { AppUser, UserRole } from '@/types';
+import { 
+  clearAllDatabaseRecords, 
+  validateMasterPassword, 
+  setMasterPassword, 
+  getStoreWhatsappNumber, 
+  saveStoreWhatsappNumber, 
+  getAppUsers, 
+  getLoggedInUser,
+  getUserPin,
+  setUserPin,
+  clearUserPin,
+  formatCubanPhone
+} from '@/lib/storage';
+import { AppUser } from '@/types';
+import { UserManagementModal } from '@/components/UserManagementModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -60,7 +74,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   canInstallPwa
 }) => {
   const { showToast, confirmAction } = useActionFeedback();
-  const [pin, setPin] = useState<string | null>(null);
+  const currentUser = getLoggedInUser();
+  const isOwner = currentUser?.role === 'propietario';
+
+  const [hasPin, setHasPin] = useState<boolean>(false);
   const [isEditingPin, setIsEditingPin] = useState(false);
   const [newPin, setNewPin] = useState('');
 
@@ -71,20 +88,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [isEditingPhone, setIsEditingPhone] = useState(false);
 
-  // User Roles & Management State
-  const currentUser = getLoggedInUser();
-  const isOwner = currentUser?.role === 'propietario';
   const [usersList, setUsersList] = useState<AppUser[]>([]);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserUsername, setNewUserUsername] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserRole, setNewUserRole] = useState<UserRole>('administrador');
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      const currentPin = localStorage.getItem('cuentacasa_pin');
-      setPin(currentPin);
+      const activeUsername = currentUser?.username || 'geyler';
+      const userPin = getUserPin(activeUsername);
+      setHasPin(!!userPin);
       setIsEditingPin(false);
       setNewPin('');
       setIsMasterPassModalOpen(false);
@@ -93,50 +104,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setWhatsappPhone(getStoreWhatsappNumber());
       setIsEditingPhone(false);
       setUsersList(getAppUsers());
-      setShowAddUserModal(false);
     }
-  }, [isOpen]);
+  }, [isOpen, currentUser]);
 
   if (!isOpen) return null;
-
-  const handleCreateUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newUserName.trim() || !newUserUsername.trim() || !newUserPassword.trim()) {
-      showToast({ title: 'Campos Incompletos', message: 'Por favor completa todos los datos del usuario.', type: 'error' });
-      return;
-    }
-    saveAppUser({
-      name: newUserName.trim(),
-      username: newUserUsername.trim().toLowerCase(),
-      password: newUserPassword.trim(),
-      role: newUserRole
-    });
-    setUsersList(getAppUsers());
-    setShowAddUserModal(false);
-    setNewUserName('');
-    setNewUserUsername('');
-    setNewUserPassword('');
-    showToast({ title: '¡Usuario Creado!', message: `El usuario @${newUserUsername} ha sido creado.`, type: 'success' });
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    const target = usersList.find(u => u.id === userId);
-    confirmAction({
-      title: '¿Eliminar Usuario?',
-      message: `¿Estás seguro de eliminar el acceso para @${target?.username}?`,
-      variant: 'danger',
-      confirmText: 'Eliminar Acceso',
-      onConfirm: () => {
-        const res = deleteAppUser(userId);
-        if (res.success) {
-          setUsersList(getAppUsers());
-          showToast({ title: 'Usuario Eliminado', message: res.message, type: 'info' });
-        } else {
-          showToast({ title: 'No permitido', message: res.message, type: 'error' });
-        }
-      }
-    });
-  };
 
   const handleSavePhone = () => {
     let clean = whatsappPhone.replace(/\D/g, '');
@@ -148,28 +119,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsEditingPhone(false);
     showToast({
       title: '¡Teléfono de WhatsApp Guardado!',
-      message: `Los pedidos de la tienda pública se enviarán al +${clean || 'WhatsApp por defecto'}.`,
+      message: `Los pedidos de la tienda pública se enviarán a: ${formatCubanPhone(clean).display}.`,
       type: 'success'
     });
   };
 
   const handleSavePin = () => {
     if (newPin.length === 4) {
-      localStorage.setItem('cuentacasa_pin', newPin);
-      setPin(newPin);
+      const activeUsername = currentUser?.username || 'geyler';
+      setUserPin(activeUsername, newPin);
+      setHasPin(true);
       setIsEditingPin(false);
+      setNewPin('');
       showToast({
         title: '¡PIN Configurado!',
-        message: 'PIN rápido de 4 dígitos guardado exitosamente.',
+        message: 'Tu PIN de 4 dígitos ha sido guardado de forma segura.',
         type: 'success'
       });
     } else {
       showToast({
         title: 'PIN Inválido',
-        message: 'El PIN rápido debe constar de exactamente 4 números.',
+        message: 'El PIN debe ser exactamente de 4 dígitos numéricos.',
         type: 'error'
       });
     }
+  };
+
+  const handleRemovePin = () => {
+    confirmAction({
+      title: '¿Desactivar PIN Personal?',
+      message: 'Se eliminará tu clave de 4 dígitos. Requerirás tu usuario y contraseña para ingresar.',
+      variant: 'warning',
+      confirmText: 'Desactivar PIN',
+      onConfirm: () => {
+        const activeUsername = currentUser?.username || 'geyler';
+        clearUserPin(activeUsername);
+        setHasPin(false);
+        setIsEditingPin(false);
+        showToast({
+          title: 'PIN Desactivado',
+          message: 'Tu acceso rápido mediante PIN ha sido desactivado.',
+          type: 'info'
+        });
+      }
+    });
   };
 
   const handleOpenMasterPassModal = () => {
@@ -192,13 +185,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       return;
     }
 
-    // Save/update password in DB as requested
     setMasterPassword(masterPasswordInput.trim());
-
-    // Perform database reset locally
     clearAllDatabaseRecords();
 
-    // Trigger cloud reset if online
     try {
       if (typeof window !== 'undefined' && navigator.onLine) {
         await fetch('/api/sync', {
@@ -210,8 +199,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (err) {}
 
     showToast({
-      title: '¡Base de Datos Reiniciada a 0!',
-      message: 'Se han eliminado todos los registros locales y en la nube.',
+      title: '¡Base de Datos Reiniciada!',
+      message: 'Se han eliminado todos los registros locales conservando tus usuarios.',
       type: 'success'
     });
     
@@ -220,28 +209,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }, 600);
   };
 
-  const handleRemovePin = () => {
-    confirmAction({
-      title: '¿Desactivar PIN Rápido?',
-      message: 'Se eliminará la clave rápida de 4 dígitos. Para ingresar requerirás la contraseña maestra.',
-      variant: 'warning',
-      confirmText: 'Desactivar PIN',
-      onConfirm: () => {
-        localStorage.removeItem('cuentacasa_pin');
-        setPin(null);
-        setIsEditingPin(false);
-        showToast({
-          title: 'PIN Desactivado',
-          message: 'El acceso mediante PIN rápido ha sido desactivado.',
-          type: 'info'
-        });
-      }
-    });
-  };
-
   const handleClearCacheAndReload = async () => {
+    if (!isOnline) {
+      showToast({
+        title: 'Sin Conexión a Internet',
+        message: 'Requiere conexión activa a internet para recargar el sistema y descargar datos actualizados.',
+        type: 'error'
+      });
+      return;
+    }
+
     try {
-      // 1. Unregister Service Workers if active
       if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (const registration of registrations) {
@@ -249,711 +227,598 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         }
       }
 
-      // 2. Delete all CacheStorage caches
       if (typeof window !== 'undefined' && 'caches' in window) {
         const keys = await caches.keys();
         await Promise.all(keys.map(key => caches.delete(key)));
       }
 
-      // 3. Clear SessionStorage (without touching localStorage DB records)
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.clear();
       }
 
       showToast({
-        title: '¡Caché de Aplicación Borrada!',
-        message: 'Caché eliminada con éxito. Recargando con los últimos diseños...',
+        title: '¡Caché Limpiada!',
+        message: 'Recargando aplicación con los últimos datos y código actualizado...',
         type: 'success'
       });
 
-      // Force hard reload by appending timestamp query to bust browser asset cache
       setTimeout(() => {
         const cleanUrl = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
         window.location.href = cleanUrl;
       }, 600);
     } catch (err) {
-      showToast({
-        title: 'Caché Limpiada',
-        message: 'Recargando aplicación...',
-        type: 'info'
-      });
       setTimeout(() => {
         window.location.reload();
       }, 400);
     }
   };
 
+  const formattedWhatsapp = formatCubanPhone(whatsappPhone).display;
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.70)',
-      backdropFilter: 'blur(8px)',
-      zIndex: 110,
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      padding: '0'
-    }} className="no-print" onClick={onClose}>
-      
-      <div 
-        className="bottom-sheet-modal"
-        onClick={e => e.stopPropagation()}
-        style={{
-          backgroundColor: 'var(--md-sys-color-surface-container)',
-          color: 'var(--md-sys-color-on-surface)',
-          width: '100%',
-          maxWidth: '500px',
-          padding: '14px 24px 28px 24px',
-          boxShadow: 'var(--md-shadow-elevation-4)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px',
-          maxHeight: '90vh',
-          overflowY: 'auto'
-        }}
-      >
-        {/* Material Design Drag Handle */}
-        <div style={{
-          width: '36px',
-          height: '4px',
-          borderRadius: '9999px',
-          backgroundColor: 'var(--md-sys-color-outline-variant)',
-          margin: '0 auto 4px auto',
-          opacity: 0.8
-        }} />
-        {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Settings size={20} color="var(--md-sys-color-primary)" />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Ajustes y Utilidades</h3>
-          </div>
-
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer' }}
-          >
-            <X size={22} />
-          </button>
-        </div>
-
-        {/* Network Status Badge */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 16px',
-          borderRadius: '14px',
-          backgroundColor: isOnline ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-expense-container)',
-          color: isOnline ? 'var(--md-sys-color-on-income-container)' : 'var(--md-sys-color-on-expense-container)',
-          fontWeight: 700,
-          fontSize: '0.88rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
-            <span>{isOnline ? 'Conexión Online Activa' : 'Modo 100% Offline'}</span>
-          </div>
-          <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Hostinger BD</span>
-        </div>
-
-        {/* Options List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-          {/* Admin WhatsApp Phone Setup */}
-          <div style={{
-            padding: '14px 16px',
-            borderRadius: '14px',
-            border: '1.5px solid #25D366',
-            backgroundColor: 'rgba(37, 211, 102, 0.08)',
+    <>
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.70)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 2000,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        padding: '0'
+      }} className="no-print" onClick={onClose}>
+        
+        <div 
+          className="bottom-sheet-modal"
+          onClick={e => e.stopPropagation()}
+          style={{
+            backgroundColor: 'var(--md-sys-color-surface-container)',
+            color: 'var(--md-sys-color-on-surface)',
+            width: '100%',
+            maxWidth: '500px',
+            padding: '14px 24px 28px 24px',
+            boxShadow: 'var(--md-shadow-elevation-4)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <MessageCircle size={18} color="#25D366" />
-                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface)' }}>
-                  WhatsApp Recepción de Pedidos
-                </span>
-              </div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: whatsappPhone ? '#25D366' : 'var(--md-sys-color-expense)' }}>
-                {whatsappPhone ? `+${whatsappPhone}` : 'No Configurado'}
-              </span>
-            </div>
-
-            {!isEditingPhone ? (
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ flex: '1 1 180px', fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                  Número al que llegarán los encargos realizados desde la tienda pública.
-                </span>
-                <button
-                  onClick={() => setIsEditingPhone(true)}
-                  className="md-btn md-btn-secondary"
-                  style={{ padding: '8px 12px', fontSize: '0.82rem', borderColor: '#25D366', color: '#25D366', flexShrink: 0 }}
-                >
-                  {whatsappPhone ? 'Editar Número' : 'Configurar Número'}
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    autoComplete="off"
-                    placeholder="Ej. 5351234567 o 53999999"
-                    value={whatsappPhone}
-                    onChange={e => setWhatsappPhone(e.target.value.replace(/\D/g, ''))}
-                    className="input-spotlight"
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: '1.5px solid #25D366',
-                      backgroundColor: 'var(--md-sys-color-surface)',
-                      color: 'var(--md-sys-color-on-surface)',
-                      fontSize: '0.88rem',
-                      fontWeight: 700
-                    }}
-                  />
-                  <button
-                    onClick={handleSavePhone}
-                    className="md-btn"
-                    style={{ backgroundColor: '#25D366', color: '#FFF', padding: '8px 12px', fontSize: '0.8rem', fontWeight: 800, flexShrink: 0 }}
-                  >
-                    <Save size={14} /> Guardar
-                  </button>
-                  <button
-                    onClick={() => setIsEditingPhone(false)}
-                    style={{ background: 'none', border: 'none', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--md-sys-color-on-surface-variant)', flexShrink: 0, padding: '4px' }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                  💡 Para Las Tunas, escribe 8 dígitos (ej: 53999999) y se añadirá el +53 automáticamente.
-                </span>
-              </div>
-            )}
-          </div>
-          
-          {/* Quick PIN Setup */}
+            gap: '20px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}
+        >
+          {/* Handle Drag */}
           <div style={{
-            padding: '14px 16px',
-            borderRadius: '14px',
-            border: '1px solid var(--md-sys-color-outline-variant)',
-            backgroundColor: 'var(--md-sys-color-surface)',
+            width: '36px',
+            height: '4px',
+            borderRadius: '9999px',
+            backgroundColor: 'var(--md-sys-color-outline-variant)',
+            margin: '0 auto 4px auto'
+          }} />
+
+          {/* Modal Title Bar */}
+          <div style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+            paddingBottom: '12px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-                <Hash size={18} color="var(--md-sys-color-primary)" style={{ flexShrink: 0 }} />
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>PIN Rápido (4 Dígitos)</span>
-              </div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: pin ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)', flexShrink: 0 }}>
-                {pin ? `Activo (${pin})` : 'Desactivado'}
-              </span>
-            </div>
-
-            {!isEditingPin ? (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => setIsEditingPin(true)}
-                  className="md-btn md-btn-secondary"
-                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.82rem' }}
-                >
-                  <KeyRound size={14} />
-                  <span>{pin ? 'Cambiar PIN' : 'Configurar PIN Rápido'}</span>
-                </button>
-                {pin && (
-                  <button
-                    onClick={handleRemovePin}
-                    style={{
-                      padding: '8px 12px',
-                      fontSize: '0.82rem',
-                      borderRadius: '10px',
-                      border: 'none',
-                      backgroundColor: 'var(--md-sys-color-expense-container)',
-                      color: 'var(--md-sys-color-on-expense-container)',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Quitar PIN
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    autoComplete="off"
-                    maxLength={4}
-                    placeholder="Ej. 1234"
-                    value={newPin}
-                    onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--md-sys-color-outline)',
-                      backgroundColor: 'var(--md-sys-color-surface-container)',
-                      color: 'var(--md-sys-color-on-surface)',
-                      fontSize: '0.95rem',
-                      letterSpacing: '0.15rem',
-                      textAlign: 'center'
-                    }}
-                  />
-                  <button
-                    onClick={handleSavePin}
-                    className="md-btn md-btn-primary"
-                    style={{ padding: '8px 12px', fontSize: '0.8rem', flexShrink: 0 }}
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    onClick={() => setIsEditingPin(false)}
-                    style={{ background: 'none', border: 'none', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--md-sys-color-on-surface-variant)', flexShrink: 0, padding: '4px' }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Toggle Privacy Show Balance */}
-          <button
-            onClick={toggleShowBalance}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '14px 16px',
-              borderRadius: '14px',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              color: 'var(--md-sys-color-on-surface)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer'
-            }}
-          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
-              <span>Mostrar Saldos en Pantalla</span>
-            </div>
-            <span style={{ fontSize: '0.8rem', color: showBalance ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)' }}>
-              {showBalance ? 'SI' : 'NO (Oculto)'}
-            </span>
-          </button>
-
-          {/* Sync Button */}
-          <button
-            onClick={() => { onSync(); onClose(); }}
-            disabled={isSyncing}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '14px 16px',
-              borderRadius: '14px',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              color: 'var(--md-sys-color-on-surface)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
-              <span>Alinear / Sincronizar Hostinger BD</span>
-            </div>
-            {pendingSyncCount > 0 && (
-              <span style={{
-                backgroundColor: 'var(--md-sys-color-expense)',
-                color: '#FFF',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                fontSize: '0.75rem'
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '12px',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-on-primary-container)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}>
-                {pendingSyncCount} pendientes
-              </span>
-            )}
-          </button>
-
-          {/* Clear Application Cache & Reload UI Designs */}
-          <button
-            onClick={handleClearCacheAndReload}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '14px 16px',
-              borderRadius: '14px',
-              border: '1.5px solid var(--md-sys-color-primary)',
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0, 99, 155, 0.15)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <RotateCcw size={18} />
-              <span>Limpiar Caché (Cargar Nuevos Diseños)</span>
+                <Settings size={20} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, lineHeight: 1.2 }}>
+                  Ajustes del Sistema
+                </h2>
+                <span style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                  Samy Store • @{currentUser?.username || 'geyler'} ({currentUser?.role || 'admin'})
+                </span>
+              </div>
             </div>
-            <span style={{
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              backgroundColor: 'var(--md-sys-color-primary)',
-              color: 'var(--md-sys-color-on-primary)',
-              padding: '3px 8px',
-              borderRadius: '6px'
-            }}>
-              Recargar ⚡
-            </span>
-          </button>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            style={{
+            <button
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--md-sys-color-on-surface)',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '50%'
+              }}
+            >
+              <X size={22} />
+            </button>
+          </div>
+
+          {/* Main Controls List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+            {/* Configuración de WhatsApp de Recepción de Pedidos */}
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: '16px',
+              border: '1.5px solid #25D366',
+              backgroundColor: 'rgba(37, 211, 102, 0.08)',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MessageCircle size={18} color="#25D366" />
+                  <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface)' }}>
+                    WhatsApp Pedidos
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: whatsappPhone ? '#25D366' : 'var(--md-sys-color-expense)' }}>
+                  {whatsappPhone ? formattedWhatsapp : 'No Configurado'}
+                </span>
+              </div>
+
+              {!isEditingPhone ? (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ flex: '1 1 180px', fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                    Número donde se reciben los carritos de compra.
+                  </span>
+                  <button
+                    onClick={() => setIsEditingPhone(true)}
+                    className="md-btn md-btn-secondary"
+                    style={{ padding: '8px 12px', fontSize: '0.8rem', borderColor: '#25D366', color: '#25D366', flexShrink: 0 }}
+                  >
+                    {whatsappPhone ? 'Editar Número' : 'Configurar'}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="off"
+                      placeholder="Ej. 5351234567 o 53999999"
+                      value={whatsappPhone}
+                      onChange={e => setWhatsappPhone(e.target.value.replace(/\D/g, ''))}
+                      className="input-spotlight"
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #25D366',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        color: 'var(--md-sys-color-on-surface)',
+                        fontSize: '0.88rem',
+                        fontWeight: 700
+                      }}
+                    />
+                    <button
+                      onClick={handleSavePhone}
+                      className="md-btn"
+                      style={{ backgroundColor: '#25D366', color: '#FFF', padding: '8px 12px', fontSize: '0.8rem', fontWeight: 800, flexShrink: 0 }}
+                    >
+                      <Save size={14} /> Guardar
+                    </button>
+                    <button
+                      onClick={() => setIsEditingPhone(false)}
+                      style={{ background: 'none', border: 'none', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--md-sys-color-on-surface-variant)', flexShrink: 0, padding: '4px' }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    💡 Se formateará automáticamente con +53.
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* PIN Rápido Personal Enmascarado con Asteriscos */}
+            <div style={{
               padding: '14px 16px',
               borderRadius: '14px',
               border: '1px solid var(--md-sys-color-outline-variant)',
               backgroundColor: 'var(--md-sys-color-surface)',
-              color: 'var(--md-sys-color-on-surface)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-              <span>Tema Visual</span>
-            </div>
-            <span style={{ fontSize: '0.8rem', textTransform: 'capitalize' }}>{theme}</span>
-          </button>
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                  <Hash size={18} color="var(--md-sys-color-primary)" style={{ flexShrink: 0 }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>PIN Personal (4 Dígitos)</span>
+                </div>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: hasPin ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-on-surface-variant)', flexShrink: 0 }}>
+                  {hasPin ? '🔐 PIN Activado (••••)' : '🔓 Sin PIN'}
+                </span>
+              </div>
 
-          {/* PWA Install Button */}
-          {canInstallPwa && onInstallPwa && (
+              {!isEditingPin ? (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setIsEditingPin(true)}
+                    className="md-btn md-btn-secondary"
+                    style={{ flex: 1, padding: '8px 12px', fontSize: '0.82rem' }}
+                  >
+                    <KeyRound size={14} />
+                    <span>{hasPin ? 'Cambiar PIN' : 'Configurar PIN'}</span>
+                  </button>
+                  {hasPin && (
+                    <button
+                      onClick={handleRemovePin}
+                      style={{
+                        padding: '8px 12px',
+                        fontSize: '0.82rem',
+                        borderRadius: '10px',
+                        border: 'none',
+                        backgroundColor: 'var(--md-sys-color-expense-container)',
+                        color: 'var(--md-sys-color-on-expense-container)',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Quitar PIN
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="off"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={newPin}
+                      onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--md-sys-color-outline)',
+                        backgroundColor: 'var(--md-sys-color-surface-container)',
+                        color: 'var(--md-sys-color-on-surface)',
+                        fontSize: '0.95rem',
+                        letterSpacing: '0.2rem',
+                        textAlign: 'center'
+                      }}
+                    />
+                    <button
+                      onClick={handleSavePin}
+                      className="md-btn md-btn-primary"
+                      style={{ padding: '8px 12px', fontSize: '0.8rem', flexShrink: 0 }}
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      onClick={() => setIsEditingPin(false)}
+                      style={{ background: 'none', border: 'none', fontSize: '0.78rem', cursor: 'pointer', color: 'var(--md-sys-color-on-surface-variant)', flexShrink: 0, padding: '4px' }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Dedicada de Gestión de Usuarios para Propietarios/Admins */}
+            {isOwner && (
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: '14px',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Users size={18} color="var(--md-sys-color-primary)" />
+                  <div>
+                    <span style={{ fontWeight: 800, fontSize: '0.88rem', display: 'block' }}>
+                      Gestión de Usuarios
+                    </span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                      {usersList.length} usuarios registrados
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsUserManagementOpen(true)}
+                  className="md-btn md-btn-secondary"
+                  style={{ padding: '8px 14px', fontSize: '0.82rem', fontWeight: 800 }}
+                >
+                  Abrir Lista
+                </button>
+              </div>
+            )}
+
+            {/* Ocultar / Mostrar Saldos */}
             <button
-              onClick={() => { onInstallPwa(); onClose(); }}
+              onClick={toggleShowBalance}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                justifyContent: 'space-between',
                 width: '100%',
                 padding: '14px 16px',
                 borderRadius: '14px',
-                border: 'none',
-                backgroundColor: 'var(--md-sys-color-primary)',
-                color: 'var(--md-sys-color-on-primary)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                color: 'var(--md-sys-color-on-surface)',
                 fontWeight: 700,
                 fontSize: '0.9rem',
                 cursor: 'pointer'
               }}
             >
-              <Download size={18} />
-              <span>Instalar Aplicación WebAPK</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {showBalance ? <EyeOff size={18} color="var(--md-sys-color-primary)" /> : <Eye size={18} color="var(--md-sys-color-primary)" />}
+                <span>{showBalance ? 'Ocultar Cifras Financieras' : 'Mostrar Cifras Financieras'}</span>
+              </div>
+              <span style={{ fontSize: '0.78rem', opacity: 0.8 }}>
+                {showBalance ? 'Visibles' : 'Ocultos'}
+              </span>
             </button>
-          )}
 
-          {/* User Management Section (Accessible ONLY to propietario) */}
-          {isOwner && (
-            <div style={{
-              padding: '16px',
-              borderRadius: '16px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.92rem', fontWeight: 800 }}>👥 Gestión de Usuarios y Roles</span>
-                <button
-                  type="button"
-                  onClick={() => setShowAddUserModal(!showAddUserModal)}
-                  className="md-btn md-btn-primary"
-                  style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                >
-                  {showAddUserModal ? 'Cancelar' : '+ Agregar Usuario'}
-                </button>
-              </div>
-
-              {/* Form to create a new user */}
-              {showAddUserModal && (
-                <form onSubmit={handleCreateUser} style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                  backgroundColor: 'var(--md-sys-color-surface-container)',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--md-sys-color-primary-container)'
-                }}>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Nombre completo (ej. María)"
-                    value={newUserName}
-                    onChange={e => setNewUserName(e.target.value)}
-                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
-                  />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Nombre de usuario (ej. maria)"
-                    value={newUserUsername}
-                    onChange={e => setNewUserUsername(e.target.value)}
-                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
-                  />
-                  <input
-                    type="password"
-                    required
-                    placeholder="Contraseña de acceso"
-                    value={newUserPassword}
-                    onChange={e => setNewUserPassword(e.target.value)}
-                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
-                  />
-                  <select
-                    value={newUserRole}
-                    onChange={e => setNewUserRole(e.target.value as UserRole)}
-                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: 700 }}
-                  >
-                    <option value="propietario">Propietario (Acceso Total)</option>
-                    <option value="administrador">Administrador (Solo Tienda)</option>
-                    <option value="vendedor">Vendedor (Solo Vender POS)</option>
-                  </select>
-                  <button type="submit" className="md-btn md-btn-primary" style={{ padding: '10px', fontSize: '0.85rem', fontWeight: 800 }}>
-                    Guardar Usuario
-                  </button>
-                </form>
-              )}
-
-              {/* Registered Users List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {usersList.map(u => (
-                  <div key={u.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                    fontSize: '0.82rem'
-                  }}>
-                    <div>
-                      <span style={{ fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>{u.name}</span>{' '}
-                      <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.75rem' }}>@{u.username}</span>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: u.role === 'propietario' ? '#EC4899' : u.role === 'administrador' ? '#059669' : '#3B82F6' }}>
-                        Rol: {u.role.toUpperCase()}
-                      </div>
-                    </div>
-
-                    {u.username !== currentUser?.username && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteUser(u.id)}
-                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Reset / Purge DB to 0 Button (Accessible ONLY to propietario) */}
-          {isOwner && (
+            {/* Tema Visual */}
             <button
-              onClick={handleOpenMasterPassModal}
+              onClick={toggleTheme}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                color: 'var(--md-sys-color-on-surface)',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {theme === 'light' ? <Moon size={18} color="var(--md-sys-color-primary)" /> : <Sun size={18} color="var(--md-sys-color-primary)" />}
+                <span>Tema de la Aplicación</span>
+              </div>
+              <span style={{ fontSize: '0.78rem', textTransform: 'capitalize', opacity: 0.8 }}>
+                Modo {theme === 'light' ? 'Claro' : 'Oscuro'}
+              </span>
+            </button>
+
+            {/* Estado de Conexión y Nube */}
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: '14px',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {isOnline ? <Wifi size={18} color="#059669" /> : <WifiOff size={18} color="#EF4444" />}
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>
+                    Estado de Red: {isOnline ? 'Conectado a Internet' : 'Sin Conexión'}
+                  </span>
+                </div>
+                {pendingSyncCount > 0 && (
+                  <span style={{ fontSize: '0.72rem', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', padding: '2px 8px', borderRadius: '9999px', fontWeight: 800 }}>
+                    {pendingSyncCount} pendientes
+                  </span>
+                )}
+              </div>
+
+              {isOnline && (
+                <button
+                  onClick={onSync}
+                  disabled={isSyncing}
+                  className="md-btn md-btn-primary"
+                  style={{ width: '100%', padding: '10px', fontSize: '0.85rem', fontWeight: 800 }}
+                >
+                  <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
+                  <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Datos'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Recargar Caché y Datos Nuevos (Solo con Conexión Requerida) */}
+            <button
+              onClick={handleClearCacheAndReload}
+              disabled={!isOnline}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
                 width: '100%',
                 padding: '14px 16px',
                 borderRadius: '14px',
                 border: 'none',
-                backgroundColor: 'var(--md-sys-color-expense)',
+                backgroundColor: isOnline ? '#3B82F6' : '#94A3B8',
                 color: '#FFFFFF',
                 fontWeight: 800,
-                fontSize: '0.9rem',
+                fontSize: '0.88rem',
+                cursor: isOnline ? 'pointer' : 'not-allowed',
+                opacity: isOnline ? 1 : 0.6,
+                boxShadow: isOnline ? '0 4px 14px rgba(59, 130, 246, 0.25)' : 'none'
+              }}
+              title={!isOnline ? 'Requiere conexión a internet para recargar los scripts del sistema' : 'Recargar los últimos cambios'}
+            >
+              <RotateCcw size={18} />
+              <span>{isOnline ? 'Recargar Caché y Datos Nuevos' : 'Recargar Caché (Requiere Conexión)'}</span>
+            </button>
+
+            {/* Reiniciar Base de Datos (Conserva Usuarios y Roles) */}
+            {isOwner && (
+              <button
+                onClick={handleOpenMasterPassModal}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  padding: '14px 16px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  backgroundColor: 'var(--md-sys-color-expense-container)',
+                  color: 'var(--md-sys-color-on-expense-container)',
+                  fontWeight: 800,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <Database size={18} />
+                <span>Reiniciar Base de Datos (Mantiene Usuarios)</span>
+              </button>
+            )}
+
+            {/* Cerrar Sesión */}
+            <button
+              onClick={onLogout}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                border: 'none',
+                backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                color: 'var(--md-sys-color-on-surface)',
+                fontWeight: 800,
+                fontSize: '0.88rem',
                 cursor: 'pointer',
-                marginTop: '6px',
-                boxShadow: '0 4px 12px rgba(211, 47, 47, 0.25)'
+                marginTop: '4px'
               }}
             >
-              <Trash2 size={18} />
-              <span>Reiniciar Base de Datos a 0 y Limpiar Caché</span>
+              <LogOut size={18} />
+              <span>Cerrar Sesión</span>
             </button>
-          )}
 
-          {/* Logout Button */}
-          <button
-            onClick={() => { onLogout(); onClose(); }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '14px 16px',
-              borderRadius: '14px',
-              border: 'none',
-              backgroundColor: 'var(--md-sys-color-expense-container)',
-              color: 'var(--md-sys-color-on-expense-container)',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              marginTop: '6px'
-            }}
-          >
-            <LogOut size={18} />
-            <span>Cerrar Sesión</span>
-          </button>
+          </div>
+
+          <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', marginTop: '6px' }}>
+            Samy Store v1.0 • Cubasoft ERP Systems
+          </div>
 
         </div>
 
       </div>
 
-      {/* MASTER PASSWORD CONFIRMATION MODAL FOR DB PURGE */}
+      {/* Modal Dedicada de Gestión de Usuarios */}
+      <UserManagementModal
+        isOpen={isUserManagementOpen}
+        onClose={() => {
+          setIsUserManagementOpen(false);
+          setUsersList(getAppUsers());
+        }}
+      />
+
+      {/* Master Password Modal for Full Database Reset */}
       {isMasterPassModalOpen && (
-        <div 
-          onClick={() => setIsMasterPassModalOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(10px)',
-            zIndex: 150,
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            padding: 0
-          }}
-        >
-          <form 
-            className="bottom-sheet-modal"
-            onClick={e => e.stopPropagation()}
-            onSubmit={handleConfirmMasterPassReset}
-            style={{
-              backgroundColor: 'var(--md-sys-color-surface-container)',
-              color: 'var(--md-sys-color-on-surface)',
-              width: '100%',
-              maxWidth: '480px',
-              padding: '24px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              boxShadow: 'var(--md-shadow-elevation-4)',
-              animation: 'slideUp 0.25s ease-out'
-            }}
-          >
-            {/* Drag handle */}
-            <div style={{ width: '36px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 2500,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--md-sys-color-surface)',
+            color: 'var(--md-sys-color-on-surface)',
+            borderRadius: '24px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '100%',
+            boxShadow: 'var(--md-shadow-elevation-4)',
+            border: '2px solid var(--md-sys-color-expense)'
+          }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-expense)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Lock size={20} />
+              Confirmar Reinicio Completo
+            </h3>
+            
+            <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '16px', lineHeight: '1.4' }}>
+              Se borrarán todos los productos, ventas, movimientos y proveedores de la tienda y la casa. <strong>Se conservarán tus usuarios y roles activos.</strong>
+            </p>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <KeyRound size={22} color="var(--md-sys-color-expense)" />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Confirmación de Seguridad</h3>
-              </div>
-              <button type="button" onClick={() => setIsMasterPassModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Critical Warning Alert Box */}
-            <div style={{
-              padding: '12px 14px',
-              borderRadius: '14px',
-              backgroundColor: 'var(--md-sys-color-expense-container)',
-              color: 'var(--md-sys-color-on-expense-container)',
-              border: '1.5px solid var(--md-sys-color-expense)',
-              fontSize: '0.85rem',
-              lineHeight: '1.4',
-              fontWeight: 700
-            }}>
-              🚨 <strong>¡ATENCIÓN CRÍTICA!</strong> Esta acción borrará absolutamente <strong>TODOS</strong> los productos del inventario, ventas registradas, transacciones contables y cuentas de proveedores, reiniciando la base de datos a 0 y limpiando la caché.
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.82rem', fontWeight: 800, display: 'block', marginBottom: '6px' }}>
-                Ingresa Contraseña Maestra:
-              </label>
+            <form onSubmit={handleConfirmMasterPassReset} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <input
                 type="password"
-                required
-                autoFocus
-                placeholder="Ingresa clave maestra..."
+                placeholder="Contraseña del Propietario"
                 value={masterPasswordInput}
                 onChange={e => setMasterPasswordInput(e.target.value)}
-                className="input-spotlight"
+                required
                 style={{
-                  width: '100%',
-                  padding: '12px 14px',
+                  padding: '12px',
                   borderRadius: '12px',
-                  border: '2px solid var(--md-sys-color-expense)',
-                  backgroundColor: 'var(--md-sys-color-surface)',
+                  border: '1.5px solid var(--md-sys-color-outline)',
+                  backgroundColor: 'var(--md-sys-color-surface-container)',
                   color: 'var(--md-sys-color-on-surface)',
-                  fontSize: '1rem',
+                  fontSize: '0.9rem',
                   fontWeight: 700
                 }}
               />
-              <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px', display: 'block' }}>
-                🔒 Se requiere autorización con la Contraseña Maestra para proceder.
-              </span>
-            </div>
 
-            {masterPassError && (
-              <div style={{ color: 'var(--md-sys-color-expense)', fontSize: '0.82rem', fontWeight: 800 }}>
-                ❌ {masterPassError}
+              {masterPassError && (
+                <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-expense)', fontWeight: 800 }}>
+                  ❌ {masterPassError}
+                </span>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsMasterPassModalOpen(false)}
+                  className="md-btn md-btn-secondary"
+                  style={{ flex: 1, padding: '10px', fontSize: '0.85rem' }}
+                >
+                  Cancelar
+                </button>
+                
+                <button
+                  type="submit"
+                  className="md-btn"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    fontSize: '0.85rem',
+                    backgroundColor: 'var(--md-sys-color-expense)',
+                    color: '#FFF',
+                    fontWeight: 800
+                  }}
+                >
+                  Confirmar Borrado
+                </button>
               </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <button
-                type="button"
-                onClick={() => setIsMasterPassModalOpen(false)}
-                className="md-btn md-btn-secondary"
-                style={{ flex: 1, padding: '12px', fontSize: '0.88rem' }}
-              >
-                Cancelar
-              </button>
-
-              <button
-                type="submit"
-                className="md-btn md-btn-expense"
-                style={{ flex: 1, padding: '12px', fontSize: '0.88rem', fontWeight: 800 }}
-              >
-                Confirmar y Borrar Todo
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 };

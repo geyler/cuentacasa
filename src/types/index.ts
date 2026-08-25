@@ -69,7 +69,7 @@ export interface StoreSaleRecord {
   netProfit: number;       // Ganancia neta (que va a CuentaCasa)
 }
 
-export type ReportPeriod = 'mensual' | 'quincenal' | 'semanal' | 'personalizado';
+export type ReportPeriod = 'hoy' | '7dias' | '15dias' | '28dias' | '90dias' | 'personalizado';
 export type AppTab = 'quick' | 'dashboard' | 'transactions' | 'reports' | 'store';
 
 export interface ReportFilter {

@@ -757,7 +757,7 @@ function AccountingAppContent() {
       </main>
 
       {/* Mobile-Only Floating Bottom Navigation Bar (Hidden on PC & Hidden when any modal is open) */}
-      {!isAnyModalOpen && (
+      {!isAnyModalOpen && getLoggedInUser()?.role === 'propietario' && (
         <div 
           className="no-print hidden-pc"
           style={{

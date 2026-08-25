@@ -29,7 +29,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   showBalance = true,
   onSelectTransaction
 }) => {
-  const [period, setPeriod] = useState<ReportPeriod>('mensual');
+  const [period, setPeriod] = useState<ReportPeriod>('28dias');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('todas');
@@ -57,7 +57,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Calendar size={18} color="var(--md-sys-color-primary)" />
-            <span>Resumen por Fecha</span>
+            <span>Filtro de Fecha (Search Console)</span>
           </h3>
 
           <button
@@ -73,10 +73,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
         {/* Period Chips */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
           {[
-            { id: 'mensual', label: 'Este Mes' },
-            { id: 'quincenal', label: 'Esta Quincena' },
-            { id: 'semanal', label: 'Esta Semana' },
-            { id: 'personalizado', label: 'Rango de Fechas' }
+            { id: 'hoy', label: 'Hoy' },
+            { id: '7dias', label: 'Últimos 7 días' },
+            { id: '15dias', label: 'Últimos 15 días' },
+            { id: '28dias', label: 'Últimos 28 días' },
+            { id: '90dias', label: 'Últimos 90 días' },
+            { id: 'personalizado', label: 'Rango Personalizado' }
           ].map(item => (
             <button
               key={item.id}

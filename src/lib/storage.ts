@@ -917,3 +917,28 @@ export function rateStoreProduct(productId: string, stars: number): { success: b
   return { success: true, newAvg: validStars, newCount: 1 };
 }
 
+// User-Specific PIN Helpers
+export function getUserPin(username?: string): string | null {
+  if (typeof window === 'undefined') return null;
+  const userKey = username ? username.toLowerCase().trim() : (getLoggedInUser()?.username.toLowerCase().trim() || '');
+  if (!userKey) return localStorage.getItem('cuentacasa_pin');
+  const userPin = localStorage.getItem(`cuentacasa_pin_${userKey}`);
+  return userPin !== null ? userPin : localStorage.getItem('cuentacasa_pin');
+}
+
+export function setUserPin(username: string, pin: string): void {
+  if (typeof window === 'undefined') return;
+  const userKey = username.toLowerCase().trim();
+  localStorage.setItem(`cuentacasa_pin_${userKey}`, pin);
+  localStorage.setItem('cuentacasa_pin', pin);
+}
+
+export function clearUserPin(username?: string): void {
+  if (typeof window === 'undefined') return;
+  const userKey = username ? username.toLowerCase().trim() : (getLoggedInUser()?.username.toLowerCase().trim() || '');
+  if (userKey) {
+    localStorage.removeItem(`cuentacasa_pin_${userKey}`);
+  }
+  localStorage.removeItem('cuentacasa_pin');
+}
+

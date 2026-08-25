@@ -36,20 +36,12 @@ export function getProductSeoMeta(barcode: string, price: number): ProductSeoMet
   }
   const absHash = Math.abs(hash);
 
-  let reviewCount: number;
-  if (price <= 300) {
-    reviewCount = 38 + (absHash % 31); // 38 to 68 reviews
-  } else if (price <= 1000) {
-    reviewCount = 20 + (absHash % 22); // 20 to 41 reviews
-  } else if (price <= 3000) {
-    reviewCount = 10 + (absHash % 15); // 10 to 24 reviews
-  } else {
-    reviewCount = 6 + (absHash % 10);  // 6 to 15 reviews
-  }
+  // Genera entre 1 y 9 valoraciones iniciales al publicar un producto
+  const reviewCount = 1 + (absHash % 9);
 
-  const ratingValue = Number((4.6 + ((absHash % 4) / 10)).toFixed(1));
+  // Genera entre 3.5 y 5.0 estrellas iniciales
+  const ratingValue = Number((3.5 + ((absHash % 16) / 10)).toFixed(1));
 
-  // Date published (deterministic past date in 2026) and date modified (current ISO timestamp)
   const month = String(1 + (absHash % 7)).padStart(2, '0');
   const day = String(1 + (absHash % 26)).padStart(2, '0');
   const datePublished = `2026-${month}-${day}T09:00:00.000Z`;

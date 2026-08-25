@@ -22,6 +22,7 @@ export function getRemainingEditableTime(createdAt?: number): string | null {
 // Filter transactions by period
 export function filterTransactionsByPeriod(transactions: Transaction[], filter: ReportFilter): Transaction[] {
   const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
   
   return transactions.filter(tx => {
     const txDate = new Date(tx.date + 'T00:00:00');
@@ -31,24 +32,28 @@ export function filterTransactionsByPeriod(transactions: Transaction[], filter: 
     }
 
     switch (filter.period) {
-      case 'semanal': {
-        const startOfWeek = new Date(now);
-        const day = now.getDay() || 7; // 1 = Mon, 7 = Sun
-        startOfWeek.setDate(now.getDate() - day + 1);
-        startOfWeek.setHours(0, 0, 0, 0);
-        return txDate >= startOfWeek;
+      case 'hoy': {
+        return tx.date === todayStr;
       }
-      case 'quincenal': {
-        // Current fortnight: 1-15 or 16-end of month
-        const currentDay = now.getDate();
-        const startOfFortnight = new Date(now.getFullYear(), now.getMonth(), currentDay <= 15 ? 1 : 16);
-        startOfFortnight.setHours(0, 0, 0, 0);
-        return txDate >= startOfFortnight;
+      case '7dias': {
+        const past7 = new Date(now.getTime() - 7 * 86400 * 1000);
+        past7.setHours(0, 0, 0, 0);
+        return txDate >= past7;
       }
-      case 'mensual': {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        return txDate >= startOfMonth;
+      case '15dias': {
+        const past15 = new Date(now.getTime() - 15 * 86400 * 1000);
+        past15.setHours(0, 0, 0, 0);
+        return txDate >= past15;
+      }
+      case '28dias': {
+        const past28 = new Date(now.getTime() - 28 * 86400 * 1000);
+        past28.setHours(0, 0, 0, 0);
+        return txDate >= past28;
+      }
+      case '90dias': {
+        const past90 = new Date(now.getTime() - 90 * 86400 * 1000);
+        past90.setHours(0, 0, 0, 0);
+        return txDate >= past90;
       }
       case 'personalizado': {
         if (!filter.startDate && !filter.endDate) return true;
@@ -100,12 +105,16 @@ export function calculateFinancialSummary(transactions: Transaction[]): Financia
 // Format period subtitle
 export function getPeriodLabel(filter: ReportFilter): string {
   switch (filter.period) {
-    case 'semanal':
-      return 'Reporte Semanal (Esta Semana)';
-    case 'quincenal':
-      return 'Reporte Quincenal (Quincena Actual)';
-    case 'mensual':
-      return 'Reporte Mensual (Mes Actual)';
+    case 'hoy':
+      return 'Hoy';
+    case '7dias':
+      return 'Últimos 7 días';
+    case '15dias':
+      return 'Últimos 15 días';
+    case '28dias':
+      return 'Últimos 28 días';
+    case '90dias':
+      return 'Últimos 90 días';
     case 'personalizado':
       if (filter.startDate && filter.endDate) {
         return `Rango del ${filter.startDate} al ${filter.endDate}`;
