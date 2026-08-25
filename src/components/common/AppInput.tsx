@@ -12,6 +12,8 @@ export interface AppInputProps extends React.InputHTMLAttributes<HTMLInputElemen
   onNextField?: () => void;
   onDone?: () => void;
   counterText?: string;
+  hideAceptar?: boolean;
+  disableBlur?: boolean;
 }
 
 export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
@@ -23,6 +25,8 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
   onNextField,
   onDone,
   counterText,
+  hideAceptar = false,
+  disableBlur = false,
   className = '',
   style,
   onFocus,
@@ -34,7 +38,7 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
     : false;
   
   const isAnyFieldFocused = focusedField !== undefined && focusedField !== null;
-  const isOtherFieldFocused = isAnyFieldFocused && !isSelfFocused;
+  const isOtherFieldFocused = !disableBlur && isAnyFieldFocused && !isSelfFocused;
 
   return (
     <div style={{
@@ -46,7 +50,7 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
       {/* Label / Active Spotlight Header */}
       {label && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-          {isSelfFocused ? (
+          {isSelfFocused && !hideAceptar ? (
             <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Keyboard size={14} /> {label.replace(/\s*\*.*$/, '')} {unitSymbol ? `(${unitSymbol})` : ''} *
             </span>
@@ -56,7 +60,7 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
             </label>
           )}
 
-          {isSelfFocused && (
+          {isSelfFocused && !hideAceptar && (
             <div>
               <button
                 type="button"
