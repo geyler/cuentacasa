@@ -487,7 +487,7 @@ function AccountingAppContent() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container) 100%)',
+        backgroundColor: '#FFFFFF',
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
         zIndex: 9999,
@@ -496,35 +496,33 @@ function AccountingAppContent() {
         {/* Glow backdrop effect */}
         <div style={{
           position: 'absolute',
-          width: '220px',
-          height: '220px',
+          width: '240px',
+          height: '240px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0, 99, 155, 0.18) 0%, rgba(0, 99, 155, 0) 70%)',
-          filter: 'blur(20px)',
+          background: 'radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, rgba(255, 255, 255, 0) 70%)',
+          filter: 'blur(24px)',
           pointerEvents: 'none'
         }} />
 
-        {/* Small Transparent Logo Badge */}
+        {/* Large Clean Logo Badge */}
         <div style={{
           position: 'relative',
-          width: '64px',
-          height: '64px',
-          borderRadius: '20px',
-          background: 'rgba(0, 99, 155, 0.08)',
-          border: '1px solid rgba(0, 99, 155, 0.2)',
-          backdropFilter: 'blur(12px)',
+          width: '120px',
+          height: '120px',
+          borderRadius: '28px',
+          backgroundColor: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '20px',
-          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.08)'
+          marginBottom: '16px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)'
         }}>
           <img 
             src="/images/logo-loading.png" 
             alt="Samy Store Logo" 
             style={{ 
-              width: '48px', 
-              height: '48px', 
+              width: '108px', 
+              height: '108px', 
               objectFit: 'contain'
             }} 
           />
@@ -532,12 +530,13 @@ function AccountingAppContent() {
 
         {/* Branding & Title */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <h1 style={{
-            fontSize: '1.45rem',
+          <h1 className="font-logo-script" style={{
+            fontSize: '2.4rem',
             fontWeight: 900,
             letterSpacing: '-0.02em',
-            color: 'var(--md-sys-color-on-surface)',
-            marginBottom: '4px'
+            color: '#111827',
+            marginBottom: '2px',
+            lineHeight: 1
           }}>
             Samy Store
           </h1>

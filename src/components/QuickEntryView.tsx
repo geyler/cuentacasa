@@ -44,20 +44,20 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
         {/* App Title Header */}
         <div>
           <div style={{
-            width: '54px',
-            height: '54px',
-            borderRadius: '16px',
+            width: '68px',
+            height: '68px',
+            borderRadius: '20px',
             backgroundColor: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 8px auto',
-            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.08)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
             overflow: 'hidden'
           }}>
-            <img src="/images/logo-nav.png" alt="Samy Store Logo" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+            <img src="/images/logo-loading.png" alt="Samy Store Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
           </div>
-          <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em' }}>
+          <h2 className="font-logo-script" style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.01em', lineHeight: 1 }}>
             Samy Store
           </h2>
           <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
