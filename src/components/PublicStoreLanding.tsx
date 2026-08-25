@@ -231,75 +231,48 @@ export const PublicStoreLanding: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Store Top Header - Modern Feminine White & Pink Style */}
+      {/* Store Top Header - Ultra-Modern Clean White Glassmorphism Header */}
       <header style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(16px)',
         color: '#1E293B',
-        borderBottom: '1px solid #FCE7F3',
+        borderBottom: '1px solid #F1F5F9',
         position: 'sticky',
         top: 0,
         zIndex: 80,
-        boxShadow: '0 2px 12px rgba(236, 72, 153, 0.08)'
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
       }}>
         <div style={{
           maxWidth: '1024px',
           margin: '0 auto',
-          padding: '10px 16px',
+          padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '12px'
+          gap: '16px'
         }}>
           {/* Logo & Brand Name */}
           <div 
             onClick={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
           >
             <img 
               src="/images/logo-nav.png" 
               alt="Samy Store" 
-              style={{ height: '46px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} 
+              style={{ height: '48px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} 
             />
             <div>
-              <h1 className="font-logo-script" style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0F172A', lineHeight: '1' }}>
+              <h1 className="font-logo-script" style={{ fontSize: '1.9rem', fontWeight: 900, color: '#0F172A', lineHeight: '1' }}>
                 Samy Store
               </h1>
+              <span style={{ fontSize: '0.64rem', color: '#DB2777', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Catálogo Digital
+              </span>
             </div>
           </div>
 
-          {/* Header Search Bar */}
-          <div style={{ flex: 1, maxWidth: '400px', display: 'flex', position: 'relative' }} className="hidden-mobile">
-            <Search 
-              size={17} 
-              style={{
-                position: 'absolute',
-                left: '14px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#EC4899'
-              }} 
-            />
-            <input
-              type="text"
-              placeholder="Buscar en Samy Store..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 14px 8px 38px',
-                borderRadius: '9999px',
-                border: '1px solid #FBCFE8',
-                backgroundColor: '#FDF2F8',
-                color: '#0F172A',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                outline: 'none'
-              }}
-            />
-          </div>
-
           {/* Right Action Icons: Cart & Dashboard Lock */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             
             {/* Cart Button */}
             <button
@@ -307,27 +280,28 @@ export const PublicStoreLanding: React.FC = () => {
               title="Ver Carrito de Compras"
               style={{
                 position: 'relative',
-                height: '40px',
-                padding: '0 14px',
+                height: '42px',
+                padding: '0 18px',
                 borderRadius: '9999px',
                 border: 'none',
-                backgroundColor: '#EC4899',
+                background: 'linear-gradient(135deg, #EC4899 0%, #D946EF 100%)',
                 color: '#FFFFFF',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.35)'
+                boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)',
+                transition: 'all 0.2s ease'
               }}
             >
               <ShoppingBag size={19} />
               {totalCartCount > 0 ? (
-                <span style={{ fontSize: '0.85rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>
                   {totalCartCount} ({formatCurrency(totalCartPrice, '$', true)})
                 </span>
               ) : (
-                <span style={{ fontSize: '0.82rem' }} className="hidden-mobile">Carrito</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800 }} className="hidden-mobile">Carrito</span>
               )}
 
               {totalCartCount > 0 && (
@@ -337,15 +311,15 @@ export const PublicStoreLanding: React.FC = () => {
                   right: '-4px',
                   backgroundColor: '#FFF100',
                   color: '#0F172A',
-                  width: '20px',
-                  height: '20px',
+                  width: '22px',
+                  height: '22px',
                   borderRadius: '9999px',
-                  fontSize: '0.72rem',
+                  fontSize: '0.74rem',
                   fontWeight: 900,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
                 }}>
                   {totalCartCount}
                 </span>
@@ -358,8 +332,8 @@ export const PublicStoreLanding: React.FC = () => {
                 href="/login"
                 title="Ir al Dashboard Contable"
                 style={{
-                  width: '40px',
-                  height: '40px',
+                  width: '42px',
+                  height: '42px',
                   borderRadius: '9999px',
                   border: '1px solid #E2E8F0',
                   backgroundColor: '#F8FAFC',
@@ -367,7 +341,8 @@ export const PublicStoreLanding: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  textDecoration: 'none'
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
                 }}
               >
                 <Lock size={18} />
@@ -380,27 +355,26 @@ export const PublicStoreLanding: React.FC = () => {
       {/* PWA Install Call-To-Action Banner (Visible on browser when not installed) */}
       {!isInstalled && (
         <div style={{
-          backgroundColor: '#FCE7F3',
-          border: '1px solid #F472B6',
-          borderRadius: '16px',
-          padding: '12px 16px',
-          margin: '12px 16px 0 16px',
+          backgroundColor: '#FFF1F2',
+          border: '1px solid #FBCFE8',
+          borderRadius: '20px',
+          padding: '14px 20px',
+          margin: '16px auto 0 auto',
           maxWidth: '1024px',
-          alignSelf: 'center',
           width: 'calc(100% - 32px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '12px',
-          boxShadow: '0 4px 14px rgba(236, 72, 153, 0.12)'
+          gap: '14px',
+          boxShadow: '0 6px 20px rgba(236, 72, 153, 0.08)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '38px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '42px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
             <div style={{ textAlign: 'left' }}>
-              <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#831843', margin: 0 }}>
+              <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#831843', margin: 0 }}>
                 ¡Instala la App de Samy Store!
               </h4>
-              <p style={{ fontSize: '0.75rem', color: '#BE185D', margin: '2px 0 0 0', fontWeight: 600 }}>
+              <p style={{ fontSize: '0.78rem', color: '#BE185D', margin: '2px 0 0 0', fontWeight: 600 }}>
                 Acceso 100% directo, ultra rápido y sin conexión.
               </p>
             </div>
@@ -410,8 +384,8 @@ export const PublicStoreLanding: React.FC = () => {
             onClick={handleInstallPwa}
             className="md-btn md-btn-primary"
             style={{
-              padding: '8px 16px',
-              fontSize: '0.82rem',
+              padding: '9px 18px',
+              fontSize: '0.84rem',
               fontWeight: 800,
               borderRadius: '9999px',
               whiteSpace: 'nowrap',
@@ -423,21 +397,21 @@ export const PublicStoreLanding: React.FC = () => {
         </div>
       )}
 
-      {/* Soft & Professional Feminine Hero Banner Section with Aesthetic Image Overlay */}
+      {/* Soft & Professional Feminine Hero Banner Section */}
       <div style={{
-        backgroundImage: 'linear-gradient(180deg, rgba(255, 247, 249, 0.84) 0%, rgba(253, 242, 248, 0.92) 100%), url("/images/store_hero_bg.png")',
+        backgroundImage: 'linear-gradient(180deg, rgba(255, 245, 247, 0.9) 0%, rgba(253, 242, 248, 0.95) 100%), url("/images/store_hero_bg.png")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         color: '#1E293B',
-        padding: '38px 16px 46px 16px',
+        padding: '44px 20px 48px 20px',
         textAlign: 'center',
         position: 'relative',
         borderBottom: '1px solid #FBCFE8',
-        boxShadow: 'inset 0 -10px 30px rgba(236, 72, 153, 0.05)'
+        boxShadow: 'inset 0 -10px 30px rgba(236, 72, 153, 0.04)'
       }}>
         <div style={{ maxWidth: '1024px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           
-          {/* Store Badge */}
+          {/* Store Pill Badge */}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -445,22 +419,23 @@ export const PublicStoreLanding: React.FC = () => {
             backgroundColor: '#FCE7F3',
             border: '1px solid #FBCFE8',
             color: '#DB2777',
-            padding: '5px 16px',
+            padding: '6px 18px',
             borderRadius: '9999px',
             fontSize: '0.78rem',
             fontWeight: 800,
             letterSpacing: '0.04em',
-            marginBottom: '14px'
+            marginBottom: '16px',
+            boxShadow: '0 2px 8px rgba(236, 72, 153, 0.1)'
           }}>
             <Sparkles size={14} color="#EC4899" />
             <span>BIENVENIDO A SAMY STORE</span>
           </div>
 
           <h2 style={{ 
-            fontSize: '2.1rem', 
+            fontSize: '2.3rem', 
             fontWeight: 900, 
-            lineHeight: '1.2', 
-            marginBottom: '10px',
+            lineHeight: '1.25', 
+            marginBottom: '12px',
             letterSpacing: '-0.02em',
             color: '#831843'
           }}>
@@ -468,14 +443,14 @@ export const PublicStoreLanding: React.FC = () => {
           </h2>
 
           <p style={{ 
-            fontSize: '0.92rem', 
+            fontSize: '0.94rem', 
             color: '#64748B', 
-            lineHeight: '1.5', 
-            maxWidth: '560px', 
-            margin: '0 auto 20px auto',
+            lineHeight: '1.6', 
+            maxWidth: '580px', 
+            margin: '0 auto 24px auto',
             fontWeight: 500
           }}>
-            Explora nuestro catálogo variado. Agrega tus artículos al carrito con un toque y realiza tu pedido directo por WhatsApp con entrega rápida.
+            Explora nuestro catálogo exclusivo. Agrega tus artículos al carrito con un toque y realiza tu pedido directo por WhatsApp con entrega rápida.
           </p>
 
           {/* Advantage Pills */}
@@ -483,28 +458,28 @@ export const PublicStoreLanding: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '10px',
+            gap: '12px',
             flexWrap: 'wrap',
-            marginBottom: '22px'
+            marginBottom: '26px'
           }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: '#FFFFFF', color: '#475569', padding: '6px 14px', borderRadius: '12px', border: '1px solid #F1F5F9', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <Truck size={14} color="#EC4899" /> Envíos Rápidos
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', color: '#475569', padding: '7px 16px', borderRadius: '9999px', border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <Truck size={15} color="#EC4899" /> Envíos Rápidos
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: '#FFFFFF', color: '#475569', padding: '6px 14px', borderRadius: '12px', border: '1px solid #F1F5F9', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <MessageCircle size={14} color="#25D366" /> Atención por WhatsApp
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', color: '#475569', padding: '7px 16px', borderRadius: '9999px', border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <MessageCircle size={15} color="#25D366" /> Atención por WhatsApp
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px', backgroundColor: '#FFFFFF', color: '#475569', padding: '6px 14px', borderRadius: '12px', border: '1px solid #F1F5F9', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-              <ShieldCheck size={14} color="#0284C7" /> Calidad Garantizada
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', color: '#475569', padding: '7px 16px', borderRadius: '9999px', border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <ShieldCheck size={15} color="#0284C7" /> Calidad Garantizada
             </span>
           </div>
 
-          {/* Main Hero Search Bar Input */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '480px', margin: '0 auto' }}>
+          {/* SINGLE Hero Search Bar (Ultra-Modern High-Impact Bar) */}
+          <div style={{ position: 'relative', width: '100%', maxWidth: '540px', margin: '0 auto' }}>
             <Search 
-              size={20} 
+              size={22} 
               style={{
                 position: 'absolute',
-                left: '18px',
+                left: '20px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: '#EC4899'
@@ -517,39 +492,65 @@ export const PublicStoreLanding: React.FC = () => {
               onChange={e => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                padding: '14px 18px 14px 50px',
+                padding: '16px 46px 16px 54px',
                 borderRadius: '9999px',
-                border: '1px solid #FBCFE8',
+                border: '2px solid #FBCFE8',
                 backgroundColor: '#FFFFFF',
                 color: '#0F172A',
-                fontSize: '0.94rem',
+                fontSize: '1rem',
                 fontWeight: 700,
                 outline: 'none',
-                boxShadow: '0 4px 16px rgba(236, 72, 153, 0.08)'
+                boxShadow: '0 10px 30px rgba(236, 72, 153, 0.12)',
+                transition: 'all 0.2s ease'
               }}
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{
+                  position: 'absolute',
+                  right: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: '#F1F5F9',
+                  border: 'none',
+                  color: '#64748B',
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '9999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: 900
+                }}
+              >
+                ✕
+              </button>
+            )}
           </div>
 
         </div>
       </div>
 
-      {/* Main Container - Enforcing 5xl (1024px max width) */}
-      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 16px 140px 16px', flex: 1 }}>
+      {/* Main Container - Enforcing 5xl (1024px max width) with Generous Spacing */}
+      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '36px 20px 140px 20px', flex: 1 }}>
         
         {/* SECTION 0: Featured Products (Grid Aligned with Highlight Badge) */}
         {products.length > 0 && selectedCategory === 'todas' && !searchTerm && (
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <Sparkles size={18} color="#EF4444" />
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+          <div style={{ marginBottom: '36px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+              <Sparkles size={20} color="#EF4444" />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
                 🔥 Productos Destacados & Más Vendidos
               </h3>
             </div>
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-              gap: '14px'
+              gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+              gap: '18px'
             }}>
               {products.slice(0, 4).map(product => {
                 const inCart = cart.find(item => item.product.id === product.id);
@@ -562,18 +563,18 @@ export const PublicStoreLanding: React.FC = () => {
                     className="md-card"
                     onClick={() => handleOpenProductModal(product)}
                     style={{
-                      padding: '12px',
+                      padding: '14px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      gap: '10px',
-                      borderRadius: '18px',
+                      gap: '12px',
+                      borderRadius: '20px',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      border: '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: 'var(--md-sys-color-surface)',
+                      transition: 'all 0.25s ease',
+                      border: '1px solid #F1F5F9',
+                      backgroundColor: '#FFFFFF',
                       position: 'relative',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                      boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)'
                     }}
                   >
                     <div>
@@ -827,25 +828,25 @@ export const PublicStoreLanding: React.FC = () => {
         )}
 
         {/* SECTION 2: All Products Feed */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
             {selectedCategory === 'todas' ? 'Todos los Productos' : `Categoría: ${selectedCategory}`} ({filteredProducts.length})
           </h3>
         </div>
 
         {filteredProducts.length === 0 ? (
-          <div className="md-card" style={{ textAlign: 'center', padding: '50px 20px', maxWidth: '420px', margin: '40px auto' }}>
-            <ShoppingBag size={44} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '12px' }} />
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>No se encontraron productos</h3>
-            <p style={{ fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px' }}>
+          <div className="md-card" style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '420px', margin: '40px auto', borderRadius: '24px' }}>
+            <ShoppingBag size={48} style={{ color: '#94A3B8', marginBottom: '14px' }} />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1E293B' }}>No se encontraron productos</h3>
+            <p style={{ fontSize: '0.88rem', color: '#64748B', marginTop: '6px' }}>
               Intenta cambiar la categoría o limpiar tu búsqueda.
             </p>
           </div>
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: '14px'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+            gap: '18px'
           }}>
             {filteredProducts.map(product => {
               const inCart = cart.find(item => item.product.id === product.id);
@@ -858,17 +859,18 @@ export const PublicStoreLanding: React.FC = () => {
                   className="md-card"
                   onClick={() => handleOpenProductModal(product)}
                   style={{
-                    padding: '12px',
+                    padding: '14px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    gap: '10px',
-                    borderRadius: '18px',
+                    gap: '12px',
+                    borderRadius: '20px',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    border: '1px solid var(--md-sys-color-outline-variant)',
-                    backgroundColor: 'var(--md-sys-color-surface)',
-                    position: 'relative'
+                    transition: 'all 0.25s ease',
+                    border: '1px solid #F1F5F9',
+                    backgroundColor: '#FFFFFF',
+                    position: 'relative',
+                    boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)'
                   }}
                 >
                   <div>

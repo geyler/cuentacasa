@@ -1,4 +1,4 @@
-const CACHE_NAME = 'samy-store-pwa-v4';
+const CACHE_NAME = 'samy-store-pwa-v5';
 
 const PRECACHE_ASSETS = [
   '/',
