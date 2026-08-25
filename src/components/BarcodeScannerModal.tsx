@@ -476,24 +476,17 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         )}
       </div>
 
-      {/* FIXED TOOLBAR BAR: POWERFUL MANUAL CODE ENTRY */}
+      {/* FIXED TOOLBAR BAR: INPUT AND SUMAR BUTTON ONLY */}
       <div style={{
         padding: '10px 14px',
         backgroundColor: 'var(--md-sys-color-surface-container)',
         borderBottom: '1px solid var(--md-sys-color-outline-variant)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '10px',
         flexShrink: 0
       }}>
-        <form onSubmit={handleManualFormSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap' }}>
-            Código Manual:
-          </span>
+        <form onSubmit={handleManualFormSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
           <input
             type="text"
-            placeholder="Ej. 00968 o barcode"
+            placeholder="Escribe o escanea el código (Ej: 00968)..."
             value={manualCode}
             onChange={e => setManualCode(e.target.value)}
             onFocus={(e) => {
@@ -504,39 +497,39 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             className="input-spotlight"
             style={{
               flex: 1,
-              maxWidth: '160px',
-              padding: '8px 12px',
-              borderRadius: '10px',
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '12px',
               border: '2px solid var(--md-sys-color-primary)',
               backgroundColor: 'var(--md-sys-color-surface)',
               color: 'var(--md-sys-color-on-surface)',
               fontFamily: 'monospace',
               fontWeight: 800,
               fontSize: '0.95rem',
-              textAlign: 'center'
+              textAlign: 'left'
             }}
           />
           <button
             type="submit"
             className="md-btn md-btn-primary"
             style={{
-              padding: '8px 12px',
-              fontSize: '0.8rem',
+              padding: '10px 18px',
+              fontSize: '0.88rem',
               fontWeight: 800,
               backgroundColor: 'var(--md-sys-color-primary)',
               color: 'var(--md-sys-color-on-primary)',
-              boxShadow: '0 2px 8px rgba(0, 99, 155, 0.3)',
-              flexShrink: 0
+              boxShadow: '0 2px 10px rgba(0, 99, 155, 0.3)',
+              borderRadius: '12px',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            <Plus size={15} />
-            <span>+ Sumar</span>
+            <Plus size={18} />
+            <span>Sumar</span>
           </button>
         </form>
-
-        <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, flexShrink: 0 }}>
-          📷 Escáner activo
-        </span>
       </div>
 
       {/* MIDDLE SECTION: SCROLLABLE TICKET LIST (Independent scroll without pushing top/bottom) */}
