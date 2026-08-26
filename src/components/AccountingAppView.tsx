@@ -590,7 +590,15 @@ function AccountingAppContent() {
   }
 
   const transactions = db.transactions || [];
-  const summary = calculateFinancialSummary(transactions);
+  const casaTransactions = transactions.filter(tx => {
+    if (tx.accountSource) return tx.accountSource === 'casa';
+    const isStoreTx = tx.category.toLowerCase().includes('tienda') || 
+                      tx.category.toLowerCase().includes('fondo tienda') || 
+                      tx.category.toLowerCase().includes('proveedor') ||
+                      tx.concept.toLowerCase().includes('venta pos');
+    return !isStoreTx;
+  });
+  const summary = calculateFinancialSummary(casaTransactions);
   const pendingCount = getPendingSyncCount();
 
   const isAnyModalOpen = isTxModalOpen || isSettingsOpen || isRawDbModalOpen || isScannerOpen || isTransferModalOpen || !!selectedTxForDetailModal || isNavMenuOpen;

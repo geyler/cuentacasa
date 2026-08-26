@@ -17,7 +17,7 @@ import {
   Clock,
   Home,
   Store,
-  Info
+  PiggyBank
 } from 'lucide-react';
 
 interface TransactionListProps {
@@ -45,7 +45,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'todos' | TransactionType>('todos');
-  const [movementScope, setMovementScope] = useState<'casa' | 'tienda'>('casa');
+  const [movementScope, setMovementScope] = useState<'casa' | 'tienda' | 'ahorro'>('casa');
   const [selectedTransactionForModal, setSelectedTransactionForModal] = useState<Transaction | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [, setTick] = useState(0);
@@ -58,18 +58,24 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Filtered transactions by movementScope, search & type
+  // Filtered transactions by exact accountSource scope, search & type
   const filtered = transactions.filter(tx => {
-    const isStoreTx = tx.category.toLowerCase().includes('tienda') || 
-                      tx.category.toLowerCase().includes('fondo tienda') || 
-                      tx.category.toLowerCase().includes('proveedor') ||
-                      (tx.notes && tx.notes.toLowerCase().includes('tienda')) || 
-                      tx.concept.toLowerCase().includes('venta pos') || 
-                      tx.concept.toLowerCase().includes('tienda');
+    let matchesScope = false;
+    if (tx.accountSource) {
+      matchesScope = tx.accountSource === movementScope;
+    } else {
+      // Legacy fallback logic for old records missing accountSource field
+      const isStoreTx = tx.category.toLowerCase().includes('tienda') || 
+                        tx.category.toLowerCase().includes('fondo tienda') || 
+                        tx.category.toLowerCase().includes('proveedor') ||
+                        tx.concept.toLowerCase().includes('venta pos');
+      if (movementScope === 'casa') matchesScope = !isStoreTx;
+      else if (movementScope === 'tienda') matchesScope = isStoreTx;
+      else matchesScope = false;
+    }
 
-    // Scope filter: Casa movements strictly exclude store transactions; Tienda movements strictly include them.
-    const matchesScope = movementScope === 'casa' ? !isStoreTx : isStoreTx;
-    const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase()) || tx.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          tx.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'todos' || tx.type === typeFilter;
     return matchesScope && matchesSearch && matchesType;
   });
@@ -101,55 +107,79 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       
-      {/* Top Scope Switcher: Casa vs Tienda */}
+      {/* Top Scope Switcher: Casa vs Tienda vs Ahorro */}
       {!limit && (
-        <div style={{ display: 'flex', gap: '8px', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '6px', borderRadius: '16px' }}>
+        <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '6px', borderRadius: '16px' }}>
           <button
             onClick={() => setMovementScope('casa')}
             style={{
               flex: 1,
-              padding: '10px 14px',
+              padding: '8px 10px',
               borderRadius: '12px',
               border: 'none',
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
+              gap: '6px',
               backgroundColor: movementScope === 'casa' ? 'var(--md-sys-color-primary)' : 'transparent',
               color: movementScope === 'casa' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              boxShadow: movementScope === 'casa' ? '0 4px 12px rgba(0, 99, 155, 0.25)' : 'none',
+              boxShadow: movementScope === 'casa' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
               transition: 'all 0.2s ease'
             }}
           >
-            <Home size={18} />
-            <span>Movimientos de Casa</span>
+            <Home size={16} />
+            <span>Casa</span>
           </button>
 
           <button
             onClick={() => setMovementScope('tienda')}
             style={{
               flex: 1,
-              padding: '10px 14px',
+              padding: '8px 10px',
               borderRadius: '12px',
               border: 'none',
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
+              gap: '6px',
               backgroundColor: movementScope === 'tienda' ? 'var(--md-sys-color-primary)' : 'transparent',
               color: movementScope === 'tienda' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              boxShadow: movementScope === 'tienda' ? '0 4px 12px rgba(0, 99, 155, 0.25)' : 'none',
+              boxShadow: movementScope === 'tienda' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
               transition: 'all 0.2s ease'
             }}
           >
-            <Store size={18} />
-            <span>Fondo Tienda / Proveedores</span>
+            <Store size={16} />
+            <span>Fondo Tienda</span>
+          </button>
+
+          <button
+            onClick={() => setMovementScope('ahorro')}
+            style={{
+              flex: 1,
+              padding: '8px 10px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              backgroundColor: movementScope === 'ahorro' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: movementScope === 'ahorro' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              boxShadow: movementScope === 'ahorro' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <PiggyBank size={16} />
+            <span>Ahorro</span>
           </button>
         </div>
       )}
@@ -239,7 +269,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       ) : visibleTransactions.length === 0 ? (
         <div className="md-card" style={{ textAlign: 'center', padding: '24px 16px' }}>
           <p style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.85rem' }}>
-            No hay movimientos registrados.
+            No hay movimientos registrados en esta categoría.
           </p>
         </div>
       ) : (
@@ -249,12 +279,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             const isDeleting = deletingId === tx.id;
             const editable = isTransactionEditable(tx.createdAt);
             const remainingTime = getRemainingEditableTime(tx.createdAt);
-            const isStoreTx = tx.category.toLowerCase().includes('tienda') || 
-                              tx.category.toLowerCase().includes('fondo tienda') || 
-                              tx.category.toLowerCase().includes('proveedor') ||
-                              (tx.notes && tx.notes.toLowerCase().includes('tienda')) || 
-                              tx.concept.toLowerCase().includes('venta pos') || 
-                              tx.concept.toLowerCase().includes('tienda');
+
+            const scopeType = tx.accountSource || (
+              (tx.category.toLowerCase().includes('tienda') || tx.category.toLowerCase().includes('proveedor') || tx.concept.toLowerCase().includes('venta pos')) ? 'tienda' : 'casa'
+            );
+            const scopeLabel = scopeType === 'tienda' ? '🏪 Tienda' : scopeType === 'ahorro' ? '🐖 Ahorro' : '🏠 Casa';
+            const scopeBg = scopeType === 'tienda' ? '#FCE7F3' : scopeType === 'ahorro' ? '#F3E8FF' : '#E0F2FE';
+            const scopeColor = scopeType === 'tienda' ? '#DB2777' : scopeType === 'ahorro' ? '#7E22CE' : '#0284C7';
+            const scopeBorder = scopeType === 'tienda' ? '1px solid #FBCFE8' : scopeType === 'ahorro' ? '1px solid #E9D5FF' : '1px solid #BAE6FD';
 
             return (
               <div
@@ -304,7 +336,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         {tx.concept}
                       </h4>
 
-                      {/* Explicit Casa vs Tienda Badge */}
+                      {/* Explicit Casa vs Tienda vs Ahorro Badge */}
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -313,12 +345,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         borderRadius: '6px',
                         fontSize: '0.65rem',
                         fontWeight: 800,
-                        backgroundColor: isStoreTx ? '#FCE7F3' : '#E0F2FE',
-                        color: isStoreTx ? '#DB2777' : '#0284C7',
-                        border: isStoreTx ? '1px solid #FBCFE8' : '1px solid #BAE6FD',
+                        backgroundColor: scopeBg,
+                        color: scopeColor,
+                        border: scopeBorder,
                         flexShrink: 0
                       }}>
-                        {isStoreTx ? '🏪 Tienda' : '🏠 Casa'}
+                        {scopeLabel}
                       </span>
                     </div>
 
