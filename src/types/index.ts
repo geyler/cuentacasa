@@ -103,6 +103,50 @@ export interface AppUser {
   updatedAt: number;
 }
 
+export interface ShiftInventorySnapshot {
+  productId: string;
+  productName: string;
+  initialStock: number;       // Cantidad al iniciar el turno
+  addedStock: number;         // Reposiciones entregadas durante el turno
+  soldByShiftUser: number;    // Vendido por el dependiente asignado
+  soldByOthers: number;       // Vendido por Admin/Propietario durante el turno
+  expectedFinalStock: number; // Inicial + Añadido - Vendidos
+  realFinalStock?: number;    // Conteo físico ingresado en el cierre
+  difference?: number;        // Discrepancia (+ / -)
+}
+
+export type ShiftStatus = 'apertura_pendiente' | 'activo' | 'cierre_pendiente' | 'cerrado';
+
+export interface StoreShiftRecord {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  sellerUsername: string;
+  openedByUserId: string;     // Admin/Propietario que abrió el turno
+  openedByName: string;
+  openedAt: number;
+  closedAt?: number;
+  closedByUserId?: string;    // Admin/Propietario que participó en el cierre
+  closedByName?: string;
+  
+  // Fondo de Caja y Finanzas
+  initialCashFund: number;    // Dinero para vueltos entregado al inicio
+  totalCashSales: number;     // Ventas registradas en efectivo
+  totalDigitalSales: number;  // Ventas por transferencia/Zelle/QvaPay
+  expectedCashInRegister: number; // Fondo Inicial + Ventas Efectivo
+  realCashInRegister?: number;   // Dinero físico entregado por el dependiente
+  cashDifference?: number;       // Faltante o Sobrante
+
+  // Control de Inventario
+  inventorySnapshots: ShiftInventorySnapshot[];
+  
+  // Estado y Confirmación Bilateral
+  status: ShiftStatus;
+  sellerAcceptedOpening: boolean;
+  sellerAcceptedClosing?: boolean;
+  notes?: string;
+}
+
 export interface RawDatabase {
   version: string;
   lastUpdated: string;
@@ -112,10 +156,12 @@ export interface RawDatabase {
   deletedProductIds?: string[];
   deletedSupplierIds?: string[];
   deletedUserIds?: string[];
+  deletedShiftIds?: string[];
   storeProducts?: StoreProduct[];
   storeSales?: StoreSaleRecord[];
   supplierAccounts?: SupplierAccount[];
   users?: AppUser[];
+  shifts?: StoreShiftRecord[];
   storeFund?: number;      // Fondo propio acumulado en caja de la tienda
   savingsFund?: number;    // Fondo de Ahorro acumulado de Cuenta Casa
   settings: {

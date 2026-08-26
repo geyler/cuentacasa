@@ -21,6 +21,8 @@ import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { TransferModal } from '@/components/TransferModal';
+import { StoreShiftModal } from '@/components/StoreShiftModal';
+import { getActiveShift } from '@/lib/storage';
 
 import {
   FormBarcodeScannerOverlay,
@@ -46,7 +48,8 @@ import {
   DollarSign,
   Scan,
   Wallet,
-  TrendingDown
+  TrendingDown,
+  Clock
 } from 'lucide-react';
 
 interface StoreManagementViewProps {
@@ -86,6 +89,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   // Supplier Add / Payout Modals State
   const [isAddSupplierModalOpen, setIsAddSupplierModalOpen] = useState(false);
   const [payoutSupplier, setPayoutSupplier] = useState<SupplierAccount | null>(null);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
 
   useEffect(() => {
     setProducts(getStoreProducts());
@@ -110,6 +114,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalStoreFund = Math.max(0, (totalAccumulatedSalesRevenue - totalAccumulatedHouseProfits - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
+  const activeShift = getActiveShift();
 
   // Category List
   const existingCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
@@ -257,19 +262,19 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           </div>
         </div>
 
-        {/* Main Action Buttons Grid (Vender / POS & Publicar) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+        {/* Main Action Buttons Grid (Vender / POS, Turnos y Publicar) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
           {onOpenScanner && (
             <button
               onClick={onOpenScanner}
               style={{
                 width: '100%',
-                padding: '14px 16px',
+                padding: '14px 12px',
                 borderRadius: '16px',
                 border: '2px solid var(--md-sys-color-primary)',
                 backgroundColor: 'var(--md-sys-color-surface)',
                 color: 'var(--md-sys-color-primary)',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 fontWeight: 900,
                 cursor: 'pointer',
                 display: 'flex',
@@ -279,22 +284,51 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 boxShadow: '0 2px 8px rgba(0, 99, 155, 0.1)'
               }}
             >
-              <Scan size={22} color="var(--md-sys-color-primary)" />
+              <Scan size={20} color="var(--md-sys-color-primary)" />
               <span>VENDER / POS</span>
             </button>
           )}
+
+          <button
+            onClick={() => setIsShiftModalOpen(true)}
+            style={{
+              width: '100%',
+              padding: '14px 12px',
+              borderRadius: '16px',
+              border: activeShift ? '2px solid #059669' : '2px solid var(--md-sys-color-outline-variant)',
+              backgroundColor: activeShift ? '#ECFDF5' : 'var(--md-sys-color-surface)',
+              color: activeShift ? '#065F46' : 'var(--md-sys-color-on-surface)',
+              fontSize: '0.95rem',
+              fontWeight: 900,
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '2px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={18} color={activeShift ? '#059669' : 'var(--md-sys-color-primary)'} />
+              <span>TURNOS Y CAJA</span>
+            </div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface-variant)' }}>
+              {activeShift ? `🟢 @${activeShift.sellerUsername}` : '🔴 Sin Turno Abierto'}
+            </span>
+          </button>
 
           {!isVendor && (
             <button
               onClick={handleOpenAdd}
               style={{
                 width: '100%',
-                padding: '14px 16px',
+                padding: '14px 12px',
                 borderRadius: '16px',
                 border: 'none',
                 background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #DB2777 100%)',
                 color: '#FFFFFF',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 fontWeight: 900,
                 cursor: 'pointer',
                 display: 'flex',
@@ -304,8 +338,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)'
               }}
             >
-              <Plus size={22} />
-              <span>PUBLICAR PRODUCTO</span>
+              <Plus size={20} />
+              <span>PUBLICAR</span>
             </button>
           )}
         </div>
@@ -677,6 +711,16 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           onClose={() => setIsScanningForFormBarcode(false)}
         />
       )}
+
+      {/* MODAL 6: STORE SHIFT & CASH REGISTER AUDIT */}
+      <StoreShiftModal
+        isOpen={isShiftModalOpen}
+        onClose={() => {
+          setIsShiftModalOpen(false);
+          setProducts(getStoreProducts());
+        }}
+        currency={currency}
+      />
 
     </div>
   );

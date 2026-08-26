@@ -1,4 +1,4 @@
-import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot } from '@/types';
 
 const STORAGE_KEY = 'cuentacasa_raw_db_v5';
 
@@ -725,6 +725,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
   }
 
   saveRawDatabase(db);
+  recordShiftSaleInActiveShift(saleData.items, saleData.totalAmount, 'cash', saleData.sellerId);
   return saleRecord;
 }
 
@@ -1039,4 +1040,207 @@ export function clearUserPin(username?: string): void {
   }
   localStorage.removeItem('cuentacasa_pin');
 }
+
+// ==================== STORE SHIFT & CASH REGISTER FUNCTIONS ====================
+
+export function getStoreShifts(): StoreShiftRecord[] {
+  const db = getRawDatabase();
+  return db.shifts || [];
+}
+
+export function getActiveShift(): StoreShiftRecord | null {
+  const shifts = getStoreShifts();
+  return shifts.find(s => s.status !== 'cerrado') || null;
+}
+
+export function openStoreShift(
+  sellerId: string,
+  initialCashFund: number,
+  notes?: string
+): StoreShiftRecord {
+  const db = getRawDatabase();
+  const shifts = db.shifts || [];
+  const active = shifts.find(s => s.status !== 'cerrado');
+  if (active) {
+    throw new Error(`Ya existe un turno abierto (${active.sellerName} - @${active.sellerUsername}). Ciérralo antes de abrir uno nuevo.`);
+  }
+
+  const currentUser = getLoggedInUser();
+  const users = getAppUsers();
+  const seller = users.find(u => u.id === sellerId);
+  if (!seller) {
+    throw new Error('Vendedor no encontrado.');
+  }
+
+  const products = getStoreProducts();
+  const inventorySnapshots: ShiftInventorySnapshot[] = products.map(p => ({
+    productId: p.id,
+    productName: p.name,
+    initialStock: p.stock || 0,
+    addedStock: 0,
+    soldByShiftUser: 0,
+    soldByOthers: 0,
+    expectedFinalStock: p.stock || 0
+  }));
+
+  const now = Date.now();
+  const newShift: StoreShiftRecord = {
+    id: `shift-${now}`,
+    sellerId: seller.id,
+    sellerName: seller.name,
+    sellerUsername: seller.username,
+    openedByUserId: currentUser?.id || 'admin',
+    openedByName: currentUser?.name || 'Administrador',
+    openedAt: now,
+    initialCashFund: Number(initialCashFund) || 0,
+    totalCashSales: 0,
+    totalDigitalSales: 0,
+    expectedCashInRegister: Number(initialCashFund) || 0,
+    inventorySnapshots,
+    status: (currentUser?.id === seller.id || currentUser?.role === 'propietario') ? 'activo' : 'apertura_pendiente',
+    sellerAcceptedOpening: (currentUser?.id === seller.id || currentUser?.role === 'propietario'),
+    notes: notes?.trim() || ''
+  };
+
+  shifts.unshift(newShift);
+  db.shifts = shifts;
+  saveRawDatabase(db);
+  return newShift;
+}
+
+export function acceptShiftOpening(shiftId: string): StoreShiftRecord {
+  const db = getRawDatabase();
+  const shifts = db.shifts || [];
+  const shift = shifts.find(s => s.id === shiftId);
+  if (!shift) throw new Error('Turno no encontrado.');
+
+  shift.sellerAcceptedOpening = true;
+  shift.status = 'activo';
+  db.shifts = shifts;
+  saveRawDatabase(db);
+  return shift;
+}
+
+export function recordShiftSaleInActiveShift(
+  items: StoreSaleItem[],
+  totalAmount: number,
+  paymentMethod: 'cash' | 'digital' = 'cash',
+  sellerId?: string
+): void {
+  const db = getRawDatabase();
+  const shifts = db.shifts || [];
+  const activeShift = shifts.find(s => s.status === 'activo' || s.status === 'apertura_pendiente');
+  if (!activeShift) return;
+
+  if (paymentMethod === 'cash') {
+    activeShift.totalCashSales += totalAmount;
+  } else {
+    activeShift.totalDigitalSales += totalAmount;
+  }
+
+  activeShift.expectedCashInRegister = activeShift.initialCashFund + activeShift.totalCashSales;
+
+  const currentSaleSellerId = sellerId || getLoggedInUser()?.id;
+  const isShiftUserSale = currentSaleSellerId === activeShift.sellerId;
+
+  const products = getStoreProducts();
+
+  items.forEach(saleItem => {
+    let snap = activeShift.inventorySnapshots.find(s => s.productId === saleItem.productId);
+    if (!snap) {
+      const prodName = products.find(p => p.id === saleItem.productId)?.name || 'Producto';
+      snap = {
+        productId: saleItem.productId,
+        productName: prodName,
+        initialStock: 0,
+        addedStock: 0,
+        soldByShiftUser: 0,
+        soldByOthers: 0,
+        expectedFinalStock: 0
+      };
+      activeShift.inventorySnapshots.push(snap);
+    }
+
+    if (isShiftUserSale) {
+      snap.soldByShiftUser += saleItem.quantity;
+    } else {
+      snap.soldByOthers += saleItem.quantity;
+    }
+
+    snap.expectedFinalStock = snap.initialStock + snap.addedStock - snap.soldByShiftUser - snap.soldByOthers;
+  });
+
+  db.shifts = shifts;
+  saveRawDatabase(db);
+}
+
+export function addStockToActiveShift(productId: string, addedQty: number): void {
+  const db = getRawDatabase();
+  const shifts = db.shifts || [];
+  const activeShift = shifts.find(s => s.status === 'activo' || s.status === 'apertura_pendiente');
+  if (!activeShift) return;
+
+  const products = getStoreProducts();
+  const prod = products.find(p => p.id === productId);
+
+  let snap = activeShift.inventorySnapshots.find(s => s.productId === productId);
+  if (!snap) {
+    snap = {
+      productId: productId,
+      productName: prod ? prod.name : 'Producto',
+      initialStock: 0,
+      addedStock: 0,
+      soldByShiftUser: 0,
+      soldByOthers: 0,
+      expectedFinalStock: 0
+    };
+    activeShift.inventorySnapshots.push(snap);
+  }
+
+  snap.addedStock += addedQty;
+  snap.expectedFinalStock = snap.initialStock + snap.addedStock - snap.soldByShiftUser - snap.soldByOthers;
+
+  db.shifts = shifts;
+  saveRawDatabase(db);
+}
+
+export function closeStoreShift(
+  shiftId: string,
+  realCashInRegister: number,
+  realStockCounts: Record<string, number>,
+  notes?: string
+): StoreShiftRecord {
+  const db = getRawDatabase();
+  const shifts = db.shifts || [];
+  const shift = shifts.find(s => s.id === shiftId);
+  if (!shift) throw new Error('Turno no encontrado.');
+
+  const currentUser = getLoggedInUser();
+
+  shift.closedAt = Date.now();
+  shift.closedByUserId = currentUser?.id || 'admin';
+  shift.closedByName = currentUser?.name || 'Administrador';
+  shift.realCashInRegister = Number(realCashInRegister) || 0;
+  shift.cashDifference = shift.realCashInRegister - shift.expectedCashInRegister;
+
+  shift.inventorySnapshots.forEach(snap => {
+    const physical = realStockCounts[snap.productId];
+    if (physical !== undefined) {
+      snap.realFinalStock = physical;
+      snap.difference = physical - snap.expectedFinalStock;
+    } else {
+      snap.realFinalStock = snap.expectedFinalStock;
+      snap.difference = 0;
+    }
+  });
+
+  shift.status = 'cerrado';
+  shift.sellerAcceptedClosing = true;
+  if (notes) shift.notes = (shift.notes ? `${shift.notes}\n` : '') + `Cierre: ${notes}`;
+
+  db.shifts = shifts;
+  saveRawDatabase(db);
+  return shift;
+}
+
 
