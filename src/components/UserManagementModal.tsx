@@ -169,7 +169,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
         </div>
 
         {/* Botón para Desplegar Formulario de Nuevo Usuario */}
-        {isOwner && !showAddForm && (
+        {(isOwner || currentUser?.role === 'administrador') && !showAddForm && (
           <button
             onClick={() => { resetForm(); setShowAddForm(true); }}
             className="md-btn md-btn-primary"
@@ -388,7 +388,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {isOwner && (
+                  {(isOwner || currentUser?.role === 'administrador') && (
                     <button
                       onClick={() => handleStartEdit(u)}
                       style={{

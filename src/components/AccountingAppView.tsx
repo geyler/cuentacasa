@@ -14,6 +14,7 @@ import {
   updateTransaction, 
   deleteTransaction,
   getSavingsFund,
+  getCalculatedStoreFund,
   getLoggedInUser,
   setLoggedInUser
 } from '@/lib/storage';
@@ -689,7 +690,7 @@ function AccountingAppContent() {
               currency={db.settings.currency} 
               showBalance={showBalance} 
               isLoading={isTabTransitioning}
-              storeFund={db.storeFund || 0}
+              storeFund={getCalculatedStoreFund()}
               savingsFund={db.savingsFund || 0}
               onOpenTransfer={() => setIsTransferModalOpen(true)}
             />

@@ -120,12 +120,24 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   };
 
   const addItemToTicket = (product: StoreProduct) => {
-    playScanBeep();
+    const allProducts = getStoreProducts();
+    const liveProd = allProducts.find(p => p.id === product.id || p.barcode === product.barcode) || product;
+    const availableStock = liveProd.stock || 0;
+
+    let blocked = false;
     setTicketItems(prev => {
       const existingIndex = prev.findIndex(item => item.productId === product.id || item.barcode === product.barcode);
+      const currentQty = existingIndex !== -1 ? prev[existingIndex].quantity : 0;
+
+      if (currentQty + 1 > availableStock) {
+        blocked = true;
+        return prev;
+      }
+
+      playScanBeep();
+
       if (existingIndex !== -1) {
         const updated = [...prev];
-        const currentQty = updated[existingIndex].quantity;
         const newQty = currentQty + 1;
         updated[existingIndex] = {
           ...updated[existingIndex],
@@ -151,14 +163,31 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       ];
     });
 
-    triggerSuccessEffect(`¡Agregado: ${product.name}!`);
+    if (blocked) {
+      showToast({
+        title: 'Stock Insuficiente',
+        message: `No puedes vender más unidades de "${product.name}". Stock disponible: ${availableStock}.`,
+        type: 'error'
+      });
+    } else {
+      triggerSuccessEffect(`¡Agregado: ${product.name}!`);
+    }
   };
 
   const updateItemQuantity = (productId: string, delta: number) => {
-    playScanBeep();
+    const allProducts = getStoreProducts();
+    const liveProd = allProducts.find(p => p.id === productId);
+    const availableStock = liveProd ? liveProd.stock : 9999;
+
+    let blocked = false;
     setTicketItems(prev => prev.map(item => {
       if (item.productId === productId) {
         const newQty = item.quantity + delta;
+        if (delta > 0 && newQty > availableStock) {
+          blocked = true;
+          return item;
+        }
+        playScanBeep();
         return newQty > 0 ? {
           ...item,
           quantity: newQty,
@@ -167,6 +196,14 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }
       return item;
     }).filter(Boolean) as StoreSaleItem[]);
+
+    if (blocked) {
+      showToast({
+        title: 'Límite de Stock Alcanzado',
+        message: `No hay más stock disponible para este producto. Stock actual: ${availableStock}.`,
+        type: 'error'
+      });
+    }
   };
 
   const updateItemUnitPrice = (productId: string, newUnitPrice: number) => {
@@ -497,6 +534,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         <form onSubmit={handleManualFormSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
           <input
             type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
             placeholder="Escribe o escanea el código (Ej: 00968)..."
             value={manualCode}
             onChange={e => setManualCode(e.target.value)}

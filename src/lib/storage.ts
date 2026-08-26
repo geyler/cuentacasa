@@ -824,6 +824,29 @@ export function deleteSupplierAccount(id: string): { success: boolean; error?: s
   return { success: true };
 }
 
+export function getCalculatedStoreFund(): number {
+  const db = getRawDatabase();
+  const salesRecords = db.storeSales || [];
+  const suppliers = db.supplierAccounts || [];
+
+  const totalAccumulatedSalesRevenue = salesRecords.reduce((acc, s) => acc + s.totalAmount, 0);
+  const totalAccumulatedHouseProfits = salesRecords.reduce((acc, s) => acc + (s.netProfit || 0), 0);
+  const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + s.pendingPayout, 0);
+
+  const houseCapitalTransactions = (db.transactions || []).filter(t => 
+    (t.concept + ' ' + (t.notes || '')).toLowerCase().includes('fondo negocio') || 
+    (t.concept + ' ' + (t.notes || '')).toLowerCase().includes('tienda')
+  );
+  const netTransferredToCasa = houseCapitalTransactions
+    .filter(t => t.type === 'ingreso' && t.category === 'Tienda')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const netInjectedFromCasa = houseCapitalTransactions
+    .filter(t => t.type === 'gasto' && t.category === 'Tienda')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  return Math.max(0, (totalAccumulatedSalesRevenue - totalAccumulatedHouseProfits - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
+}
+
 export function getSavingsFund(): number {
   const db = getRawDatabase();
   return db.savingsFund || 0;

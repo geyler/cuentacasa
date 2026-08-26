@@ -97,6 +97,7 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
       {/* Input Element */}
       <input
         ref={ref}
+        autoComplete={props.autoComplete || "off"}
         className={`app-input ${isNumeric ? 'app-input-numeric' : ''} ${className}`}
         onFocus={(e) => {
           if (onFocus) onFocus(e);

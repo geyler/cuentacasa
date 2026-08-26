@@ -156,6 +156,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
           closeStoreShift(activeShift.id, cashReal, stockCounts, closingNotes);
           reloadData();
           setIsClosingMode(false);
+          onClose();
           showToast({ title: '¡Turno Cerrado Con Éxito!', message: 'El arqueo de caja e inventario ha sido guardado e inmutabilizado.', type: 'success' });
         } catch (err: any) {
           showToast({ title: 'Error en cierre', message: err.message, type: 'error' });
