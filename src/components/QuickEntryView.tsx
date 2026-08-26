@@ -283,7 +283,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               </div>
             </div>
 
-            {/* Card 2: Dashboard Contable */}
+            {/* Card 2: Finanzas del Hogar */}
             <div
               onClick={onOpenDashboard}
               style={{
@@ -314,15 +314,15 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               </div>
               <div style={{ overflow: 'hidden' }}>
                 <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                  Dashboard Contable
+                  Finanzas del Hogar
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                  Finanzas Casa
+                  Gastos & Cuentas
                 </span>
               </div>
             </div>
 
-            {/* Card 3: Dashboard Tienda / Inventario */}
+            {/* Card 3: Gestión del Negocio */}
             <div
               onClick={() => onOpenStore && onOpenStore()}
               style={{
@@ -353,10 +353,10 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               </div>
               <div style={{ overflow: 'hidden' }}>
                 <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                  Dashboard Tienda
+                  Gestión del Negocio
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                  Gestión & Inventario
+                  Inventario & POS
                 </span>
               </div>
             </div>

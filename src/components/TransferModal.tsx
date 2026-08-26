@@ -55,9 +55,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   const getAccountLabel = (acc: FundAccountType): string => {
     switch (acc) {
-      case 'casa': return '🏡 Cuenta Casa';
-      case 'tienda': return '🏦 Fondo Tienda';
-      case 'ahorro': return '🐷 Fondo Ahorro';
+      case 'casa': return '🏡 Finanzas del Hogar';
+      case 'tienda': return '🏬 Gestión del Negocio';
+      case 'ahorro': return '🐷 Fondo de Ahorro';
     }
   };
 

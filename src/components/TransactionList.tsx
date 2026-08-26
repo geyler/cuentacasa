@@ -131,7 +131,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             }}
           >
             <Home size={16} />
-            <span>Casa</span>
+            <span>Finanzas Hogar</span>
           </button>
 
           <button
@@ -155,7 +155,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             }}
           >
             <Store size={16} />
-            <span>Fondo Tienda</span>
+            <span>Gestión Negocio</span>
           </button>
 
           <button

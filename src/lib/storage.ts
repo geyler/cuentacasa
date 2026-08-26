@@ -868,8 +868,8 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
   if (toAccount === 'ahorro') db.savingsFund = (db.savingsFund || 0) + amount;
 
   const fundLabels: Record<FundAccountType, string> = {
-    casa: 'Cuenta Casa',
-    tienda: 'Fondo Tienda',
+    casa: 'Finanzas del Hogar',
+    tienda: 'Gestión del Negocio',
     ahorro: 'Fondo de Ahorro'
   };
 

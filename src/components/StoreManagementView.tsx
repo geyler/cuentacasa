@@ -249,7 +249,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Store size={24} color="var(--md-sys-color-primary)" />
-              <span>Samy Store • Gestión & Inventario</span>
+              <span>Samy Store • Gestión del Negocio</span>
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
               Control multi-rol, productos en stock, liquidación a proveedores y POS.
@@ -312,7 +312,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
         {/* Dashboard Accounting Financial Cards (2 Columns Grid) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-          {/* Card 1: Fondo Tienda (Clean Emerald) */}
+          {/* Card 1: Fondo Negocio (Clean Emerald) */}
           <div className="md-card" style={{
             backgroundColor: '#ECFDF5',
             color: '#064E3B',
@@ -323,7 +323,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             justifyContent: 'space-between'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏦 Fondo Tienda</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo Negocio</span>
               <div style={{
                 width: '28px',
                 height: '28px',

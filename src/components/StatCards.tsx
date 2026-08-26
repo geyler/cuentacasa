@@ -127,7 +127,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: '10px'
       }}>
-        {/* Balance Card - Cuenta Casa (Clean Pink, NO Gradient) */}
+        {/* Balance Card - Finanzas del Hogar (Clean Pink, NO Gradient) */}
         <div className="md-card" style={{
           backgroundColor: 'var(--md-sys-color-primary-container)',
           color: 'var(--md-sys-color-on-primary-container)',
@@ -138,7 +138,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
           justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#9D174D' }}>🏡 Saldo Neto Casa</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#9D174D' }}>🏡 Finanzas del Hogar</span>
             <div style={{
               width: '28px',
               height: '28px',
@@ -156,11 +156,11 @@ export const StatCards: React.FC<StatCardsProps> = ({
             {formatCurrency(summary.netBalance, currency, showBalance)}
           </div>
           <div style={{ fontSize: '0.68rem', color: '#BE185D', fontWeight: 700 }}>
-            Presupuesto Cuenta Casa
+            Saldo Contable del Hogar
           </div>
         </div>
 
-        {/* Store Fund Card (Fondo Tienda / Almacén - Clean Emerald) */}
+        {/* Store Fund Card (Gestión del Negocio / Almacén - Clean Emerald) */}
         <div className="md-card" style={{
           backgroundColor: '#ECFDF5',
           color: '#064E3B',
@@ -171,7 +171,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
           justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏦 Fondo Tienda</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏬 Gestión del Negocio</span>
             <div style={{
               width: '28px',
               height: '28px',
@@ -241,7 +241,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-              🐷 Fondo de Ahorro Casa
+              🐷 Fondo de Ahorro Familiar
             </div>
             <div style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', lineHeight: 1.1 }}>
               {formatCurrency(savingsFund, currency, showBalance)}
