@@ -542,15 +542,26 @@ export function deleteStoreProduct(id: string): void {
 
 export function getStoreWhatsappNumber(): string {
   const db = getRawDatabase();
+  const activeUserId = db.settings?.activeWhatsappUserId;
+  if (activeUserId && Array.isArray(db.users)) {
+    const user = db.users.find(u => u.id === activeUserId);
+    if (user && user.whatsappNumber) return user.whatsappNumber;
+  }
   return db.settings?.storeWhatsappNumber || '';
 }
 
-export function saveStoreWhatsappNumber(phone: string): void {
+export function getActiveWhatsappUserId(): string | undefined {
+  const db = getRawDatabase();
+  return db.settings?.activeWhatsappUserId;
+}
+
+export function saveStoreWhatsappNumber(phone: string, activeUserId?: string): void {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'CuentaCasa', autoSync: false };
+    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: false };
   }
   db.settings.storeWhatsappNumber = phone.trim();
+  db.settings.activeWhatsappUserId = activeUserId;
   saveRawDatabase(db);
 }
 

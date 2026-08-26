@@ -250,13 +250,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         {/* CUERPO DEL DETALLE CON SCROLL INTERNO INDEPENDIENTE */}
         <div style={{
-          flex: 1,
+          flex: '1 1 auto',
+          minHeight: 0,
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
           paddingRight: '2px',
-          marginBottom: '16px'
+          marginBottom: '12px'
         }}>
           
           {/* MARCO DE IMAGEN 100% CUADRADA PERFECCIONADO */}
@@ -552,12 +553,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         {/* BARRA DE ACCIÓN FIJA EN LA PARTE INFERIOR (STICKY BOTTOM ACTION BAR) */}
         <div style={{
+          position: 'sticky',
+          bottom: 0,
           borderTop: '1px solid var(--md-sys-color-outline-variant)',
           paddingTop: '12px',
+          paddingBottom: '4px',
           display: 'flex',
           flexDirection: 'column',
           gap: '10px',
-          backgroundColor: 'var(--md-sys-color-surface)'
+          backgroundColor: 'var(--md-sys-color-surface)',
+          zIndex: 50,
+          boxShadow: '0 -6px 20px rgba(0,0,0,0.08)'
         }}>
           {isAdmin ? (
             /* Vista Administrador */

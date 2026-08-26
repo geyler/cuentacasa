@@ -14,7 +14,9 @@ import {
   ShieldCheck, 
   User, 
   KeyRound,
-  Check
+  Check,
+  Crown,
+  MessageCircle
 } from 'lucide-react';
 
 interface UserManagementModalProps {
@@ -34,6 +36,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [role, setRole] = useState<UserRole>('administrador');
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
@@ -44,6 +47,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
       setName('');
       setUsername('');
       setPassword('');
+      setWhatsappNumber('');
       setRole('administrador');
     }
   }, [isOpen]);
@@ -61,7 +65,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
       name: name.trim(),
       username: username.trim().toLowerCase(),
       password: password.trim(),
-      role
+      role,
+      whatsappNumber: whatsappNumber.trim()
     });
 
     setUsersList(getAppUsers());
@@ -69,7 +74,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
     setName('');
     setUsername('');
     setPassword('');
-    showToast({ title: '¡Usuario Creado!', message: `El usuario @${username} ha sido añadido con éxito.`, type: 'success' });
+    setWhatsappNumber('');
+    showToast({ title: '¡Usuario Creado!', message: `El usuario @${username} (${role}) ha sido añadido con éxito.`, type: 'success' });
   };
 
   const handleDeleteUser = (userId: string, targetUsername: string) => {
@@ -209,43 +215,87 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
               placeholder="••••••••"
             />
 
+            <AppInput
+              label="Número de WhatsApp (Opcional para recibir pedidos)"
+              fieldName="whatsappNumber"
+              type="tel"
+              focusedField={focusedField}
+              value={whatsappNumber}
+              onChange={e => setWhatsappNumber(e.target.value)}
+              onFocus={() => setFocusedField('whatsappNumber')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="Ej. 5351234567"
+            />
+
             <div>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
                 Rol y Permisos
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setRole('propietario')}
+                  style={{
+                    padding: '10px 6px',
+                    borderRadius: '10px',
+                    border: role === 'propietario' ? '2px solid #BE185D' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: role === 'propietario' ? '#FCE7F3' : 'var(--md-sys-color-surface)',
+                    color: role === 'propietario' ? '#BE185D' : 'var(--md-sys-color-on-surface)',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Crown size={15} />
+                  <span>Propietario</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setRole('administrador')}
                   style={{
-                    padding: '10px',
+                    padding: '10px 6px',
                     borderRadius: '10px',
                     border: role === 'administrador' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: role === 'administrador' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
                     color: role === 'administrador' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                     fontWeight: 800,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer'
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  Administrador
+                  <ShieldCheck size={15} />
+                  <span>Admin</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setRole('vendedor')}
                   style={{
-                    padding: '10px',
+                    padding: '10px 6px',
                     borderRadius: '10px',
                     border: role === 'vendedor' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: role === 'vendedor' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
                     color: role === 'vendedor' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                     fontWeight: 800,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer'
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  Vendedor
+                  <User size={15} />
+                  <span>Vendedor</span>
                 </button>
               </div>
             </div>
@@ -261,14 +311,16 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {usersList.map(u => {
             const isSelf = currentUser?.id === u.id;
+            const isOwnerRole = u.role === 'propietario';
+
             return (
               <div
                 key={u.id}
                 style={{
                   padding: '12px 14px',
                   borderRadius: '14px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface)',
+                  border: isOwnerRole ? '1.5px solid #FBCFE8' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: isOwnerRole ? '#FFF5F8' : 'var(--md-sys-color-surface)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -277,18 +329,18 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{
-                    width: '36px',
-                    height: '36px',
+                    width: '38px',
+                    height: '38px',
                     borderRadius: '50%',
-                    backgroundColor: u.role === 'propietario' ? '#FCE7F3' : '#F1F5F9',
-                    color: u.role === 'propietario' ? '#BE185D' : '#334155',
+                    backgroundColor: isOwnerRole ? '#BE185D' : '#334155',
+                    color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 900,
-                    fontSize: '0.85rem'
+                    fontSize: '0.88rem'
                   }}>
-                    {u.name.charAt(0).toUpperCase()}
+                    {isOwnerRole ? <Crown size={18} /> : u.name.charAt(0).toUpperCase()}
                   </div>
 
                   <div>
@@ -300,8 +352,18 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                      @{u.username} • <span style={{ textTransform: 'capitalize' }}>{u.role}</span>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span>@{u.username}</span>
+                      <span>•</span>
+                      <span style={{ textTransform: 'capitalize', fontWeight: 800, color: isOwnerRole ? '#BE185D' : 'inherit' }}>
+                        {u.role}
+                      </span>
+                      {u.whatsappNumber && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#DCFCE7', color: '#15803D', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+                          <MessageCircle size={10} />
+                          {u.whatsappNumber}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

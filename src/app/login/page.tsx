@@ -27,10 +27,13 @@ function PureLoginPage() {
       if (localPin && localPin.length === 4 && lastUnlock !== today) {
         setMode('pin');
       } else {
-        // Already fully unlocked, go directly to app
+        // Already fully logged in, redirect directly to app dashboard
         router.replace('/app');
         return;
       }
+    } else if (hasMasterAuth && forceLogin) {
+      // User explicitly forced login screen
+      setMode('master');
     } else {
       setMode('master');
     }

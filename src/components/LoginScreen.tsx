@@ -525,36 +525,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           </form>
         )}
 
-        {/* Reset Total de Caché Button */}
+        {/* Volver al Catálogo / Tienda Button en el pie del login */}
         <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #FBCFE8' }}>
-          <button
-            type="button"
-            onClick={async () => {
-              if (window.confirm('⚡ ¿Ejecutar RESET TOTAL DE CACHÉ?\n\nSe borrarán absolutamente todos los datos locales, IndexedDB, Service Workers, cachés y cookies. La aplicación quedará limpia como recién instalada.')) {
-                await performTotalCacheReset();
-              }
-            }}
+          <a
+            href="/"
             style={{
               width: '100%',
-              padding: '10px 14px',
-              borderRadius: '14px',
-              border: '1.5px solid #F43F5E',
-              backgroundColor: '#FFF1F2',
-              color: '#BE123C',
-              fontSize: '0.82rem',
+              padding: '12px 16px',
+              borderRadius: '9999px',
+              border: '1.5px solid #FBCFE8',
+              backgroundColor: '#FDF2F8',
+              color: '#DB2777',
+              fontSize: '0.88rem',
               fontWeight: 800,
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '8px',
+              textDecoration: 'none',
               transition: 'all 0.2s ease',
-              boxShadow: '0 2px 8px rgba(244, 63, 94, 0.12)'
+              boxShadow: '0 2px 8px rgba(236, 72, 153, 0.08)'
             }}
           >
-            <RotateCcw size={15} />
-            <span>Reset Total de Caché (Instalación Limpia)</span>
-          </button>
+            <ArrowLeft size={16} />
+            <span>Volver al Catálogo / Tienda</span>
+          </a>
         </div>
 
       </div>
