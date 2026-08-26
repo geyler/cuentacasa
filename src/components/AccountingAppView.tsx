@@ -34,6 +34,7 @@ import { SettingsModal } from '@/components/SettingsModal';
 import { RawDbModal } from '@/components/RawDbModal';
 import { LoginScreen } from '@/components/LoginScreen';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
+import { UserProfileModal } from '@/components/UserProfileModal';
 import { ActionFeedbackProvider, useActionFeedback } from '@/components/ActionFeedbackProvider';
 
 import { Plus, Loader2, Home, Scan, Receipt, Menu, FileText, Store, LayoutDashboard } from 'lucide-react';
@@ -51,6 +52,7 @@ function AccountingAppContent() {
   const [modalTxType, setModalTxType] = useState<TransactionType>('gasto');
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isRawDbModalOpen, setIsRawDbModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -636,6 +638,7 @@ function AccountingAppContent() {
         showBalance={showBalance}
         toggleShowBalance={toggleShowBalance}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenScanner={() => setIsScannerOpen(true)}
         isSyncing={isSyncing}
         isMenuOpen={isNavMenuOpen}
@@ -1025,6 +1028,14 @@ function AccountingAppContent() {
         isOpen={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
         onSuccess={loadDatabase}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onLogout={handleLogout}
+        currency={db.settings.currency}
       />
 
     </div>

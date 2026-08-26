@@ -15,7 +15,9 @@ import {
   Scan,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  User,
+  Crown
 } from 'lucide-react';
 
 import { getLoggedInUser } from '@/lib/storage';
@@ -26,6 +28,7 @@ interface HeaderProps {
   showBalance: boolean;
   toggleShowBalance: () => void;
   onOpenSettings: () => void;
+  onOpenProfile?: () => void;
   onOpenScanner?: () => void;
   isSyncing?: boolean;
   isMenuOpen?: boolean;
@@ -38,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   showBalance,
   toggleShowBalance,
   onOpenSettings,
+  onOpenProfile,
   onOpenScanner,
   isSyncing = false,
   isMenuOpen: externalMenuOpen,
@@ -266,6 +270,31 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {isSyncing ? <Loader2 size={19} className="animate-spin" /> : <Settings size={19} />}
           </button>
+
+          {/* User Profile Avatar Trigger Button */}
+          {onOpenProfile && (
+            <button
+              onClick={onOpenProfile}
+              title={`Perfil: ${currentUser?.name || 'Usuario'}`}
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                border: currentUser?.role === 'propietario' ? '1.5px solid #EC4899' : '1.5px solid var(--md-sys-color-primary)',
+                backgroundColor: currentUser?.role === 'propietario' ? '#FCE7F3' : 'var(--md-sys-color-primary-container)',
+                color: currentUser?.role === 'propietario' ? '#BE185D' : 'var(--md-sys-color-on-primary-container)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '0.8rem',
+                flexShrink: 0
+              }}
+            >
+              {currentUser?.role === 'propietario' ? <Crown size={17} /> : (currentUser?.name?.charAt(0).toUpperCase() || <User size={17} />)}
+            </button>
+          )}
 
         </div>
       </div>

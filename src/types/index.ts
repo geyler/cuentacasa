@@ -67,6 +67,8 @@ export interface StoreSaleRecord {
   totalAmount: number;     // Total cobrado al cliente
   totalCost: number;       // Total costo de adquisición
   netProfit: number;       // Ganancia neta (que va a CuentaCasa)
+  sellerId?: string;
+  sellerUsername?: string;
 }
 
 export type ReportPeriod = 'hoy' | '7dias' | '15dias' | '28dias' | '90dias' | 'personalizado';

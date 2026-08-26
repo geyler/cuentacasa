@@ -10,6 +10,7 @@ import {
   Users, 
   UserPlus, 
   Trash2, 
+  Edit3,
   X, 
   ShieldCheck, 
   User, 
@@ -33,6 +34,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
 
   const [usersList, setUsersList] = useState<AppUser[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -40,21 +43,36 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
   const [role, setRole] = useState<UserRole>('administrador');
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
+  const resetForm = () => {
+    setShowAddForm(false);
+    setEditingUserId(null);
+    setName('');
+    setUsername('');
+    setPassword('');
+    setWhatsappNumber('');
+    setRole('administrador');
+  };
+
   useEffect(() => {
     if (isOpen) {
       setUsersList(getAppUsers());
-      setShowAddForm(false);
-      setName('');
-      setUsername('');
-      setPassword('');
-      setWhatsappNumber('');
-      setRole('administrador');
+      resetForm();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleStartEdit = (u: AppUser) => {
+    setEditingUserId(u.id);
+    setName(u.name);
+    setUsername(u.username);
+    setPassword(u.password);
+    setWhatsappNumber(u.whatsappNumber || '');
+    setRole(u.role);
+    setShowAddForm(true);
+  };
+
+  const handleSaveUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !username.trim() || !password.trim()) {
       showToast({ title: 'Campos Incompletos', message: 'Completa todos los datos requeridos.', type: 'error' });
@@ -62,6 +80,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
     }
 
     saveAppUser({
+      id: editingUserId || undefined,
       name: name.trim(),
       username: username.trim().toLowerCase(),
       password: password.trim(),
@@ -70,12 +89,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
     });
 
     setUsersList(getAppUsers());
-    setShowAddForm(false);
-    setName('');
-    setUsername('');
-    setPassword('');
-    setWhatsappNumber('');
-    showToast({ title: '¡Usuario Creado!', message: `El usuario @${username} (${role}) ha sido añadido con éxito.`, type: 'success' });
+    resetForm();
+    showToast({ 
+      title: editingUserId ? '¡Usuario Actualizado!' : '¡Usuario Creado!', 
+      message: `El usuario @${username} (${role}) ha sido ${editingUserId ? 'actualizado' : 'creado'} con éxito.`, 
+      type: 'success' 
+    });
   };
 
   const handleDeleteUser = (userId: string, targetUsername: string) => {
@@ -152,7 +171,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
         {/* Botón para Desplegar Formulario de Nuevo Usuario */}
         {isOwner && !showAddForm && (
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => { resetForm(); setShowAddForm(true); }}
             className="md-btn md-btn-primary"
             style={{ width: '100%', padding: '12px', fontSize: '0.9rem', fontWeight: 800, gap: '8px' }}
           >
@@ -161,9 +180,9 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
           </button>
         )}
 
-        {/* Formulario de Creación de Usuario */}
+        {/* Formulario de Creación / Edición de Usuario */}
         {showAddForm && (
-          <form onSubmit={handleCreateUser} style={{
+          <form onSubmit={handleSaveUser} style={{
             backgroundColor: 'var(--md-sys-color-surface)',
             padding: '16px',
             borderRadius: '16px',
@@ -174,9 +193,9 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h4 style={{ fontSize: '0.95rem', fontWeight: 900, margin: 0, color: 'var(--md-sys-color-primary)' }}>
-                Crear Nuevo Usuario
+                {editingUserId ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
               </h4>
-              <button type="button" onClick={() => setShowAddForm(false)} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+              <button type="button" onClick={resetForm} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
                 Cancelar
               </button>
             </div>
@@ -216,7 +235,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
             />
 
             <AppInput
-              label="Número de WhatsApp (Opcional para recibir pedidos)"
+              label="Número de WhatsApp (Editar / Recibir Pedidos)"
               fieldName="whatsappNumber"
               type="tel"
               focusedField={focusedField}
@@ -302,7 +321,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
 
             <button type="submit" className="md-btn md-btn-primary" style={{ width: '100%', padding: '12px', fontSize: '0.9rem', marginTop: '6px' }}>
               <Check size={16} />
-              <span>Guardar Usuario</span>
+              <span>{editingUserId ? 'Guardar Cambios' : 'Guardar Usuario'}</span>
             </button>
           </form>
         )}
@@ -368,21 +387,39 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                   </div>
                 </div>
 
-                {isOwner && u.role !== 'propietario' && (
-                  <button
-                    onClick={() => handleDeleteUser(u.id, u.username)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--md-sys-color-expense)',
-                      cursor: 'pointer',
-                      padding: '6px'
-                    }}
-                    title="Eliminar usuario"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {isOwner && (
+                    <button
+                      onClick={() => handleStartEdit(u)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--md-sys-color-primary)',
+                        cursor: 'pointer',
+                        padding: '6px'
+                      }}
+                      title="Editar usuario"
+                    >
+                      <Edit3 size={18} />
+                    </button>
+                  )}
+
+                  {isOwner && u.role !== 'propietario' && (
+                    <button
+                      onClick={() => handleDeleteUser(u.id, u.username)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--md-sys-color-expense)',
+                        cursor: 'pointer',
+                        padding: '6px'
+                      }}
+                      title="Eliminar usuario"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
