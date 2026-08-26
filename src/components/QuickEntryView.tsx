@@ -213,7 +213,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             }}
           >
             <Scan size={24} color="var(--md-sys-color-primary)" />
-            <span>VENDER / PUNTO DE VENTA (POS)</span>
+            <span>ESCANEAR Y VENDER</span>
           </button>
 
         </div>

@@ -518,6 +518,9 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
     updatedAt: Date.now()
   };
 
+  const oldStock = existingIndex !== -1 ? (db.storeProducts[existingIndex].stock || 0) : 0;
+  const newStock = product.stock || 0;
+
   if (existingIndex !== -1) {
     db.storeProducts[existingIndex] = newProduct;
   } else {
@@ -525,6 +528,13 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
   }
 
   saveRawDatabase(db);
+
+  // Automatically update active shift snapshot if stock was increased or added
+  const addedQty = existingIndex !== -1 ? (newStock - oldStock) : newStock;
+  if (addedQty > 0) {
+    addStockToActiveShift(newProduct.id, addedQty);
+  }
+
   return newProduct;
 }
 

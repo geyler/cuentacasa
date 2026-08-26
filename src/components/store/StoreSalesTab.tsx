@@ -24,7 +24,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
 
       {salesRecords.length === 0 ? (
         <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', padding: '20px' }}>
-          Aún no hay ventas registradas. Escanea productos en el POS para realizar tu primera venta.
+          Aún no hay ventas registradas. Escanea productos para realizar tu primera venta.
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -141,7 +141,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
             }}>
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-income)', textTransform: 'uppercase' }}>
-                  Total Cobrado en POS
+                  Total Cobrado en Caja
                 </span>
                 <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
                   {formatCurrency(selectedSale.totalAmount, currency, true)}

@@ -288,7 +288,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               }}
             >
               <Scan size={20} color="var(--md-sys-color-primary)" />
-              <span>VENDER / POS</span>
+              <span>ESCANEAR Y VENDER</span>
             </button>
           )}
 
