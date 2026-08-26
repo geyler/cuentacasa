@@ -96,6 +96,7 @@ export interface AppUser {
   password: string;        // Contraseña e.g. "Del1Al9#"
   name: string;            // Nombre a mostrar e.g. "Geyler"
   role: UserRole;          // 'propietario' | 'administrador' | 'vendedor'
+  whatsappNumber?: string; // Número de WhatsApp propio del usuario (ej: 5351234567)
   createdAt: number;
   updatedAt: number;
 }
@@ -107,6 +108,8 @@ export interface RawDatabase {
   transactions: Transaction[];
   deletedIds?: string[];
   deletedProductIds?: string[];
+  deletedSupplierIds?: string[];
+  deletedUserIds?: string[];
   storeProducts?: StoreProduct[];
   storeSales?: StoreSaleRecord[];
   supplierAccounts?: SupplierAccount[];
@@ -121,6 +124,8 @@ export interface RawDatabase {
     showBalance?: boolean;
     masterPassword?: string;
     storeWhatsappNumber?: string; // Número de WhatsApp para recibir pedidos del carrito online
+    activeWhatsappUserId?: string; // ID del usuario cuyo WhatsApp está seleccionado activamente para recibir carritos
   };
 }
+
 

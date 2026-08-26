@@ -18,6 +18,7 @@ import {
   Lock
 } from 'lucide-react';
 import { STORE_SEO_CONFIG, getProductSeoMeta } from '@/lib/seoHelper';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface ProductDetailModalProps {
   product?: StoreProduct | null;
@@ -44,6 +45,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onDeleteProduct,
   isAdmin = false
 }) => {
+  useLockBodyScroll(isOpen);
+
   const currentProduct = product || initialProduct || null;
   const [activeProduct, setActiveProduct] = useState<StoreProduct | null>(currentProduct);
   const [imageError, setImageError] = useState(false);

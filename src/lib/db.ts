@@ -108,6 +108,33 @@ export async function ensureTableExists() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `;
 
+  const createDeletedSuppliersQuery = `
+    CREATE TABLE IF NOT EXISTS deleted_supplier_accounts (
+      id VARCHAR(64) PRIMARY KEY,
+      deleted_at BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
+  const createUsersQuery = `
+    CREATE TABLE IF NOT EXISTS app_users (
+      id VARCHAR(64) PRIMARY KEY,
+      username VARCHAR(100) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      role VARCHAR(50) NOT NULL,
+      whatsapp_number VARCHAR(50) NULL,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
+  const createDeletedUsersQuery = `
+    CREATE TABLE IF NOT EXISTS deleted_app_users (
+      id VARCHAR(64) PRIMARY KEY,
+      deleted_at BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `;
+
   try {
     await pool.query(createTransactionsQuery);
     await pool.query(createDeletedQuery);
@@ -115,6 +142,9 @@ export async function ensureTableExists() {
     await pool.query(createDeletedProductsQuery);
     await pool.query(createSalesQuery);
     await pool.query(createSuppliersQuery);
+    await pool.query(createDeletedSuppliersQuery);
+    await pool.query(createUsersQuery);
+    await pool.query(createDeletedUsersQuery);
     await pool.query(createAppStateQuery);
     tableEnsured = true;
   } catch (error) {

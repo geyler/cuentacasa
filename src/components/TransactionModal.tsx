@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Transaction, TransactionType } from '@/types';
 import { X, CheckCircle2, Check, Keyboard, ArrowRight, Loader2 } from 'lucide-react';
 import { AppInput } from '@/components/common/AppInput';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -20,6 +21,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   initialType = 'gasto',
   editingTransaction
 }) => {
+  useLockBodyScroll(isOpen);
+
   const [type, setType] = useState<TransactionType>(initialType);
   const [concept, setConcept] = useState('');
   const [amount, setAmount] = useState<string>('');

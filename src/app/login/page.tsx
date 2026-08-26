@@ -20,7 +20,10 @@ function PureLoginPage() {
     const lastUnlock = localStorage.getItem('cuentacasa_last_pin_unlock');
     const today = new Date().toISOString().split('T')[0];
 
-    if (hasMasterAuth) {
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const forceLogin = params?.get('force') === 'true' || params?.get('reset') !== null;
+
+    if (hasMasterAuth && !forceLogin) {
       if (localPin && localPin.length === 4 && lastUnlock !== today) {
         setMode('pin');
       } else {

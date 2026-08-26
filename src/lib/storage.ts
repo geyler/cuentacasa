@@ -208,6 +208,10 @@ export function deleteAppUser(userId: string): { success: boolean; message: stri
   }
 
   db.users = users.filter(u => u.id !== userId);
+  if (!db.deletedUserIds) db.deletedUserIds = [];
+  if (!db.deletedUserIds.includes(userId)) {
+    db.deletedUserIds.push(userId);
+  }
   saveRawDatabase(db);
   return { success: true, message: 'Usuario eliminado exitosamente.' };
 }
@@ -272,7 +276,10 @@ export function getRawDatabase(): RawDatabase {
       users: (Array.isArray(parsed.users) && parsed.users.length > 0) ? parsed.users : INITIAL_USERS,
       storeFund: typeof parsed.storeFund === 'number' ? parsed.storeFund : 0,
       savingsFund: typeof parsed.savingsFund === 'number' ? parsed.savingsFund : 0,
-      deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : []
+      deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : [],
+      deletedProductIds: Array.isArray(parsed.deletedProductIds) ? parsed.deletedProductIds : [],
+      deletedSupplierIds: Array.isArray(parsed.deletedSupplierIds) ? parsed.deletedSupplierIds : [],
+      deletedUserIds: Array.isArray(parsed.deletedUserIds) ? parsed.deletedUserIds : []
     };
   } catch (err) {
     console.error('Error parsing raw DB from LocalStorage:', err);
@@ -287,9 +294,11 @@ export function saveRawDatabase(db: RawDatabase): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db, null, 2));
 }
 
-// Clear all records in DB and reset to zero
+// Clear all records in DB and reset to zero (Mantiene Usuarios para evitar deslogueos indeseados)
 export function clearAllDatabaseRecords(): void {
   if (typeof window === 'undefined') return;
+  const currentUsers = getAppUsers();
+
   try {
     localStorage.clear();
     sessionStorage.clear();
@@ -317,13 +326,80 @@ export function clearAllDatabaseRecords(): void {
     storeProducts: [],
     storeSales: [],
     supplierAccounts: [],
+    users: currentUsers.length > 0 ? currentUsers : INITIAL_USERS,
     storeFund: 0,
     savingsFund: 0,
     deletedIds: [],
     deletedProductIds: [],
+    deletedSupplierIds: [],
+    deletedUserIds: [],
     lastSync: new Date().toISOString()
   };
   saveRawDatabase(resetDb);
+}
+
+// Perform total cache reset, clearing all app storage, IndexedDB, SW caches, cookies, and forcing a clean reload
+export async function performTotalCacheReset(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch (e) {
+    console.warn('Error clearing localStorage/sessionStorage:', e);
+  }
+
+  if ('indexedDB' in window && window.indexedDB && window.indexedDB.databases) {
+    try {
+      const dbs = await window.indexedDB.databases();
+      for (const db of dbs) {
+        if (db.name) {
+          window.indexedDB.deleteDatabase(db.name);
+        }
+      }
+    } catch (e) {
+      console.warn('Error clearing IndexedDB:', e);
+    }
+  }
+
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+      }
+    } catch (e) {
+      console.warn('Error unregistering service workers:', e);
+    }
+  }
+
+  if ('caches' in window) {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(key => caches.delete(key)));
+    } catch (e) {
+      console.warn('Error clearing CacheStorage:', e);
+    }
+  }
+
+  try {
+    if (document.cookie) {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+        document.cookie = name.trim() + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+        document.cookie = name.trim() + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
+      }
+    }
+  } catch (e) {
+    console.warn('Error clearing cookies:', e);
+  }
+
+  // Force clean reload to login screen with cache-busting timestamp
+  const targetUrl = window.location.origin + '/login?reset=' + Date.now();
+  window.location.href = targetUrl;
 }
 
 // Get raw JSON string directly for viewing/editing
@@ -428,9 +504,15 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
     existingIndex = db.storeProducts.findIndex(p => p.barcode === cleanBarcode || p.barcode === rawBarcode);
   }
 
+  // Rating & Votes Logic: Enforce 3.8-5.0 score and 1-17 vote count for new products
+  const initialRatingScore = product.ratingScore || Number((3.8 + Math.random() * 1.2).toFixed(1));
+  const initialRatingCount = product.ratingCount || Math.floor(1 + Math.random() * 17);
+
   const newProduct: StoreProduct = {
     ...product,
     barcode: cleanBarcode,
+    ratingScore: existingIndex !== -1 ? (product.ratingScore || db.storeProducts[existingIndex].ratingScore || initialRatingScore) : initialRatingScore,
+    ratingCount: existingIndex !== -1 ? (product.ratingCount || db.storeProducts[existingIndex].ratingCount || initialRatingCount) : initialRatingCount,
     id: existingIndex !== -1 ? db.storeProducts[existingIndex].id : (product.id || `sp-${Date.now()}`),
     createdAt: existingIndex !== -1 ? db.storeProducts[existingIndex].createdAt : Date.now(),
     updatedAt: Date.now()
@@ -705,6 +787,11 @@ export function deleteSupplierAccount(id: string): { success: boolean; error?: s
 
   // Remove from supplierAccounts array
   db.supplierAccounts = (db.supplierAccounts || []).filter(s => s.id !== id);
+
+  if (!db.deletedSupplierIds) db.deletedSupplierIds = [];
+  if (!db.deletedSupplierIds.includes(id)) {
+    db.deletedSupplierIds.push(id);
+  }
 
   // Unlink supplier from products so they don't auto-recreate on new sales
   if (db.storeProducts) {

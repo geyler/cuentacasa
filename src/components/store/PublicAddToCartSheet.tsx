@@ -4,6 +4,7 @@ import React from 'react';
 import { StoreProduct } from '@/types';
 import { formatPhotoUrl } from '@/lib/storage';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2 } from 'lucide-react';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface PublicAddToCartSheetProps {
   productToAddToCart: StoreProduct | null;
@@ -35,6 +36,8 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
   totalCartCount,
   totalCartPrice
 }) => {
+  useLockBodyScroll(!!productToAddToCart || !!addedSuccessModal?.show);
+
   return (
     <>
       {/* STEPPER QUANTITY SELECTOR MODAL */}

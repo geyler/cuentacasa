@@ -1002,9 +1002,35 @@ export const PublicStoreLanding: React.FC = () => {
             </a>
           </div>
 
-          <span style={{ fontSize: '0.75rem', color: '#9D174D', marginTop: '8px', opacity: 0.8 }}>
+          {/* Enlace solitario en medio antes del copyright para acceder al login */}
+          <div style={{ margin: '12px 0 6px 0', width: '100%', textAlign: 'center' }}>
+            <a
+              href="/login?force=true"
+              style={{
+                color: '#BE185D',
+                textDecoration: 'none',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 18px',
+                borderRadius: '9999px',
+                backgroundColor: 'rgba(236, 72, 153, 0.08)',
+                border: '1px solid #FBCFE8',
+                boxShadow: '0 2px 8px rgba(236, 72, 153, 0.06)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Lock size={14} />
+              <span>Acceder</span>
+            </a>
+          </div>
+
+          <span style={{ fontSize: '0.75rem', color: '#9D174D', marginTop: '4px', opacity: 0.8 }}>
             © {new Date().getFullYear()} Samy Store. Todos los derechos reservados.
           </span>
+
         </div>
       </footer>
 

@@ -12,7 +12,9 @@ export function getPendingSyncCount(): number {
   const pendingTxs = db.transactions.filter(t => !t.synced).length;
   const pendingDeletes = (db.deletedIds || []).length;
   const pendingProductDeletes = (db.deletedProductIds || []).length;
-  return pendingTxs + pendingDeletes + pendingProductDeletes;
+  const pendingSupplierDeletes = (db.deletedSupplierIds || []).length;
+  const pendingUserDeletes = (db.deletedUserIds || []).length;
+  return pendingTxs + pendingDeletes + pendingProductDeletes + pendingSupplierDeletes + pendingUserDeletes;
 }
 
 export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ success: boolean; syncedCount: number; productCount?: number; message: string }> {
@@ -58,6 +60,9 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         deletedProductIds: db.deletedProductIds || [],
         storeSales: db.storeSales || [],
         supplierAccounts: db.supplierAccounts || [],
+        deletedSupplierIds: db.deletedSupplierIds || [],
+        users: db.users || [],
+        deletedUserIds: db.deletedUserIds || [],
         storeFund: db.storeFund !== undefined ? db.storeFund : 0,
         savingsFund: db.savingsFund !== undefined ? db.savingsFund : 0,
         settings: db.settings || {}
@@ -90,12 +95,17 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         ? data.supplierAccounts
         : (db.supplierAccounts || []);
 
+      const mergedUsers = Array.isArray(data.users) && data.users.length > 0
+        ? data.users
+        : (db.users || []);
+
       const updatedDb: RawDatabase = {
         ...db,
         transactions: mergedTransactions,
         storeProducts: mergedProducts,
         storeSales: mergedSales,
         supplierAccounts: mergedSuppliers,
+        users: mergedUsers,
         storeFund: data.storeFund !== undefined ? data.storeFund : (db.storeFund || 0),
         savingsFund: data.savingsFund !== undefined ? data.savingsFund : (db.savingsFund || 0),
         settings: {
@@ -104,6 +114,8 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         },
         deletedIds: [],
         deletedProductIds: [],
+        deletedSupplierIds: [],
+        deletedUserIds: [],
         lastSync: new Date().toISOString()
       };
 

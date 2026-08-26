@@ -36,10 +36,12 @@ import {
   getUserPin,
   setUserPin,
   clearUserPin,
-  formatCubanPhone
+  formatCubanPhone,
+  performTotalCacheReset
 } from '@/lib/storage';
 import { AppUser } from '@/types';
 import { UserManagementModal } from '@/components/UserManagementModal';
+import { getPendingSyncCount, syncDatabaseWithCloud } from '@/lib/sync';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -58,6 +60,8 @@ interface SettingsModalProps {
   canInstallPwa?: boolean;
 }
 
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
@@ -73,7 +77,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onInstallPwa,
   canInstallPwa
 }) => {
+  useLockBodyScroll(isOpen);
   const { showToast, confirmAction } = useActionFeedback();
+
   const currentUser = getLoggedInUser();
   const isOwner = currentUser?.role === 'propietario';
 
@@ -186,6 +192,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     setMasterPassword(masterPasswordInput.trim());
+
+    // Sync any pending changes before wiping local cache if online
+    const pendingCount = getPendingSyncCount();
+    if (pendingCount > 0 && typeof window !== 'undefined' && navigator.onLine) {
+      showToast({
+        title: 'Sincronizando Cambios Pendientes...',
+        message: `Guardando ${pendingCount} operaciones en la nube antes del reinicio...`,
+        type: 'info'
+      });
+      await syncDatabaseWithCloud(true);
+    }
+
     clearAllDatabaseRecords();
 
     try {
@@ -639,6 +657,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               )}
             </div>
 
+            {/* Reset Total de Caché (Limpieza Absoluta e Instalación Limpia) */}
+            <button
+              onClick={async () => {
+                confirmAction({
+                  title: '⚡ ¿Reset Total de Caché e Instalación Limpia?',
+                  message: 'Se borrarán absolutamente TODOS los datos locales, IndexedDB, Service Workers, cachés y cookies. La app quedará limpia como recién instalada y requerirá iniciar sesión.',
+                  variant: 'danger',
+                  confirmText: 'Resetear Todo y Limpiar App',
+                  onConfirm: async () => {
+                    await performTotalCacheReset();
+                  }
+                });
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                border: 'none',
+                backgroundColor: '#DC2626',
+                color: '#FFFFFF',
+                fontWeight: 900,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(220, 38, 38, 0.35)'
+              }}
+              title="Borra absolutamente todos los datos, bases de datos locales, cachés de service worker y cookies para dejar la app como recién instalada."
+            >
+              <RotateCcw size={18} />
+              <span>Reset Total de Caché (Instalación Limpia)</span>
+            </button>
+
             {/* Recargar Caché y Datos Nuevos (Solo con Conexión Requerida) */}
             <button
               onClick={handleClearCacheAndReload}
@@ -663,7 +716,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               title={!isOnline ? 'Requiere conexión a internet para recargar los scripts del sistema' : 'Recargar los últimos cambios'}
             >
               <RotateCcw size={18} />
-              <span>{isOnline ? 'Recargar Caché y Datos Nuevos' : 'Recargar Caché (Requiere Conexión)'}</span>
+              <span>{isOnline ? 'Recargar Caché Rápida' : 'Recargar Caché (Requiere Conexión)'}</span>
             </button>
 
             {/* Reiniciar Base de Datos (Conserva Usuarios y Roles) */}
@@ -736,27 +789,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       {/* Master Password Modal for Full Database Reset */}
       {isMasterPassModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          zIndex: 2500,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: 'var(--md-sys-color-surface)',
-            color: 'var(--md-sys-color-on-surface)',
-            borderRadius: '24px',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '100%',
-            boxShadow: 'var(--md-shadow-elevation-4)',
-            border: '2px solid var(--md-sys-color-expense)'
-          }}>
+        <div 
+          onClick={() => setIsMasterPassModalOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 2500,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            padding: '0'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="bottom-sheet-modal"
+            style={{
+              backgroundColor: 'var(--md-sys-color-surface)',
+              color: 'var(--md-sys-color-on-surface)',
+              borderRadius: '28px 28px 0 0',
+              padding: '24px 20px calc(24px + env(safe-area-inset-bottom, 0px)) 20px',
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: 'var(--md-shadow-elevation-4)',
+              borderTop: '3px solid var(--md-sys-color-expense)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
+            {/* Handle visual */}
+            <div style={{
+              width: '36px',
+              height: '4px',
+              backgroundColor: 'var(--md-sys-color-outline-variant)',
+              borderRadius: '9999px',
+              margin: '0 auto 16px auto'
+            }} />
+
             <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-expense)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Lock size={20} />
               Confirmar Reinicio Completo

@@ -24,6 +24,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -66,6 +67,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   currency = '$',
   initialTicketItems = []
 }) => {
+  useLockBodyScroll(isOpen);
   const { showToast, confirmAction, showActionResult } = useActionFeedback();
   const scannerContainerId = 'cuentacasa-html5-barcode-reader';
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);

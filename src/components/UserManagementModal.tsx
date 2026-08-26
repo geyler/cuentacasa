@@ -5,6 +5,7 @@ import { AppUser, UserRole } from '@/types';
 import { getAppUsers, saveAppUser, deleteAppUser, getLoggedInUser } from '@/lib/storage';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { 
   Users, 
   UserPlus, 
@@ -22,7 +23,9 @@ interface UserManagementModalProps {
 }
 
 export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClose }) => {
+  useLockBodyScroll(isOpen);
   const { showToast, confirmAction } = useActionFeedback();
+
   const currentUser = getLoggedInUser();
   const isOwner = currentUser?.role === 'propietario';
 

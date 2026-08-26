@@ -36,11 +36,11 @@ export function getProductSeoMeta(barcode: string, price: number): ProductSeoMet
   }
   const absHash = Math.abs(hash);
 
-  // Genera entre 1 y 9 valoraciones iniciales al publicar un producto
-  const reviewCount = 1 + (absHash % 9);
+  // Genera entre 1 y 17 valoraciones iniciales al publicar un producto
+  const reviewCount = 1 + (absHash % 17);
 
-  // Genera entre 3.5 y 5.0 estrellas iniciales
-  const ratingValue = Number((3.5 + ((absHash % 16) / 10)).toFixed(1));
+  // Genera entre 3.8 y 5.0 estrellas iniciales
+  const ratingValue = Math.min(5.0, Number((3.8 + ((absHash % 13) / 10)).toFixed(1)));
 
   const month = String(1 + (absHash % 7)).padStart(2, '0');
   const day = String(1 + (absHash % 26)).padStart(2, '0');

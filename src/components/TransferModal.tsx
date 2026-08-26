@@ -6,6 +6,7 @@ import { getRawDatabase, getSavingsFund, executeUniversalTransfer } from '@/lib/
 import { formatCurrency, calculateFinancialSummary } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { ArrowRightLeft, X, PiggyBank, Store, Home } from 'lucide-react';
 
 interface TransferModalProps {
@@ -23,7 +24,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   defaultFrom = 'casa',
   defaultTo = 'ahorro'
 }) => {
+  useLockBodyScroll(isOpen);
   const { showActionResult, showToast, confirmAction } = useActionFeedback();
+
   const [fromAccount, setFromAccount] = useState<FundAccountType>(defaultFrom);
   const [toAccount, setToAccount] = useState<FundAccountType>(
     defaultTo !== defaultFrom ? defaultTo : (defaultFrom === 'casa' ? 'ahorro' : 'casa')

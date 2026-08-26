@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { KeyRound, Loader2, User, LogOut, Lock, HelpCircle } from 'lucide-react';
-import { authenticateUser, setLoggedInUser, getLoggedInUser, getUserPin, clearUserPin } from '@/lib/storage';
+import { KeyRound, Loader2, User, LogOut, Lock, HelpCircle, RotateCcw, ArrowLeft } from 'lucide-react';
+import { authenticateUser, setLoggedInUser, getLoggedInUser, getUserPin, clearUserPin, performTotalCacheReset } from '@/lib/storage';
 import { AppUser } from '@/types';
 
 interface LoginScreenProps {
@@ -29,6 +29,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [isResettingPinMode, setIsResettingPinMode] = useState(false);
 
   const currentUser = getLoggedInUser();
+
+  // Lock body scroll while in login view to prevent unwanted scrolling
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   useEffect(() => {
     setCurrentMode(initialMode);
@@ -125,44 +133,65 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   return (
     <div style={{
-      minHeight: '100vh',
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
-      backgroundColor: '#FFFFFF'
+      padding: '16px',
+      backgroundColor: '#FFFFFF',
+      overflowY: 'auto',
+      zIndex: 1000
     }}>
       <div style={{
         maxWidth: '420px',
         width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: '28px',
-        padding: '36px 28px',
+        padding: '28px 24px',
         textAlign: 'center',
         boxShadow: '0 12px 36px rgba(236, 72, 153, 0.15)',
         border: '1px solid #FBCFE8',
         transition: 'all 0.2s ease'
       }}>
         
-        {/* App Logo */}
+        {/* Link Volver a la Tienda */}
+        <div style={{ marginBottom: '12px', textAlign: 'left' }}>
+          <a
+            href="/"
+            style={{
+              color: '#DB2777',
+              textDecoration: 'none',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '9999px',
+              backgroundColor: '#FDF2F8',
+              border: '1px solid #FBCFE8'
+            }}
+          >
+            <ArrowLeft size={14} />
+            <span>Volver al Catálogo / Tienda</span>
+          </a>
+        </div>
+
+        {/* Large Transparent Logo Without Gradient Box */}
         <div style={{
-          width: '76px',
-          height: '76px',
-          borderRadius: '24px',
-          background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 16px auto',
-          boxShadow: '0 8px 24px rgba(236, 72, 153, 0.35)',
-          padding: '12px'
+          margin: '0 auto 12px auto'
         }}>
           <img 
             src="/images/logo-nav.png" 
-            alt="Samy Store" 
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+            alt="Samy Store Logo" 
+            style={{ height: '72px', width: 'auto', objectFit: 'contain' }} 
           />
         </div>
+
 
         <h1 className="font-logo-script" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#831843', margin: 0, lineHeight: 1 }}>
           Samy Store
@@ -496,7 +525,40 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           </form>
         )}
 
+        {/* Reset Total de Caché Button */}
+        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #FBCFE8' }}>
+          <button
+            type="button"
+            onClick={async () => {
+              if (window.confirm('⚡ ¿Ejecutar RESET TOTAL DE CACHÉ?\n\nSe borrarán absolutamente todos los datos locales, IndexedDB, Service Workers, cachés y cookies. La aplicación quedará limpia como recién instalada.')) {
+                await performTotalCacheReset();
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '14px',
+              border: '1.5px solid #F43F5E',
+              backgroundColor: '#FFF1F2',
+              color: '#BE123C',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 8px rgba(244, 63, 94, 0.12)'
+            }}
+          >
+            <RotateCcw size={15} />
+            <span>Reset Total de Caché (Instalación Limpia)</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );
 };
+

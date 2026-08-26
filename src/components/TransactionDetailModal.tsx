@@ -4,6 +4,7 @@ import React from 'react';
 import { Transaction } from '@/types';
 import { formatCurrency, isTransactionEditable, getRemainingEditableTime } from '@/lib/invoice';
 import { X, Calendar, Clock, Tag, DollarSign, Edit3, Trash2, ShieldCheck, AlertCircle, Store, Home, Info } from 'lucide-react';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
@@ -20,7 +21,9 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   onDelete,
   currency = '$'
 }) => {
+  useLockBodyScroll(!!transaction);
   if (!transaction) return null;
+
 
   const editable = isTransactionEditable(transaction.createdAt);
   const remainingTime = getRemainingEditableTime(transaction.createdAt);

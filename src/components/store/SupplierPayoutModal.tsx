@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { SupplierAccount } from '@/types';
 import { X } from 'lucide-react';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface SupplierPayoutModalProps {
   supplier: SupplierAccount | null;
@@ -17,7 +18,9 @@ export const SupplierPayoutModal: React.FC<SupplierPayoutModalProps> = ({
   onExecutePayout,
   currency = '$'
 }) => {
+  useLockBodyScroll(!!supplier);
   const [payoutSource, setPayoutSource] = useState<'negocio' | 'casa'>('negocio');
+
   const [payoutAmount, setPayoutAmount] = useState<number | ''>('');
 
   useEffect(() => {

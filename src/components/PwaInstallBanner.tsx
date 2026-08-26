@@ -9,6 +9,12 @@ interface PwaInstallBannerProps {
 }
 
 export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onInstall, onDismiss }) => {
+  const isInstalled = typeof window !== 'undefined' && (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  );
+
+  if (isInstalled) return null;
   return (
     <div style={{
       position: 'fixed',

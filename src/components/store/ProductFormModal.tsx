@@ -6,6 +6,7 @@ import { compressImageToBase64 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { AppInput } from '@/components/common/AppInput';
 import { Package, X, Camera, Check, Image as ImageIcon } from 'lucide-react';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   currency = '$',
   scannedBarcode
 }) => {
+  useLockBodyScroll(isOpen);
+
   // Form State
   const [name, setName] = useState('');
   const [barcode, setBarcode] = useState('');

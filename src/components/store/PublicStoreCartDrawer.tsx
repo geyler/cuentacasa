@@ -5,6 +5,7 @@ import { StoreProduct } from '@/types';
 import { formatPhotoUrl, getStoreWhatsappNumber } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { ShoppingBag, Trash2, Minus, Plus, MessageCircle } from 'lucide-react';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface CartItem {
   product: StoreProduct;
@@ -32,6 +33,8 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
   totalCartCount,
   totalCartPrice
 }) => {
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   const handleSendWhatsAppOrder = () => {

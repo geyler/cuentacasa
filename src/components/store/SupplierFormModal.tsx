@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface SupplierFormModalProps {
   isOpen: boolean;
@@ -14,7 +15,9 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
   onClose,
   onSubmit
 }) => {
+  useLockBodyScroll(isOpen);
   const [nameInput, setNameInput] = useState('');
+
 
   if (!isOpen) return null;
 

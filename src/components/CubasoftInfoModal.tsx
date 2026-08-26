@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { STORE_SEO_CONFIG } from '@/lib/seoHelper';
 import { getStoreWhatsappNumber } from '@/lib/storage';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface CubasoftInfoModalProps {
   isOpen: boolean;
@@ -24,7 +25,9 @@ interface CubasoftInfoModalProps {
 }
 
 export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, onClose }) => {
+  useLockBodyScroll(isOpen);
   const [activeTab, setActiveTab] = useState<'features' | 'pricing' | 'contact'>('features');
+
   
   if (!isOpen) return null;
 

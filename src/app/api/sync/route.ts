@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, AppUser } from '@/types';
 import pool, { ensureTableExists, isMySQLConfigured } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
@@ -13,6 +13,7 @@ interface FileCloudData {
   storeProducts: StoreProduct[];
   storeSales: StoreSaleRecord[];
   supplierAccounts: SupplierAccount[];
+  users: AppUser[];
   storeFund: number;
   savingsFund: number;
   settings: any;
@@ -29,6 +30,7 @@ function loadFileData(): FileCloudData {
           storeProducts: [],
           storeSales: [],
           supplierAccounts: [],
+          users: [],
           storeFund: 0,
           savingsFund: 0,
           settings: {}
@@ -39,6 +41,7 @@ function loadFileData(): FileCloudData {
         storeProducts: Array.isArray(parsed.storeProducts) ? parsed.storeProducts : [],
         storeSales: Array.isArray(parsed.storeSales) ? parsed.storeSales : [],
         supplierAccounts: Array.isArray(parsed.supplierAccounts) ? parsed.supplierAccounts : [],
+        users: Array.isArray(parsed.users) ? parsed.users : [],
         storeFund: Number(parsed.storeFund || 0),
         savingsFund: Number(parsed.savingsFund || 0),
         settings: parsed.settings || {}
@@ -52,6 +55,7 @@ function loadFileData(): FileCloudData {
     storeProducts: [],
     storeSales: [],
     supplierAccounts: [],
+    users: [],
     storeFund: 0,
     savingsFund: 0,
     settings: {}
@@ -280,17 +284,26 @@ async function saveMySQLSales(sales: StoreSaleRecord[]) {
 }
 
 // MySQL Suppliers Helpers
-async function getMySQLSuppliers(): Promise<SupplierAccount[]> {
-  if (!pool) return [];
+async function getMySQLSuppliers(): Promise<{ suppliers: SupplierAccount[]; deletedSet: Set<string> }> {
+  if (!pool) return { suppliers: [], deletedSet: new Set() };
   await ensureTableExists();
+
+  const [deletedRows] = await pool.query<RowDataPacket[]>('SELECT id FROM deleted_supplier_accounts');
+  const deletedSet = new Set<string>(deletedRows.map(r => r.id));
+
   const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM supplier_accounts ORDER BY updated_at DESC');
-  return rows.map(r => ({
-    id: r.id,
-    name: r.name,
-    pendingPayout: Number(r.pending_payout),
-    totalPaid: Number(r.total_paid),
-    updatedAt: Number(r.updated_at)
-  }));
+  
+  const suppliers: SupplierAccount[] = rows
+    .filter(r => !deletedSet.has(r.id))
+    .map(r => ({
+      id: r.id,
+      name: r.name,
+      pendingPayout: Number(r.pending_payout),
+      totalPaid: Number(r.total_paid),
+      updatedAt: Number(r.updated_at)
+    }));
+
+  return { suppliers, deletedSet };
 }
 
 async function saveMySQLSuppliers(suppliers: SupplierAccount[]) {
@@ -313,6 +326,77 @@ async function saveMySQLSuppliers(suppliers: SupplierAccount[]) {
     sup.updatedAt || Date.now()
   ]);
   await pool.query(query, [values]);
+}
+
+async function deleteMySQLSuppliers(deletedIds: string[]) {
+  if (!pool || deletedIds.length === 0) return;
+  await ensureTableExists();
+
+  await pool.query('DELETE FROM supplier_accounts WHERE id IN (?)', [deletedIds]);
+  const values = deletedIds.map(id => [id, Date.now()]);
+  await pool.query('INSERT IGNORE INTO deleted_supplier_accounts (id, deleted_at) VALUES ?', [values]);
+}
+
+// MySQL App Users Helpers
+async function getMySQLUsers(): Promise<{ users: AppUser[]; deletedSet: Set<string> }> {
+  if (!pool) return { users: [], deletedSet: new Set() };
+  await ensureTableExists();
+
+  const [deletedRows] = await pool.query<RowDataPacket[]>('SELECT id FROM deleted_app_users');
+  const deletedSet = new Set<string>(deletedRows.map(r => r.id));
+
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM app_users ORDER BY created_at ASC');
+  const users: AppUser[] = rows
+    .filter(r => !deletedSet.has(r.id))
+    .map(r => ({
+      id: r.id,
+      username: r.username,
+      password: r.password,
+      name: r.name,
+      role: r.role as any,
+      whatsappNumber: r.whatsapp_number || undefined,
+      createdAt: Number(r.created_at),
+      updatedAt: Number(r.updated_at)
+    }));
+
+  return { users, deletedSet };
+}
+
+async function saveMySQLUsers(users: AppUser[]) {
+  if (!pool || users.length === 0) return;
+  await ensureTableExists();
+  const query = `
+    INSERT INTO app_users (id, username, password, name, role, whatsapp_number, created_at, updated_at)
+    VALUES ?
+    ON DUPLICATE KEY UPDATE
+      username = VALUES(username),
+      password = VALUES(password),
+      name = VALUES(name),
+      role = VALUES(role),
+      whatsapp_number = VALUES(whatsapp_number),
+      created_at = VALUES(created_at),
+      updated_at = VALUES(updated_at)
+  `;
+  const values = users.map(u => [
+    u.id,
+    u.username,
+    u.password,
+    u.name,
+    u.role,
+    u.whatsappNumber || null,
+    u.createdAt || Date.now(),
+    u.updatedAt || Date.now()
+  ]);
+  await pool.query(query, [values]);
+}
+
+async function deleteMySQLUsers(deletedIds: string[]) {
+  if (!pool || deletedIds.length === 0) return;
+  await ensureTableExists();
+
+  await pool.query('DELETE FROM app_users WHERE id IN (?)', [deletedIds]);
+  const values = deletedIds.map(id => [id, Date.now()]);
+  await pool.query('INSERT IGNORE INTO deleted_app_users (id, deleted_at) VALUES ?', [values]);
 }
 
 // MySQL App State Helpers
@@ -353,7 +437,8 @@ export async function GET() {
       const prodResult = await getMySQLProducts();
       currentCloudProducts = prodResult.products;
       currentCloudSales = await getMySQLSales();
-      currentCloudSuppliers = await getMySQLSuppliers();
+      const supResult = await getMySQLSuppliers();
+      currentCloudSuppliers = supResult.suppliers;
 
       const storeFundStr = await getMySQLAppState('storeFund');
       if (storeFundStr !== null) currentStoreFund = Number(storeFundStr);
@@ -426,6 +511,7 @@ export async function POST(req: NextRequest) {
         storeProducts: [],
         storeSales: [],
         supplierAccounts: [],
+        users: [],
         storeFund: 0,
         savingsFund: 0,
         settings: {}
@@ -451,6 +537,9 @@ export async function POST(req: NextRequest) {
     const deletedProductIds: string[] = Array.isArray(body.deletedProductIds) ? body.deletedProductIds : [];
     const clientSales: StoreSaleRecord[] = Array.isArray(body.storeSales) ? body.storeSales : [];
     const clientSuppliers: SupplierAccount[] = Array.isArray(body.supplierAccounts) ? body.supplierAccounts : [];
+    const deletedSupplierIds: string[] = Array.isArray(body.deletedSupplierIds) ? body.deletedSupplierIds : [];
+    const clientUsers: AppUser[] = Array.isArray(body.users) ? body.users : [];
+    const deletedUserIds: string[] = Array.isArray(body.deletedUserIds) ? body.deletedUserIds : [];
     const clientStoreFund = body.storeFund !== undefined ? Number(body.storeFund) : undefined;
     const clientSavingsFund = body.savingsFund !== undefined ? Number(body.savingsFund) : undefined;
     const clientSettings = body.settings && typeof body.settings === 'object' ? body.settings : undefined;
@@ -473,6 +562,28 @@ export async function POST(req: NextRequest) {
       } else {
         const fileData = loadFileData();
         fileData.storeProducts = fileData.storeProducts.filter(p => !deletedProductIds.includes(p.id));
+        saveFileData(fileData);
+      }
+    }
+
+    // 2b. Process supplier deletions
+    if (deletedSupplierIds.length > 0) {
+      if (isMySQLConfigured()) {
+        await deleteMySQLSuppliers(deletedSupplierIds);
+      } else {
+        const fileData = loadFileData();
+        fileData.supplierAccounts = fileData.supplierAccounts.filter(s => !deletedSupplierIds.includes(s.id));
+        saveFileData(fileData);
+      }
+    }
+
+    // 2c. Process user deletions
+    if (deletedUserIds.length > 0) {
+      if (isMySQLConfigured()) {
+        await deleteMySQLUsers(deletedUserIds);
+      } else {
+        const fileData = loadFileData();
+        fileData.users = fileData.users.filter(u => !deletedUserIds.includes(u.id));
         saveFileData(fileData);
       }
     }
@@ -596,15 +707,18 @@ export async function POST(req: NextRequest) {
 
     // 6. Load & Merge Supplier Accounts
     let serverSuppliers: SupplierAccount[] = [];
+    let deletedSupplierSet = new Set<string>();
     if (isMySQLConfigured()) {
-      serverSuppliers = await getMySQLSuppliers();
+      const res = await getMySQLSuppliers();
+      serverSuppliers = res.suppliers;
+      deletedSupplierSet = res.deletedSet;
     } else {
       serverSuppliers = loadFileData().supplierAccounts;
     }
 
     const mergedSupplierMap = new Map<string, SupplierAccount>();
     for (const sup of serverSuppliers) {
-      if (sup && (sup.id || sup.name)) {
+      if (sup && (sup.id || sup.name) && (!sup.id || !deletedSupplierSet.has(sup.id))) {
         const key = sup.id || sup.name;
         mergedSupplierMap.set(key, sup);
       }
@@ -612,7 +726,7 @@ export async function POST(req: NextRequest) {
 
     const suppliersToSaveToMySQL: SupplierAccount[] = [];
     for (const sup of clientSuppliers) {
-      if (sup && (sup.id || sup.name)) {
+      if (sup && (sup.id || sup.name) && (!sup.id || !deletedSupplierSet.has(sup.id))) {
         const key = sup.id || sup.name;
         const existing = mergedSupplierMap.get(key);
         if (!existing) {
@@ -632,6 +746,47 @@ export async function POST(req: NextRequest) {
     const mergedSuppliers = Array.from(mergedSupplierMap.values());
     if (isMySQLConfigured() && suppliersToSaveToMySQL.length > 0) {
       await saveMySQLSuppliers(suppliersToSaveToMySQL);
+    }
+
+    // 6b. Load & Merge Users
+    let serverUsers: AppUser[] = [];
+    let deletedUserSet = new Set<string>();
+    if (isMySQLConfigured()) {
+      const res = await getMySQLUsers();
+      serverUsers = res.users;
+      deletedUserSet = res.deletedSet;
+    } else {
+      serverUsers = loadFileData().users;
+    }
+
+    const mergedUserMap = new Map<string, AppUser>();
+    for (const u of serverUsers) {
+      if (u && u.id && !deletedUserSet.has(u.id)) {
+        mergedUserMap.set(u.id, u);
+      }
+    }
+
+    const usersToSaveToMySQL: AppUser[] = [];
+    for (const u of clientUsers) {
+      if (u && u.id && !deletedUserSet.has(u.id)) {
+        const existing = mergedUserMap.get(u.id);
+        if (!existing) {
+          mergedUserMap.set(u.id, u);
+          usersToSaveToMySQL.push(u);
+        } else {
+          const existingTime = existing.updatedAt || 0;
+          const clientTime = u.updatedAt || 0;
+          if (clientTime >= existingTime) {
+            mergedUserMap.set(u.id, u);
+            usersToSaveToMySQL.push(u);
+          }
+        }
+      }
+    }
+
+    const mergedUsers = Array.from(mergedUserMap.values());
+    if (isMySQLConfigured() && usersToSaveToMySQL.length > 0) {
+      await saveMySQLUsers(usersToSaveToMySQL);
     }
 
     // 7. Load & Merge Funds & Settings
@@ -681,6 +836,7 @@ export async function POST(req: NextRequest) {
         storeProducts: mergedProducts,
         storeSales: mergedSales,
         supplierAccounts: mergedSuppliers,
+        users: mergedUsers,
         storeFund: mergedStoreFund,
         savingsFund: mergedSavingsFund,
         settings: mergedSettings
@@ -693,6 +849,7 @@ export async function POST(req: NextRequest) {
       storeProducts: mergedProducts,
       storeSales: mergedSales,
       supplierAccounts: mergedSuppliers,
+      users: mergedUsers,
       storeFund: mergedStoreFund,
       savingsFund: mergedSavingsFund,
       settings: mergedSettings,
