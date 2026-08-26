@@ -1,4 +1,4 @@
-import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot, QRSyncPayload } from '@/types';
 
 const STORAGE_KEY = 'cuentacasa_raw_db_v5';
 
@@ -1241,6 +1241,159 @@ export function closeStoreShift(
   db.shifts = shifts;
   saveRawDatabase(db);
   return shift;
+}
+
+// ==================== OFFLINE QR SYNC & ADDITIVE MERGE FUNCTIONS ====================
+
+export function generateSyncQRPayload(): string {
+  const db = getRawDatabase();
+  const currentUser = getLoggedInUser();
+
+  const payload: QRSyncPayload = {
+    type: 'SAMY_STORE_SYNC_V1',
+    version: db.version || '1.0',
+    senderId: currentUser?.id || 'admin',
+    senderName: currentUser?.name || 'Administrador',
+    senderRole: currentUser?.role || 'propietario',
+    timestamp: Date.now(),
+    products: db.storeProducts || [],
+    sales: db.storeSales || [],
+    shifts: db.shifts || [],
+    suppliers: db.supplierAccounts || [],
+    users: db.users || []
+  };
+
+  return JSON.stringify(payload);
+}
+
+export interface MergeSyncResult {
+  success: boolean;
+  addedProducts: number;
+  updatedProducts: number;
+  addedSales: number;
+  addedShifts: number;
+  updatedShifts: number;
+  message: string;
+}
+
+export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
+  let payload: QRSyncPayload;
+  try {
+    payload = JSON.parse(jsonString);
+  } catch {
+    throw new Error('El código QR escaneado no contiene un formato de sincronización válido de Samy Store.');
+  }
+
+  if (payload.type !== 'SAMY_STORE_SYNC_V1') {
+    throw new Error('Formato de datos no compatible.');
+  }
+
+  const db = getRawDatabase();
+  if (!db.storeProducts) db.storeProducts = [];
+  if (!db.storeSales) db.storeSales = [];
+  if (!db.shifts) db.shifts = [];
+  if (!db.supplierAccounts) db.supplierAccounts = [];
+  if (!db.users) db.users = [];
+
+  let addedProducts = 0;
+  let updatedProducts = 0;
+  let addedSales = 0;
+  let addedShifts = 0;
+  let updatedShifts = 0;
+
+  // 1. Additive Merge Products (UPSERT by ID)
+  if (Array.isArray(payload.products)) {
+    payload.products.forEach(incProd => {
+      const idx = db.storeProducts!.findIndex(p => p.id === incProd.id || (p.barcode && incProd.barcode && p.barcode === incProd.barcode));
+      if (idx === -1) {
+        db.storeProducts!.push(incProd);
+        addedProducts++;
+      } else {
+        const existing = db.storeProducts![idx];
+        if ((incProd.updatedAt || 0) >= (existing.updatedAt || 0)) {
+          db.storeProducts![idx] = { ...existing, ...incProd };
+          updatedProducts++;
+        }
+      }
+    });
+  }
+
+  // 2. Additive Merge Sales (Deduplication by Sale ID)
+  if (Array.isArray(payload.sales)) {
+    payload.sales.forEach(incSale => {
+      const exists = db.storeSales!.some(s => s.id === incSale.id);
+      if (!exists) {
+        db.storeSales!.push(incSale);
+        addedSales++;
+      }
+    });
+    db.storeSales.sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  // 3. Additive Merge Shifts (UPSERT by Shift ID)
+  if (Array.isArray(payload.shifts)) {
+    payload.shifts.forEach(incShift => {
+      const idx = db.shifts!.findIndex(s => s.id === incShift.id);
+      if (idx === -1) {
+        db.shifts!.unshift(incShift);
+        addedShifts++;
+      } else {
+        const existing = db.shifts![idx];
+        if (incShift.status === 'cerrado' || incShift.sellerAcceptedOpening) {
+          db.shifts![idx] = { ...existing, ...incShift };
+          updatedShifts++;
+        }
+      }
+    });
+  }
+
+  // 4. Additive Merge Suppliers
+  if (Array.isArray(payload.suppliers)) {
+    payload.suppliers.forEach(incSup => {
+      const idx = db.supplierAccounts!.findIndex(s => s.id === incSup.id || s.name.toLowerCase() === incSup.name.toLowerCase());
+      if (idx === -1) {
+        db.supplierAccounts!.push(incSup);
+      } else {
+        const existing = db.supplierAccounts![idx];
+        if ((incSup.updatedAt || 0) >= (existing.updatedAt || 0)) {
+          db.supplierAccounts![idx] = { ...existing, ...incSup };
+        }
+      }
+    });
+  }
+
+  // 5. Additive Merge App Users
+  if (Array.isArray(payload.users)) {
+    payload.users.forEach(incUser => {
+      const exists = db.users!.some(u => u.id === incUser.id || u.username.toLowerCase() === incUser.username.toLowerCase());
+      if (!exists) {
+        db.users!.push(incUser);
+      }
+    });
+  }
+
+  db.lastUpdated = new Date().toISOString();
+  saveRawDatabase(db);
+
+  const summaryParts: string[] = [];
+  if (addedProducts > 0) summaryParts.push(`${addedProducts} productos nuevos`);
+  if (updatedProducts > 0) summaryParts.push(`${updatedProducts} productos actualizados`);
+  if (addedSales > 0) summaryParts.push(`${addedSales} ventas sincronizadas`);
+  if (addedShifts > 0 || updatedShifts > 0) summaryParts.push(`turnos actualizados`);
+
+  const summaryMsg = summaryParts.length > 0
+    ? `Sincronizados de ${payload.senderName}: ${summaryParts.join(', ')}.`
+    : `Tus datos ya estaban al día con ${payload.senderName}.`;
+
+  return {
+    success: true,
+    addedProducts,
+    updatedProducts,
+    addedSales,
+    addedShifts,
+    updatedShifts,
+    message: summaryMsg
+  };
 }
 
 

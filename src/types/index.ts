@@ -176,4 +176,18 @@ export interface RawDatabase {
   };
 }
 
+export interface QRSyncPayload {
+  type: 'SAMY_STORE_SYNC_V1';
+  version: string;
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  timestamp: number;
+  products?: StoreProduct[];
+  sales?: StoreSaleRecord[];
+  shifts?: StoreShiftRecord[];
+  suppliers?: SupplierAccount[];
+  users?: AppUser[];
+}
+
 
