@@ -1,8 +1,27 @@
-const CACHE_NAME = 'samy-store-pwa-v10';
+const CACHE_NAME = 'samy-store-pwa-v11';
 
-// Install event - Claim immediately
+const PRECACHE_ASSETS = [
+  '/',
+  '/app',
+  '/login',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/maskable-512.png',
+  '/images/logo-loading.png',
+  '/images/logo-nav.png',
+  '/images/store_hero_bg.png'
+];
+
+// Install event - Precache core app shell so installed PWA works 100% offline
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
+        console.warn('Precache partial fail, continuing:', err);
+      });
+    }).then(() => self.skipWaiting())
+  );
 });
 
 // Activate event - Purge old caches and claim clients immediately
@@ -20,9 +39,9 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - STRICT Network-First Strategy
-// When online: Always fetch the latest code directly from the server without serving stale cache.
-// When offline: Fallback to local cache for offline operation.
+// Fetch event:
+// 1. Network-First for GET requests: Try network to get fresh code. If successful, update cache.
+// 2. If network fails (Offline): Instantly return matched cached response or root PWA app shell!
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
@@ -45,7 +64,7 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // Offline Fallback: return cached asset if network is offline
+        // Offline Fallback: return matched cached asset or app shell when offline!
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           return caches.match('/') || caches.match('/app');
