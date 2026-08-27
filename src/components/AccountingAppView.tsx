@@ -169,8 +169,8 @@ function AccountingAppContent() {
     const autoSync = async (isBackgroundReconnection: boolean = false) => {
       if (typeof window !== 'undefined' && navigator.onLine) {
         try {
-          setIsSyncing(true);
           if (isBackgroundReconnection) {
+            setIsSyncing(true);
             setSyncBanner({
               show: true,
               status: 'syncing',
@@ -192,7 +192,9 @@ function AccountingAppContent() {
         } catch (e) {
           // Ignore network errors in background auto-sync
         } finally {
-          setIsSyncing(false);
+          if (isBackgroundReconnection) {
+            setIsSyncing(false);
+          }
         }
       }
     };

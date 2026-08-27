@@ -93,7 +93,7 @@ export const PublicStoreLanding: React.FC = () => {
     const publishedList = all.filter(p => p.published);
     setProducts(publishedList);
 
-    syncDatabaseWithCloud(true).then(res => {
+    syncDatabaseWithCloud(false).then(res => {
       if (res.success) {
         const syncedAll = getStoreProducts();
         setProducts(syncedAll.filter(p => p.published));

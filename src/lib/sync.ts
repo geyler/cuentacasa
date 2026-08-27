@@ -17,6 +17,8 @@ export function getPendingSyncCount(): number {
   return pendingTxs + pendingDeletes + pendingProductDeletes + pendingSupplierDeletes + pendingUserDeletes;
 }
 
+let lastSyncFailedTime = 0;
+
 export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ success: boolean; syncedCount: number; productCount?: number; message: string }> {
   const db = getRawDatabase();
   
@@ -25,6 +27,15 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       success: false,
       syncedCount: 0,
       message: '📶 Modo 100% Offline activo. Los datos permanecen guardados localmente.'
+    };
+  }
+
+  // If a background sync failed recently (< 3 mins ago) and this isn't a forced user sync, skip to prevent hanging on unstable networks
+  if (!force && Date.now() - lastSyncFailedTime < 3 * 60 * 1000) {
+    return {
+      success: false,
+      syncedCount: 0,
+      message: '📶 Conexión inestable detectada previamente. Operando en modo local.'
     };
   }
 
@@ -42,9 +53,9 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     };
   }
 
-  // 4s AbortController timeout to prevent UI freezes on slow/unstable networks
+  // 2s AbortController timeout to prevent UI freezes on slow/unstable networks
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
 
   try {
     const res = await fetch('/api/sync', {
@@ -78,6 +89,8 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
 
     const data = await res.json();
     if (data.success && Array.isArray(data.transactions)) {
+      lastSyncFailedTime = 0; // Reset failure timestamp on success
+
       const mergedTransactions: Transaction[] = data.transactions.map((t: Transaction) => ({
         ...t,
         synced: true
@@ -132,6 +145,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     }
   } catch (error) {
     clearTimeout(timeoutId);
+    lastSyncFailedTime = Date.now(); // Mark network error/timeout timestamp
     console.warn('Conexión inestable o sin internet, trabajando offline:', error);
     return {
       success: false,
@@ -141,4 +155,5 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     };
   }
 }
+
 

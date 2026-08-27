@@ -1,4 +1,4 @@
-const CACHE_NAME = 'samy-store-pwa-v11';
+const CACHE_NAME = 'samy-store-pwa-v12';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -39,21 +39,71 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Helper: Fetch with strict timeout (e.g. 1.2 seconds for slow network fallback)
+function fetchWithTimeout(request, timeoutMs = 1200) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('SW Fetch Timeout'));
+    }, timeoutMs);
+
+    fetch(request)
+      .then((response) => {
+        clearTimeout(timer);
+        resolve(response);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 // Fetch event:
-// 1. Network-First for GET requests: Try network to get fresh code. If successful, update cache.
-// 2. If network fails (Offline): Instantly return matched cached response or root PWA app shell!
+// 1. Exclude API requests (/api/)
+// 2. Static Assets (/_next/, images, fonts, css, js): Cache-First / Stale-While-Revalidate for 0ms loading
+// 3. Navigation / HTML pages: Fast Network-First with 1.2s timeout fallback to cache
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Exclude API requests (/api/) from SW cache
+  // Exclude API requests from SW cache
   if (url.pathname.startsWith('/api/')) {
     return;
   }
 
+  // Static Assets: Serve from cache immediately, update cache in background
+  const isStaticAsset = url.pathname.startsWith('/_next/') || 
+                        url.pathname.startsWith('/icons/') || 
+                        url.pathname.startsWith('/images/') ||
+                        url.pathname.endsWith('.png') ||
+                        url.pathname.endsWith('.jpg') ||
+                        url.pathname.endsWith('.css') ||
+                        url.pathname.endsWith('.js') ||
+                        url.pathname.endsWith('.woff2');
+
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+            }
+            return networkResponse;
+          })
+          .catch(() => {});
+
+        return cachedResponse || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // HTML Page Navigation: Try network with 1.2s timeout, fallback to cache instantly if connection is slow
   event.respondWith(
-    fetch(event.request)
+    fetchWithTimeout(event.request, 1200)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
@@ -64,11 +114,12 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // Offline Fallback: return matched cached asset or app shell when offline!
+        // Slow network or offline: return matched cached asset or app shell immediately
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
-          return caches.match('/') || caches.match('/app');
+          return caches.match('/app') || caches.match('/') || caches.match('/login');
         });
       })
   );
 });
+

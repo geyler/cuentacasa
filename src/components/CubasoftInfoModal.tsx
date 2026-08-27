@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  X, 
-  Store, 
-  Smartphone, 
-  ShieldCheck, 
-  Zap, 
-  MessageCircle, 
-  Globe, 
-  CheckCircle2, 
-  Star, 
+import {
+  X,
+  Store,
+  Smartphone,
+  ShieldCheck,
+  Zap,
+  MessageCircle,
+  Globe,
+  CheckCircle2,
+  Star,
   CreditCard,
   Building2,
   PhoneCall,
@@ -40,7 +40,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
   const formattedWaUrl = cleanPhone.length === 8 ? `https://wa.me/+53${cleanPhone}` : `https://wa.me/+${cleanPhone}`;
 
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
@@ -55,7 +55,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
       className="no-print"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
@@ -247,7 +247,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              
+
               <div style={{ padding: '12px', borderRadius: '14px', border: '1px solid var(--md-sys-color-outline-variant)', backgroundColor: 'var(--md-sys-color-surface)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#BE185D', fontWeight: 900, fontSize: '0.88rem' }}>
                   <QrCode size={18} /> Sincronización QR P2P Offline
@@ -271,7 +271,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
                   <MessageCircle size={18} /> Catálogo WhatsApp & SEO Local
                 </div>
                 <p style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, lineHeight: '1.35' }}>
-                  Tienda pública PWA instalable como APK. Permite a los clientes pedir por WhatsApp con carrito precargado y posiciona tus productos en Google Las Tunas.
+                  Tienda pública PWA instalable como APK. Permite a los clientes pedir por WhatsApp con carrito precargado y posiciona tus productos en Google.
                 </p>
               </div>
 
@@ -385,7 +385,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                <a 
+                <a
                   href={formattedWaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -408,7 +408,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
                   <span>Contactar Asesor Comercial por WhatsApp</span>
                 </a>
 
-                <a 
+                <a
                   href="https://cubasoft.net"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -454,7 +454,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
             <span>Probar la Demo en Vivo</span>
           </button>
 
-          <a 
+          <a
             href={formattedWaUrl}
             target="_blank"
             rel="noopener noreferrer"
