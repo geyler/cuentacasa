@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { generateSyncQRPayload, mergeSyncQRPayload, getLoggedInUser, getRawDatabase } from '@/lib/storage';
+import { generateQRCodeDataURL } from '@/lib/qrcodeGenerator';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -45,9 +46,9 @@ export const QRSyncModal: React.FC<QRSyncModalProps> = ({
     if (isOpen) {
       const payloadStr = generateSyncQRPayload();
       setQrPayload(payloadStr);
-      // Use qrserver offline/online Data URL or SVG fallback
-      const encoded = encodeURIComponent(payloadStr);
-      setQrImgUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encoded}`);
+      // 100% Offline Client-Side QR Data URL Generator
+      const dataUrl = generateQRCodeDataURL(payloadStr, 260);
+      setQrImgUrl(dataUrl);
       setLastMergedResult(null);
     } else {
       stopScanner();

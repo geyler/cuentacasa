@@ -427,6 +427,7 @@ export async function GET() {
     let currentCloudProducts: StoreProduct[] = [];
     let currentCloudSales: StoreSaleRecord[] = [];
     let currentCloudSuppliers: SupplierAccount[] = [];
+    let currentCloudUsers: AppUser[] = [];
     let currentStoreFund = 0;
     let currentSavingsFund = 0;
     let currentSettings: any = {};
@@ -439,6 +440,8 @@ export async function GET() {
       currentCloudSales = await getMySQLSales();
       const supResult = await getMySQLSuppliers();
       currentCloudSuppliers = supResult.suppliers;
+      const userResult = await getMySQLUsers();
+      currentCloudUsers = userResult.users;
 
       const storeFundStr = await getMySQLAppState('storeFund');
       if (storeFundStr !== null) currentStoreFund = Number(storeFundStr);
@@ -456,6 +459,7 @@ export async function GET() {
       currentCloudProducts = fileData.storeProducts;
       currentCloudSales = fileData.storeSales;
       currentCloudSuppliers = fileData.supplierAccounts;
+      currentCloudUsers = fileData.users;
       currentStoreFund = fileData.storeFund;
       currentSavingsFund = fileData.savingsFund;
       currentSettings = fileData.settings;
@@ -467,11 +471,13 @@ export async function GET() {
       storeProducts: currentCloudProducts,
       storeSales: currentCloudSales,
       supplierAccounts: currentCloudSuppliers,
+      users: currentCloudUsers,
       storeFund: currentStoreFund,
       savingsFund: currentSavingsFund,
       settings: currentSettings,
       count: currentCloudTransactions.length,
       productCount: currentCloudProducts.length,
+      userCount: currentCloudUsers.length,
       storage: isMySQLConfigured() ? 'Hostinger MySQL' : 'Local File Storage'
     }, {
       headers: {
@@ -491,7 +497,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // 0. Process Full Database Reset
+    // 0. Process Full Database Reset (Preserving configured users)
     if (body.resetAll) {
       if (isMySQLConfigured() && pool) {
         try {
@@ -502,16 +508,19 @@ export async function POST(req: NextRequest) {
           await pool.query('DELETE FROM app_state');
           await pool.query('DELETE FROM deleted_transactions');
           await pool.query('DELETE FROM deleted_store_products');
+          await pool.query('DELETE FROM deleted_supplier_accounts');
+          await pool.query('DELETE FROM deleted_app_users');
         } catch (dbErr) {
           console.warn('MySQL reset error:', dbErr);
         }
       }
+      const existingData = loadFileData();
       saveFileData({
         transactions: [],
         storeProducts: [],
         storeSales: [],
         supplierAccounts: [],
-        users: [],
+        users: existingData.users || [],
         storeFund: 0,
         savingsFund: 0,
         settings: {}
@@ -522,12 +531,13 @@ export async function POST(req: NextRequest) {
         storeProducts: [],
         storeSales: [],
         supplierAccounts: [],
+        users: existingData.users || [],
         storeFund: 0,
         savingsFund: 0,
         settings: {},
         count: 0,
         productCount: 0,
-        message: 'Base de datos vaciada y reiniciada a cero en la nube exitosamente.'
+        message: 'Base de datos vaciada y reiniciada a cero en la nube (usuarios conservados).'
       });
     }
 

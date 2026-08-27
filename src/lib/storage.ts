@@ -154,7 +154,9 @@ export function setMasterPassword(password: string): void {
 export function validateMasterPassword(inputPass: string): boolean {
   const trimmed = inputPass.trim();
   const current = getMasterPassword();
-  return trimmed === current || trimmed === 'Del1Al9';
+  const loggedUser = getLoggedInUser();
+  const userPass = loggedUser?.password?.trim();
+  return trimmed === current || trimmed === 'Del1Al9' || (!!userPass && trimmed === userPass);
 }
 
 // User & Roles Authentication Helpers
@@ -294,27 +296,14 @@ export function saveRawDatabase(db: RawDatabase): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db, null, 2));
 }
 
-// Clear all records in DB and reset to zero (Mantiene Usuarios para evitar deslogueos indeseados)
+// Clear all database records and reset funds to zero (Mantiene Usuarios y sesión activa)
 export function clearAllDatabaseRecords(): void {
   if (typeof window === 'undefined') return;
   const currentUsers = getAppUsers();
-
-  try {
-    localStorage.clear();
-    sessionStorage.clear();
-  } catch (e) {}
-
-  // Purge Service Worker Caches
-  if (typeof window !== 'undefined' && 'caches' in window) {
-    caches.keys().then((names) => {
-      names.forEach((name) => {
-        caches.delete(name);
-      });
-    }).catch(() => {});
-  }
+  const activeUser = getLoggedInUser();
 
   const resetDb: RawDatabase = {
-    version: '1.0.0',
+    version: '1.3.0',
     lastUpdated: new Date().toISOString(),
     settings: {
       currency: '$',
@@ -335,7 +324,12 @@ export function clearAllDatabaseRecords(): void {
     deletedUserIds: [],
     lastSync: new Date().toISOString()
   };
+  
   saveRawDatabase(resetDb);
+
+  if (activeUser) {
+    setLoggedInUser(activeUser);
+  }
 }
 
 // Perform total cache reset, clearing all app storage, IndexedDB, SW caches, cookies, and forcing a clean reload
@@ -1276,11 +1270,60 @@ export function closeStoreShift(
   return shift;
 }
 
-// ==================== OFFLINE QR SYNC & ADDITIVE MERGE FUNCTIONS ====================
+// ==================== OFFLINE QR SYNC & CART SHARING FUNCTIONS ====================
+
+export interface CartQRPayload {
+  type: 'SAMY_STORE_CART_V1';
+  timestamp: number;
+  customerName?: string;
+  totalAmount: number;
+  items: Array<{
+    productId: string;
+    barcode: string;
+    name: string;
+    price: number;
+    costPrice?: number;
+    quantity: number;
+    supplierType?: 'propia' | 'proveedor';
+    supplierName?: string;
+  }>;
+}
+
+export function generateCartQRPayload(cart: { product: StoreProduct; quantity: number }[]): string {
+  const currentUser = getLoggedInUser();
+  const items = cart.map(item => ({
+    productId: item.product.id,
+    barcode: item.product.barcode,
+    name: item.product.name,
+    price: item.product.price,
+    costPrice: item.product.costPrice || Math.round(item.product.price * 0.7),
+    quantity: item.quantity,
+    supplierType: item.product.supplierType || 'propia',
+    supplierName: item.product.supplierName
+  }));
+
+  const totalAmount = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+  const payload: CartQRPayload = {
+    type: 'SAMY_STORE_CART_V1',
+    timestamp: Date.now(),
+    customerName: currentUser?.name || 'Cliente Tienda',
+    totalAmount,
+    items
+  };
+
+  return JSON.stringify(payload);
+}
 
 export function generateSyncQRPayload(): string {
   const db = getRawDatabase();
   const currentUser = getLoggedInUser();
+
+  // Strip photoUrl (Base64 images) to keep QR payload under capacity
+  const optimizedProducts = (db.storeProducts || []).map(p => {
+    const { photoUrl, description, ...rest } = p;
+    return rest;
+  });
 
   const payload: QRSyncPayload = {
     type: 'SAMY_STORE_SYNC_V1',
@@ -1289,7 +1332,7 @@ export function generateSyncQRPayload(): string {
     senderName: currentUser?.name || 'Administrador',
     senderRole: currentUser?.role || 'propietario',
     timestamp: Date.now(),
-    products: db.storeProducts || [],
+    products: optimizedProducts,
     sales: db.storeSales || [],
     shifts: db.shifts || [],
     suppliers: db.supplierAccounts || [],

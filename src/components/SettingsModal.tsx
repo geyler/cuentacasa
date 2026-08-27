@@ -58,6 +58,7 @@ interface SettingsModalProps {
   onLogout: () => void;
   onInstallPwa?: () => void;
   canInstallPwa?: boolean;
+  onOpenPendingSync?: () => void;
 }
 
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
@@ -75,7 +76,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   toggleShowBalance,
   onLogout,
   onInstallPwa,
-  canInstallPwa
+  canInstallPwa,
+  onOpenPendingSync
 }) => {
   useLockBodyScroll(isOpen);
   const { showToast, confirmAction } = useActionFeedback();
@@ -111,7 +113,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setIsEditingPhone(false);
       setUsersList(getAppUsers());
     }
-  }, [isOpen, currentUser]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -630,7 +632,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               flexDirection: 'column',
               gap: '10px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {isOnline ? <Wifi size={18} color="#059669" /> : <WifiOff size={18} color="#EF4444" />}
                   <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>
@@ -638,23 +640,69 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                 </div>
                 {pendingSyncCount > 0 && (
-                  <span style={{ fontSize: '0.72rem', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', padding: '2px 8px', borderRadius: '9999px', fontWeight: 800 }}>
-                    {pendingSyncCount} pendientes
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      if (onOpenPendingSync) onOpenPendingSync();
+                    }}
+                    style={{
+                      fontSize: '0.72rem',
+                      backgroundColor: 'var(--md-sys-color-primary)',
+                      color: '#FFF',
+                      padding: '3px 10px',
+                      borderRadius: '9999px',
+                      fontWeight: 800,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>⚡ {pendingSyncCount} pendientes</span>
+                    <span>→</span>
+                  </button>
                 )}
               </div>
 
-              {isOnline && (
+              {pendingSyncCount > 0 && onOpenPendingSync && (
                 <button
-                  onClick={onSync}
-                  disabled={isSyncing}
-                  className="md-btn md-btn-primary"
-                  style={{ width: '100%', padding: '10px', fontSize: '0.85rem', fontWeight: 800 }}
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenPendingSync();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--md-sys-color-primary)',
+                    backgroundColor: 'var(--md-sys-color-primary-container)',
+                    color: 'var(--md-sys-color-on-primary-container)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
                 >
-                  <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
-                  <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Datos'}</span>
+                  <RefreshCw size={15} />
+                  <span>Ver Listado de Pendientes ({pendingSyncCount})</span>
                 </button>
               )}
+
+              <button
+                onClick={onSync}
+                disabled={isSyncing}
+                className="md-btn md-btn-primary"
+                style={{ width: '100%', padding: '10px', fontSize: '0.85rem', fontWeight: 800 }}
+              >
+                <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
+                <span>{isSyncing ? 'Subiendo Pendientes...' : 'Subir Pendientes / Sincronizar'}</span>
+              </button>
             </div>
 
             {/* Reset Total de Caché (Limpieza Absoluta e Instalación Limpia) */}
@@ -771,7 +819,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', marginTop: '6px' }}>
-            Samy Store v1.0 • Cubasoft ERP Systems
+            Samy Store v1.3.0 • Cubasoft ERP Systems
           </div>
 
         </div>

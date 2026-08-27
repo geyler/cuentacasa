@@ -32,6 +32,7 @@ import { ReportView } from '@/components/ReportView';
 import { StoreManagementView } from '@/components/StoreManagementView';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
 import { SettingsModal } from '@/components/SettingsModal';
+import { PendingSyncModal } from '@/components/PendingSyncModal';
 import { RawDbModal } from '@/components/RawDbModal';
 import { LoginScreen } from '@/components/LoginScreen';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
@@ -53,6 +54,7 @@ function AccountingAppContent() {
   const [modalTxType, setModalTxType] = useState<TransactionType>('gasto');
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isPendingSyncModalOpen, setIsPendingSyncModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isRawDbModalOpen, setIsRawDbModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -606,7 +608,7 @@ function AccountingAppContent() {
   const summary = calculateFinancialSummary(casaTransactions);
   const pendingCount = getPendingSyncCount();
 
-  const isAnyModalOpen = isTxModalOpen || isSettingsOpen || isRawDbModalOpen || isScannerOpen || isTransferModalOpen || !!selectedTxForDetailModal || isNavMenuOpen;
+  const isAnyModalOpen = isTxModalOpen || isSettingsOpen || isPendingSyncModalOpen || isRawDbModalOpen || isScannerOpen || isTransferModalOpen || !!selectedTxForDetailModal || isNavMenuOpen;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -644,6 +646,8 @@ function AccountingAppContent() {
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenScanner={() => setIsScannerOpen(true)}
         isSyncing={isSyncing}
+        pendingSyncCount={pendingCount}
+        onOpenPendingSync={() => setIsPendingSyncModalOpen(true)}
         isMenuOpen={isNavMenuOpen}
         setIsMenuOpen={setIsNavMenuOpen}
       />
@@ -985,6 +989,16 @@ function AccountingAppContent() {
         onLogout={handleLogout}
         onInstallPwa={handleInstallPwa}
         canInstallPwa={!!deferredPrompt}
+        onOpenPendingSync={() => setIsPendingSyncModalOpen(true)}
+      />
+
+      {/* Pending Sync Actions List & Manual Upload Modal */}
+      <PendingSyncModal
+        isOpen={isPendingSyncModalOpen}
+        onClose={() => setIsPendingSyncModalOpen(false)}
+        onSync={handleSync}
+        isSyncing={isSyncing}
+        isOnline={isOnline}
       />
 
       {/* Transaction Modal (Add / Edit) */}

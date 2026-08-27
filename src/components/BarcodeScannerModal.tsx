@@ -5,7 +5,8 @@ import { StoreProduct, StoreSaleItem } from '@/types';
 import { 
   getStoreProductByBarcode, 
   getStoreProducts, 
-  registerStoreSale 
+  registerStoreSale,
+  mergeSyncQRPayload
 } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency } from '@/lib/invoice';
@@ -99,6 +100,76 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     lastScanTimeRef.current = now;
 
     playScanBeep();
+
+    // Check if scanned code is a JSON payload (Cart QR or Sync QR)
+    if (rawStr.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(rawStr);
+        if (parsed.type === 'SAMY_STORE_CART_V1' && Array.isArray(parsed.items)) {
+          let addedCount = 0;
+          const newItems: StoreSaleItem[] = [];
+
+          parsed.items.forEach((item: any) => {
+            const prod = getStoreProductByBarcode(item.barcode) || getStoreProducts().find(p => p.id === item.productId);
+            const unitPrice = item.price || (prod ? prod.price : 0);
+            const costPrice = item.costPrice || (prod ? prod.costPrice : Math.round(unitPrice * 0.7));
+            const qty = item.quantity || 1;
+
+            newItems.push({
+              productId: prod ? prod.id : item.productId,
+              barcode: item.barcode,
+              name: item.name || (prod ? prod.name : 'Producto'),
+              quantity: qty,
+              costPrice: costPrice,
+              unitPrice: unitPrice,
+              subtotal: qty * unitPrice,
+              supplierType: (prod ? prod.supplierType : item.supplierType) || 'propia',
+              supplierName: prod ? prod.supplierName : item.supplierName
+            });
+            addedCount += qty;
+          });
+
+          setTicketItems(prev => {
+            const updated = [...prev];
+            newItems.forEach(newItem => {
+              const idx = updated.findIndex(i => i.productId === newItem.productId || i.barcode === newItem.barcode);
+              if (idx !== -1) {
+                const totalQty = updated[idx].quantity + newItem.quantity;
+                updated[idx] = {
+                  ...updated[idx],
+                  quantity: totalQty,
+                  subtotal: totalQty * updated[idx].unitPrice
+                };
+              } else {
+                updated.push(newItem);
+              }
+            });
+            return updated;
+          });
+
+          showToast({
+            title: '¡Carrito Recibido por QR!',
+            message: `Se cargaron ${addedCount} unidades en el ticket de cobro.`,
+            type: 'success'
+          });
+          triggerSuccessEffect(`🛒 Carrito de ${parsed.customerName || 'Cliente'} cargado`);
+          return;
+        }
+
+        if (parsed.type === 'SAMY_STORE_SYNC_V1') {
+          const result = mergeSyncQRPayload(rawStr);
+          showToast({
+            title: '¡Sincronización Exitosa!',
+            message: result.message,
+            type: 'success'
+          });
+          triggerSuccessEffect(`⚡ Datos Sincronizados`);
+          return;
+        }
+      } catch (e) {
+        // Fallback to normal product barcode scan
+      }
+    }
 
     const numericOnly = rawStr.replace(/\D/g, '');
     const searchCode = (numericOnly.length > 0 && rawStr.length <= 4) ? rawStr.padStart(4, '0') : rawStr;

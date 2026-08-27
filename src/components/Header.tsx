@@ -17,7 +17,8 @@ import {
   X,
   ChevronRight,
   User,
-  Crown
+  Crown,
+  CloudUpload
 } from 'lucide-react';
 
 import { getLoggedInUser } from '@/lib/storage';
@@ -31,6 +32,8 @@ interface HeaderProps {
   onOpenProfile?: () => void;
   onOpenScanner?: () => void;
   isSyncing?: boolean;
+  pendingSyncCount?: number;
+  onOpenPendingSync?: () => void;
   isMenuOpen?: boolean;
   setIsMenuOpen?: (open: boolean) => void;
 }
@@ -44,6 +47,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenProfile,
   onOpenScanner,
   isSyncing = false,
+  pendingSyncCount = 0,
+  onOpenPendingSync,
   isMenuOpen: externalMenuOpen,
   setIsMenuOpen: setExternalMenuOpen
 }) => {
@@ -251,6 +256,32 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {showBalance ? <Eye size={19} /> : <EyeOff size={19} />}
           </button>
+
+          {/* Pending Sync Actions Pill Badge Trigger */}
+          {pendingSyncCount > 0 && onOpenPendingSync && (
+            <button
+              onClick={onOpenPendingSync}
+              title={`Ver listado de ${pendingSyncCount} acciones pendientes por subir`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 10px',
+                borderRadius: '9999px',
+                border: 'none',
+                backgroundColor: 'var(--md-sys-color-primary)',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                fontSize: '0.74rem',
+                fontWeight: 900,
+                boxShadow: '0 2px 8px rgba(0, 99, 155, 0.3)',
+                animation: 'pulse 2s infinite'
+              }}
+            >
+              <CloudUpload size={14} />
+              <span>{pendingSyncCount}</span>
+            </button>
+          )}
 
           {/* Settings & Cloud Sync Modal Trigger Button */}
           <button
