@@ -1,5 +1,5 @@
 import { getRawDatabase, saveRawDatabase } from './storage';
-import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, RawDatabase } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, AppUser, RawDatabase } from '@/types';
 
 export interface SyncStatus {
   isOnline: boolean;
@@ -162,6 +162,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         'Cache-Control': 'no-cache'
       },
       body: JSON.stringify({
+        clientLastSync: lastSyncTime,
         transactions: db.transactions,
         deletedIds: db.deletedIds || [],
         storeProducts: db.storeProducts || [],
@@ -188,12 +189,17 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     if (data.success && Array.isArray(data.transactions)) {
       lastSyncFailedTime = 0; // Reset failure timestamp on success
 
-      const mergedTransactions: Transaction[] = data.transactions.map((t: Transaction) => ({
+      const serverDeletedIds: string[] = Array.isArray(data.deletedIds) ? data.deletedIds : [];
+      const serverDeletedProductIds: string[] = Array.isArray(data.deletedProductIds) ? data.deletedProductIds : [];
+      const serverDeletedSupplierIds: string[] = Array.isArray(data.deletedSupplierIds) ? data.deletedSupplierIds : [];
+      const serverDeletedUserIds: string[] = Array.isArray(data.deletedUserIds) ? data.deletedUserIds : [];
+
+      const rawMergedTxs: Transaction[] = data.transactions.map((t: Transaction) => ({
         ...t,
         synced: true
       }));
 
-      const mergedProducts: StoreProduct[] = Array.isArray(data.storeProducts) 
+      const rawMergedProducts: StoreProduct[] = Array.isArray(data.storeProducts) 
         ? data.storeProducts 
         : (db.storeProducts || []);
 
@@ -201,13 +207,19 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         ? data.storeSales
         : (db.storeSales || []);
 
-      const mergedSuppliers: SupplierAccount[] = Array.isArray(data.supplierAccounts)
+      const rawMergedSuppliers: SupplierAccount[] = Array.isArray(data.supplierAccounts)
         ? data.supplierAccounts
         : (db.supplierAccounts || []);
 
-      const mergedUsers = Array.isArray(data.users) && data.users.length > 0
+      const rawMergedUsers: AppUser[] = Array.isArray(data.users) && data.users.length > 0
         ? data.users
         : (db.users || []);
+
+      // Filter out any tombstone deleted items
+      const mergedTransactions = rawMergedTxs.filter(t => !serverDeletedIds.includes(t.id));
+      const mergedProducts = rawMergedProducts.filter(p => !serverDeletedProductIds.includes(p.id));
+      const mergedSuppliers = rawMergedSuppliers.filter(s => !serverDeletedSupplierIds.includes(s.id));
+      const mergedUsers = rawMergedUsers.filter(u => !serverDeletedUserIds.includes(u.id));
 
       const updatedDb: RawDatabase = {
         ...db,

@@ -78,23 +78,25 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
             top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.65)',
             backdropFilter: 'blur(4px)',
-            zIndex: 120,
+            zIndex: 2200,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
-            padding: '16px'
+            padding: 0
           }}
+          className="no-print"
           onClick={() => setSelectedSale(null)}
         >
           <div
             onClick={e => e.stopPropagation()}
+            className="bottom-sheet-modal"
             style={{
               backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
               width: '100%',
-              maxWidth: '460px',
-              borderRadius: '24px',
-              padding: '20px',
+              maxWidth: '520px',
+              borderRadius: '28px 28px 0 0',
+              padding: '20px 24px 28px 24px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',

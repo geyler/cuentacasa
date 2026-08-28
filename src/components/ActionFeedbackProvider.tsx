@@ -129,18 +129,18 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
     <ActionFeedbackContext.Provider value={{ showToast, confirmAction, showActionResult }}>
       {children}
 
-      {/* Floating Toast Notification Banner */}
+      {/* Floating Bottom Toast Notification Banner */}
       {toast && (
         <div
-          className="no-print"
+          className="no-print bottom-sheet-modal"
           style={{
             position: 'fixed',
-            top: '20px',
+            bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: 9999,
-            width: '90%',
-            maxWidth: '440px',
+            zIndex: 10000,
+            width: '92%',
+            maxWidth: '460px',
             backgroundColor: toast.type === 'success' ? 'var(--md-sys-color-income-container)' :
                              toast.type === 'error' ? 'var(--md-sys-color-expense-container)' :
                              toast.type === 'warning' ? '#FFF8E1' :
@@ -155,30 +155,30 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
               toast.type === 'warning' ? '#FFA000' :
               'var(--md-sys-color-primary)'
             }`,
-            borderRadius: '16px',
-            padding: '12px 16px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
+            borderRadius: '20px',
+            padding: '14px 18px',
+            boxShadow: 'var(--md-shadow-elevation-4)',
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: '12px',
-            animation: 'toastSlideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            animation: 'slideUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
           }}
         >
           {/* Toast Icon */}
-          <div style={{ flexShrink: 0, marginTop: '2px' }}>
-            {toast.type === 'success' && <CheckCircle2 size={22} color="var(--md-sys-color-income)" />}
-            {toast.type === 'error' && <AlertOctagon size={22} color="var(--md-sys-color-expense)" />}
-            {toast.type === 'warning' && <AlertTriangle size={22} color="#FFA000" />}
-            {toast.type === 'info' && <Info size={22} color="var(--md-sys-color-primary)" />}
+          <div style={{ flexShrink: 0 }}>
+            {toast.type === 'success' && <CheckCircle2 size={24} color="var(--md-sys-color-income)" />}
+            {toast.type === 'error' && <AlertOctagon size={24} color="var(--md-sys-color-expense)" />}
+            {toast.type === 'warning' && <AlertTriangle size={24} color="#FFA000" />}
+            {toast.type === 'info' && <Info size={24} color="var(--md-sys-color-primary)" />}
           </div>
 
           {/* Toast Text */}
           <div style={{ flex: 1 }}>
-            <h4 style={{ fontSize: '0.92rem', fontWeight: 800, lineHeight: '1.2' }}>
+            <h4 style={{ fontSize: '0.94rem', fontWeight: 800, lineHeight: '1.2' }}>
               {toast.title}
             </h4>
             {toast.message && (
-              <p style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '3px', lineHeight: '1.3' }}>
+              <p style={{ fontSize: '0.82rem', opacity: 0.9, marginTop: '2px', lineHeight: '1.3' }}>
                 {toast.message}
               </p>
             )}
@@ -193,7 +193,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
               color: 'inherit',
               opacity: 0.7,
               cursor: 'pointer',
-              padding: '2px',
+              padding: '4px',
               flexShrink: 0
             }}
           >

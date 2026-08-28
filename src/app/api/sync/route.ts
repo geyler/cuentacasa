@@ -17,6 +17,11 @@ interface FileCloudData {
   storeFund: number;
   savingsFund: number;
   settings: any;
+  deletedIds?: string[];
+  deletedProductIds?: string[];
+  deletedSupplierIds?: string[];
+  deletedUserIds?: string[];
+  lastResetAt?: number;
 }
 
 function loadFileData(): FileCloudData {
@@ -33,7 +38,12 @@ function loadFileData(): FileCloudData {
           users: [],
           storeFund: 0,
           savingsFund: 0,
-          settings: {}
+          settings: {},
+          deletedIds: [],
+          deletedProductIds: [],
+          deletedSupplierIds: [],
+          deletedUserIds: [],
+          lastResetAt: 0
         };
       }
       return {
@@ -44,7 +54,12 @@ function loadFileData(): FileCloudData {
         users: Array.isArray(parsed.users) ? parsed.users : [],
         storeFund: Number(parsed.storeFund || 0),
         savingsFund: Number(parsed.savingsFund || 0),
-        settings: parsed.settings || {}
+        settings: parsed.settings || {},
+        deletedIds: Array.isArray(parsed.deletedIds) ? parsed.deletedIds : [],
+        deletedProductIds: Array.isArray(parsed.deletedProductIds) ? parsed.deletedProductIds : [],
+        deletedSupplierIds: Array.isArray(parsed.deletedSupplierIds) ? parsed.deletedSupplierIds : [],
+        deletedUserIds: Array.isArray(parsed.deletedUserIds) ? parsed.deletedUserIds : [],
+        lastResetAt: Number(parsed.lastResetAt || 0)
       };
     }
   } catch (e) {
@@ -58,7 +73,12 @@ function loadFileData(): FileCloudData {
     users: [],
     storeFund: 0,
     savingsFund: 0,
-    settings: {}
+    settings: {},
+    deletedIds: [],
+    deletedProductIds: [],
+    deletedSupplierIds: [],
+    deletedUserIds: [],
+    lastResetAt: 0
   };
 }
 
@@ -431,23 +451,39 @@ export async function GET() {
     let currentStoreFund = 0;
     let currentSavingsFund = 0;
     let currentSettings: any = {};
+    let deletedIds: string[] = [];
+    let deletedProductIds: string[] = [];
+    let deletedSupplierIds: string[] = [];
+    let deletedUserIds: string[] = [];
+    let lastResetAt = 0;
 
     if (isMySQLConfigured()) {
       const txResult = await getMySQLTransactions();
       currentCloudTransactions = txResult.transactions;
+      deletedIds = Array.from(txResult.deletedSet);
+
       const prodResult = await getMySQLProducts();
       currentCloudProducts = prodResult.products;
+      deletedProductIds = Array.from(prodResult.deletedSet);
+
       currentCloudSales = await getMySQLSales();
+
       const supResult = await getMySQLSuppliers();
       currentCloudSuppliers = supResult.suppliers;
+      deletedSupplierIds = Array.from(supResult.deletedSet);
+
       const userResult = await getMySQLUsers();
       currentCloudUsers = userResult.users;
+      deletedUserIds = Array.from(userResult.deletedSet);
 
       const storeFundStr = await getMySQLAppState('storeFund');
       if (storeFundStr !== null) currentStoreFund = Number(storeFundStr);
 
       const savingsFundStr = await getMySQLAppState('savingsFund');
       if (savingsFundStr !== null) currentSavingsFund = Number(savingsFundStr);
+
+      const resetStr = await getMySQLAppState('lastResetAt');
+      if (resetStr !== null) lastResetAt = Number(resetStr);
 
       const settingsStr = await getMySQLAppState('settings');
       if (settingsStr !== null) {
@@ -463,6 +499,11 @@ export async function GET() {
       currentStoreFund = fileData.storeFund;
       currentSavingsFund = fileData.savingsFund;
       currentSettings = fileData.settings;
+      deletedIds = fileData.deletedIds || [];
+      deletedProductIds = fileData.deletedProductIds || [];
+      deletedSupplierIds = fileData.deletedSupplierIds || [];
+      deletedUserIds = fileData.deletedUserIds || [];
+      lastResetAt = fileData.lastResetAt || 0;
     }
 
     return NextResponse.json({
@@ -475,6 +516,11 @@ export async function GET() {
       storeFund: currentStoreFund,
       savingsFund: currentSavingsFund,
       settings: currentSettings,
+      deletedIds,
+      deletedProductIds,
+      deletedSupplierIds,
+      deletedUserIds,
+      lastResetAt,
       count: currentCloudTransactions.length,
       productCount: currentCloudProducts.length,
       userCount: currentCloudUsers.length,
@@ -496,6 +542,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const now = Date.now();
 
     // 0. Process Full Database Reset (Preserving configured users)
     if (body.resetAll) {
@@ -510,6 +557,7 @@ export async function POST(req: NextRequest) {
           await pool.query('DELETE FROM deleted_store_products');
           await pool.query('DELETE FROM deleted_supplier_accounts');
           await pool.query('DELETE FROM deleted_app_users');
+          await saveMySQLAppState('lastResetAt', String(now));
         } catch (dbErr) {
           console.warn('MySQL reset error:', dbErr);
         }
@@ -523,7 +571,12 @@ export async function POST(req: NextRequest) {
         users: existingData.users || [],
         storeFund: 0,
         savingsFund: 0,
-        settings: {}
+        settings: {},
+        deletedIds: [],
+        deletedProductIds: [],
+        deletedSupplierIds: [],
+        deletedUserIds: [],
+        lastResetAt: now
       });
       return NextResponse.json({
         success: true,
@@ -535,18 +588,37 @@ export async function POST(req: NextRequest) {
         storeFund: 0,
         savingsFund: 0,
         settings: {},
+        deletedIds: [],
+        deletedProductIds: [],
+        deletedSupplierIds: [],
+        deletedUserIds: [],
+        lastResetAt: now,
         count: 0,
         productCount: 0,
         message: 'Base de datos vaciada y reiniciada a cero en la nube (usuarios conservados).'
       });
     }
 
-    const clientTransactions: Transaction[] = Array.isArray(body.transactions) ? body.transactions : [];
+    // Check server lastResetAt
+    let serverLastResetAt = 0;
+    if (isMySQLConfigured()) {
+      const resetStr = await getMySQLAppState('lastResetAt');
+      if (resetStr !== null) serverLastResetAt = Number(resetStr);
+    } else {
+      serverLastResetAt = loadFileData().lastResetAt || 0;
+    }
+
+    const clientLastSync = Number(body.clientLastSync || 0);
+    const wasResetAfterClientSync = serverLastResetAt > 0 && clientLastSync < serverLastResetAt;
+
+    // If client sync predates a server database reset, ignore client's old operational payload!
+    let clientTransactions: Transaction[] = !wasResetAfterClientSync && Array.isArray(body.transactions) ? body.transactions : [];
+    let clientProducts: StoreProduct[] = !wasResetAfterClientSync && Array.isArray(body.storeProducts) ? body.storeProducts : [];
+    let clientSales: StoreSaleRecord[] = !wasResetAfterClientSync && Array.isArray(body.storeSales) ? body.storeSales : [];
+    let clientSuppliers: SupplierAccount[] = !wasResetAfterClientSync && Array.isArray(body.supplierAccounts) ? body.supplierAccounts : [];
+
     const deletedIds: string[] = Array.isArray(body.deletedIds) ? body.deletedIds : [];
-    const clientProducts: StoreProduct[] = Array.isArray(body.storeProducts) ? body.storeProducts : [];
     const deletedProductIds: string[] = Array.isArray(body.deletedProductIds) ? body.deletedProductIds : [];
-    const clientSales: StoreSaleRecord[] = Array.isArray(body.storeSales) ? body.storeSales : [];
-    const clientSuppliers: SupplierAccount[] = Array.isArray(body.supplierAccounts) ? body.supplierAccounts : [];
     const deletedSupplierIds: string[] = Array.isArray(body.deletedSupplierIds) ? body.deletedSupplierIds : [];
     const clientUsers: AppUser[] = Array.isArray(body.users) ? body.users : [];
     const deletedUserIds: string[] = Array.isArray(body.deletedUserIds) ? body.deletedUserIds : [];
@@ -561,6 +633,8 @@ export async function POST(req: NextRequest) {
       } else {
         const fileData = loadFileData();
         fileData.transactions = fileData.transactions.filter(t => !deletedIds.includes(t.id));
+        const set = new Set([...(fileData.deletedIds || []), ...deletedIds]);
+        fileData.deletedIds = Array.from(set);
         saveFileData(fileData);
       }
     }
@@ -572,6 +646,8 @@ export async function POST(req: NextRequest) {
       } else {
         const fileData = loadFileData();
         fileData.storeProducts = fileData.storeProducts.filter(p => !deletedProductIds.includes(p.id));
+        const set = new Set([...(fileData.deletedProductIds || []), ...deletedProductIds]);
+        fileData.deletedProductIds = Array.from(set);
         saveFileData(fileData);
       }
     }
@@ -583,6 +659,8 @@ export async function POST(req: NextRequest) {
       } else {
         const fileData = loadFileData();
         fileData.supplierAccounts = fileData.supplierAccounts.filter(s => !deletedSupplierIds.includes(s.id));
+        const set = new Set([...(fileData.deletedSupplierIds || []), ...deletedSupplierIds]);
+        fileData.deletedSupplierIds = Array.from(set);
         saveFileData(fileData);
       }
     }
@@ -594,6 +672,8 @@ export async function POST(req: NextRequest) {
       } else {
         const fileData = loadFileData();
         fileData.users = fileData.users.filter(u => !deletedUserIds.includes(u.id));
+        const set = new Set([...(fileData.deletedUserIds || []), ...deletedUserIds]);
+        fileData.deletedUserIds = Array.from(set);
         saveFileData(fileData);
       }
     }
@@ -607,7 +687,9 @@ export async function POST(req: NextRequest) {
       serverTransactions = mysqlData.transactions;
       deletedSet = mysqlData.deletedSet;
     } else {
-      serverTransactions = loadFileData().transactions;
+      const fileData = loadFileData();
+      serverTransactions = fileData.transactions;
+      deletedSet = new Set(fileData.deletedIds || []);
     }
 
     const mergedTxMap = new Map<string, Transaction>();
@@ -655,7 +737,9 @@ export async function POST(req: NextRequest) {
       serverProducts = mysqlProds.products;
       deletedProductSet = mysqlProds.deletedSet;
     } else {
-      serverProducts = loadFileData().storeProducts;
+      const fileData = loadFileData();
+      serverProducts = fileData.storeProducts;
+      deletedProductSet = new Set(fileData.deletedProductIds || []);
     }
 
     const mergedProductMap = new Map<string, StoreProduct>();
@@ -723,7 +807,9 @@ export async function POST(req: NextRequest) {
       serverSuppliers = res.suppliers;
       deletedSupplierSet = res.deletedSet;
     } else {
-      serverSuppliers = loadFileData().supplierAccounts;
+      const fileData = loadFileData();
+      serverSuppliers = fileData.supplierAccounts;
+      deletedSupplierSet = new Set(fileData.deletedSupplierIds || []);
     }
 
     const mergedSupplierMap = new Map<string, SupplierAccount>();
@@ -766,7 +852,9 @@ export async function POST(req: NextRequest) {
       serverUsers = res.users;
       deletedUserSet = res.deletedSet;
     } else {
-      serverUsers = loadFileData().users;
+      const fileData = loadFileData();
+      serverUsers = fileData.users;
+      deletedUserSet = new Set(fileData.deletedUserIds || []);
     }
 
     const mergedUserMap = new Map<string, AppUser>();
@@ -849,7 +937,12 @@ export async function POST(req: NextRequest) {
         users: mergedUsers,
         storeFund: mergedStoreFund,
         savingsFund: mergedSavingsFund,
-        settings: mergedSettings
+        settings: mergedSettings,
+        deletedIds: Array.from(deletedSet),
+        deletedProductIds: Array.from(deletedProductSet),
+        deletedSupplierIds: Array.from(deletedSupplierSet),
+        deletedUserIds: Array.from(deletedUserSet),
+        lastResetAt: serverLastResetAt
       });
     }
 
@@ -863,6 +956,11 @@ export async function POST(req: NextRequest) {
       storeFund: mergedStoreFund,
       savingsFund: mergedSavingsFund,
       settings: mergedSettings,
+      deletedIds: Array.from(deletedSet),
+      deletedProductIds: Array.from(deletedProductSet),
+      deletedSupplierIds: Array.from(deletedSupplierSet),
+      deletedUserIds: Array.from(deletedUserSet),
+      lastResetAt: serverLastResetAt,
       count: mergedTransactions.length,
       productCount: mergedProducts.length,
       storage: isMySQLConfigured() ? 'Hostinger MySQL' : 'Local File Storage',
