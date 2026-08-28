@@ -697,7 +697,9 @@ function AccountingAppContent() {
               showBalance={showBalance} 
               isLoading={isTabTransitioning}
               storeFund={getCalculatedStoreFund()}
+              storeFundUSD={db.storeFundUSD || 0}
               savingsFund={db.savingsFund || 0}
+              savingsFundUSD={db.savingsFundUSD || 0}
               onOpenTransfer={() => setIsTransferModalOpen(true)}
             />
 

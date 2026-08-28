@@ -31,19 +31,21 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const [toAccount, setToAccount] = useState<FundAccountType>(
     defaultTo !== defaultFrom ? defaultTo : (defaultFrom === 'casa' ? 'ahorro' : 'casa')
   );
+  const [transferCurrency, setTransferCurrency] = useState<'CUP' | 'USD'>('CUP');
   const [amount, setAmount] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
 
   if (!isOpen) return null;
 
   const rawDb = getRawDatabase();
-  const currency = rawDb.settings?.currency || '$';
+  const isUSD = transferCurrency === 'USD';
+  const currencySymbol = isUSD ? 'US$' : '$';
   
   // Real-time available balances
   const casaSummary = calculateFinancialSummary(rawDb.transactions || []);
-  const casaBalance = casaSummary.netBalance;
-  const storeBalance = rawDb.storeFund || 0;
-  const savingsBalance = getSavingsFund();
+  const casaBalance = isUSD ? (casaSummary.netBalanceUSD || 0) : casaSummary.netBalance;
+  const storeBalance = isUSD ? (rawDb.storeFundUSD || 0) : (rawDb.storeFund || 0);
+  const savingsBalance = isUSD ? (rawDb.savingsFundUSD || 0) : getSavingsFund();
 
   const getAccountBalance = (acc: FundAccountType): number => {
     switch (acc) {
@@ -55,8 +57,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   const getAccountLabel = (acc: FundAccountType): string => {
     switch (acc) {
-      case 'casa': return '🏡 Finanzas del Hogar';
-      case 'tienda': return '🏬 Gestión del Negocio';
+      case 'casa': return '🏡 Fondo de la Casa';
+      case 'tienda': return '🏬 Fondo del Negocio';
       case 'ahorro': return '🐷 Fondo de Ahorro';
     }
   };
@@ -84,7 +86,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     if ((fromAccount === 'tienda' || fromAccount === 'ahorro') && numAmount > availableSourceBalance) {
       showToast({
         title: 'Saldo Insuficiente',
-        message: `El saldo disponible en ${getAccountLabel(fromAccount)} es $${availableSourceBalance}.`,
+        message: `El saldo disponible en ${getAccountLabel(fromAccount)} es ${currencySymbol} ${availableSourceBalance}.`,
         type: 'error'
       });
       return;
@@ -95,7 +97,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
     confirmAction({
       title: '¿Confirmar Transferencia?',
-      message: `Se moverán ${formatCurrency(numAmount, currency, true)} de ${fromLabel} hacia ${toLabel}. Se registrarán 2 transacciones simultáneas.`,
+      message: `Se moverán ${formatCurrency(numAmount, transferCurrency, true)} de ${fromLabel} hacia ${toLabel}. Se registrarán 2 transacciones simultáneas.`,
       variant: 'info',
       confirmText: 'Confirmar y Transferir',
       onConfirm: () => {
@@ -103,6 +105,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           fromAccount,
           toAccount,
           amount: numAmount,
+          currency: transferCurrency,
           notes
         });
 
@@ -114,7 +117,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
           showActionResult({
             title: '¡Transferencia Registrada!',
-            message: `Movimiento exitoso de $${numAmount} desde ${fromLabel} a ${toLabel}.`,
+            message: `Movimiento exitoso de ${currencySymbol} ${numAmount} desde ${fromLabel} a ${toLabel}.`,
             type: 'success'
           });
         } else {
@@ -182,6 +185,54 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}>
             <X size={22} />
           </button>
+        </div>
+        {/* Currency Selector Toggle (CUP vs USD) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+            Moneda de Transferencia *
+          </label>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '6px',
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            padding: '4px',
+            borderRadius: '14px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setTransferCurrency('CUP')}
+              style={{
+                padding: '8px',
+                borderRadius: '10px',
+                border: transferCurrency === 'CUP' ? '1px solid #FBCFE8' : 'none',
+                backgroundColor: transferCurrency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
+                color: transferCurrency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer'
+              }}
+            >
+              💵 CUP ($)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTransferCurrency('USD')}
+              style={{
+                padding: '8px',
+                borderRadius: '10px',
+                border: transferCurrency === 'USD' ? '1px solid #99F6E4' : 'none',
+                backgroundColor: transferCurrency === 'USD' ? '#0F766E' : 'transparent',
+                color: transferCurrency === 'USD' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer'
+              }}
+            >
+              💲 USD (US$)
+            </button>
+          </div>
         </div>
 
         {/* Account Selector Grid: FROM */}

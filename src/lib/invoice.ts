@@ -1,4 +1,4 @@
-import { Transaction, ReportFilter, FinancialSummary, ReportPeriod } from '@/types';
+import { Transaction, ReportFilter, FinancialSummary, CurrencyType } from '@/types';
 
 // 5 minutes editable window check (5 * 60 * 1000 ms)
 export const EDITABLE_WINDOW_MS = 5 * 60 * 1000;
@@ -74,28 +74,43 @@ export function filterTransactionsByPeriod(transactions: Transaction[], filter: 
   });
 }
 
-// Calculate summary totals
+// Calculate summary totals for both CUP and USD
 export function calculateFinancialSummary(transactions: Transaction[]): FinancialSummary {
   let totalIncome = 0;
   let totalExpense = 0;
+  let totalIncomeUSD = 0;
+  let totalExpenseUSD = 0;
   const categoryBreakdown: { [cat: string]: number } = {};
 
   transactions.forEach(tx => {
+    const isUSD = tx.currency === 'USD';
     if (tx.type === 'ingreso') {
-      totalIncome += tx.amount;
+      if (isUSD) {
+        totalIncomeUSD += tx.amount;
+      } else {
+        totalIncome += tx.amount;
+      }
     } else {
-      totalExpense += tx.amount;
-      categoryBreakdown[tx.category] = (categoryBreakdown[tx.category] || 0) + tx.amount;
+      if (isUSD) {
+        totalExpenseUSD += tx.amount;
+      } else {
+        totalExpense += tx.amount;
+        categoryBreakdown[tx.category] = (categoryBreakdown[tx.category] || 0) + tx.amount;
+      }
     }
   });
 
   const netBalance = totalIncome - totalExpense;
+  const netBalanceUSD = totalIncomeUSD - totalExpenseUSD;
   const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100) : 0;
 
   return {
     totalIncome,
     totalExpense,
     netBalance,
+    totalIncomeUSD,
+    totalExpenseUSD,
+    netBalanceUSD,
     savingsRate,
     transactionCount: transactions.length,
     categoryBreakdown
@@ -129,11 +144,42 @@ export function getPeriodLabel(filter: ReportFilter): string {
   }
 }
 
-// Format currency with privacy masking support (rounds all amounts to clean integers)
+// Format currency with privacy masking support
 export function formatCurrency(amount: number, currency: string = '$', showBalance: boolean = true): string {
   if (!showBalance) {
-    return `${currency} •••••`;
+    return `••••••`;
   }
-  const rounded = Math.round(amount);
-  return `${currency}${rounded.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const isUSD = currency === 'USD' || currency === 'US$' || currency === 'USD$';
+  const val = Number(amount) || 0;
+  const formatted = val.toLocaleString('es-ES', { 
+    minimumFractionDigits: val % 1 !== 0 ? 2 : 0, 
+    maximumFractionDigits: 2 
+  });
+  
+  if (isUSD) {
+    return `US$ ${formatted}`;
+  }
+  const symbol = (currency === 'CUP' || currency === '$') ? '$' : currency;
+  return `${symbol} ${formatted}`;
+}
+
+// Visual styling badge helper for USD distinction
+export function getCurrencyBadgeStyle(currency?: string) {
+  const isUSD = currency === 'USD' || currency === 'US$' || currency === 'USD$';
+  if (isUSD) {
+    return {
+      isUSD: true,
+      backgroundColor: '#ECFEFF', // Subtle teal / cyan background
+      color: '#0F766E',           // Dark teal text
+      border: '1px solid #99F6E4',
+      badgeText: 'USD$'
+    };
+  }
+  return {
+    isUSD: false,
+    backgroundColor: 'var(--md-sys-color-surface-container-high)',
+    color: 'var(--md-sys-color-on-surface-variant)',
+    border: '1px solid var(--md-sys-color-outline-variant)',
+    badgeText: 'CUP$'
+  };
 }

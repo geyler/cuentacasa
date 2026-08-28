@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { KeyRound, Loader2, User, LogOut, Lock, HelpCircle, RotateCcw, ArrowLeft } from 'lucide-react';
 import { authenticateUser, setLoggedInUser, getLoggedInUser, getUserPin, clearUserPin, performTotalCacheReset } from '@/lib/storage';
+import { syncDatabaseWithCloud } from '@/lib/sync';
 import { AppUser } from '@/types';
 
 interface LoginScreenProps {
@@ -19,7 +20,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLogoutRequested
 }) => {
   const [currentMode, setCurrentMode] = useState<'master' | 'pin'>(initialMode);
-  const [username, setUsername] = useState('geyler');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,9 +31,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   const currentUser = getLoggedInUser();
 
-  // Lock body scroll while in login view to prevent unwanted scrolling
+  // Lock body scroll while in login view and sync cloud users on mount
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+
+    // Auto-sync users in background if online to ensure newly added cloud users are available
+    if (typeof window !== 'undefined' && navigator.onLine) {
+      syncDatabaseWithCloud(true).catch(() => {});
+    }
+
     return () => {
       document.body.style.overflow = '';
     };
@@ -63,13 +70,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentMode, pin]);
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setInfoMsg('');
     setLoading(true);
 
-    const user = authenticateUser(username, password);
+    let user = authenticateUser(username, password);
+
+    // If local authentication fails and device is online, attempt cloud sync fallback
+    if (!user && typeof window !== 'undefined' && navigator.onLine) {
+      try {
+        await syncDatabaseWithCloud(true);
+        user = authenticateUser(username, password);
+      } catch (err) {
+        // Continue to error if cloud sync fails
+      }
+    }
+
     if (user) {
       setLoggedInUser(user);
       if (isResettingPinMode) {
@@ -155,29 +173,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         transition: 'all 0.2s ease'
       }}>
         
-        {/* Link Volver a la Tienda */}
-        <div style={{ marginBottom: '12px', textAlign: 'left' }}>
-          <a
-            href="/"
-            style={{
-              color: '#DB2777',
-              textDecoration: 'none',
-              fontSize: '0.82rem',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '9999px',
-              backgroundColor: '#FDF2F8',
-              border: '1px solid #FBCFE8'
-            }}
-          >
-            <ArrowLeft size={14} />
-            <span>Volver al Catálogo / Tienda</span>
-          </a>
-        </div>
-
         {/* Large Transparent Logo Without Gradient Box */}
         <div style={{
           display: 'flex',
@@ -449,7 +444,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <div style={{ position: 'relative' }}>
                 <input
                   type="text"
-                  placeholder="ej. geyler"
+                  placeholder="Nombre de usuario"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   required
@@ -478,7 +473,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Contraseña"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required

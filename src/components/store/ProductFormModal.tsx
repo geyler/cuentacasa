@@ -41,7 +41,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [newCategoryInput, setNewCategoryInput] = useState('');
   const [costPrice, setCostPrice] = useState<number | ''>('');
   const [price, setPrice] = useState<number | ''>('');
-  const [stock, setStock] = useState<number | ''>(10);
+  const [productCurrency, setProductCurrency] = useState<'CUP' | 'USD'>('CUP');
+  const [stock, setStock] = useState<number | ''>('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [published, setPublished] = useState(true);
@@ -74,41 +75,50 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setCategory(editingProduct.category || '');
       setCostPrice(editingProduct.costPrice || '');
       setPrice(editingProduct.price);
+      setProductCurrency(editingProduct.currency || 'CUP');
       setStock(editingProduct.stock);
       setPhotoUrl(editingProduct.photoUrl || '');
       setPublished(editingProduct.published ?? true);
 
-      const isSup = editingProduct.supplierType === 'proveedor';
-      const isHome = (editingProduct as any).fundingSource === 'casa';
-      setFundingSource(isSup ? 'proveedor' : isHome ? 'casa' : 'negocio');
-      setSupplierType(editingProduct.supplierType || 'propia');
-      setSupplierName(editingProduct.supplierName || '');
-      setIsAddingNewSupplier(false);
+      // Restore funding source & supplier logic
+      if (editingProduct.supplierType === 'proveedor' && editingProduct.supplierName) {
+        setFundingSource('proveedor');
+        setSupplierType('proveedor');
+        setSupplierName(editingProduct.supplierName);
+        setIsAddingNewSupplier(false);
+      } else {
+        setFundingSource('negocio');
+        setSupplierType('propia');
+        setSupplierName('');
+        setIsAddingNewSupplier(false);
+      }
 
-      setIsExternal(!!editingProduct.isExternal);
-      if (editingProduct.externalUrl) {
-        if (editingProduct.externalUrl.includes('wa.me') || editingProduct.externalUrl.includes('whatsapp')) {
+      // External url handling
+      if (editingProduct.isExternal && editingProduct.externalUrl) {
+        setIsExternal(true);
+        if (editingProduct.externalUrl.includes('wa.me') || editingProduct.externalUrl.includes('whatsapp.com')) {
           setExternalType('whatsapp');
-          const cleanNum = editingProduct.externalUrl.replace(/[^0-9]/g, '');
-          setExternalValue(cleanNum.startsWith('53') && cleanNum.length === 10 ? cleanNum.slice(2) : cleanNum);
+          setExternalValue(editingProduct.externalUrl);
         } else {
           setExternalType('link');
           setExternalValue(editingProduct.externalUrl);
         }
       } else {
+        setIsExternal(false);
         setExternalType('whatsapp');
         setExternalValue('');
       }
       setDescription(editingProduct.description || '');
     } else {
       setName('');
-      setBarcode(String(Math.floor(1000 + Math.random() * 9000)));
+      setBarcode('');
       setCategory(existingCategories[0] || 'Varios');
       setIsAddingNewCategory(false);
       setNewCategoryInput('');
       setCostPrice('');
       setPrice('');
-      setStock(10);
+      setProductCurrency('CUP');
+      setStock('');
       setPhotoUrl('');
       setPublished(true);
 
@@ -173,6 +183,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       category: category.trim() || 'Varios',
       costPrice: calculatedCost,
       price: Number(price),
+      currency: productCurrency,
       stock: Number(stock) || 0,
       photoUrl: photoUrl || undefined,
       published,
@@ -522,6 +533,63 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
         </div>
 
+        {/* Currency Selector Toggle (CUP vs USD) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+            Moneda del Producto *
+          </label>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '6px',
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            padding: '4px',
+            borderRadius: '14px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setProductCurrency('CUP')}
+              style={{
+                padding: '10px',
+                borderRadius: '10px',
+                border: productCurrency === 'CUP' ? '1px solid #FBCFE8' : 'none',
+                backgroundColor: productCurrency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
+                color: productCurrency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>💵 CUP ($)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setProductCurrency('USD')}
+              style={{
+                padding: '10px',
+                borderRadius: '10px',
+                border: productCurrency === 'USD' ? '1px solid #99F6E4' : 'none',
+                backgroundColor: productCurrency === 'USD' ? '#0F766E' : 'transparent',
+                color: productCurrency === 'USD' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>💲 USD (US$)</span>
+            </button>
+          </div>
+        </div>
+
         {/* Cost Price vs Selling Price Grid */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -529,7 +597,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               disableBlur
               hideAceptar
               label="Precio Costo *"
-              unitSymbol={currency}
+              unitSymbol={productCurrency === 'USD' ? 'US$' : '$'}
               type="number"
               inputMode="decimal"
               pattern="[0-9]*"
@@ -545,7 +613,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               disableBlur
               hideAceptar
               label="Precio Público *"
-              unitSymbol={currency}
+              unitSymbol={productCurrency === 'USD' ? 'US$' : '$'}
               type="number"
               inputMode="decimal"
               pattern="[0-9]*"
@@ -572,7 +640,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             }}>
               <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>Estimación de Ganancia:</span>
               <span style={{ fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                +{formatCurrency(Number(price) - (Number(costPrice) || Math.round(Number(price) * 0.7)), currency, true)} ({Math.round(((Number(price) - (Number(costPrice) || Math.round(Number(price) * 0.7))) / Number(price)) * 100)}%)
+                +{formatCurrency(Number(price) - (Number(costPrice) || Math.round(Number(price) * 0.7)), productCurrency, true)} ({Math.round(((Number(price) - (Number(costPrice) || Math.round(Number(price) * 0.7))) / Number(price)) * 100)}%)
               </span>
             </div>
           )}

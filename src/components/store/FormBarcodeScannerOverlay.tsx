@@ -2,11 +2,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Scan, X, Volume2, Plus, Camera } from 'lucide-react';
+import { Scan, X, Volume2, CheckCircle2, RotateCcw, Info } from 'lucide-react';
 
 interface FormBarcodeScannerOverlayProps {
   onScan: (code: string) => void;
   onClose: () => void;
+}
+
+interface ScannedCodeDetails {
+  code: string;
+  formatName: string;
+  length: number;
+  scannedAt: string;
 }
 
 // Web Audio API Beep Generator (100% offline, zero network delay)
@@ -40,7 +47,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
   const html5QrRef = useRef<Html5Qrcode | null>(null);
   const [manualCode, setManualCode] = useState('');
   const [cameraStatus, setCameraStatus] = useState<string>('Iniciando cámara...');
-  const [scannedBadge, setScannedBadge] = useState<string | null>(null);
+  const [pendingCodeDetails, setPendingCodeDetails] = useState<ScannedCodeDetails | null>(null);
 
   // Cooldown tracker to prevent duplicate fires
   const lastScanTimeRef = useRef<number>(0);
@@ -104,7 +111,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
         await scanner.start(
           { facingMode: 'environment' },
           config,
-          (decodedText) => {
+          (decodedText, result) => {
             if (!isMounted) return;
             const code = decodedText.trim();
             if (!code) return;
@@ -114,13 +121,16 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
             lastScanTimeRef.current = now;
 
             playScanBeep();
-            setScannedBadge(code);
             
-            setTimeout(() => {
-              if (isMounted) {
-                onScan(code);
-              }
-            }, 300);
+            const formatName = result?.result?.format?.formatName || (code.length === 13 ? 'EAN_13' : code.length === 12 ? 'UPC_A' : 'Código de Barras');
+            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            setPendingCodeDetails({
+              code,
+              formatName,
+              length: code.length,
+              scannedAt: nowTime
+            });
           },
           () => {}
         );
@@ -132,21 +142,42 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
       }
     };
 
-    const timer = setTimeout(startScanner, 200);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
+    if (!pendingCodeDetails) {
+      const timer = setTimeout(startScanner, 200);
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+        stopScannerEngine();
+      };
+    } else {
       stopScannerEngine();
-    };
-  }, [onScan]);
+    }
+  }, [pendingCodeDetails]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (manualCode.trim()) {
+    const clean = manualCode.trim();
+    if (clean) {
       playScanBeep();
-      onScan(manualCode.trim());
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setPendingCodeDetails({
+        code: clean,
+        formatName: 'Ingreso Manual SKU',
+        length: clean.length,
+        scannedAt: nowTime
+      });
     }
+  };
+
+  const handleConfirmCode = () => {
+    if (pendingCodeDetails) {
+      onScan(pendingCodeDetails.code);
+    }
+  };
+
+  const handleRescan = () => {
+    setPendingCodeDetails(null);
+    setManualCode('');
   };
 
   return (
@@ -154,7 +185,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backgroundColor: 'rgba(0, 0, 0, 0.80)',
         backdropFilter: 'blur(10px)',
         zIndex: 9999,
         display: 'flex',
@@ -184,6 +215,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
       >
         {/* Material Drag Handle */}
         <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto', opacity: 0.8 }} />
+        
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -207,118 +239,216 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
           </button>
         </div>
 
-        {/* Camera Viewfinder Box (Matching POS layout & dimensions) */}
-        <div
-          style={{
-            width: '100%',
-            height: '200px',
-            minHeight: '200px',
-            maxHeight: '200px',
-            backgroundColor: '#050505',
-            borderRadius: '16px',
-            position: 'relative',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '2px solid var(--md-sys-color-primary)'
-          }}
-        >
-          {/* Html5Qrcode Reader Element */}
-          <div id={containerId} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
-
-          {/* Target Box Overlay with Laser Line */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '240px',
-              height: '110px',
-              border: scannedBadge ? '2px solid #00FF88' : '2px solid rgba(255, 255, 255, 0.4)',
-              borderRadius: '14px',
-              boxShadow: scannedBadge ? '0 0 24px rgba(0, 255, 136, 0.8)' : '0 0 0 9999px rgba(0, 0, 0, 0.55)',
-              pointerEvents: 'none',
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            {!scannedBadge && <div className="scanner-laser-line" />}
-            <div style={{ position: 'absolute', top: '6px', left: '6px', width: '14px', height: '14px', borderTop: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '3px 0 0 0' }} />
-            <div style={{ position: 'absolute', top: '6px', right: '6px', width: '14px', height: '14px', borderTop: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 3px 0 0' }} />
-            <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '14px', height: '14px', borderBottom: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '0 0 0 3px' }} />
-            <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '14px', height: '14px', borderBottom: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 0 3px 0' }} />
-          </div>
-
-          {/* Success Beep Badge */}
-          {scannedBadge && (
+        {/* STEP 1: CAMERA SCANNING VIEW */}
+        {!pendingCodeDetails ? (
+          <>
             <div
               style={{
-                position: 'absolute',
-                top: '10px',
-                backgroundColor: '#00875A',
-                color: '#FFFFFF',
-                padding: '6px 14px',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: 800,
+                width: '100%',
+                height: '200px',
+                minHeight: '200px',
+                maxHeight: '200px',
+                backgroundColor: '#050505',
+                borderRadius: '16px',
+                position: 'relative',
+                overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 4px 16px rgba(0, 135, 90, 0.6)',
-                zIndex: 10
+                justifyContent: 'center',
+                border: '2px solid var(--md-sys-color-primary)'
               }}
             >
-              <Volume2 size={16} />
-              <span>Código: #{scannedBadge}</span>
+              {/* Html5Qrcode Reader Element */}
+              <div id={containerId} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
+
+              {/* Target Box Overlay with Laser Line */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '240px',
+                  height: '110px',
+                  border: '2px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '14px',
+                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
+                  pointerEvents: 'none',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <div className="scanner-laser-line" />
+                <div style={{ position: 'absolute', top: '6px', left: '6px', width: '14px', height: '14px', borderTop: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '3px 0 0 0' }} />
+                <div style={{ position: 'absolute', top: '6px', right: '6px', width: '14px', height: '14px', borderTop: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 3px 0 0' }} />
+                <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '14px', height: '14px', borderBottom: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '0 0 0 3px' }} />
+                <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '14px', height: '14px', borderBottom: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 0 3px 0' }} />
+              </div>
             </div>
-          )}
-        </div>
 
-        <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, margin: 0 }}>
-          {cameraStatus}
-        </p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, margin: 0 }}>
+              {cameraStatus}
+            </p>
 
-        {/* Manual SKU Form Fallback */}
-        <form onSubmit={handleManualSubmit} style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '4px' }}>
-          <input
-            type="text"
-            placeholder="O escribe el SKU/Código..."
-            value={manualCode}
-            onChange={e => setManualCode(e.target.value)}
-            style={{
-              flex: 1,
-              padding: '10px 12px',
-              borderRadius: '12px',
-              border: '1.5px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              color: 'var(--md-sys-color-on-surface)',
-              fontSize: '0.9rem',
-              fontWeight: 800,
-              fontFamily: 'monospace'
-            }}
-          />
-          <button
-            type="submit"
-            disabled={!manualCode.trim()}
-            className="md-btn md-btn-primary"
-            style={{ padding: '10px 16px', fontSize: '0.84rem', fontWeight: 800, borderRadius: '12px', flexShrink: 0 }}
-          >
-            Usar
-          </button>
-        </form>
+            {/* Manual SKU Form Fallback */}
+            <form onSubmit={handleManualSubmit} style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '4px' }}>
+              <input
+                type="text"
+                placeholder="O escribe el SKU/Código..."
+                value={manualCode}
+                onChange={e => setManualCode(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  border: '1.5px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  fontFamily: 'monospace'
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!manualCode.trim()}
+                className="md-btn md-btn-primary"
+                style={{ padding: '10px 16px', fontSize: '0.84rem', fontWeight: 800, borderRadius: '12px', flexShrink: 0 }}
+              >
+                Usar
+              </button>
+            </form>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="md-btn md-btn-secondary"
-          style={{ width: '100%', padding: '10px', fontSize: '0.88rem', fontWeight: 700, borderRadius: '12px' }}
-        >
-          Cancelar
-        </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="md-btn md-btn-secondary"
+              style={{ width: '100%', padding: '10px', fontSize: '0.88rem', fontWeight: 700, borderRadius: '12px' }}
+            >
+              Cancelar
+            </button>
+          </>
+        ) : (
+          /* STEP 2: SCANNED CODE PREVIEW & CONFIRMATION MODAL CARD */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '6px 0' }}>
+            <div style={{
+              backgroundColor: '#ECFDF5',
+              border: '2px solid #6EE7B7',
+              borderRadius: '20px',
+              padding: '18px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+              boxShadow: '0 4px 16px rgba(5, 150, 105, 0.12)'
+            }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                backgroundColor: '#10B981',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+              }}>
+                <CheckCircle2 size={24} />
+              </div>
+
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  ¡Código Leído con Éxito!
+                </span>
+                <div style={{
+                  fontSize: '1.45rem',
+                  fontWeight: 900,
+                  fontFamily: 'monospace',
+                  color: '#064E3B',
+                  margin: '6px 0',
+                  letterSpacing: '0.05em',
+                  wordBreak: 'break-all'
+                }}>
+                  #{pendingCodeDetails.code}
+                </div>
+              </div>
+
+              {/* Code Technical Metadata Box */}
+              <div style={{
+                width: '100%',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #A7F3D0',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                fontSize: '0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                textAlign: 'left',
+                color: '#065F46'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 600, opacity: 0.8 }}>Estándar/Formato:</span>
+                  <span style={{ fontWeight: 800 }}>{pendingCodeDetails.formatName}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 600, opacity: 0.8 }}>Longitud:</span>
+                  <span style={{ fontWeight: 800 }}>{pendingCodeDetails.length} caracteres</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 600, opacity: 0.8 }}>Hora de Lectura:</span>
+                  <span style={{ fontWeight: 800 }}>{pendingCodeDetails.scannedAt}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleConfirmCode}
+                className="md-btn md-btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '0.95rem',
+                  fontWeight: 900,
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(0, 99, 155, 0.25)'
+                }}
+              >
+                <CheckCircle2 size={18} />
+                <span>Confirmar y Usar Código</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRescan}
+                className="md-btn md-btn-secondary"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <RotateCcw size={16} />
+                <span>Volver a Escanear</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

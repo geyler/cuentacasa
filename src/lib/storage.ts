@@ -856,15 +856,26 @@ export function getSavingsFund(): number {
   return db.savingsFund || 0;
 }
 
+export function getStoreFundUSD(): number {
+  const db = getRawDatabase();
+  return db.storeFundUSD || 0;
+}
+
+export function getSavingsFundUSD(): number {
+  const db = getRawDatabase();
+  return db.savingsFundUSD || 0;
+}
+
 export interface UniversalTransferRequest {
   fromAccount: FundAccountType;
   toAccount: FundAccountType;
   amount: number;
+  currency?: CurrencyType;
   notes?: string;
 }
 
 export function executeUniversalTransfer(req: UniversalTransferRequest): { success: boolean; error?: string } {
-  const { fromAccount, toAccount, amount, notes } = req;
+  const { fromAccount, toAccount, amount, currency = 'CUP', notes } = req;
 
   if (amount <= 0) {
     return { success: false, error: 'Ingresa un monto mayor a 0 para transferir.' };
@@ -875,29 +886,46 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
   }
 
   const db = getRawDatabase();
-  const currentStoreFund = db.storeFund || 0;
-  const currentSavingsFund = db.savingsFund || 0;
+  const isUSD = currency === 'USD';
+  const symbol = isUSD ? 'US$' : '$';
 
-  // Validate balance of source account if store or savings
-  if (fromAccount === 'tienda' && amount > currentStoreFund) {
-    return { success: false, error: `Saldo insuficiente en Fondo Tienda ($${currentStoreFund}).` };
+  if (isUSD) {
+    const currentStoreFundUSD = db.storeFundUSD || 0;
+    const currentSavingsFundUSD = db.savingsFundUSD || 0;
+
+    if (fromAccount === 'tienda' && amount > currentStoreFundUSD) {
+      return { success: false, error: `Saldo insuficiente en Fondo Negocio USD (US$ ${currentStoreFundUSD}).` };
+    }
+    if (fromAccount === 'ahorro' && amount > currentSavingsFundUSD) {
+      return { success: false, error: `Saldo insuficiente en Ahorro USD (US$ ${currentSavingsFundUSD}).` };
+    }
+
+    if (fromAccount === 'tienda') db.storeFundUSD = currentStoreFundUSD - amount;
+    if (fromAccount === 'ahorro') db.savingsFundUSD = currentSavingsFundUSD - amount;
+
+    if (toAccount === 'tienda') db.storeFundUSD = (db.storeFundUSD || 0) + amount;
+    if (toAccount === 'ahorro') db.savingsFundUSD = (db.savingsFundUSD || 0) + amount;
+  } else {
+    const currentStoreFund = db.storeFund || 0;
+    const currentSavingsFund = db.savingsFund || 0;
+
+    if (fromAccount === 'tienda' && amount > currentStoreFund) {
+      return { success: false, error: `Saldo insuficiente en Fondo Tienda ($${currentStoreFund}).` };
+    }
+    if (fromAccount === 'ahorro' && amount > currentSavingsFund) {
+      return { success: false, error: `Saldo insuficiente en Fondo de Ahorro ($${currentSavingsFund}).` };
+    }
+
+    if (fromAccount === 'tienda') db.storeFund = currentStoreFund - amount;
+    if (fromAccount === 'ahorro') db.savingsFund = currentSavingsFund - amount;
+
+    if (toAccount === 'tienda') db.storeFund = (db.storeFund || 0) + amount;
+    if (toAccount === 'ahorro') db.savingsFund = (db.savingsFund || 0) + amount;
   }
-
-  if (fromAccount === 'ahorro' && amount > currentSavingsFund) {
-    return { success: false, error: `Saldo insuficiente en Fondo de Ahorro ($${currentSavingsFund}).` };
-  }
-
-  // Deduct from source
-  if (fromAccount === 'tienda') db.storeFund = currentStoreFund - amount;
-  if (fromAccount === 'ahorro') db.savingsFund = currentSavingsFund - amount;
-
-  // Add to destination
-  if (toAccount === 'tienda') db.storeFund = (db.storeFund || 0) + amount;
-  if (toAccount === 'ahorro') db.savingsFund = (db.savingsFund || 0) + amount;
 
   const fundLabels: Record<FundAccountType, string> = {
-    casa: 'Finanzas del Hogar',
-    tienda: 'Gestión del Negocio',
+    casa: 'Fondo de la Casa',
+    tienda: 'Fondo del Negocio',
     ahorro: 'Fondo de Ahorro'
   };
 
@@ -914,9 +942,10 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
     concept: `Transferencia Saliente: ${fromLabel} ➔ ${toLabel}`,
     category: 'Transferencia Entre Cuentas',
     amount: amount,
+    currency: currency,
     date: todayISO,
     accountSource: fromAccount,
-    notes: notes?.trim() || `Transferencia efectuada desde ${fromLabel} hacia ${toLabel}.`,
+    notes: notes?.trim() || `Transferencia efectuada en ${currency} desde ${fromLabel} hacia ${toLabel}.`,
     createdAt: now,
     updatedAt: now,
     synced: false
@@ -929,9 +958,10 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
     concept: `Transferencia Entrante: ${fromLabel} ➔ ${toLabel}`,
     category: 'Transferencia Entre Cuentas',
     amount: amount,
+    currency: currency,
     date: todayISO,
     accountSource: toAccount,
-    notes: notes?.trim() || `Ingreso por transferencia recibido desde ${fromLabel}.`,
+    notes: notes?.trim() || `Ingreso por transferencia en ${currency} recibido desde ${fromLabel}.`,
     createdAt: now + 1,
     updatedAt: now + 1,
     synced: false
@@ -943,13 +973,13 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
 }
 
 // Transfer funds from Store Business Fund (Fondo Tienda) to Cuenta Casa Accounting
-export function transferStoreFundToCasa(amount: number, notes?: string): { success: boolean; error?: string } {
-  return executeUniversalTransfer({ fromAccount: 'tienda', toAccount: 'casa', amount, notes });
+export function transferStoreFundToCasa(amount: number, notes?: string, currency: CurrencyType = 'CUP'): { success: boolean; error?: string } {
+  return executeUniversalTransfer({ fromAccount: 'tienda', toAccount: 'casa', amount, currency, notes });
 }
 
 // Transfer funds from House (Cuenta Casa) to Store Business Fund (Fondo Tienda)
-export function transferCasaToStoreFund(amount: number, notes?: string): { success: boolean; error?: string } {
-  return executeUniversalTransfer({ fromAccount: 'casa', toAccount: 'tienda', amount, notes });
+export function transferCasaToStoreFund(amount: number, notes?: string, currency: CurrencyType = 'CUP'): { success: boolean; error?: string } {
+  return executeUniversalTransfer({ fromAccount: 'casa', toAccount: 'tienda', amount, currency, notes });
 }
 
 // Download DB as JSON file

@@ -26,6 +26,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [type, setType] = useState<TransactionType>(initialType);
   const [concept, setConcept] = useState('');
   const [amount, setAmount] = useState<string>('');
+  const [currency, setCurrency] = useState<'CUP' | 'USD'>('CUP');
   const [error, setError] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   
@@ -42,11 +43,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         setType(editingTransaction.type);
         setConcept(editingTransaction.concept);
         setAmount(editingTransaction.amount.toString());
+        setCurrency(editingTransaction.currency || 'CUP');
         setError('');
       } else {
         setType(initialType);
         setConcept('');
         setAmount('');
+        setCurrency('CUP');
         setError('');
       }
       setIsSaving(false);
@@ -112,6 +115,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         concept: trimmedConcept,
         category: categoryName,
         amount: parsedAmount,
+        currency,
         date: editingTransaction ? editingTransaction.date : currentDate,
         notes: ''
       });
@@ -270,6 +274,52 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </button>
         </div>
 
+        {/* Currency Selector Toggle (CUP vs USD) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '6px',
+          backgroundColor: 'var(--md-sys-color-surface-container-high)',
+          padding: '4px',
+          borderRadius: '14px',
+          opacity: isFocused ? 0.6 : 1,
+          transition: 'opacity 0.2s ease'
+        }}>
+          <button
+            type="button"
+            onClick={() => setCurrency('CUP')}
+            style={{
+              padding: '8px',
+              borderRadius: '10px',
+              border: currency === 'CUP' ? '1px solid #FBCFE8' : 'none',
+              backgroundColor: currency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: currency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.86rem',
+              cursor: 'pointer'
+            }}
+          >
+            💵 CUP ($)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCurrency('USD')}
+            style={{
+              padding: '8px',
+              borderRadius: '10px',
+              border: currency === 'USD' ? '1px solid #99F6E4' : 'none',
+              backgroundColor: currency === 'USD' ? '#0F766E' : 'transparent',
+              color: currency === 'USD' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.86rem',
+              cursor: 'pointer'
+            }}
+          >
+            💲 USD (US$)
+          </button>
+        </div>
+
         {error && (
           <div style={{
             padding: '8px 12px',
@@ -329,7 +379,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           <AppInput
             ref={amountRef}
             label="Monto *"
-            unitSymbol="$"
+            unitSymbol={currency === 'USD' ? 'US$' : '$'}
             type="number"
             inputMode="decimal"
             pattern="[0-9]*"

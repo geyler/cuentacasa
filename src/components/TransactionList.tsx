@@ -352,6 +352,24 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       }}>
                         {scopeLabel}
                       </span>
+
+                      {/* USD Badge */}
+                      {tx.currency === 'USD' && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          backgroundColor: '#ECFEFF',
+                          color: '#0F766E',
+                          border: '1px solid #99F6E4',
+                          flexShrink: 0
+                        }}>
+                          USD$
+                        </span>
+                      )}
                     </div>
 
                     <div style={{
@@ -402,7 +420,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     fontWeight: 800,
                     color: isIncome ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)'
                   }}>
-                    {isIncome ? '+' : '-'} {formatCurrency(tx.amount, currency, showBalance)}
+                    {isIncome ? '+' : '-'} {formatCurrency(tx.amount, tx.currency || currency, showBalance)}
                   </div>
 
                   {/* Edit & Delete Actions (Enabled ONLY within 5 minutes) */}

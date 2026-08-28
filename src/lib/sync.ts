@@ -211,7 +211,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         ? data.supplierAccounts
         : (db.supplierAccounts || []);
 
-      const rawMergedUsers: AppUser[] = Array.isArray(data.users) && data.users.length > 0
+      const rawMergedUsers: AppUser[] = Array.isArray(data.users)
         ? data.users
         : (db.users || []);
 

@@ -378,7 +378,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
         {/* Dashboard Accounting Financial Cards (2 Columns Grid) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-          {/* Card 1: Fondo Negocio (Clean Emerald) */}
+          {/* Card 1: Fondo del Negocio (Clean Emerald) */}
           <div className="md-card" style={{
             backgroundColor: '#ECFDF5',
             color: '#064E3B',
@@ -389,7 +389,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             justifyContent: 'space-between'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo Negocio</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo del Negocio</span>
               <div style={{
                 width: '28px',
                 height: '28px',
@@ -403,11 +403,16 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 <Wallet size={16} color="#059669" />
               </div>
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: '#047857', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '6px 0 2px 0', color: '#047857', letterSpacing: '-0.02em' }}>
               {formatCurrency(totalStoreFund, currency, true)}
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 700 }}>
-              Caja disponible en almacén
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F766E', backgroundColor: '#ECFEFF', padding: '1px 6px', borderRadius: '6px', border: '1px solid #99F6E4' }}>
+                {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
+              </span>
+              <span style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 700 }}>
+                Caja almacén
+              </span>
             </div>
           </div>
 
@@ -434,7 +439,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             </div>
           </div>
 
-          {/* Card 3: Ventas Acumuladas */}
+          {/* Card 3: Ventas Registradas */}
           <div className="md-card" style={{
             backgroundColor: 'var(--md-sys-color-income-container)',
             color: 'var(--md-sys-color-on-income-container)',
@@ -445,7 +450,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             justifyContent: 'space-between'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🛒 Ventas Acumuladas</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🛒 Ventas Registradas</span>
               <TrendingUp size={16} color="var(--md-sys-color-income)" />
             </div>
             <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
@@ -456,7 +461,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             </div>
           </div>
 
-          {/* Card 4: Deuda Proveedores / Ganancias Casa */}
+          {/* Card 4: Por Pagar a Proveedores / Ganancias Casa */}
           {!isVendor ? (
             <div className="md-card" style={{
               backgroundColor: 'var(--md-sys-color-expense-container)',
@@ -468,7 +473,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🤝 Deuda Proveedores</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🤝 Por Pagar a Proveedores</span>
                 <TrendingDown size={16} color="var(--md-sys-color-expense)" />
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-expense)' }}>

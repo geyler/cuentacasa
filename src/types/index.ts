@@ -1,6 +1,7 @@
 export type TransactionType = 'ingreso' | 'gasto';
 export type SupplierType = 'propia' | 'proveedor';
 export type FundAccountType = 'casa' | 'tienda' | 'ahorro';
+export type CurrencyType = 'CUP' | 'USD';
 
 export interface Transaction {
   id: string;
@@ -8,6 +9,7 @@ export interface Transaction {
   concept: string;         // e.g. "tienda: venta de: 7 articulos"
   category: string;        // e.g. "Ganancia Tienda", "Trabajo", "Transferencia"
   amount: number;          // Monto total
+  currency?: CurrencyType; // Moneda: 'CUP' | 'USD'
   date: string;            // ISO String YYYY-MM-DD
   notes?: string;
   accountSource?: FundAccountType; // Source account identifier ('casa', 'tienda', 'ahorro')
@@ -30,6 +32,7 @@ export interface StoreProduct {
   name: string;
   costPrice: number;       // Precio de costo (lo que costó comprarlo)
   price: number;           // Precio de venta (al público)
+  currency?: CurrencyType; // Moneda: 'CUP' | 'USD'
   category: string;
   description?: string;
   stock: number;
@@ -55,6 +58,7 @@ export interface StoreSaleItem {
   costPrice: number;
   unitPrice: number;
   subtotal: number;
+  currency?: CurrencyType;
   supplierType: SupplierType;
   supplierName?: string;
 }
@@ -67,6 +71,7 @@ export interface StoreSaleRecord {
   totalAmount: number;     // Total cobrado al cliente
   totalCost: number;       // Total costo de adquisición
   netProfit: number;       // Ganancia neta (que va a CuentaCasa)
+  currency?: CurrencyType;
   sellerId?: string;
   sellerUsername?: string;
 }
@@ -85,6 +90,9 @@ export interface FinancialSummary {
   totalIncome: number;
   totalExpense: number;
   netBalance: number;
+  totalIncomeUSD?: number;
+  totalExpenseUSD?: number;
+  netBalanceUSD?: number;
   savingsRate: number;
   transactionCount: number;
   categoryBreakdown: { [category: string]: number };
@@ -162,8 +170,10 @@ export interface RawDatabase {
   supplierAccounts?: SupplierAccount[];
   users?: AppUser[];
   shifts?: StoreShiftRecord[];
-  storeFund?: number;      // Fondo propio acumulado en caja de la tienda
-  savingsFund?: number;    // Fondo de Ahorro acumulado de Cuenta Casa
+  storeFund?: number;      // Fondo propio acumulado en caja de la tienda (CUP)
+  storeFundUSD?: number;   // Fondo propio acumulado en caja de la tienda (USD)
+  savingsFund?: number;    // Fondo de Ahorro acumulado de Cuenta Casa (CUP)
+  savingsFundUSD?: number; // Fondo de Ahorro acumulado de Cuenta Casa (USD)
   settings: {
     currency: string;
     appName: string;
