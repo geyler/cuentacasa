@@ -328,14 +328,14 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             Saldo Disponible en Origen:
           </span>
           <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
-            {formatCurrency(availableSourceBalance, currency, true)}
+            {formatCurrency(availableSourceBalance, transferCurrency, true)}
           </span>
         </div>
 
         {/* Input Amount */}
         <div>
           <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-            Monto a Transferir ({currency}):
+            Monto a Transferir ({transferCurrency}):
           </label>
           <input
             type="number"
@@ -391,7 +391,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
             <ArrowRightLeft size={18} />
-            <span>Transferir {currency}{amount ? amount : 0}</span>
+            <span>Transferir {transferCurrency} {amount ? amount : 0}</span>
           </button>
         </div>
 

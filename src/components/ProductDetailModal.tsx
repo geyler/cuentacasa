@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { STORE_SEO_CONFIG, getProductSeoMeta } from '@/lib/seoHelper';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 
 interface ProductDetailModalProps {
   product?: StoreProduct | null;
@@ -98,6 +99,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const ratingScore = activeProduct?.ratingScore || seoMeta.ratingValue;
   const ratingCount = activeProduct?.ratingCount || seoMeta.reviewCount;
 
+  const { showToast } = useActionFeedback();
+
   if (!isOpen || !activeProduct) return null;
 
   const cost = activeProduct.costPrice || Math.round(activeProduct.price * 0.7);
@@ -159,7 +162,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       }
     } else {
       navigator.clipboard.writeText(shareText);
-      alert(`¡Enlace del producto copiado al portapapeles!\n${productSeoLink}`);
+      showToast({
+        title: '¡Enlace Copiado!',
+        message: `El enlace del producto fue copiado al portapapeles.`,
+        type: 'success'
+      });
     }
   };
 

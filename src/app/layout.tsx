@@ -41,6 +41,7 @@ export default function RootLayout({
                   navigator.serviceWorker.register('/sw.js').then(
                     function(registration) {
                       console.log('Samy Store PWA Service Worker registered with scope: ', registration.scope);
+                      registration.update();
                     },
                     function(err) {
                       console.log('ServiceWorker registration failed: ', err);

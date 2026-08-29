@@ -11,6 +11,7 @@ import {
   Store,
   Home
 } from 'lucide-react';
+import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 
 interface QuickEntryViewProps {
   onOpenGasto: () => void;
@@ -31,6 +32,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   onOpenTransfer,
   onOpenPOS
 }) => {
+  const { showActionResult } = useActionFeedback();
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
   const [isInstalled, setIsInstalled] = React.useState<boolean>(false);
 
@@ -58,7 +60,11 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
         setIsInstalled(true);
       }
     } else {
-      alert('📱 Para instalar la App de Samy Store:\n\n1. En Chrome/Android: Toca los 3 puntos del navegador y elige "Añadir a la pantalla de inicio" o "Instalar aplicación".\n2. En iPhone/Safari: Toca el botón Compartir y elige "Añadir a pantalla de inicio".');
+      showActionResult({
+        title: '📱 Instalar App Samy Store',
+        message: '1. En Chrome/Android: Toca los 3 puntos del navegador y elige "Añadir a la pantalla de inicio" o "Instalar aplicación".\n2. En iPhone/Safari: Toca el botón Compartir y elige "Añadir a pantalla de inicio".',
+        type: 'info'
+      });
     }
   };
 

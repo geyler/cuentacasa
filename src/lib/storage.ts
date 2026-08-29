@@ -1,4 +1,4 @@
-import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot, QRSyncPayload } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot, QRSyncPayload, CurrencyType } from '@/types';
 
 const STORAGE_KEY = 'cuentacasa_raw_db_v5';
 

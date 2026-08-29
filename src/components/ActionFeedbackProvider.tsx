@@ -51,6 +51,7 @@ export interface ActionResultOptions {
   icon?: ReactNode;
   actions?: ActionResultAction[];
   details?: ReactNode;
+  autoCloseMs?: number;
 }
 
 interface ActionFeedbackContextType {
@@ -74,30 +75,21 @@ interface ActionFeedbackProviderProps {
 }
 
 export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ children }) => {
-  // Toast state
-  const [toast, setToast] = useState<{
-    id: number;
-    title: string;
-    message?: string;
-    type: ToastType;
-  } | null>(null);
-
   // Confirmation Modal state
   const [confirmModal, setConfirmModal] = useState<ConfirmOptions | null>(null);
   const [isExecutingConfirm, setIsExecutingConfirm] = useState(false);
 
-  // Persistent Action Result Bottom Sheet state
+  // Persistent Action Result / Toast Bottom Sheet Modal state
   const [actionResult, setActionResult] = useState<ActionResultOptions | null>(null);
 
-  const showToast = useCallback(({ title, message, type = 'success', duration = 3200 }: ToastOptions) => {
-    const id = Date.now();
-    setToast({ id, title, message, type });
-
-    const timer = setTimeout(() => {
-      setToast(current => (current?.id === id ? null : current));
-    }, duration);
-
-    return () => clearTimeout(timer);
+  // showToast opens a blocking bottom-sheet modal matching user's exact designs
+  const showToast = useCallback(({ title, message, type = 'success', duration }: ToastOptions) => {
+    setActionResult({
+      title,
+      message,
+      type,
+      autoCloseMs: duration
+    });
   }, []);
 
   const confirmAction = useCallback((options: ConfirmOptions) => {
@@ -125,82 +117,39 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
     setConfirmModal(null);
   };
 
+  // Helper for rendering icon in rounded badge box
+  const getIconBadge = (type: 'success' | 'error' | 'warning' | 'info' = 'success', customIcon?: ReactNode) => {
+    if (customIcon) return customIcon;
+    switch (type) {
+      case 'success':
+        return <CheckCircle2 size={24} color="#059669" />;
+      case 'error':
+        return <AlertOctagon size={24} color="#DC2626" />;
+      case 'warning':
+        return <AlertTriangle size={24} color="#D97706" />;
+      case 'info':
+      default:
+        return <Info size={24} color="#EC4899" />;
+    }
+  };
+
+  const getIconContainerStyle = (type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    switch (type) {
+      case 'success':
+        return { backgroundColor: '#E6F4EA', color: '#059669' }; // Exact light green from screenshot 1 & 2
+      case 'error':
+        return { backgroundColor: '#FEE2E2', color: '#DC2626' };
+      case 'warning':
+        return { backgroundColor: '#FEF3C7', color: '#D97706' };
+      case 'info':
+      default:
+        return { backgroundColor: '#FCE7F3', color: '#EC4899' };
+    }
+  };
+
   return (
     <ActionFeedbackContext.Provider value={{ showToast, confirmAction, showActionResult }}>
       {children}
-
-      {/* Floating Bottom Toast Notification Banner */}
-      {toast && (
-        <div
-          className="no-print bottom-sheet-modal"
-          style={{
-            position: 'fixed',
-            bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 10000,
-            width: '92%',
-            maxWidth: '460px',
-            backgroundColor: toast.type === 'success' ? 'var(--md-sys-color-income-container)' :
-                             toast.type === 'error' ? 'var(--md-sys-color-expense-container)' :
-                             toast.type === 'warning' ? '#FFF8E1' :
-                             'var(--md-sys-color-primary-container)',
-            color: toast.type === 'success' ? 'var(--md-sys-color-on-income-container)' :
-                   toast.type === 'error' ? 'var(--md-sys-color-on-expense-container)' :
-                   toast.type === 'warning' ? '#5D4037' :
-                   'var(--md-sys-color-on-primary-container)',
-            border: `2px solid ${
-              toast.type === 'success' ? 'var(--md-sys-color-income)' :
-              toast.type === 'error' ? 'var(--md-sys-color-expense)' :
-              toast.type === 'warning' ? '#FFA000' :
-              'var(--md-sys-color-primary)'
-            }`,
-            borderRadius: '20px',
-            padding: '14px 18px',
-            boxShadow: 'var(--md-shadow-elevation-4)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            animation: 'slideUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-          }}
-        >
-          {/* Toast Icon */}
-          <div style={{ flexShrink: 0 }}>
-            {toast.type === 'success' && <CheckCircle2 size={24} color="var(--md-sys-color-income)" />}
-            {toast.type === 'error' && <AlertOctagon size={24} color="var(--md-sys-color-expense)" />}
-            {toast.type === 'warning' && <AlertTriangle size={24} color="#FFA000" />}
-            {toast.type === 'info' && <Info size={24} color="var(--md-sys-color-primary)" />}
-          </div>
-
-          {/* Toast Text */}
-          <div style={{ flex: 1 }}>
-            <h4 style={{ fontSize: '0.94rem', fontWeight: 800, lineHeight: '1.2' }}>
-              {toast.title}
-            </h4>
-            {toast.message && (
-              <p style={{ fontSize: '0.82rem', opacity: 0.9, marginTop: '2px', lineHeight: '1.3' }}>
-                {toast.message}
-              </p>
-            )}
-          </div>
-
-          {/* Close Toast button */}
-          <button
-            onClick={() => setToast(null)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'inherit',
-              opacity: 0.7,
-              cursor: 'pointer',
-              padding: '4px',
-              flexShrink: 0
-            }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-      )}
 
       {/* Modern Confirmation Bottom Sheet Modal */}
       {confirmModal && (
@@ -209,9 +158,10 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 10000,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            zIndex: 100000,
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
@@ -223,73 +173,93 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
             onClick={e => e.stopPropagation()}
             className="bottom-sheet-modal"
             style={{
-              backgroundColor: 'var(--md-sys-color-surface-container)',
-              color: 'var(--md-sys-color-on-surface)',
+              backgroundColor: '#FFFFFF',
+              color: '#111827',
               width: '100%',
               maxWidth: '480px',
+              borderTopLeftRadius: '28px',
+              borderTopRightRadius: '28px',
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
               padding: '20px 24px 28px 24px',
-              boxShadow: 'var(--md-shadow-elevation-4)',
+              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.25)',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
               gap: '16px',
               maxHeight: '90vh',
               overflowY: 'auto',
-              animation: 'slideUp 0.25s ease-out'
+              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
-            {/* Drag Handle */}
+            {/* Drag Handle Top Bar */}
             <div style={{
-              width: '36px',
+              width: '40px',
               height: '4px',
               borderRadius: '9999px',
-              backgroundColor: 'var(--md-sys-color-outline-variant)',
+              backgroundColor: '#E5E7EB',
               margin: '0 auto 4px auto',
-              opacity: 0.8
+              opacity: 0.9
             }} />
 
-            {/* Top Icon Badge */}
+            {/* Header Layout */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                backgroundColor: confirmModal.variant === 'danger' ? '#FEE2E2' :
+                                 confirmModal.variant === 'warning' ? '#FEF3C7' :
+                                 '#FCE7F3',
+                color: confirmModal.variant === 'danger' ? '#DC2626' :
+                       confirmModal.variant === 'warning' ? '#D97706' :
+                       '#EC4899'
+              }}>
+                {confirmModal.icon || (
+                  confirmModal.variant === 'danger' ? <Trash2 size={24} color="#DC2626" /> :
+                  confirmModal.variant === 'warning' ? <ShieldAlert size={24} color="#D97706" /> :
+                  <HelpCircle size={24} color="#EC4899" />
+                )}
+              </div>
 
-            <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: confirmModal.variant === 'danger' ? 'var(--md-sys-color-expense-container)' :
-                               confirmModal.variant === 'warning' ? '#FFF3E0' :
-                               'var(--md-sys-color-primary-container)',
-              color: confirmModal.variant === 'danger' ? 'var(--md-sys-color-expense)' :
-                     confirmModal.variant === 'warning' ? '#E65100' :
-                     'var(--md-sys-color-primary)'
-            }}>
-              {confirmModal.icon || (
-                confirmModal.variant === 'danger' ? <Trash2 size={28} /> :
-                confirmModal.variant === 'warning' ? <ShieldAlert size={28} /> :
-                <HelpCircle size={28} />
-              )}
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#111827', lineHeight: '1.25' }}>
+                  {confirmModal.title}
+                </h3>
+                <p style={{ fontSize: '0.88rem', color: '#4B5563', marginTop: '4px', lineHeight: '1.4' }}>
+                  {confirmModal.message}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCancelConfirm}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9CA3AF' }}
+              >
+                <X size={22} />
+              </button>
             </div>
 
-            {/* Title & Description */}
-            <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                {confirmModal.title}
-              </h3>
-              <p style={{ fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '8px', lineHeight: '1.4' }}>
-                {confirmModal.message}
-              </p>
-            </div>
-
-            {/* Modal Actions */}
-            <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '8px' }}>
+            {/* Modal Actions Buttons */}
+            <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '6px' }}>
               <button
                 type="button"
                 onClick={handleCancelConfirm}
                 disabled={isExecutingConfirm}
-                className="md-btn md-btn-secondary"
-                style={{ flex: 1, padding: '12px', fontSize: '0.9rem' }}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  borderRadius: '16px',
+                  border: '1px solid #E5E7EB',
+                  backgroundColor: '#F9FAFB',
+                  color: '#374151',
+                  fontSize: '0.92rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
               >
                 {confirmModal.cancelText || 'Cancelar'}
               </button>
@@ -298,15 +268,19 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
                 type="button"
                 onClick={handleExecuteConfirm}
                 disabled={isExecutingConfirm}
-                className={`md-btn ${
-                  confirmModal.variant === 'danger' ? 'md-btn-expense' : 'md-btn-primary'
-                }`}
                 style={{
                   flex: 1,
-                  padding: '12px',
-                  fontSize: '0.9rem',
-                  backgroundColor: confirmModal.variant === 'warning' ? '#E65100' : undefined,
-                  color: confirmModal.variant === 'warning' ? '#FFF' : undefined
+                  padding: '14px',
+                  borderRadius: '16px',
+                  border: 'none',
+                  backgroundColor: confirmModal.variant === 'danger' ? '#EF4444' :
+                                   confirmModal.variant === 'warning' ? '#D97706' :
+                                   '#EC4899',
+                  color: '#FFFFFF',
+                  fontSize: '0.92rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: confirmModal.variant === 'danger' ? '0 4px 14px rgba(239, 68, 68, 0.3)' : '0 4px 14px rgba(236, 72, 153, 0.3)'
                 }}
               >
                 {isExecutingConfirm ? 'Procesando...' : (confirmModal.confirmText || 'Confirmar')}
@@ -317,16 +291,17 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         </div>
       )}
 
-      {/* Persistent Post-Action Result Bottom Sheet Modal */}
+      {/* Blocking Bottom Sheet Modal for Toasts & Action Results (Matches Screenshot 1 & 2) */}
       {actionResult && (
         <div
           className="no-print"
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 10050,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            zIndex: 100000,
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
@@ -339,89 +314,111 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
             className="bottom-sheet-modal"
             style={{
               width: '100%',
-              maxWidth: '500px',
-              padding: '24px 20px',
+              maxWidth: '480px',
+              backgroundColor: '#FFFFFF',
+              color: '#111827',
+              borderTopLeftRadius: '28px',
+              borderTopRightRadius: '28px',
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              padding: '20px 24px 28px 24px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              boxShadow: 'var(--md-shadow-elevation-3)',
-              animation: 'slideUp 0.25s ease-out'
+              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.25)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
-            {/* Drag handle */}
-            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
+            {/* Drag Handle Pill */}
+            <div style={{
+              width: '40px',
+              height: '4px',
+              borderRadius: '9999px',
+              backgroundColor: '#E5E7EB',
+              margin: '0 auto 4px auto',
+              opacity: 0.9
+            }} />
 
-            {/* Header / Icon */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Header Row: Icon + Title + Message + X Close Button */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
               <div style={{
-                width: '52px',
-                height: '52px',
+                width: '48px',
+                height: '48px',
                 borderRadius: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                backgroundColor: actionResult.type === 'error' ? 'var(--md-sys-color-expense-container)' :
-                                 actionResult.type === 'warning' ? '#FFF3E0' :
-                                 'var(--md-sys-color-income-container)',
-                color: actionResult.type === 'error' ? 'var(--md-sys-color-expense)' :
-                       actionResult.type === 'warning' ? '#E65100' :
-                       'var(--md-sys-color-income)'
+                ...getIconContainerStyle(actionResult.type)
               }}>
-                {actionResult.icon || (
-                  actionResult.type === 'error' ? <AlertOctagon size={28} /> :
-                  actionResult.type === 'warning' ? <AlertTriangle size={28} /> :
-                  <CheckCircle2 size={28} />
-                )}
+                {getIconBadge(actionResult.type, actionResult.icon)}
               </div>
 
               <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#111827', lineHeight: '1.25' }}>
                   {actionResult.title}
                 </h3>
                 {actionResult.message && (
-                  <p style={{ fontSize: '0.86rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                  <p style={{ fontSize: '0.88rem', color: '#4B5563', marginTop: '4px', lineHeight: '1.4' }}>
                     {actionResult.message}
                   </p>
                 )}
               </div>
 
               <button
+                type="button"
                 onClick={() => setActionResult(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--md-sys-color-on-surface-variant)' }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  color: '#9CA3AF'
+                }}
               >
                 <X size={22} />
               </button>
             </div>
 
-            {/* Custom Details Component (if any) */}
+            {/* Optional Custom Details Block */}
             {actionResult.details && (
               <div style={{
-                padding: '12px',
-                borderRadius: '14px',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
+                padding: '14px',
+                borderRadius: '16px',
+                backgroundColor: '#F9FAFB',
+                border: '1px solid #F3F4F6',
                 fontSize: '0.85rem'
               }}>
                 {actionResult.details}
               </div>
             )}
 
-            {/* Action Buttons Stack */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            {/* Action Buttons Stack (Styled Pink like Screenshot 2) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
               {actionResult.actions?.map((act, idx) => {
-                const btnStyle = {
+                const isSecondary = act.variant === 'secondary';
+                const isExpense = act.variant === 'expense';
+
+                const btnStyle: React.CSSProperties = {
                   width: '100%',
-                  padding: '12px',
-                  fontSize: '0.9rem',
+                  padding: '14px',
+                  fontSize: '0.94rem',
                   fontWeight: 800,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  borderRadius: '14px',
+                  borderRadius: '16px',
                   cursor: 'pointer',
-                  textDecoration: 'none'
+                  textDecoration: 'none',
+                  border: isSecondary ? '1px solid #E5E7EB' : 'none',
+                  backgroundColor: isSecondary ? '#F9FAFB' :
+                                   isExpense ? '#EF4444' :
+                                   '#EC4899', // Bright Pink from Screenshot 2
+                  color: isSecondary ? '#111827' : '#FFFFFF',
+                  boxShadow: (!isSecondary && !isExpense) ? '0 4px 14px rgba(236, 72, 153, 0.3)' : undefined
                 };
 
                 if (act.href) {
@@ -433,7 +430,6 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
                       href={act.href}
                       target={targetAttr}
                       rel={isInternal ? undefined : "noopener noreferrer"}
-                      className="md-btn md-btn-primary"
                       onClick={(e) => {
                         setActionResult(null);
                         if (isInternal) {
@@ -457,11 +453,6 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
                       setActionResult(null);
                       if (act.onClick) act.onClick();
                     }}
-                    className={`md-btn ${
-                      act.variant === 'secondary' ? 'md-btn-secondary' :
-                      act.variant === 'expense' ? 'md-btn-expense' :
-                      'md-btn-primary'
-                    }`}
                     style={btnStyle}
                   >
                     {act.icon}
@@ -470,12 +461,21 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
                 );
               })}
 
-              {/* Default Close button */}
+              {/* Default Close button matching Screenshot 1 & 2 */}
               <button
                 type="button"
                 onClick={() => setActionResult(null)}
-                className="md-btn md-btn-secondary"
-                style={{ width: '100%', padding: '10px', fontSize: '0.85rem' }}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '0.94rem',
+                  fontWeight: 800,
+                  borderRadius: '16px',
+                  border: '1px solid #E5E7EB',
+                  backgroundColor: '#F9FAFB',
+                  color: '#111827',
+                  cursor: 'pointer'
+                }}
               >
                 Cerrar
               </button>
@@ -485,34 +485,16 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         </div>
       )}
 
-      {/* Animation Styles */}
+      {/* Slide Up Modal Animation */}
       <style jsx global>{`
-        @keyframes toastSlideDown {
-          from {
-            opacity: 0;
-            transform: translate(-50%, -20px);
-          }
-          to {
-            opacity: 1;
-            transform: translate(-50%, 0);
-          }
-        }
-        @keyframes modalPop {
-          from {
-            opacity: 0;
-            transform: scale(0.92);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
         @keyframes slideUp {
           from {
             transform: translateY(100%);
+            opacity: 0;
           }
           to {
             transform: translateY(0);
+            opacity: 1;
           }
         }
       `}</style>

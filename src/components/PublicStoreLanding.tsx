@@ -7,6 +7,7 @@ import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
+import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { STORE_SEO_CONFIG, getCategorySeoDescription, getProductSeoMeta } from '@/lib/seoHelper';
 
 import { 
@@ -75,6 +76,8 @@ export const PublicStoreLanding: React.FC = () => {
     }
   }, []);
 
+  const { showActionResult } = useActionFeedback();
+
   const handleInstallPwa = async () => {
     if (deferredInstallPrompt) {
       deferredInstallPrompt.prompt();
@@ -84,7 +87,11 @@ export const PublicStoreLanding: React.FC = () => {
         setIsInstalled(true);
       }
     } else {
-      alert('📱 Para instalar la App de Samy Store:\n\n1. En Chrome/Android: Toca los 3 puntos del navegador y elige "Añadir a la pantalla de inicio" o "Instalar aplicación".\n2. En iPhone/Safari: Toca el botón Compartir y elige "Añadir a pantalla de inicio".');
+      showActionResult({
+        title: '📱 Instalar App Samy Store',
+        message: '1. En Chrome/Android: Toca los 3 puntos del navegador y elige "Añadir a la pantalla de inicio" o "Instalar aplicación".\n2. En iPhone/Safari: Toca el botón Compartir y elige "Añadir a pantalla de inicio".',
+        type: 'info'
+      });
     }
   };
 
