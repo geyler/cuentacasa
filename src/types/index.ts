@@ -201,6 +201,7 @@ export interface QRSyncPayload {
   shifts?: StoreShiftRecord[];
   suppliers?: SupplierAccount[];
   users?: AppUser[];
+  transactions?: Transaction[];
 }
 
 

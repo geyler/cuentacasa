@@ -1511,7 +1511,8 @@ export function generateSyncQRPayload(): string {
     sales: db.storeSales || [],
     shifts: db.shifts || [],
     suppliers: db.supplierAccounts || [],
-    users: db.users || []
+    users: db.users || [],
+    transactions: db.transactions || []
   };
 
   return JSON.stringify(payload);
@@ -1524,6 +1525,7 @@ export interface MergeSyncResult {
   addedSales: number;
   addedShifts: number;
   updatedShifts: number;
+  addedTransactions?: number;
   message: string;
 }
 
@@ -1545,12 +1547,14 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
   if (!db.shifts) db.shifts = [];
   if (!db.supplierAccounts) db.supplierAccounts = [];
   if (!db.users) db.users = [];
+  if (!db.transactions) db.transactions = [];
 
   let addedProducts = 0;
   let updatedProducts = 0;
   let addedSales = 0;
   let addedShifts = 0;
   let updatedShifts = 0;
+  let addedTransactions = 0;
 
   // 1. Additive Merge Products (UPSERT by ID)
   if (Array.isArray(payload.products)) {
@@ -1623,6 +1627,17 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
     });
   }
 
+  // 6. Additive Merge Financial Transactions (Deduplication by Transaction ID)
+  if (Array.isArray(payload.transactions)) {
+    payload.transactions.forEach(incTx => {
+      const exists = db.transactions!.some(t => t.id === incTx.id);
+      if (!exists) {
+        db.transactions!.unshift(incTx);
+        addedTransactions++;
+      }
+    });
+  }
+
   db.lastUpdated = new Date().toISOString();
   saveRawDatabase(db);
 
@@ -1630,6 +1645,7 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
   if (addedProducts > 0) summaryParts.push(`${addedProducts} productos nuevos`);
   if (updatedProducts > 0) summaryParts.push(`${updatedProducts} productos actualizados`);
   if (addedSales > 0) summaryParts.push(`${addedSales} ventas sincronizadas`);
+  if (addedTransactions > 0) summaryParts.push(`${addedTransactions} movimientos financieros`);
   if (addedShifts > 0 || updatedShifts > 0) summaryParts.push(`turnos actualizados`);
 
   const summaryMsg = summaryParts.length > 0

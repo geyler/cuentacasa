@@ -22,10 +22,12 @@ import {
   ShoppingBag, 
   Trash2,
   Receipt,
-  Volume2
+  Volume2,
+  PackageSearch
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+import { QuickProductSearchModal } from '@/components/store/QuickProductSearchModal';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -80,9 +82,36 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [successMessage, setSuccessMessage] = useState('');
   const [cameraStatus, setCameraStatus] = useState<string>('Iniciando cámara...');
   const [lastScanned, setLastScanned] = useState<string | null>(null);
+  const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
 
   // Cooldown tracker to prevent duplicate scans in 1.8 seconds
   const lastScanTimeRef = useRef<number>(0);
+
+  const handleAddProductsFromSearch = (incomingItems: StoreSaleItem[]) => {
+    let addedTotalCount = 0;
+    setTicketItems(prev => {
+      const updated = [...prev];
+      incomingItems.forEach(newItem => {
+        const idx = updated.findIndex(i => i.productId === newItem.productId || i.barcode === newItem.barcode);
+        if (idx !== -1) {
+          const newQty = updated[idx].quantity + newItem.quantity;
+          updated[idx] = {
+            ...updated[idx],
+            quantity: newQty,
+            subtotal: newQty * updated[idx].unitPrice
+          };
+        } else {
+          updated.push(newItem);
+        }
+        addedTotalCount += newItem.quantity;
+      });
+      return updated;
+    });
+
+    if (addedTotalCount > 0) {
+      triggerSuccessEffect(`¡${addedTotalCount} ${addedTotalCount === 1 ? 'producto agregado' : 'productos agregados'} por nombre!`);
+    }
+  };
 
   // Load initial ticket items if provided (e.g. from WhatsApp order deep-link)
   useEffect(() => {
@@ -595,7 +624,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         )}
       </div>
 
-      {/* FIXED TOOLBAR BAR: INPUT AND SUMAR BUTTON ONLY */}
+      {/* FIXED TOOLBAR BAR: SEARCH BY NAME, INPUT AND SUMAR BUTTON */}
       <div style={{
         padding: '10px 14px',
         backgroundColor: 'var(--md-sys-color-surface-container)',
@@ -603,6 +632,29 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         flexShrink: 0
       }}>
         <form onSubmit={handleManualFormSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+          <button
+            type="button"
+            onClick={() => setIsQuickSearchOpen(true)}
+            title="Buscar y agregar producto por nombre"
+            style={{
+              padding: '10px 12px',
+              borderRadius: '12px',
+              border: '1.5px solid var(--md-sys-color-primary)',
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              color: 'var(--md-sys-color-on-primary-container)',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexShrink: 0
+            }}
+          >
+            <PackageSearch size={18} />
+            <span>Nombre</span>
+          </button>
+
           <input
             type="text"
             inputMode="numeric"
@@ -865,6 +917,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           </button>
         </div>
       </div>
+
+      <QuickProductSearchModal
+        isOpen={isQuickSearchOpen}
+        onClose={() => setIsQuickSearchOpen(false)}
+        onAddProductsToTicket={handleAddProductsFromSearch}
+        currency={currency}
+      />
 
     </div>
   );
