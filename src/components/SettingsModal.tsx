@@ -41,7 +41,8 @@ import {
   formatCubanPhone,
   performTotalCacheReset,
   getCurrencySettings,
-  saveCurrencySettings
+  saveCurrencySettings,
+  switchCurrencyMode
 } from '@/lib/storage';
 import { AppUser, CurrencyMode } from '@/types';
 import { UserManagementModal } from '@/components/UserManagementModal';
@@ -129,17 +130,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   }, [isOpen]);
 
   const handleSelectCurrencyMode = (mode: CurrencyMode) => {
-    setCurrencyMode(mode);
-    saveCurrencySettings({ currencyMode: mode });
+    if (mode === currencyMode) return;
+
     const labels: Record<CurrencyMode, string> = {
       CUP: 'Solo CUP ($)',
       USD: 'Solo USD (US$)',
       BOTH: 'Ambas Monedas (CUP + USD)'
     };
-    showToast({
-      title: 'Modo de Moneda Actualizado',
-      message: `Configuración de divisas cambiada a: ${labels[mode]}.`,
-      type: 'success'
+
+    const confirmMessages: Record<CurrencyMode, string> = {
+      USD: 'Al activar el modo "Solo USD (US$)", todos los productos publicados con precios en CUP pasarán automáticamente a Borrador (ocultos de la tienda) y las transacciones/saldos en CUP se ocultarán de todas las vistas y formularios. ¿Deseas continuar?',
+      CUP: 'Al activar el modo "Solo CUP ($)", todos los productos publicados con precios en USD pasarán automáticamente a Borrador (ocultos de la tienda) y las transacciones/saldos en USD se ocultarán de todas las vistas y formularios. ¿Deseas continuar?',
+      BOTH: 'Al activar "Ambas Monedas (CUP + USD)", se mostrarán y permitirán transacciones en ambas divisas de forma simultánea. ¿Deseas continuar?'
+    };
+
+    confirmAction({
+      title: `¿Cambiar Modo a ${labels[mode]}?`,
+      message: confirmMessages[mode],
+      variant: 'warning',
+      confirmText: 'Sí, Cambiar Configuración',
+      onConfirm: () => {
+        setCurrencyMode(mode);
+        switchCurrencyMode(mode);
+        showToast({
+          title: 'Modo de Moneda Actualizado',
+          message: `Configuración cambiada exitosamente a: ${labels[mode]}.`,
+          type: 'success'
+        });
+      }
     });
   };
 

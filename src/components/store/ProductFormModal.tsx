@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StoreProduct, SupplierAccount, SupplierType } from '@/types';
-import { compressImageToBase64 } from '@/lib/storage';
+import { compressImageToBase64, getCurrencySettings } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { AppInput } from '@/components/common/AppInput';
 import { Package, X, Camera, Check, Image as ImageIcon } from 'lucide-react';
@@ -117,15 +117,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setNewCategoryInput('');
       setCostPrice('');
       setPrice('');
-      setProductCurrency('CUP');
-      setStock('');
-      setPhotoUrl('');
-      setPublished(true);
-
-      setFundingSource('negocio');
-      setSupplierType('propia');
-      setSupplierName(suppliers.length > 0 ? suppliers[0].name : '');
-      setIsAddingNewSupplier(suppliers.length === 0);
+      const { currencyMode } = getCurrencySettings();
+      if (currencyMode === 'CUP') setProductCurrency('CUP');
+      else if (currencyMode === 'USD') setProductCurrency('USD');
+      else setProductCurrency(editingProduct ? (editingProduct.currency || 'CUP') : 'CUP');
 
       setIsExternal(false);
       setExternalType('whatsapp');
@@ -177,13 +172,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     const calculatedCost = costPrice !== '' ? Number(costPrice) : Math.round(Number(price) * 0.7);
 
+    const { currencyMode } = getCurrencySettings();
+    const finalCurrency = currencyMode === 'USD' ? 'USD' : (currencyMode === 'CUP' ? 'CUP' : productCurrency);
+
     const productPayload = {
       name: name.trim(),
       barcode: barcode.trim() || String(Math.floor(1000 + Math.random() * 9000)),
       category: category.trim() || 'Varios',
       costPrice: calculatedCost,
       price: Number(price),
-      currency: productCurrency,
+      currency: finalCurrency,
       stock: Number(stock) || 0,
       photoUrl: photoUrl || undefined,
       published,
@@ -533,62 +531,69 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
         </div>
 
-        {/* Currency Selector Toggle (CUP vs USD) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-            Moneda del Producto *
-          </label>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '6px',
-            backgroundColor: 'var(--md-sys-color-surface-container-high)',
-            padding: '4px',
-            borderRadius: '14px'
-          }}>
-            <button
-              type="button"
-              onClick={() => setProductCurrency('CUP')}
-              style={{
-                padding: '10px',
-                borderRadius: '10px',
-                border: productCurrency === 'CUP' ? '1px solid #FBCFE8' : 'none',
-                backgroundColor: productCurrency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
-                color: productCurrency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                fontWeight: 800,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>💵 CUP ($)</span>
-            </button>
+        {/* Currency Selector Toggle (Only rendered when BOTH currencies are active) */}
+        {(() => {
+          const { currencyMode } = getCurrencySettings();
+          if (currencyMode !== 'BOTH') return null;
 
-            <button
-              type="button"
-              onClick={() => setProductCurrency('USD')}
-              style={{
-                padding: '10px',
-                borderRadius: '10px',
-                border: productCurrency === 'USD' ? '1px solid #99F6E4' : 'none',
-                backgroundColor: productCurrency === 'USD' ? '#0F766E' : 'transparent',
-                color: productCurrency === 'USD' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                fontWeight: 800,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>💲 USD (US$)</span>
-            </button>
-          </div>
-        </div>
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Moneda del Producto *
+              </label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '6px',
+                backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                padding: '4px',
+                borderRadius: '14px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setProductCurrency('CUP')}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: productCurrency === 'CUP' ? '1px solid #FBCFE8' : 'none',
+                    backgroundColor: productCurrency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
+                    color: productCurrency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span>💵 CUP ($)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setProductCurrency('USD')}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: productCurrency === 'USD' ? '1px solid #99F6E4' : 'none',
+                    backgroundColor: productCurrency === 'USD' ? '#0F766E' : 'transparent',
+                    color: productCurrency === 'USD' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span>💲 USD (US$)</span>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Cost Price vs Selling Price Grid */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

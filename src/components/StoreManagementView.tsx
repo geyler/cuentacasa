@@ -95,16 +95,40 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [isQRSyncModalOpen, setIsQRSyncModalOpen] = useState(false);
 
   useEffect(() => {
-    setProducts(getStoreProducts());
-    setSuppliers(getSupplierAccounts());
+    const refreshData = () => {
+      setProducts(getStoreProducts());
+      setSuppliers(getSupplierAccounts());
+    };
+    refreshData();
+    window.addEventListener('cuentacasa-db-changed', refreshData);
+    window.addEventListener('cuentacasa-currency-mode-changed', refreshData);
+    return () => {
+      window.removeEventListener('cuentacasa-db-changed', refreshData);
+      window.removeEventListener('cuentacasa-currency-mode-changed', refreshData);
+    };
   }, []);
 
-  // Compute Store Financial Metrics
-  const totalStoreProductsValue = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
-  const totalStoreProductsCost = products.reduce((acc, p) => acc + ((p.costPrice || 0) * p.stock), 0);
+  // Compute Store Financial Metrics with strict currencyMode filtering
+  const { currencyMode } = getCurrencySettings();
+
+  const filteredProductsByCurrency = products.filter(p => {
+    const pCurr = p.currency || 'CUP';
+    if (currencyMode === 'CUP' && pCurr !== 'CUP') return false;
+    if (currencyMode === 'USD' && pCurr !== 'USD') return false;
+    return true;
+  });
+
+  const totalStoreProductsValue = filteredProductsByCurrency.reduce((acc, p) => acc + (p.price * p.stock), 0);
+  const totalStoreProductsCost = filteredProductsByCurrency.reduce((acc, p) => acc + ((p.costPrice || 0) * p.stock), 0);
   const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + s.pendingPayout, 0);
 
-  const salesRecords = getStoreSales();
+  const salesRecords = getStoreSales().filter(s => {
+    const sCurr = s.currency || 'CUP';
+    if (currencyMode === 'CUP' && sCurr !== 'CUP') return false;
+    if (currencyMode === 'USD' && sCurr !== 'USD') return false;
+    return true;
+  });
+
   const totalAccumulatedSalesRevenue = salesRecords.reduce((acc, s) => acc + s.totalAmount, 0);
   const totalAccumulatedHouseProfits = salesRecords.reduce((acc, s) => acc + (s.netProfit || 0), 0);
 
@@ -411,15 +435,35 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                 <Wallet size={16} color="#059669" />
               </div>
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '6px 0 2px 0', color: '#047857', letterSpacing: '-0.02em' }}>
-              {formatCurrency(totalStoreFund, currency, true)}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F766E', backgroundColor: '#ECFEFF', padding: '1px 6px', borderRadius: '6px', border: '1px solid #99F6E4' }}>
+            {currencyMode === 'CUP' && (
+              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#047857', letterSpacing: '-0.02em', margin: '6px 0 2px 0' }}>
+                {formatCurrency(totalStoreFund, 'CUP', true)}
+              </div>
+            )}
+            {currencyMode === 'USD' && (
+              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0F766E', letterSpacing: '-0.02em', margin: '6px 0 2px 0' }}>
                 {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
-              </span>
+              </div>
+            )}
+            {currencyMode === 'BOTH' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', margin: '6px 0' }}>
+                <div style={{ padding: '6px 8px', borderRadius: '10px', backgroundColor: 'rgba(255, 255, 255, 0.65)', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase' }}>CUP ($)</span>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', wordBreak: 'break-word' }}>
+                    {formatCurrency(totalStoreFund, 'CUP', true)}
+                  </span>
+                </div>
+                <div style={{ padding: '6px 8px', borderRadius: '10px', backgroundColor: 'rgba(255, 255, 255, 0.65)', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#0F766E', textTransform: 'uppercase' }}>USD (US$)</span>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0F766E', wordBreak: 'break-word' }}>
+                    {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
+                  </span>
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 700 }}>
-                Caja almacén
+                {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Caja USD' : 'Caja CUP')}
               </span>
             </div>
           </div>
@@ -436,14 +480,14 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📦 Valor Inventario</span>
               <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-                {products.length} art. ({products.reduce((acc, p) => acc + (p.stock || 0), 0)} u)
+                {filteredProductsByCurrency.length} art. ({filteredProductsByCurrency.reduce((acc, p) => acc + (p.stock || 0), 0)} u)
               </span>
             </div>
             <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
-              {formatCurrency(totalStoreProductsValue, currency, true)}
+              {formatCurrency(totalStoreProductsValue, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
             </div>
             <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-              {!isVendor ? `Costo Stock: ${formatCurrency(totalStoreProductsCost, currency, true)}` : 'Precio público'}
+              {!isVendor ? `Costo Stock: ${formatCurrency(totalStoreProductsCost, currencyMode === 'USD' ? 'USD' : 'CUP', true)}` : 'Precio público'}
             </div>
           </div>
 

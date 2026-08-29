@@ -409,7 +409,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 {formatCurrency(activeProduct.price, currency, true)}
               </span>
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#EC4899', backgroundColor: '#FCE7F3', padding: '2px 8px', borderRadius: '6px' }}>
-                CUP
+                {activeProduct.currency || 'CUP'}
               </span>
             </div>
 

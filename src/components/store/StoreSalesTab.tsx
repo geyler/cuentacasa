@@ -9,11 +9,21 @@ interface StoreSalesTabProps {
   currency?: string;
 }
 
+import { getCurrencySettings } from '@/lib/storage';
+
 export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
   salesRecords,
   currency = '$'
 }) => {
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
+  const { currencyMode } = getCurrencySettings();
+
+  const filteredSales = salesRecords.filter(s => {
+    const sCurr = s.currency || 'CUP';
+    if (currencyMode === 'CUP' && sCurr !== 'CUP') return false;
+    if (currencyMode === 'USD' && sCurr !== 'USD') return false;
+    return true;
+  });
 
   return (
     <div className="md-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -22,13 +32,13 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
         <span>Historial de Ventas y Recibos</span>
       </h3>
 
-      {salesRecords.length === 0 ? (
+      {filteredSales.length === 0 ? (
         <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', padding: '20px' }}>
           Aún no hay ventas registradas. Escanea productos para realizar tu primera venta.
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {salesRecords.map(sale => (
+          {filteredSales.map(sale => (
             <div
               key={sale.id}
               onClick={() => setSelectedSale(sale)}
@@ -47,7 +57,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
                   <Receipt size={14} /> Ticket #{sale.id.slice(-6)} • {sale.date}
                 </span>
                 <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                  {formatCurrency(sale.totalAmount, currency, true)}
+                  {formatCurrency(sale.totalAmount, sale.currency || currency, true)}
                 </span>
               </div>
 

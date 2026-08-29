@@ -260,6 +260,9 @@ export function getUserRole(): UserRole {
 }
 
 // Retrieve full raw DB
+let memoryDbCache: RawDatabase | null = null;
+let memoryRawString: string | null = null;
+
 export function getRawDatabase(): RawDatabase {
   if (typeof window === 'undefined') return INITIAL_DB;
   try {
@@ -268,8 +271,11 @@ export function getRawDatabase(): RawDatabase {
       saveRawDatabase(INITIAL_DB);
       return INITIAL_DB;
     }
+    if (memoryDbCache && memoryRawString === raw) {
+      return memoryDbCache;
+    }
     const parsed = JSON.parse(raw);
-    return {
+    const db: RawDatabase = {
       ...parsed,
       transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
       storeProducts: Array.isArray(parsed.storeProducts) ? parsed.storeProducts : INITIAL_SEED_PRODUCTS,
@@ -283,6 +289,9 @@ export function getRawDatabase(): RawDatabase {
       deletedSupplierIds: Array.isArray(parsed.deletedSupplierIds) ? parsed.deletedSupplierIds : [],
       deletedUserIds: Array.isArray(parsed.deletedUserIds) ? parsed.deletedUserIds : []
     };
+    memoryDbCache = db;
+    memoryRawString = raw;
+    return db;
   } catch (err) {
     console.error('Error parsing raw DB from LocalStorage:', err);
     return INITIAL_DB;
@@ -293,7 +302,13 @@ export function getRawDatabase(): RawDatabase {
 export function saveRawDatabase(db: RawDatabase): void {
   if (typeof window === 'undefined') return;
   db.lastUpdated = new Date().toISOString();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db, null, 2));
+  const rawStr = JSON.stringify(db, null, 2);
+  localStorage.setItem(STORAGE_KEY, rawStr);
+  memoryDbCache = db;
+  memoryRawString = rawStr;
+  try {
+    window.dispatchEvent(new CustomEvent('cuentacasa-db-changed'));
+  } catch (e) {}
 }
 
 // Clear all database records and reset funds to zero (Mantiene Usuarios y sesión activa)
@@ -761,6 +776,13 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
 
   const now = Date.now();
 
+  // Granular Ticket-style item breakdown
+  const ticketItemsList = saleData.items
+    .map(i => `• ${i.quantity}x ${i.name} ($${i.unitPrice} c/u = $${i.quantity * i.unitPrice})`)
+    .join('\n');
+
+  const formattedTicketNotes = `[TICKET_DE_VENTA]\n${ticketItemsList}\n-------------------\nTotal: ${saleData.currency === 'USD' ? 'US$' : '$'}${saleData.totalAmount} | Vendedor: ${saleData.sellerId || 'General'}`;
+
   // 1. Register Gross Sale Income in Store Account Log
   const storeSaleTx: Transaction = {
     id: `tx-sale-store-${now}`,
@@ -771,7 +793,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     currency: saleData.currency || 'CUP',
     date: saleData.date,
     accountSource: 'tienda',
-    notes: `Venta POS #${saleRecord.id.slice(-6)} | Vendedor ID: ${saleData.sellerId || 'general'}`,
+    notes: formattedTicketNotes,
     createdAt: now,
     updatedAt: now,
     synced: false
@@ -957,6 +979,45 @@ export function saveCurrencySettings(settings: Partial<CurrencySettings>): Curre
   if (settings.currencyMode !== undefined) db.settings.currencyMode = settings.currencyMode;
   if (settings.exchangeRateUSD !== undefined) db.settings.exchangeRateUSD = settings.exchangeRateUSD;
   saveRawDatabase(db);
+  return getCurrencySettings();
+}
+
+export function switchCurrencyMode(newMode: CurrencyMode): CurrencySettings {
+  const db = getRawDatabase();
+  if (!db.settings) {
+    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true };
+  }
+  db.settings.currencyMode = newMode;
+
+  // Automate transition of inactive currency published products to "draft" (unpublished)
+  if (newMode === 'USD') {
+    if (db.storeProducts) {
+      db.storeProducts = db.storeProducts.map(p => {
+        const pCurrency = p.currency || 'CUP';
+        if (pCurrency === 'CUP' && p.published) {
+          return { ...p, published: false, updatedAt: Date.now() };
+        }
+        return p;
+      });
+    }
+  } else if (newMode === 'CUP') {
+    if (db.storeProducts) {
+      db.storeProducts = db.storeProducts.map(p => {
+        const pCurrency = p.currency || 'CUP';
+        if (pCurrency === 'USD' && p.published) {
+          return { ...p, published: false, updatedAt: Date.now() };
+        }
+        return p;
+      });
+    }
+  }
+
+  saveRawDatabase(db);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cuentacasa-currency-mode-changed', { detail: { newMode } }));
+  }
+
   return getCurrencySettings();
 }
 

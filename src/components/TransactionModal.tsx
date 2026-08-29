@@ -5,6 +5,7 @@ import { Transaction, TransactionType } from '@/types';
 import { X, CheckCircle2, Check, Keyboard, ArrowRight, Loader2 } from 'lucide-react';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+import { getCurrencySettings } from '@/lib/storage';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -49,9 +50,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         setType(initialType);
         setConcept('');
         setAmount('');
-        setCurrency('CUP');
         setError('');
       }
+      const { currencyMode } = getCurrencySettings();
+      if (currencyMode === 'CUP') setCurrency('CUP');
+      else if (currencyMode === 'USD') setCurrency('USD');
       setIsSaving(false);
 
       setFocusedField(null);
@@ -107,15 +110,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
     // Auto-generate date in background (ISO YYYY-MM-DD)
     const currentDate = new Date().toISOString().split('T')[0];
-    const categoryName = type === 'ingreso' ? 'Ingreso' : 'Gasto';
 
     setTimeout(() => {
+      const { currencyMode } = getCurrencySettings();
+      const finalCurrency = currencyMode === 'USD' ? 'USD' : (currencyMode === 'CUP' ? 'CUP' : currency);
+
       onSave({
         type,
         concept: trimmedConcept,
-        category: categoryName,
+        category: type === 'ingreso' ? 'Ingreso General' : 'Gasto General',
         amount: parsedAmount,
-        currency,
+        currency: finalCurrency,
         date: editingTransaction ? editingTransaction.date : currentDate,
         notes: ''
       });
@@ -275,50 +280,57 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         </div>
 
         {/* Currency Selector Toggle (CUP vs USD) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '6px',
-          backgroundColor: 'var(--md-sys-color-surface-container-high)',
-          padding: '4px',
-          borderRadius: '14px',
-          opacity: isFocused ? 0.6 : 1,
-          transition: 'opacity 0.2s ease'
-        }}>
-          <button
-            type="button"
-            onClick={() => setCurrency('CUP')}
-            style={{
-              padding: '8px',
-              borderRadius: '10px',
-              border: currency === 'CUP' ? '1px solid #FBCFE8' : 'none',
-              backgroundColor: currency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
-              color: currency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.86rem',
-              cursor: 'pointer'
-            }}
-          >
-            💵 CUP ($)
-          </button>
+        {(() => {
+          const { currencyMode } = getCurrencySettings();
+          if (currencyMode !== 'BOTH') return null;
 
-          <button
-            type="button"
-            onClick={() => setCurrency('USD')}
-            style={{
-              padding: '8px',
-              borderRadius: '10px',
-              border: currency === 'USD' ? '1px solid #99F6E4' : 'none',
-              backgroundColor: currency === 'USD' ? '#0F766E' : 'transparent',
-              color: currency === 'USD' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.86rem',
-              cursor: 'pointer'
-            }}
-          >
-            💲 USD (US$)
-          </button>
-        </div>
+          return (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              padding: '4px',
+              borderRadius: '14px',
+              opacity: isFocused ? 0.6 : 1,
+              transition: 'opacity 0.2s ease'
+            }}>
+              <button
+                type="button"
+                onClick={() => setCurrency('CUP')}
+                style={{
+                  padding: '8px',
+                  borderRadius: '10px',
+                  border: currency === 'CUP' ? '1px solid #FBCFE8' : 'none',
+                  backgroundColor: currency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
+                  color: currency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer'
+                }}
+              >
+                💵 CUP ($)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrency('USD')}
+                style={{
+                  padding: '8px',
+                  borderRadius: '10px',
+                  border: currency === 'USD' ? '1px solid #99F6E4' : 'none',
+                  backgroundColor: currency === 'USD' ? '#0F766E' : 'transparent',
+                  color: currency === 'USD' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer'
+                }}
+              >
+                💲 USD (US$)
+              </button>
+            </div>
+          );
+        })()}
 
         {error && (
           <div style={{

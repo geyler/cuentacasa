@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StoreProduct, StoreSaleItem } from '@/types';
-import { getStoreProducts } from '@/lib/storage';
+import { getStoreProducts, getCurrencySettings } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { 
@@ -53,7 +53,13 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
 
   if (!isOpen) return null;
 
+  const { currencyMode } = getCurrencySettings();
+
   const filteredProducts = productsList.filter(prod => {
+    const pCurr = prod.currency || 'CUP';
+    if (currencyMode === 'CUP' && pCurr !== 'CUP') return false;
+    if (currencyMode === 'USD' && pCurr !== 'USD') return false;
+
     if (!searchQuery.trim()) return true;
     const term = searchQuery.toLowerCase().trim();
     return (
@@ -269,7 +275,7 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
                   {/* Price & Quantity Stepper */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
                     <strong style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
-                      {formatCurrency(prod.price, currency, true)}
+                      {formatCurrency(prod.price, prod.currency || currency, true)}
                     </strong>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

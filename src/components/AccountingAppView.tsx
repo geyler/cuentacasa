@@ -274,12 +274,21 @@ function AccountingAppContent() {
     document.addEventListener('focusout', handleFocusOut);
     document.addEventListener('keydown', handleKeyDown);
 
+    const handleDbChanged = () => {
+      loadDatabase();
+    };
+
+    window.addEventListener('cuentacasa-db-changed', handleDbChanged);
+    window.addEventListener('cuentacasa-currency-mode-changed', handleDbChanged);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       document.removeEventListener('focusin', handleFocusIn);
       document.removeEventListener('focusout', handleFocusOut);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('cuentacasa-db-changed', handleDbChanged);
+      window.removeEventListener('cuentacasa-currency-mode-changed', handleDbChanged);
     };
   }, [loadDatabase]);
 

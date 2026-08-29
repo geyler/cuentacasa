@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
-import { getStoreProducts, getStoreWhatsappNumber, formatPhotoUrl } from '@/lib/storage';
+import { getStoreProducts, getStoreWhatsappNumber, formatPhotoUrl, getCurrencySettings } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
@@ -96,19 +96,49 @@ export const PublicStoreLanding: React.FC = () => {
   };
 
   useEffect(() => {
+    const { currencyMode } = getCurrencySettings();
+    const filterByCurrency = (list: StoreProduct[]) => list.filter(p => {
+      if (!p.published) return false;
+      const pCurr = p.currency || 'CUP';
+      if (currencyMode === 'CUP' && pCurr !== 'CUP') return false;
+      if (currencyMode === 'USD' && pCurr !== 'USD') return false;
+      return true;
+    });
+
     const all = getStoreProducts();
-    const publishedList = all.filter(p => p.published);
-    setProducts(publishedList);
+    setProducts(filterByCurrency(all));
 
     syncDatabaseWithCloud(false).then(res => {
       if (res.success) {
         const syncedAll = getStoreProducts();
-        setProducts(syncedAll.filter(p => p.published));
+        setProducts(filterByCurrency(syncedAll));
       }
     }).catch(err => {
       console.warn('Silent cloud sync warning on landing:', err);
     });
 
+    const refreshLanding = () => {
+      const { currencyMode: currentMode } = getCurrencySettings();
+      const filterByCurrency = (list: StoreProduct[]) => list.filter(p => {
+        if (!p.published) return false;
+        const pCurr = p.currency || 'CUP';
+        if (currentMode === 'CUP' && pCurr !== 'CUP') return false;
+        if (currentMode === 'USD' && pCurr !== 'USD') return false;
+        return true;
+      });
+      setProducts(filterByCurrency(getStoreProducts()));
+    };
+
+    window.addEventListener('cuentacasa-db-changed', refreshLanding);
+    window.addEventListener('cuentacasa-currency-mode-changed', refreshLanding);
+
+    return () => {
+      window.removeEventListener('cuentacasa-db-changed', refreshLanding);
+      window.removeEventListener('cuentacasa-currency-mode-changed', refreshLanding);
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const localAuth = localStorage.getItem('cuentacasa_auth');
       const sessionAuth = sessionStorage.getItem('cuentacasa_auth');
@@ -485,10 +515,7 @@ export const PublicStoreLanding: React.FC = () => {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
                         <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                          ${Math.round(product.price)}
-                        </span>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#EC4899', backgroundColor: '#FCE7F3', padding: '1px 4px', borderRadius: '4px' }}>
-                          CUP
+                          {formatCurrency(product.price, product.currency || 'CUP', true)}
                         </span>
                       </div>
 
@@ -783,10 +810,7 @@ export const PublicStoreLanding: React.FC = () => {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
                       <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                        ${Math.round(product.price)}
-                      </span>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#EC4899', backgroundColor: '#FCE7F3', padding: '1px 4px', borderRadius: '4px' }}>
-                        CUP
+                        {formatCurrency(product.price, product.currency || 'CUP', true)}
                       </span>
                     </div>
 

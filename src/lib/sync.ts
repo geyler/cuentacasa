@@ -231,8 +231,10 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         storeFund: data.storeFund !== undefined ? data.storeFund : (db.storeFund || 0),
         savingsFund: data.savingsFund !== undefined ? data.savingsFund : (db.savingsFund || 0),
         settings: {
+          ...(data.settings || {}),
           ...db.settings,
-          ...(data.settings || {})
+          currencyMode: db.settings?.currencyMode || data.settings?.currencyMode || 'BOTH',
+          exchangeRateUSD: db.settings?.exchangeRateUSD || data.settings?.exchangeRateUSD || 320
         },
         deletedIds: [],
         deletedProductIds: [],

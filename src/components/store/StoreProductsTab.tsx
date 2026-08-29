@@ -17,6 +17,8 @@ interface StoreProductsTabProps {
   isVendor?: boolean;
 }
 
+import { getCurrencySettings } from '@/lib/storage';
+
 export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
   products,
   searchTerm,
@@ -28,7 +30,13 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
   currency = '$',
   isVendor = false
 }) => {
+  const { currencyMode } = getCurrencySettings();
+
   const filteredProducts = products.filter(p => {
+    const pCurr = p.currency || 'CUP';
+    if (currencyMode === 'CUP' && pCurr !== 'CUP') return false;
+    if (currencyMode === 'USD' && pCurr !== 'USD') return false;
+
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     return (

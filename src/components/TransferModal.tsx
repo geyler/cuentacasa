@@ -47,6 +47,13 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     if (isOpen) {
       const cSettings = getCurrencySettings();
       setExchangeRate(cSettings.exchangeRateUSD || 320);
+      if (cSettings.currencyMode === 'CUP') {
+        setIsCrossCurrencyMode(false);
+        setSameCurrency('CUP');
+      } else if (cSettings.currencyMode === 'USD') {
+        setIsCrossCurrencyMode(false);
+        setSameCurrency('USD');
+      }
     }
   }, [isOpen]);
 
@@ -238,56 +245,63 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         </div>
 
         {/* Mode Selector: Misma Moneda vs Conversión USD ↔ CUP */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '6px',
-          backgroundColor: 'var(--md-sys-color-surface-container-high)',
-          padding: '4px',
-          borderRadius: '14px'
-        }}>
-          <button
-            type="button"
-            onClick={() => setIsCrossCurrencyMode(false)}
-            style={{
-              padding: '8px',
-              borderRadius: '10px',
-              border: !isCrossCurrencyMode ? '2px solid var(--md-sys-color-primary)' : 'none',
-              backgroundColor: !isCrossCurrencyMode ? 'var(--md-sys-color-surface)' : 'transparent',
-              color: !isCrossCurrencyMode ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              cursor: 'pointer'
-            }}
-          >
-            ↔️ Misma Moneda
-          </button>
+        {(() => {
+          const { currencyMode } = getCurrencySettings();
+          if (currencyMode !== 'BOTH') return null;
 
-          <button
-            type="button"
-            onClick={() => setIsCrossCurrencyMode(true)}
-            style={{
-              padding: '8px',
-              borderRadius: '10px',
-              border: isCrossCurrencyMode ? '2px solid #7C3AED' : 'none',
-              backgroundColor: isCrossCurrencyMode ? '#F5F3FF' : 'transparent',
-              color: isCrossCurrencyMode ? '#6D28D9' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '4px'
-            }}
-          >
-            <Coins size={14} />
-            <span>USD ↔ CUP</span>
-          </button>
-        </div>
+          return (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              padding: '4px',
+              borderRadius: '14px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setIsCrossCurrencyMode(false)}
+                style={{
+                  padding: '8px',
+                  borderRadius: '10px',
+                  border: !isCrossCurrencyMode ? '2px solid var(--md-sys-color-primary)' : 'none',
+                  backgroundColor: !isCrossCurrencyMode ? 'var(--md-sys-color-surface)' : 'transparent',
+                  color: !isCrossCurrencyMode ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                ↔️ Misma Moneda
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCrossCurrencyMode(true)}
+                style={{
+                  padding: '8px',
+                  borderRadius: '10px',
+                  border: isCrossCurrencyMode ? '2px solid #7C3AED' : 'none',
+                  backgroundColor: isCrossCurrencyMode ? '#F5F3FF' : 'transparent',
+                  color: isCrossCurrencyMode ? '#6D28D9' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Coins size={14} />
+                <span>USD ↔ CUP</span>
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Standard Currency Selector (if Misma Moneda) */}
-        {!isCrossCurrencyMode ? (
+        {!isCrossCurrencyMode && getCurrencySettings().currencyMode === 'BOTH' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
               Moneda de la Operación *
@@ -332,7 +346,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               </button>
             </div>
           </div>
-        ) : (
+        ) : null}
+
+        {isCrossCurrencyMode && (
           /* Cross-Currency Direction Selector & Exchange Rate */
           <div style={{
             padding: '12px',

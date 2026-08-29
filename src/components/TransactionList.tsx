@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, TransactionType } from '@/types';
 import { formatCurrency, isTransactionEditable, getRemainingEditableTime } from '@/lib/invoice';
+import { getCurrencySettings } from '@/lib/storage';
 import { TransactionDetailModal } from '@/components/TransactionDetailModal';
 import { 
   Search, 
@@ -77,7 +78,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     const matchesSearch = tx.concept.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           tx.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'todos' || tx.type === typeFilter;
-    return matchesScope && matchesSearch && matchesType;
+
+    const { currencyMode } = getCurrencySettings();
+    const txCurrency = tx.currency || 'CUP';
+    const matchesCurrency = currencyMode === 'BOTH' || (currencyMode === 'CUP' && txCurrency === 'CUP') || (currencyMode === 'USD' && txCurrency === 'USD');
+
+    return matchesScope && matchesSearch && matchesType && matchesCurrency;
   });
 
   // Apply limit if specified (e.g. 10 for Dashboard)

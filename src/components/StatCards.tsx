@@ -4,6 +4,7 @@ import React from 'react';
 import { FinancialSummary } from '@/types';
 import { formatCurrency } from '@/lib/invoice';
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, Store, ArrowRightLeft } from 'lucide-react';
+import { getCurrencySettings } from '@/lib/storage';
 
 interface StatCardsProps {
   summary: FinancialSummary;
@@ -28,6 +29,8 @@ export const StatCards: React.FC<StatCardsProps> = ({
   savingsFundUSD = 0,
   onOpenTransfer
 }) => {
+  const { currencyMode } = getCurrencySettings();
+
   if (isLoading) {
     return (
       <div style={{
@@ -48,6 +51,71 @@ export const StatCards: React.FC<StatCardsProps> = ({
       </div>
     );
   }
+
+  // Equal Parity Render Helper (100% full-width on single mode, 50/50 side-by-side grid on BOTH)
+  const renderValueBlock = (
+    valCUP: number, 
+    valUSD: number, 
+    colorCUP: string = 'var(--md-sys-color-income)', 
+    colorUSD: string = '#0F766E',
+    prefix: string = ''
+  ) => {
+    if (currencyMode === 'CUP') {
+      return (
+        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: colorCUP, letterSpacing: '-0.02em', margin: '6px 0 2px 0', wordBreak: 'break-word' }}>
+          {prefix}{formatCurrency(valCUP, 'CUP', showBalance)}
+        </div>
+      );
+    }
+
+    if (currencyMode === 'USD') {
+      return (
+        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: colorUSD, letterSpacing: '-0.02em', margin: '6px 0 2px 0', wordBreak: 'break-word' }}>
+          {prefix}{formatCurrency(valUSD, 'USD', showBalance)}
+        </div>
+      );
+    }
+
+    // BOTH Mode: 50/50 Equal Parity Grid
+    return (
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '6px',
+        margin: '6px 0'
+      }}>
+        <div style={{
+          padding: '6px 8px',
+          borderRadius: '10px',
+          backgroundColor: 'rgba(255, 255, 255, 0.65)',
+          border: '1px solid rgba(0,0,0,0.06)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1px'
+        }}>
+          <span style={{ fontSize: '0.6rem', fontWeight: 800, color: colorCUP, textTransform: 'uppercase' }}>CUP ($)</span>
+          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: colorCUP, wordBreak: 'break-word' }}>
+            {prefix}{formatCurrency(valCUP, 'CUP', showBalance)}
+          </span>
+        </div>
+
+        <div style={{
+          padding: '6px 8px',
+          borderRadius: '10px',
+          backgroundColor: 'rgba(255, 255, 255, 0.65)',
+          border: '1px solid rgba(0,0,0,0.06)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1px'
+        }}>
+          <span style={{ fontSize: '0.6rem', fontWeight: 800, color: colorUSD, textTransform: 'uppercase' }}>USD (US$)</span>
+          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: colorUSD, wordBreak: 'break-word' }}>
+            {prefix}{formatCurrency(valUSD, 'USD', showBalance)}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -83,9 +151,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
               <TrendingUp size={16} color="var(--md-sys-color-income)" />
             </div>
           </div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)', wordBreak: 'break-word' }}>
-            + {formatCurrency(summary.totalIncome, currency, showBalance)}
-          </div>
+          {renderValueBlock(summary.totalIncome, summary.totalIncomeUSD || 0, 'var(--md-sys-color-income)', '#0F766E', '+ ')}
           <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
             Pagos, ventas y salarios
           </div>
@@ -116,9 +182,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
               <TrendingDown size={16} color="var(--md-sys-color-expense)" />
             </div>
           </div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-expense)', wordBreak: 'break-word' }}>
-            - {formatCurrency(summary.totalExpense, currency, showBalance)}
-          </div>
+          {renderValueBlock(summary.totalExpense, summary.totalExpenseUSD || 0, 'var(--md-sys-color-expense)', '#991B1B', '- ')}
           <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
             Gastos de hogar y compras
           </div>
@@ -131,7 +195,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: '10px'
       }}>
-        {/* Balance Card - Fondo de la Casa (Clean Pink, NO Gradient) */}
+        {/* Balance Card - Fondo de la Casa */}
         <div className="md-card" style={{
           backgroundColor: 'var(--md-sys-color-primary-container)',
           color: 'var(--md-sys-color-on-primary-container)',
@@ -156,18 +220,15 @@ export const StatCards: React.FC<StatCardsProps> = ({
               <Wallet size={16} color="#DB2777" />
             </div>
           </div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '6px 0 2px 0', color: '#831843', letterSpacing: '-0.02em', wordBreak: 'break-word' }}>
-            {formatCurrency(summary.netBalance, currency, showBalance)}
-          </div>
+          {renderValueBlock(summary.netBalance, summary.netBalanceUSD || 0, '#831843', '#0F766E')}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#BE185D', fontWeight: 700 }}>Saldo Casa</span>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F766E', backgroundColor: '#ECFEFF', padding: '1px 6px', borderRadius: '6px', border: '1px solid #99F6E4' }}>
-              {formatCurrency(summary.netBalanceUSD || 0, 'USD', showBalance)}
+            <span style={{ fontSize: '0.68rem', color: '#BE185D', fontWeight: 700 }}>
+              {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Saldo USD' : 'Saldo CUP')}
             </span>
           </div>
         </div>
 
-        {/* Store Fund Card (Fondo del Negocio - Clean Emerald) */}
+        {/* Store Fund Card (Fondo del Negocio) */}
         <div className="md-card" style={{
           backgroundColor: '#ECFDF5',
           color: '#064E3B',
@@ -192,12 +253,10 @@ export const StatCards: React.FC<StatCardsProps> = ({
               <Store size={16} color="#059669" />
             </div>
           </div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '6px 0 2px 0', color: '#047857', letterSpacing: '-0.02em', wordBreak: 'break-word' }}>
-            {formatCurrency(storeFund, currency, showBalance)}
-          </div>
+          {renderValueBlock(storeFund, storeFundUSD, '#047857', '#0F766E')}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F766E', backgroundColor: '#ECFEFF', padding: '1px 6px', borderRadius: '6px', border: '1px solid #99F6E4' }}>
-              {formatCurrency(storeFundUSD, 'USD', showBalance)}
+            <span style={{ fontSize: '0.68rem', color: '#065F46', fontWeight: 700 }}>
+              {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Fondo USD' : 'Fondo CUP')}
             </span>
             {onOpenTransfer && (
               <button
@@ -224,7 +283,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
         </div>
       </div>
 
-      {/* Row 3: Simplified & Low-Profile Savings Fund at Bottom */}
+      {/* Row 3: Savings Fund at Bottom */}
       <div className="md-card" style={{
         backgroundColor: 'var(--md-sys-color-surface-container)',
         border: '1px solid var(--md-sys-color-outline-variant)',
@@ -235,7 +294,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
         justifyContent: 'space-between',
         gap: '10px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
           <div style={{
             width: '32px',
             height: '32px',
@@ -248,18 +307,11 @@ export const StatCards: React.FC<StatCardsProps> = ({
           }}>
             <PiggyBank size={18} color="var(--md-sys-color-primary)" />
           </div>
-          <div style={{ overflow: 'hidden' }}>
+          <div style={{ overflow: 'hidden', flex: 1 }}>
             <div style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
               🐷 Fondo de la Casa (Ahorro)
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', lineHeight: 1.1 }}>
-                {formatCurrency(savingsFund, currency, showBalance)}
-              </div>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F766E', backgroundColor: '#ECFEFF', padding: '1px 6px', borderRadius: '6px', border: '1px solid #99F6E4' }}>
-                {formatCurrency(savingsFundUSD, 'USD', showBalance)}
-              </span>
-            </div>
+            {renderValueBlock(savingsFund, savingsFundUSD, 'var(--md-sys-color-on-surface)', '#0F766E')}
           </div>
         </div>
 
