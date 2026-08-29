@@ -527,6 +527,32 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
   const addedQty = existingIndex !== -1 ? (newStock - oldStock) : newStock;
   if (addedQty > 0) {
     addStockToActiveShift(newProduct.id, addedQty);
+
+    // Register transaction movement for added merchandise into store account log
+    if ((newProduct.costPrice || 0) > 0) {
+      const isConsignment = newProduct.supplierType === 'proveedor';
+      const totalInvestment = Math.round(addedQty * (newProduct.costPrice || 0) * 100) / 100;
+      const todayISO = new Date().toISOString().split('T')[0];
+      const now = Date.now();
+
+      const addStockTx: Transaction = {
+        id: `tx-stock-add-${now}`,
+        type: 'gasto',
+        concept: `Entrada de Mercancía: ${newProduct.name} (+${addedQty}u)`,
+        category: isConsignment ? 'Mercancía Consignación' : 'Compra de Mercancía',
+        amount: totalInvestment,
+        currency: newProduct.currency || 'CUP',
+        date: todayISO,
+        accountSource: 'tienda',
+        notes: `Proveedor: ${newProduct.supplierName || 'Propia'} | Entrada de ${addedQty}u @ $${newProduct.costPrice}/u`,
+        createdAt: now,
+        updatedAt: now,
+        synced: false
+      };
+      if (!db.transactions) db.transactions = [];
+      db.transactions.unshift(addStockTx);
+      saveRawDatabase(db);
+    }
   }
 
   return newProduct;
@@ -576,22 +602,38 @@ export function getSupplierAccounts(): SupplierAccount[] {
   return db.supplierAccounts || [];
 }
 
-export function paySupplierAccount(supplierName: string, amount: number, source: 'negocio' | 'casa' = 'negocio'): { success: boolean; message: string } {
+export function paySupplierAccount(
+  supplierIdOrName: string, 
+  amount: number, 
+  source: 'negocio' | 'casa' = 'negocio',
+  currency: CurrencyType = 'CUP'
+): { success: boolean; message?: string; error?: string } {
   const db = getRawDatabase();
   if (!db.supplierAccounts) db.supplierAccounts = [];
 
-  const supplier = db.supplierAccounts.find(s => s.name.toLowerCase() === supplierName.toLowerCase());
+  const supplier = db.supplierAccounts.find(
+    s => s.id === supplierIdOrName || s.name.toLowerCase() === supplierIdOrName.toLowerCase()
+  );
   if (!supplier) {
-    return { success: false, message: 'Proveedor no encontrado.' };
+    return { success: false, error: 'Proveedor no encontrado.' };
+  }
+
+  if (amount <= 0) {
+    return { success: false, error: 'El monto a liquidar debe ser mayor a 0.' };
   }
 
   const payAmount = Math.min(supplier.pendingPayout, amount);
-  supplier.pendingPayout -= payAmount;
-  supplier.totalPaid += payAmount;
+  if (payAmount <= 0) {
+    return { success: false, error: 'El proveedor no tiene saldo pendiente por liquidar.' };
+  }
+
+  supplier.pendingPayout = Math.max(0, supplier.pendingPayout - payAmount);
+  supplier.totalPaid = (supplier.totalPaid || 0) + payAmount;
   supplier.updatedAt = Date.now();
 
   const todayISO = new Date().toISOString().split('T')[0];
   const now = Date.now();
+  if (!db.transactions) db.transactions = [];
 
   if (source === 'casa') {
     // Dual transaction registration: Outgoing from House, Credit entry to Store
@@ -601,6 +643,7 @@ export function paySupplierAccount(supplierName: string, amount: number, source:
       concept: `Liquidación Proveedor: ${supplier.name} (Pago desde Casa)`,
       category: 'Pago Proveedor Consignación',
       amount: payAmount,
+      currency: currency,
       date: todayISO,
       accountSource: 'casa',
       notes: `Pago directo en efectivo a ${supplier.name} con fondos de Casa.`,
@@ -615,6 +658,7 @@ export function paySupplierAccount(supplierName: string, amount: number, source:
       concept: `Aporte Casa: Liquidación Proveedor ${supplier.name}`,
       category: 'Aporte Casa a Tienda',
       amount: payAmount,
+      currency: currency,
       date: todayISO,
       accountSource: 'tienda',
       notes: `Financiamiento recibido de Casa para saldar deuda con ${supplier.name}.`,
@@ -626,7 +670,11 @@ export function paySupplierAccount(supplierName: string, amount: number, source:
     db.transactions.unshift(houseExpenseTx, storeIncomeTx);
   } else {
     // Paid from Store Business Fund
-    db.storeFund = Math.max(0, (db.storeFund || 0) - payAmount);
+    if (currency === 'USD') {
+      db.storeFundUSD = Math.max(0, (db.storeFundUSD || 0) - payAmount);
+    } else {
+      db.storeFund = Math.max(0, (db.storeFund || 0) - payAmount);
+    }
 
     const storeExpenseTx: Transaction = {
       id: `tx-sup-pay-store-${now}`,
@@ -634,9 +682,10 @@ export function paySupplierAccount(supplierName: string, amount: number, source:
       concept: `Liquidación a Proveedor: ${supplier.name}`,
       category: 'Pago Proveedor Consignación',
       amount: payAmount,
+      currency: currency,
       date: todayISO,
       accountSource: 'tienda',
-      notes: `Pago efectuado con ganancias/fondo del negocio. Saldo restante tienda: $${db.storeFund}`,
+      notes: `Pago a proveedor efectuado con ganancias/fondo del negocio. Saldo restante tienda: $${db.storeFund}`,
       createdAt: now,
       updatedAt: now,
       synced: false
@@ -661,6 +710,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
   if (!db.storeSales) db.storeSales = [];
   if (!db.storeProducts) db.storeProducts = [];
   if (!db.supplierAccounts) db.supplierAccounts = [];
+  if (!db.transactions) db.transactions = [];
   if (typeof db.storeFund !== 'number') db.storeFund = 0;
 
   const saleRecord: StoreSaleRecord = {
@@ -704,24 +754,44 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     }
   });
 
-  // ONLY the Net Profit (Ganancia Casa) is transferred to CuentaCasa Accounting DB
-  if (saleData.netProfit > 0) {
-    const totalCount = saleData.items.reduce((s, i) => s + i.quantity, 0);
-    const conceptSummary = totalCount === 1 
-      ? 'tienda: venta de: 1 articulo' 
-      : `tienda: venta de: ${totalCount} articulos`;
+  const totalCount = saleData.items.reduce((s, i) => s + i.quantity, 0);
+  const conceptSummary = totalCount === 1 
+    ? `tienda: venta de: ${saleData.items[0]?.name || '1 artículo'}` 
+    : `tienda: venta de: ${totalCount} artículos`;
 
+  const now = Date.now();
+
+  // 1. Register Gross Sale Income in Store Account Log
+  const storeSaleTx: Transaction = {
+    id: `tx-sale-store-${now}`,
+    type: 'ingreso',
+    concept: conceptSummary,
+    category: 'Ventas del Negocio',
+    amount: saleData.totalAmount,
+    currency: saleData.currency || 'CUP',
+    date: saleData.date,
+    accountSource: 'tienda',
+    notes: `Venta POS #${saleRecord.id.slice(-6)} | Vendedor ID: ${saleData.sellerId || 'general'}`,
+    createdAt: now,
+    updatedAt: now,
+    synced: false
+  };
+  db.transactions.unshift(storeSaleTx);
+
+  // 2. Net Profit (Ganancia Casa) is transferred to CuentaCasa Accounting DB
+  if (saleData.netProfit > 0) {
     const newTx: Transaction = {
-      id: `tx-profit-${Date.now()}`,
+      id: `tx-profit-${now + 1}`,
       type: 'ingreso',
-      concept: conceptSummary,
+      concept: `Ganancia Tienda: ${conceptSummary}`,
       category: 'Ganancia Tienda',
       amount: saleData.netProfit,
+      currency: saleData.currency || 'CUP',
       date: saleData.date,
       accountSource: 'casa',
       notes: `Venta Total: $${saleData.totalAmount} | Fondo Tienda/Proveedores retenido: $${saleData.totalCost}`,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now + 1,
+      updatedAt: now + 1,
       synced: false
     };
 

@@ -223,10 +223,18 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const handleExecutePayout = (amount: number, source: 'negocio' | 'casa') => {
     if (!payoutSupplier) return;
     try {
-      paySupplierAccount(payoutSupplier.id, amount, source);
-      setSuppliers(getSupplierAccounts());
-      syncDatabaseWithCloud();
-      showToast({ title: '¡Pago Registrado!', message: `Se liquidaron $${amount} a ${payoutSupplier.name}.`, type: 'success' });
+      const res = paySupplierAccount(payoutSupplier.id, amount, source, currency === 'US$' ? 'USD' : 'CUP');
+      if (res.success) {
+        setSuppliers(getSupplierAccounts());
+        syncDatabaseWithCloud();
+        showActionResult({
+          title: '¡Pago Registrado!',
+          message: res.message || `Se liquidaron $${amount} a ${payoutSupplier.name}.`,
+          type: 'success'
+        });
+      } else {
+        showToast({ title: 'No se pudo liquidar', message: res.error || 'Ocurrió un error al liquidar el proveedor.', type: 'error' });
+      }
     } catch (err: any) {
       showToast({ title: 'Error al Liquidar', message: err.message, type: 'error' });
     }
