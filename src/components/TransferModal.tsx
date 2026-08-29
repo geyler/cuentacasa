@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { FundAccountType } from '@/types';
-import { getRawDatabase, getSavingsFund, executeUniversalTransfer } from '@/lib/storage';
+import React, { useState, useEffect } from 'react';
+import { FundAccountType, CurrencyType } from '@/types';
+import { getRawDatabase, getSavingsFund, executeUniversalTransfer, getCurrencySettings } from '@/lib/storage';
 import { formatCurrency, calculateFinancialSummary } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
-import { ArrowRightLeft, X, PiggyBank, Store, Home } from 'lucide-react';
+import { ArrowRightLeft, X, PiggyBank, Store, Home, Coins, RefreshCw } from 'lucide-react';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -31,27 +31,53 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const [toAccount, setToAccount] = useState<FundAccountType>(
     defaultTo !== defaultFrom ? defaultTo : (defaultFrom === 'casa' ? 'ahorro' : 'casa')
   );
-  const [transferCurrency, setTransferCurrency] = useState<'CUP' | 'USD'>('CUP');
+
+  // Transfer Mode: Standard (same currency) vs Cross-Currency Conversion (USD <-> CUP)
+  const [isCrossCurrencyMode, setIsCrossCurrencyMode] = useState<boolean>(false);
+  const [sameCurrency, setSameCurrency] = useState<CurrencyType>('CUP');
+  
+  // Cross-Currency Direction
+  const [conversionDirection, setConversionDirection] = useState<'USD_TO_CUP' | 'CUP_TO_USD'>('USD_TO_CUP');
+  const [exchangeRate, setExchangeRate] = useState<number>(320);
+
   const [amount, setAmount] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      const cSettings = getCurrencySettings();
+      setExchangeRate(cSettings.exchangeRateUSD || 320);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const rawDb = getRawDatabase();
-  const isUSD = transferCurrency === 'USD';
-  const currencySymbol = isUSD ? 'US$' : '$';
-  
-  // Real-time available balances
   const casaSummary = calculateFinancialSummary(rawDb.transactions || []);
-  const casaBalance = isUSD ? (casaSummary.netBalanceUSD || 0) : casaSummary.netBalance;
-  const storeBalance = isUSD ? (rawDb.storeFundUSD || 0) : (rawDb.storeFund || 0);
-  const savingsBalance = isUSD ? (rawDb.savingsFundUSD || 0) : getSavingsFund();
 
-  const getAccountBalance = (acc: FundAccountType): number => {
-    switch (acc) {
-      case 'casa': return casaBalance;
-      case 'tienda': return storeBalance;
-      case 'ahorro': return savingsBalance;
+  // Effective Source & Target Currency
+  const activeSourceCurrency: CurrencyType = isCrossCurrencyMode
+    ? (conversionDirection === 'USD_TO_CUP' ? 'USD' : 'CUP')
+    : sameCurrency;
+
+  const activeTargetCurrency: CurrencyType = isCrossCurrencyMode
+    ? (conversionDirection === 'USD_TO_CUP' ? 'CUP' : 'USD')
+    : sameCurrency;
+
+  // Balance calculation for source currency
+  const getAccountBalanceInCurrency = (acc: FundAccountType, curr: CurrencyType): number => {
+    if (curr === 'USD') {
+      switch (acc) {
+        case 'casa': return casaSummary.netBalanceUSD || 0;
+        case 'tienda': return rawDb.storeFundUSD || 0;
+        case 'ahorro': return rawDb.savingsFundUSD || 0;
+      }
+    } else {
+      switch (acc) {
+        case 'casa': return casaSummary.netBalance;
+        case 'tienda': return rawDb.storeFund || 0;
+        case 'ahorro': return getSavingsFund();
+      }
     }
   };
 
@@ -63,12 +89,26 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     }
   };
 
-  const availableSourceBalance = getAccountBalance(fromAccount);
+  const availableSourceBalance = getAccountBalanceInCurrency(fromAccount, activeSourceCurrency);
+  const srcSymbol = activeSourceCurrency === 'USD' ? 'US$' : '$';
+  const tgtSymbol = activeTargetCurrency === 'USD' ? 'US$' : '$';
+
+  // Live conversion calculation
+  const numAmount = Number(amount) || 0;
+  let calculatedTargetAmount = 0;
+  if (isCrossCurrencyMode && numAmount > 0 && exchangeRate > 0) {
+    if (conversionDirection === 'USD_TO_CUP') {
+      calculatedTargetAmount = Math.round(numAmount * exchangeRate * 100) / 100;
+    } else {
+      calculatedTargetAmount = Math.round((numAmount / exchangeRate) * 100) / 100;
+    }
+  } else {
+    calculatedTargetAmount = numAmount;
+  }
 
   const handleFromChange = (acc: FundAccountType) => {
     setFromAccount(acc);
-    if (toAccount === acc) {
-      // Pick another default destination
+    if (!isCrossCurrencyMode && toAccount === acc) {
       const remaining: FundAccountType[] = (['casa', 'tienda', 'ahorro'] as FundAccountType[]).filter(a => a !== acc);
       setToAccount(remaining[0]);
     }
@@ -76,17 +116,15 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   const handleExecuteTransfer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || Number(amount) <= 0) {
+    if (!amount || numAmount <= 0) {
       showToast({ title: 'Monto Inválido', message: 'Ingresa un monto mayor a 0 para transferir.', type: 'warning' });
       return;
     }
 
-    const numAmount = Number(amount);
-
     if ((fromAccount === 'tienda' || fromAccount === 'ahorro') && numAmount > availableSourceBalance) {
       showToast({
         title: 'Saldo Insuficiente',
-        message: `El saldo disponible en ${getAccountLabel(fromAccount)} es ${currencySymbol} ${availableSourceBalance}.`,
+        message: `El saldo disponible en ${getAccountLabel(fromAccount)} (${activeSourceCurrency}) es ${srcSymbol} ${availableSourceBalance}.`,
         type: 'error'
       });
       return;
@@ -95,17 +133,25 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     const fromLabel = getAccountLabel(fromAccount);
     const toLabel = getAccountLabel(toAccount);
 
+    const titleText = isCrossCurrencyMode ? '¿Confirmar Conversión de Divisa?' : '¿Confirmar Transferencia?';
+    const detailMsg = isCrossCurrencyMode
+      ? `Se debitarán ${srcSymbol}${numAmount} ${activeSourceCurrency} de ${fromLabel} y se acreditarán ${tgtSymbol}${calculatedTargetAmount} ${activeTargetCurrency} en ${toLabel} (Tasa: 1 USD = ${exchangeRate} CUP).`
+      : `Se moverán ${formatCurrency(numAmount, activeSourceCurrency, true)} de ${fromLabel} hacia ${toLabel}.`;
+
     confirmAction({
-      title: '¿Confirmar Transferencia?',
-      message: `Se moverán ${formatCurrency(numAmount, transferCurrency, true)} de ${fromLabel} hacia ${toLabel}. Se registrarán 2 transacciones simultáneas.`,
+      title: titleText,
+      message: detailMsg,
       variant: 'info',
-      confirmText: 'Confirmar y Transferir',
+      confirmText: isCrossCurrencyMode ? 'Convertir y Transferir' : 'Confirmar y Transferir',
       onConfirm: () => {
         const res = executeUniversalTransfer({
           fromAccount,
           toAccount,
           amount: numAmount,
-          currency: transferCurrency,
+          currency: activeSourceCurrency,
+          targetCurrency: activeTargetCurrency,
+          exchangeRate: exchangeRate,
+          targetAmount: calculatedTargetAmount,
           notes
         });
 
@@ -116,8 +162,10 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           onClose();
 
           showActionResult({
-            title: '¡Transferencia Registrada!',
-            message: `Movimiento exitoso de ${currencySymbol} ${numAmount} desde ${fromLabel} a ${toLabel}.`,
+            title: isCrossCurrencyMode ? '¡Conversión Exitosa!' : '¡Transferencia Registrada!',
+            message: isCrossCurrencyMode
+              ? `Convertidos ${srcSymbol}${numAmount} ${activeSourceCurrency} ➔ ${tgtSymbol}${calculatedTargetAmount} ${activeTargetCurrency} desde ${fromLabel} hacia ${toLabel}.`
+              : `Movimiento exitoso de ${srcSymbol}${numAmount} desde ${fromLabel} a ${toLabel}.`,
             type: 'success'
           });
         } else {
@@ -180,65 +228,192 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             }}>
               <ArrowRightLeft size={20} />
             </div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Transferir entre Cuentas</h3>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+              {isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : 'Transferir entre Cuentas'}
+            </h3>
           </div>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}>
             <X size={22} />
           </button>
         </div>
-        {/* Currency Selector Toggle (CUP vs USD) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-            Moneda de Transferencia *
-          </label>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '6px',
-            backgroundColor: 'var(--md-sys-color-surface-container-high)',
-            padding: '4px',
-            borderRadius: '14px'
-          }}>
-            <button
-              type="button"
-              onClick={() => setTransferCurrency('CUP')}
-              style={{
-                padding: '8px',
-                borderRadius: '10px',
-                border: transferCurrency === 'CUP' ? '1px solid #FBCFE8' : 'none',
-                backgroundColor: transferCurrency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
-                color: transferCurrency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                fontWeight: 800,
-                fontSize: '0.86rem',
-                cursor: 'pointer'
-              }}
-            >
-              💵 CUP ($)
-            </button>
 
-            <button
-              type="button"
-              onClick={() => setTransferCurrency('USD')}
-              style={{
-                padding: '8px',
-                borderRadius: '10px',
-                border: transferCurrency === 'USD' ? '1px solid #99F6E4' : 'none',
-                backgroundColor: transferCurrency === 'USD' ? '#0F766E' : 'transparent',
-                color: transferCurrency === 'USD' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                fontWeight: 800,
-                fontSize: '0.86rem',
-                cursor: 'pointer'
-              }}
-            >
-              💲 USD (US$)
-            </button>
-          </div>
+        {/* Mode Selector: Misma Moneda vs Conversión USD ↔ CUP */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '6px',
+          backgroundColor: 'var(--md-sys-color-surface-container-high)',
+          padding: '4px',
+          borderRadius: '14px'
+        }}>
+          <button
+            type="button"
+            onClick={() => setIsCrossCurrencyMode(false)}
+            style={{
+              padding: '8px',
+              borderRadius: '10px',
+              border: !isCrossCurrencyMode ? '2px solid var(--md-sys-color-primary)' : 'none',
+              backgroundColor: !isCrossCurrencyMode ? 'var(--md-sys-color-surface)' : 'transparent',
+              color: !isCrossCurrencyMode ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              cursor: 'pointer'
+            }}
+          >
+            ↔️ Misma Moneda
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCrossCurrencyMode(true)}
+            style={{
+              padding: '8px',
+              borderRadius: '10px',
+              border: isCrossCurrencyMode ? '2px solid #7C3AED' : 'none',
+              backgroundColor: isCrossCurrencyMode ? '#F5F3FF' : 'transparent',
+              color: isCrossCurrencyMode ? '#6D28D9' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px'
+            }}
+          >
+            <Coins size={14} />
+            <span>USD ↔ CUP</span>
+          </button>
         </div>
+
+        {/* Standard Currency Selector (if Misma Moneda) */}
+        {!isCrossCurrencyMode ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Moneda de la Operación *
+            </label>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setSameCurrency('CUP')}
+                style={{
+                  padding: '8px',
+                  borderRadius: '10px',
+                  border: sameCurrency === 'CUP' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: sameCurrency === 'CUP' ? '#ECFDF5' : 'var(--md-sys-color-surface)',
+                  color: sameCurrency === 'CUP' ? '#047857' : 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer'
+                }}
+              >
+                💵 CUP ($)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSameCurrency('USD')}
+                style={{
+                  padding: '8px',
+                  borderRadius: '10px',
+                  border: sameCurrency === 'USD' ? '2px solid #0F766E' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: sameCurrency === 'USD' ? '#CCFBF1' : 'var(--md-sys-color-surface)',
+                  color: sameCurrency === 'USD' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer'
+                }}
+              >
+                💲 USD (US$)
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Cross-Currency Direction Selector & Exchange Rate */
+          <div style={{
+            padding: '12px',
+            borderRadius: '14px',
+            backgroundColor: '#F5F3FF',
+            border: '1.5px solid #DDD6FE',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#6D28D9' }}>
+                Dirección de Conversión:
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6D28D9' }}>Tasa: 1 USD =</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  pattern="[0-9]*"
+                  style={{
+                    width: '65px',
+                    padding: '4px 6px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #7C3AED',
+                    backgroundColor: '#FFF',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    textAlign: 'center'
+                  }}
+                  value={exchangeRate}
+                  onChange={e => setExchangeRate(e.target.value === '' ? '' as any : parseFloat(e.target.value))}
+                />
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6D28D9' }}>CUP</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setConversionDirection('USD_TO_CUP')}
+                style={{
+                  padding: '10px 6px',
+                  borderRadius: '10px',
+                  border: conversionDirection === 'USD_TO_CUP' ? '2px solid #2563EB' : '1px solid #C7D2FE',
+                  backgroundColor: conversionDirection === 'USD_TO_CUP' ? '#EFF6FF' : '#FFF',
+                  color: conversionDirection === 'USD_TO_CUP' ? '#1E40AF' : '#4B5563',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
+                💲 USD ➔ 💵 CUP
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setConversionDirection('CUP_TO_USD')}
+                style={{
+                  padding: '10px 6px',
+                  borderRadius: '10px',
+                  border: conversionDirection === 'CUP_TO_USD' ? '2px solid #059669' : '1px solid #A7F3D0',
+                  backgroundColor: conversionDirection === 'CUP_TO_USD' ? '#ECFDF5' : '#FFF',
+                  color: conversionDirection === 'CUP_TO_USD' ? '#065F46' : '#4B5563',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  textAlign: 'center'
+                }}
+              >
+                💵 CUP ➔ 💲 USD
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Account Selector Grid: FROM */}
         <div>
           <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-            1. Cuenta Origen (Desde donde sale):
+            1. Cuenta Origen (Sale {activeSourceCurrency}):
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
             {(['casa', 'tienda', 'ahorro'] as FundAccountType[]).map((acc) => {
@@ -276,11 +451,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         {/* Account Selector Grid: TO */}
         <div>
           <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-            2. Cuenta Destino (Hacia donde ingresa):
+            2. Cuenta Destino (Ingresa {activeTargetCurrency}):
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
             {(['casa', 'tienda', 'ahorro'] as FundAccountType[]).map((acc) => {
-              const isDisabled = fromAccount === acc;
+              const isDisabled = !isCrossCurrencyMode && fromAccount === acc;
               const isSelected = toAccount === acc;
               return (
                 <button
@@ -325,17 +500,17 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           alignItems: 'center'
         }}>
           <span style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-            Saldo Disponible en Origen:
+            Saldo Disponible en Origen ({activeSourceCurrency}):
           </span>
           <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
-            {formatCurrency(availableSourceBalance, transferCurrency, true)}
+            {formatCurrency(availableSourceBalance, activeSourceCurrency, true)}
           </span>
         </div>
 
-        {/* Input Amount */}
+        {/* Input Amount & Live Calculation Box */}
         <div>
           <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-            Monto a Transferir ({transferCurrency}):
+            Monto a Debitar ({activeSourceCurrency}):
           </label>
           <input
             type="number"
@@ -344,7 +519,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             step="any"
             required
             max={fromAccount === 'casa' ? undefined : availableSourceBalance}
-            placeholder="Monto..."
+            placeholder={`Monto en ${activeSourceCurrency}...`}
             value={amount}
             onChange={e => setAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
             className="app-input-numeric"
@@ -361,6 +536,27 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           />
         </div>
 
+        {/* Live Calculation Preview when converting */}
+        {isCrossCurrencyMode && numAmount > 0 && (
+          <div style={{
+            padding: '12px 14px',
+            borderRadius: '12px',
+            backgroundColor: '#F0FDF4',
+            border: '1.5px solid #86EFAC',
+            textAlign: 'center'
+          }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', display: 'block' }}>
+              Monto Calculado que Ingresará en {getAccountLabel(toAccount)}:
+            </span>
+            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#15803D', display: 'block', marginTop: '2px' }}>
+              {formatCurrency(calculatedTargetAmount, activeTargetCurrency, true)}
+            </span>
+            <span style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 600 }}>
+              Conversión: {srcSymbol}{numAmount} {activeSourceCurrency} @ (1 USD = {exchangeRate} CUP)
+            </span>
+          </div>
+        )}
+
         {/* Input Notes */}
         <div>
           <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
@@ -368,7 +564,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </label>
           <AppInput
             type="text"
-            placeholder="Ej. Depósito mensual de ahorro..."
+            placeholder={isCrossCurrencyMode ? "Ej. Cambio de divisas de caja..." : "Ej. Depósito mensual de ahorro..."}
             value={notes}
             onChange={e => setNotes(e.target.value)}
           />
@@ -391,7 +587,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
             <ArrowRightLeft size={18} />
-            <span>Transferir {transferCurrency} {amount ? amount : 0}</span>
+            <span>{isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`}</span>
           </button>
         </div>
 

@@ -2,6 +2,7 @@ export type TransactionType = 'ingreso' | 'gasto';
 export type SupplierType = 'propia' | 'proveedor';
 export type FundAccountType = 'casa' | 'tienda' | 'ahorro';
 export type CurrencyType = 'CUP' | 'USD';
+export type CurrencyMode = 'CUP' | 'USD' | 'BOTH';
 
 export interface Transaction {
   id: string;
@@ -183,6 +184,8 @@ export interface RawDatabase {
     masterPassword?: string;
     storeWhatsappNumber?: string; // Número de WhatsApp para recibir pedidos del carrito online
     activeWhatsappUserId?: string; // ID del usuario cuyo WhatsApp está seleccionado activamente para recibir carritos
+    currencyMode?: CurrencyMode; // Mode: 'CUP' (Solo CUP), 'USD' (Solo USD), 'BOTH' (CUP + USD)
+    exchangeRateUSD?: number;   // Tipo de cambio 1 USD = X CUP (e.g. 320)
   };
 }
 

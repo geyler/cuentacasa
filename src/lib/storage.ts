@@ -1,4 +1,4 @@
-import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot, QRSyncPayload, CurrencyType } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot, QRSyncPayload, CurrencyType, CurrencyMode } from '@/types';
 
 const STORAGE_KEY = 'cuentacasa_raw_db_v5';
 
@@ -866,61 +866,117 @@ export function getSavingsFundUSD(): number {
   return db.savingsFundUSD || 0;
 }
 
+export interface CurrencySettings {
+  currencyMode: CurrencyMode;
+  exchangeRateUSD: number; // e.g. 320 CUP per 1 USD
+}
+
+export function getCurrencySettings(): CurrencySettings {
+  const db = getRawDatabase();
+  return {
+    currencyMode: (db.settings?.currencyMode as CurrencyMode) || 'BOTH',
+    exchangeRateUSD: db.settings?.exchangeRateUSD || 320
+  };
+}
+
+export function saveCurrencySettings(settings: Partial<CurrencySettings>): CurrencySettings {
+  const db = getRawDatabase();
+  if (!db.settings) {
+    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true };
+  }
+  if (settings.currencyMode !== undefined) db.settings.currencyMode = settings.currencyMode;
+  if (settings.exchangeRateUSD !== undefined) db.settings.exchangeRateUSD = settings.exchangeRateUSD;
+  saveRawDatabase(db);
+  return getCurrencySettings();
+}
+
 export interface UniversalTransferRequest {
   fromAccount: FundAccountType;
   toAccount: FundAccountType;
-  amount: number;
-  currency?: CurrencyType;
+  amount: number;                // Monto a debitar en la cuenta de origen
+  currency?: CurrencyType;       // Moneda de Origen ('CUP' | 'USD')
+  targetCurrency?: CurrencyType; // Moneda de Destino ('CUP' | 'USD')
+  exchangeRate?: number;         // Tipo de cambio utilizado (1 USD = X CUP)
+  targetAmount?: number;         // Monto a acreditar en la moneda de destino
   notes?: string;
 }
 
 export function executeUniversalTransfer(req: UniversalTransferRequest): { success: boolean; error?: string } {
-  const { fromAccount, toAccount, amount, currency = 'CUP', notes } = req;
+  const { 
+    fromAccount, 
+    toAccount, 
+    amount, 
+    currency = 'CUP', 
+    targetCurrency = currency,
+    exchangeRate = 320,
+    targetAmount: customTargetAmount,
+    notes 
+  } = req;
 
   if (amount <= 0) {
     return { success: false, error: 'Ingresa un monto mayor a 0 para transferir.' };
   }
 
-  if (fromAccount === toAccount) {
-    return { success: false, error: 'La cuenta de origen y destino deben ser distintas.' };
+  const isCrossCurrency = currency !== targetCurrency;
+
+  if (fromAccount === toAccount && !isCrossCurrency) {
+    return { success: false, error: 'La cuenta de origen y destino deben ser distintas a menos que estés convirtiendo de moneda.' };
   }
 
   const db = getRawDatabase();
-  const isUSD = currency === 'USD';
-  const symbol = isUSD ? 'US$' : '$';
 
-  if (isUSD) {
-    const currentStoreFundUSD = db.storeFundUSD || 0;
-    const currentSavingsFundUSD = db.savingsFundUSD || 0;
-
-    if (fromAccount === 'tienda' && amount > currentStoreFundUSD) {
-      return { success: false, error: `Saldo insuficiente en Fondo Negocio USD (US$ ${currentStoreFundUSD}).` };
+  // Determine effective target amount
+  let finalTargetAmount = customTargetAmount;
+  if (finalTargetAmount === undefined || finalTargetAmount <= 0) {
+    if (isCrossCurrency) {
+      if (currency === 'USD' && targetCurrency === 'CUP') {
+        finalTargetAmount = Math.round(amount * exchangeRate * 100) / 100;
+      } else if (currency === 'CUP' && targetCurrency === 'USD') {
+        finalTargetAmount = Math.round((amount / exchangeRate) * 100) / 100;
+      } else {
+        finalTargetAmount = amount;
+      }
+    } else {
+      finalTargetAmount = amount;
     }
-    if (fromAccount === 'ahorro' && amount > currentSavingsFundUSD) {
-      return { success: false, error: `Saldo insuficiente en Ahorro USD (US$ ${currentSavingsFundUSD}).` };
+  }
+
+  // Deduct from Source Account (in source currency)
+  if (currency === 'USD') {
+    const currentStoreUSD = db.storeFundUSD || 0;
+    const currentSavingsUSD = db.savingsFundUSD || 0;
+
+    if (fromAccount === 'tienda' && amount > currentStoreUSD) {
+      return { success: false, error: `Saldo insuficiente en Fondo Negocio USD (US$ ${currentStoreUSD}).` };
+    }
+    if (fromAccount === 'ahorro' && amount > currentSavingsUSD) {
+      return { success: false, error: `Saldo insuficiente en Ahorro USD (US$ ${currentSavingsUSD}).` };
     }
 
-    if (fromAccount === 'tienda') db.storeFundUSD = currentStoreFundUSD - amount;
-    if (fromAccount === 'ahorro') db.savingsFundUSD = currentSavingsFundUSD - amount;
-
-    if (toAccount === 'tienda') db.storeFundUSD = (db.storeFundUSD || 0) + amount;
-    if (toAccount === 'ahorro') db.savingsFundUSD = (db.savingsFundUSD || 0) + amount;
+    if (fromAccount === 'tienda') db.storeFundUSD = currentStoreUSD - amount;
+    if (fromAccount === 'ahorro') db.savingsFundUSD = currentSavingsUSD - amount;
   } else {
-    const currentStoreFund = db.storeFund || 0;
-    const currentSavingsFund = db.savingsFund || 0;
+    const currentStoreCUP = db.storeFund || 0;
+    const currentSavingsCUP = db.savingsFund || 0;
 
-    if (fromAccount === 'tienda' && amount > currentStoreFund) {
-      return { success: false, error: `Saldo insuficiente en Fondo Tienda ($${currentStoreFund}).` };
+    if (fromAccount === 'tienda' && amount > currentStoreCUP) {
+      return { success: false, error: `Saldo insuficiente en Fondo Tienda ($${currentStoreCUP}).` };
     }
-    if (fromAccount === 'ahorro' && amount > currentSavingsFund) {
-      return { success: false, error: `Saldo insuficiente en Fondo de Ahorro ($${currentSavingsFund}).` };
+    if (fromAccount === 'ahorro' && amount > currentSavingsCUP) {
+      return { success: false, error: `Saldo insuficiente en Fondo Ahorro ($${currentSavingsCUP}).` };
     }
 
-    if (fromAccount === 'tienda') db.storeFund = currentStoreFund - amount;
-    if (fromAccount === 'ahorro') db.savingsFund = currentSavingsFund - amount;
+    if (fromAccount === 'tienda') db.storeFund = currentStoreCUP - amount;
+    if (fromAccount === 'ahorro') db.savingsFund = currentSavingsCUP - amount;
+  }
 
-    if (toAccount === 'tienda') db.storeFund = (db.storeFund || 0) + amount;
-    if (toAccount === 'ahorro') db.savingsFund = (db.savingsFund || 0) + amount;
+  // Add to Target Account (in target currency)
+  if (targetCurrency === 'USD') {
+    if (toAccount === 'tienda') db.storeFundUSD = (db.storeFundUSD || 0) + finalTargetAmount;
+    if (toAccount === 'ahorro') db.savingsFundUSD = (db.savingsFundUSD || 0) + finalTargetAmount;
+  } else {
+    if (toAccount === 'tienda') db.storeFund = (db.storeFund || 0) + finalTargetAmount;
+    if (toAccount === 'ahorro') db.savingsFund = (db.savingsFund || 0) + finalTargetAmount;
   }
 
   const fundLabels: Record<FundAccountType, string> = {
@@ -934,34 +990,53 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
   const todayISO = new Date().toISOString().split('T')[0];
   const now = Date.now();
 
+  const srcSymbol = currency === 'USD' ? 'US$' : '$';
+  const tgtSymbol = targetCurrency === 'USD' ? 'US$' : '$';
+
   // Dual Registration:
   // 1. Outgoing from Source Account
+  const outgoingConcept = isCrossCurrency
+    ? `Conversión Saliente: ${fromLabel} (${currency}) ➔ ${toLabel} (${targetCurrency})`
+    : `Transferencia Saliente: ${fromLabel} ➔ ${toLabel}`;
+
+  const outgoingNotes = isCrossCurrency
+    ? (notes?.trim() ? `${notes.trim()} | ` : '') + `Conversión: Se debitan ${srcSymbol}${amount} ${currency} (Tasa: 1 USD = ${exchangeRate} CUP). Recibirá ${tgtSymbol}${finalTargetAmount} ${targetCurrency} en ${toLabel}.`
+    : notes?.trim() || `Transferencia efectuada en ${currency} desde ${fromLabel} hacia ${toLabel}.`;
+
   const outgoingTx: Transaction = {
     id: `tx-trf-out-${now}`,
     type: 'gasto',
-    concept: `Transferencia Saliente: ${fromLabel} ➔ ${toLabel}`,
-    category: 'Transferencia Entre Cuentas',
+    concept: outgoingConcept,
+    category: isCrossCurrency ? 'Conversión de Moneda' : 'Transferencia Entre Cuentas',
     amount: amount,
     currency: currency,
     date: todayISO,
     accountSource: fromAccount,
-    notes: notes?.trim() || `Transferencia efectuada en ${currency} desde ${fromLabel} hacia ${toLabel}.`,
+    notes: outgoingNotes,
     createdAt: now,
     updatedAt: now,
     synced: false
   };
 
   // 2. Incoming to Destination Account
+  const incomingConcept = isCrossCurrency
+    ? `Conversión Entrante: ${fromLabel} (${currency}) ➔ ${toLabel} (${targetCurrency})`
+    : `Transferencia Entrante: ${fromLabel} ➔ ${toLabel}`;
+
+  const incomingNotes = isCrossCurrency
+    ? (notes?.trim() ? `${notes.trim()} | ` : '') + `Conversión: Se acreditan ${tgtSymbol}${finalTargetAmount} ${targetCurrency} (Tasa: 1 USD = ${exchangeRate} CUP) tras debitar ${srcSymbol}${amount} ${currency} de ${fromLabel}.`
+    : notes?.trim() || `Ingreso por transferencia en ${currency} recibido desde ${fromLabel}.`;
+
   const incomingTx: Transaction = {
     id: `tx-trf-in-${now}`,
     type: 'ingreso',
-    concept: `Transferencia Entrante: ${fromLabel} ➔ ${toLabel}`,
-    category: 'Transferencia Entre Cuentas',
-    amount: amount,
-    currency: currency,
+    concept: incomingConcept,
+    category: isCrossCurrency ? 'Conversión de Moneda' : 'Transferencia Entre Cuentas',
+    amount: finalTargetAmount,
+    currency: targetCurrency,
     date: todayISO,
     accountSource: toAccount,
-    notes: notes?.trim() || `Ingreso por transferencia en ${currency} recibido desde ${fromLabel}.`,
+    notes: incomingNotes,
     createdAt: now + 1,
     updatedAt: now + 1,
     synced: false

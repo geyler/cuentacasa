@@ -60,14 +60,17 @@ interface ActionFeedbackContextType {
   showActionResult: (options: ActionResultOptions) => void;
 }
 
-const ActionFeedbackContext = createContext<ActionFeedbackContextType | undefined>(undefined);
+const dummyFeedback: ActionFeedbackContextType = {
+  showToast: () => {},
+  confirmAction: (options) => { options.onConfirm?.(); },
+  showActionResult: () => {}
+};
+
+const ActionFeedbackContext = createContext<ActionFeedbackContextType>(dummyFeedback);
 
 export const useActionFeedback = () => {
   const context = useContext(ActionFeedbackContext);
-  if (!context) {
-    throw new Error('useActionFeedback must be used within an ActionFeedbackProvider');
-  }
-  return context;
+  return context || dummyFeedback;
 };
 
 interface ActionFeedbackProviderProps {

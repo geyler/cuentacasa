@@ -21,7 +21,9 @@ import {
   Save,
   Users,
   Lock,
-  CheckCircle2
+  CheckCircle2,
+  Coins,
+  DollarSign
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
@@ -37,9 +39,11 @@ import {
   setUserPin,
   clearUserPin,
   formatCubanPhone,
-  performTotalCacheReset
+  performTotalCacheReset,
+  getCurrencySettings,
+  saveCurrencySettings
 } from '@/lib/storage';
-import { AppUser } from '@/types';
+import { AppUser, CurrencyMode } from '@/types';
 import { UserManagementModal } from '@/components/UserManagementModal';
 import { getPendingSyncCount, syncDatabaseWithCloud } from '@/lib/sync';
 
@@ -99,6 +103,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [usersList, setUsersList] = useState<AppUser[]>([]);
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
 
+  const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('BOTH');
+  const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(320);
+  const [isEditingExchangeRate, setIsEditingExchangeRate] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       const activeUsername = currentUser?.username || 'geyler';
@@ -112,8 +120,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setWhatsappPhone(getStoreWhatsappNumber());
       setIsEditingPhone(false);
       setUsersList(getAppUsers());
+
+      const cSettings = getCurrencySettings();
+      setCurrencyMode(cSettings.currencyMode);
+      setExchangeRateUSD(cSettings.exchangeRateUSD);
+      setIsEditingExchangeRate(false);
     }
   }, [isOpen]);
+
+  const handleSelectCurrencyMode = (mode: CurrencyMode) => {
+    setCurrencyMode(mode);
+    saveCurrencySettings({ currencyMode: mode });
+    const labels: Record<CurrencyMode, string> = {
+      CUP: 'Solo CUP ($)',
+      USD: 'Solo USD (US$)',
+      BOTH: 'Ambas Monedas (CUP + USD)'
+    };
+    showToast({
+      title: 'Modo de Moneda Actualizado',
+      message: `Configuración de divisas cambiada a: ${labels[mode]}.`,
+      type: 'success'
+    });
+  };
+
+  const handleSaveExchangeRate = () => {
+    if (exchangeRateUSD > 0) {
+      saveCurrencySettings({ exchangeRateUSD });
+      setIsEditingExchangeRate(false);
+      showToast({
+        title: 'Tipo de Cambio Guardado',
+        message: `Tasa de conversión actualizada: 1 USD = ${exchangeRateUSD} CUP.`,
+        type: 'success'
+      });
+    } else {
+      showToast({
+        title: 'Tasa Inválida',
+        message: 'Ingresa un tipo de cambio mayor a 0.',
+        type: 'error'
+      });
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -363,6 +409,155 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {/* Main Controls List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+            {/* Configuración de Monedas (CUP / USD / Ambas + Tasa de Cambio) */}
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: '16px',
+              border: '1.5px solid var(--md-sys-color-primary)',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Coins size={18} color="var(--md-sys-color-primary)" />
+                  <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface)' }}>
+                    Monedas del Sistema
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
+                  {currencyMode === 'BOTH' ? 'CUP + USD' : currencyMode === 'CUP' ? 'Solo CUP' : 'Solo USD'}
+                </span>
+              </div>
+
+              {/* Toggles for Currency Mode */}
+              <div>
+                <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                  Selecciona la moneda principal de operación:
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCurrencyMode('CUP')}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: '10px',
+                      border: currencyMode === 'CUP' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: currencyMode === 'CUP' ? '#ECFDF5' : 'var(--md-sys-color-surface)',
+                      color: currencyMode === 'CUP' ? '#047857' : 'var(--md-sys-color-on-surface)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Solo CUP ($)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCurrencyMode('USD')}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: '10px',
+                      border: currencyMode === 'USD' ? '2px solid #2563EB' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: currencyMode === 'USD' ? '#EFF6FF' : 'var(--md-sys-color-surface)',
+                      color: currencyMode === 'USD' ? '#1D4ED8' : 'var(--md-sys-color-on-surface)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Solo USD (US$)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCurrencyMode('BOTH')}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: '10px',
+                      border: currencyMode === 'BOTH' ? '2px solid #7C3AED' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: currencyMode === 'BOTH' ? '#F5F3FF' : 'var(--md-sys-color-surface)',
+                      color: currencyMode === 'BOTH' ? '#6D28D9' : 'var(--md-sys-color-on-surface)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Ambas (CUP+USD)
+                  </button>
+                </div>
+              </div>
+
+              {/* Exchange Rate Setting */}
+              <div style={{
+                paddingTop: '10px',
+                borderTop: '1px dashed var(--md-sys-color-outline-variant)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                flexWrap: 'wrap'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', display: 'block' }}>
+                    Tipo de Cambio Referencial
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                    1 USD = ${exchangeRateUSD} CUP
+                  </span>
+                </div>
+
+                {!isEditingExchangeRate ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingExchangeRate(true)}
+                    className="md-btn md-btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '0.78rem', fontWeight: 800 }}
+                  >
+                    Cambiar Tasa
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>1 USD =</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        pattern="[0-9]*"
+                        style={{
+                          width: '75px',
+                          padding: '6px',
+                          borderRadius: '8px',
+                          border: '1.5px solid var(--md-sys-color-primary)',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          fontSize: '0.88rem',
+                          fontWeight: 800,
+                          textAlign: 'center'
+                        }}
+                        value={exchangeRateUSD}
+                        onChange={e => setExchangeRateUSD(e.target.value === '' ? '' as any : parseFloat(e.target.value))}
+                      />
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>CUP</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveExchangeRate}
+                      className="md-btn md-btn-primary"
+                      style={{ padding: '6px 10px', fontSize: '0.76rem', fontWeight: 800 }}
+                    >
+                      <Save size={12} /> Guardar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Configuración de WhatsApp de Recepción de Pedidos */}
             <div style={{
