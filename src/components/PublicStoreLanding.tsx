@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
 import { getStoreProducts, getStoreWhatsappNumber, formatPhotoUrl, getCurrencySettings } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
-import { formatCurrency } from '@/lib/invoice';
+import { formatCurrency, getProductDisplayPrice } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
@@ -96,37 +96,22 @@ export const PublicStoreLanding: React.FC = () => {
   };
 
   useEffect(() => {
-    const { currencyMode } = getCurrencySettings();
-    const filterByCurrency = (list: StoreProduct[]) => list.filter(p => {
-      if (!p.published) return false;
-      const pCurr = p.currency || 'CUP';
-      if (currencyMode === 'CUP' && pCurr !== 'CUP') return false;
-      if (currencyMode === 'USD' && pCurr !== 'USD') return false;
-      return true;
-    });
+    const filterPublished = (list: StoreProduct[]) => list.filter(p => p.published);
 
     const all = getStoreProducts();
-    setProducts(filterByCurrency(all));
+    setProducts(filterPublished(all));
 
     syncDatabaseWithCloud(false).then(res => {
       if (res.success) {
         const syncedAll = getStoreProducts();
-        setProducts(filterByCurrency(syncedAll));
+        setProducts(filterPublished(syncedAll));
       }
     }).catch(err => {
       console.warn('Silent cloud sync warning on landing:', err);
     });
 
     const refreshLanding = () => {
-      const { currencyMode: currentMode } = getCurrencySettings();
-      const filterByCurrency = (list: StoreProduct[]) => list.filter(p => {
-        if (!p.published) return false;
-        const pCurr = p.currency || 'CUP';
-        if (currentMode === 'CUP' && pCurr !== 'CUP') return false;
-        if (currentMode === 'USD' && pCurr !== 'USD') return false;
-        return true;
-      });
-      setProducts(filterByCurrency(getStoreProducts()));
+      setProducts(filterPublished(getStoreProducts()));
     };
 
     window.addEventListener('cuentacasa-db-changed', refreshLanding);
@@ -153,7 +138,7 @@ export const PublicStoreLanding: React.FC = () => {
           if (parts.length === 2) {
             const barcode = parts[0].padStart(4, '0');
             const qty = parseInt(parts[1], 10) || 1;
-            const prod = publishedList.find(p => p.barcode === barcode || p.barcode === parts[0]);
+            const prod = getStoreProducts().find((p: StoreProduct) => p.barcode === barcode || p.barcode === parts[0]);
             if (prod && !prod.isExternal) {
               loadedCart.push({ product: prod, quantity: qty });
             }
@@ -514,9 +499,15 @@ export const PublicStoreLanding: React.FC = () => {
                       alignItems: 'center'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                          {formatCurrency(product.price, product.currency || 'CUP', true)}
-                        </span>
+                        {(() => {
+                          const { currencyMode, exchangeRateUSD } = getCurrencySettings();
+                          const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD);
+                          return (
+                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                              {formatCurrency(disp.amount, disp.currency, true)}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       {!inCart ? (

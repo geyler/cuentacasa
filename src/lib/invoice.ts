@@ -163,6 +163,32 @@ export function formatCurrency(amount: number, currency: string = '$', showBalan
   return `${symbol} ${formatted}`;
 }
 
+// Helper for product price display according to currencyMode
+export function getProductDisplayPrice(
+  productPrice: number,
+  productCurrency: 'CUP' | 'USD' | string | undefined,
+  currencyMode: 'CUP' | 'USD' | 'BOTH',
+  exchangeRateUSD: number = 320
+): { amount: number; currency: 'CUP' | 'USD' } {
+  const pCurr = productCurrency === 'USD' ? 'USD' : 'CUP';
+
+  if (currencyMode === 'CUP') {
+    if (pCurr === 'USD') {
+      return { amount: Math.round(productPrice * exchangeRateUSD * 100) / 100, currency: 'CUP' };
+    }
+    return { amount: productPrice, currency: 'CUP' };
+  }
+
+  if (currencyMode === 'USD') {
+    if (pCurr === 'CUP') {
+      return { amount: Math.round((productPrice / exchangeRateUSD) * 100) / 100, currency: 'USD' };
+    }
+    return { amount: productPrice, currency: 'USD' };
+  }
+
+  return { amount: productPrice, currency: pCurr };
+}
+
 // Visual styling badge helper for USD distinction
 export function getCurrencyBadgeStyle(currency?: string) {
   const isUSD = currency === 'USD' || currency === 'US$' || currency === 'USD$';

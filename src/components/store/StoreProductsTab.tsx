@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { StoreProduct } from '@/types';
-import { formatCurrency } from '@/lib/invoice';
+import { formatCurrency, getProductDisplayPrice } from '@/lib/invoice';
 import { Search, Store, Eye, EyeOff, Edit3, Trash2 } from 'lucide-react';
+import { getCurrencySettings } from '@/lib/storage';
 
 interface StoreProductsTabProps {
   products: StoreProduct[];
@@ -17,8 +18,6 @@ interface StoreProductsTabProps {
   isVendor?: boolean;
 }
 
-import { getCurrencySettings } from '@/lib/storage';
-
 export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
   products,
   searchTerm,
@@ -30,13 +29,9 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
   currency = '$',
   isVendor = false
 }) => {
-  const { currencyMode } = getCurrencySettings();
+  const { currencyMode, exchangeRateUSD } = getCurrencySettings();
 
   const filteredProducts = products.filter(p => {
-    const pCurr = p.currency || 'CUP';
-    if (currencyMode === 'CUP' && pCurr !== 'CUP') return false;
-    if (currencyMode === 'USD' && pCurr !== 'USD') return false;
-
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -208,9 +203,14 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
               {/* Right: Price & Quick Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                    {formatCurrency(prod.price, currency, true)}
-                  </div>
+                  {(() => {
+                    const disp = getProductDisplayPrice(prod.price, prod.currency, currencyMode, exchangeRateUSD);
+                    return (
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                        {formatCurrency(disp.amount, disp.currency, true)}
+                      </div>
+                    );
+                  })()}
                   {!isVendor && (
                     <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
                       Costo: ${prod.costPrice || 0}

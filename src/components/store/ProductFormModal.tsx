@@ -120,7 +120,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       const { currencyMode } = getCurrencySettings();
       if (currencyMode === 'CUP') setProductCurrency('CUP');
       else if (currencyMode === 'USD') setProductCurrency('USD');
-      else setProductCurrency(editingProduct ? (editingProduct.currency || 'CUP') : 'CUP');
+      else setProductCurrency('CUP');
 
       setIsExternal(false);
       setExternalType('whatsapp');
