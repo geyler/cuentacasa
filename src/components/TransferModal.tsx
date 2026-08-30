@@ -202,7 +202,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       <form
         onClick={e => e.stopPropagation()}
         onSubmit={handleExecuteTransfer}
-        className="bottom-sheet-modal full-height-sheet"
+        className="bottom-sheet-modal"
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
@@ -213,7 +213,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           flexDirection: 'column',
           gap: '14px',
           boxShadow: 'var(--md-shadow-elevation-4)',
-          maxHeight: '100dvh',
+          maxHeight: '90vh',
           overflowY: 'auto'
         }}
       >

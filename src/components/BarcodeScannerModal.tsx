@@ -134,7 +134,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     if (!rawStr) return;
 
     const now = Date.now();
-    if (now - lastScanTimeRef.current < 1800) return; // Cooldown 1.8s
+    if (now - lastScanTimeRef.current < 800) return; // Cooldown 800ms for fast scanning
     lastScanTimeRef.current = now;
 
     playScanBeep();
@@ -394,8 +394,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           fps: 20,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
             return {
-              width: Math.min(viewfinderWidth * 0.88, 260),
-              height: Math.min(viewfinderHeight * 0.55, 110)
+              width: Math.min(viewfinderWidth * 0.9, 280),
+              height: Math.min(viewfinderHeight * 0.68, 140)
             };
           },
           aspectRatio: 1.777778

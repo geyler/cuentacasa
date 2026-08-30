@@ -255,13 +255,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ref={productFormRef}
         onClick={e => e.stopPropagation()}
         onSubmit={handleSubmit}
-        className="bottom-sheet-modal full-height-sheet"
+        className="bottom-sheet-modal"
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
           maxWidth: '540px',
-          height: '100dvh',
+          height: '100%',
           maxHeight: '100dvh',
           padding: '20px 20px 28px 20px',
           display: 'flex',
@@ -269,9 +269,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           gap: '16px',
           overflowY: 'auto',
           boxShadow: 'var(--md-shadow-elevation-4)',
-          borderTopLeftRadius: '0px',
-          borderTopRightRadius: '0px',
-          borderRadius: '0px'
+          borderTopLeftRadius: '28px',
+          borderTopRightRadius: '28px'
         }}
       >
         {/* Handle Drag Indicator */}

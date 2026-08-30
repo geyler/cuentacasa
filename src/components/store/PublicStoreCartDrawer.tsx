@@ -90,20 +90,19 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
         onClick={onClose}
       >
         <div
-          className="bottom-sheet-modal full-height-sheet"
+          className="bottom-sheet-modal"
           onClick={e => e.stopPropagation()}
           style={{
             width: '100%',
             maxWidth: '550px',
-            height: '100dvh',
-            maxHeight: '100dvh',
             backgroundColor: 'var(--md-sys-color-surface)',
-            borderRadius: '0px',
+            borderRadius: '24px 24px 0 0',
             padding: '20px',
             boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
+            maxHeight: '85vh',
             overflowY: 'auto'
           }}
         >
@@ -200,6 +199,17 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                         <span style={{ fontSize: '0.65rem', fontWeight: 800, backgroundColor: '#FCE7F3', color: '#EC4899', padding: '1px 5px', borderRadius: '4px' }}>
                           #{item.product.barcode}
                         </span>
+                        <span style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 900,
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          backgroundColor: (item.product.currency === 'USD') ? '#ECFEFF' : '#F1F5F9',
+                          color: (item.product.currency === 'USD') ? '#0F766E' : '#475569',
+                          border: (item.product.currency === 'USD') ? '1px solid #99F6E4' : '1px solid #CBD5E1'
+                        }}>
+                          {item.product.currency === 'USD' ? 'USD' : 'CUP'}
+                        </span>
                         <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
                           {formatCurrency(item.product.price, item.product.currency || 'CUP', true)} c/u
                         </span>
@@ -238,9 +248,14 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                       </button>
                     </div>
 
-                    <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-income)', minWidth: '60px', textAlign: 'right' }}>
-                      {formatCurrency(item.product.price * item.quantity, item.product.currency || 'CUP', true)}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '65px' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                        {formatCurrency(item.product.price * item.quantity, item.product.currency || 'CUP', true)}
+                      </span>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 900, color: item.product.currency === 'USD' ? '#0F766E' : '#64748B' }}>
+                        {item.product.currency === 'USD' ? 'USD' : 'CUP'}
+                      </span>
+                    </div>
 
                     <button
                       onClick={() => removeFromCart(item.product.id)}
@@ -258,17 +273,20 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
           {cart.length > 0 && (
             <div style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {multiTotals.isMixed ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '10px 14px', borderRadius: '14px', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800 }}>
-                    Total en Cuentas Separadas:
+                    💳 Cobro en 2 Cuentas Separadas:
                   </span>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                      ${multiTotals.totalCUP.toLocaleString('es-ES')} CUP + ${multiTotals.totalUSD.toLocaleString('es-ES')} USD
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#00875A', backgroundColor: '#E6F4EA', padding: '3px 8px', borderRadius: '8px' }}>
+                      CUP: ${multiTotals.totalCUP.toLocaleString('es-ES')} CUP
+                    </span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0F766E', backgroundColor: '#ECFEFF', padding: '3px 8px', borderRadius: '8px', border: '1px solid #99F6E4' }}>
+                      USD: US$ {multiTotals.totalUSD.toLocaleString('es-ES')} USD
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                    Equivalente Total: ${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP (Tasa 1 USD = ${exchangeRateUSD} CUP)
+                  <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, marginTop: '2px' }}>
+                    Total Equivalente: ${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP (Tasa 1 USD = ${exchangeRateUSD} CUP)
                   </span>
                 </div>
               ) : (
@@ -276,9 +294,22 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                   <span style={{ fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
                     Total a Pagar:
                   </span>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                    {multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true)}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                      {multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true)}
+                    </span>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 900,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: multiTotals.hasUSD ? '#ECFEFF' : '#F1F5F9',
+                      color: multiTotals.hasUSD ? '#0F766E' : '#475569',
+                      border: multiTotals.hasUSD ? '1px solid #99F6E4' : '1px solid #CBD5E1'
+                    }}>
+                      {multiTotals.hasUSD ? 'USD' : 'CUP'}
+                    </span>
+                  </div>
                 </div>
               )}
 

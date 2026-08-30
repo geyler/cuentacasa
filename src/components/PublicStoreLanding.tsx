@@ -799,14 +799,25 @@ export const PublicStoreLanding: React.FC = () => {
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
                         {formatCurrency(product.price, product.currency || 'CUP', true)}
                         {product.unit && product.unit !== 'u' && (
                           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '3px' }}>
                             / {product.unit}
                           </span>
                         )}
+                      </span>
+                      <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 900,
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        backgroundColor: (product.currency === 'USD') ? '#ECFEFF' : '#F1F5F9',
+                        color: (product.currency === 'USD') ? '#0F766E' : '#475569',
+                        border: (product.currency === 'USD') ? '1px solid #99F6E4' : '1px solid #CBD5E1'
+                      }}>
+                        {product.currency === 'USD' ? 'USD' : 'CUP'}
                       </span>
                     </div>
 

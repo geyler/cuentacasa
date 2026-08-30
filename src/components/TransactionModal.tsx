@@ -151,7 +151,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }}>
       
       <div 
-        className="bottom-sheet-modal full-height-sheet"
+        className="bottom-sheet-modal"
         onClick={e => {
           e.stopPropagation();
           const target = e.target as HTMLElement;
@@ -172,7 +172,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
-          maxHeight: '100dvh',
+          maxHeight: '90vh',
           overflowY: 'auto',
           position: 'relative'
         }}

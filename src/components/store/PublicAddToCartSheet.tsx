@@ -3,6 +3,7 @@
 import React from 'react';
 import { StoreProduct } from '@/types';
 import { formatPhotoUrl } from '@/lib/storage';
+import { formatCurrency, getCurrencyBadgeStyle } from '@/lib/invoice';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2 } from 'lucide-react';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
@@ -123,9 +124,22 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {productToAddToCart.name}
                 </h4>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                  ${productToAddToCart.price} CUP c/u
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                    {formatCurrency(productToAddToCart.price, productToAddToCart.currency || 'CUP', true)} c/u
+                  </span>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 900,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    backgroundColor: (productToAddToCart.currency === 'USD') ? '#ECFEFF' : '#F1F5F9',
+                    color: (productToAddToCart.currency === 'USD') ? '#0F766E' : '#475569',
+                    border: (productToAddToCart.currency === 'USD') ? '1px solid #99F6E4' : '1px solid #CBD5E1'
+                  }}>
+                    {productToAddToCart.currency === 'USD' ? 'USD' : 'CUP'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -194,9 +208,22 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
                 <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>Subtotal:</span>
-                <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                  ${productToAddToCart.price * addQty} CUP
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                    {formatCurrency(productToAddToCart.price * addQty, productToAddToCart.currency || 'CUP', true)}
+                  </span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: (productToAddToCart.currency === 'USD') ? '#ECFEFF' : '#FCE7F3',
+                    color: (productToAddToCart.currency === 'USD') ? '#0F766E' : '#DB2777',
+                    border: (productToAddToCart.currency === 'USD') ? '1px solid #99F6E4' : '1px solid #FBCFE8'
+                  }}>
+                    {productToAddToCart.currency === 'USD' ? 'USD' : 'CUP'}
+                  </span>
+                </div>
               </div>
 
               <button
