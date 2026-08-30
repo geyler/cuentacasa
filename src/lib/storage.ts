@@ -1743,7 +1743,7 @@ export function generateSyncQRPayload(): string {
 
   // Compact array schema for products (v2):
   // [id, barcode, name, price, costPrice, stock, currency, category, supplierType, supplierName, updatedAt, unit]
-  const p = (db.storeProducts || []).map(prod => [
+  const p = (db.storeProducts || []).slice(0, 15).map(prod => [
     prod.id,
     prod.barcode || '',
     prod.name,
@@ -1758,9 +1758,9 @@ export function generateSyncQRPayload(): string {
     prod.unit || 'u'
   ]);
 
-  // Compact array schema for sales (last 25 sales to fit in QR size):
+  // Compact array schema for sales (last 10 sales to fit in QR size):
   // [id, date, totalAmount, totalCost, netProfit, currency, timestamp]
-  const s = (db.storeSales || []).slice(0, 25).map(sale => [
+  const s = (db.storeSales || []).slice(0, 10).map(sale => [
     sale.id,
     sale.date,
     sale.totalAmount,
@@ -1770,9 +1770,9 @@ export function generateSyncQRPayload(): string {
     sale.timestamp || Date.now()
   ]);
 
-  // Compact array schema for shifts (last 10 shifts):
+  // Compact array schema for shifts (last 5 shifts):
   // [id, sellerId, sellerName, status, openedAt, closedAt, initialCashFund, initialCashFundUSD, totalCashSales, totalCashSalesUSD]
-  const h = (db.shifts || []).slice(0, 10).map(shift => [
+  const h = (db.shifts || []).slice(0, 5).map(shift => [
     shift.id,
     shift.sellerId,
     shift.sellerName,

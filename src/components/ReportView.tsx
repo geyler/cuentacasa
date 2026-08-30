@@ -53,11 +53,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
       {/* Date Range Selector Header */}
-      <div className="md-card no-print" style={{ padding: '16px' }}>
+      <div className="no-print" style={{ padding: '4px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Calendar size={18} color="var(--md-sys-color-primary)" />
-            <span>Filtro de Fecha (Search Console)</span>
+            <span>Filtro de Fecha</span>
           </h3>
 
           <button
@@ -105,7 +105,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
             gap: '10px',
-            backgroundColor: 'var(--md-sys-color-surface)',
+            backgroundColor: 'var(--md-sys-color-surface-container)',
             padding: '10px',
             borderRadius: '12px',
             marginBottom: '12px',
@@ -164,7 +164,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 padding: '6px 10px',
                 borderRadius: '8px',
                 border: '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface)',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
                 color: 'var(--md-sys-color-on-surface)',
                 fontWeight: 600,
                 fontSize: '0.8rem'
@@ -181,7 +181,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       </div>
 
       {/* Printable / Clean View Box */}
-      <div className="printable-report md-card" style={{ padding: '20px' }}>
+      <div className="printable-report" style={{ padding: '0' }}>
         
         {/* Title & Subtitle */}
         <div style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)', paddingBottom: '12px', marginBottom: '16px' }}>

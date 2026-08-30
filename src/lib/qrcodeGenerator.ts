@@ -528,17 +528,22 @@ export function generateQRCodeSVG(text: string, size: number = 260): string {
   try {
     return tryGenerate(text);
   } catch (e) {
-    // Attempt graceful payload pruning if data exceeds single QR matrix capacity
+    // Attempt progressive payload pruning if data exceeds QR capacity
     try {
-      const parsed = JSON.parse(text);
+      let parsed = JSON.parse(text);
       if (parsed && typeof parsed === 'object') {
-        if (Array.isArray(parsed.p) && parsed.p.length > 10) {
-          parsed.p = parsed.p.slice(0, 10);
+        const productLimits = [15, 10, 6, 3, 1];
+        for (const limit of productLimits) {
+          try {
+            const pruned = { ...parsed };
+            if (Array.isArray(pruned.p)) pruned.p = pruned.p.slice(0, limit);
+            if (Array.isArray(pruned.s)) pruned.s = pruned.s.slice(0, Math.min(limit, 5));
+            if (Array.isArray(pruned.h)) pruned.h = pruned.h.slice(0, 3);
+            return tryGenerate(JSON.stringify(pruned));
+          } catch {
+            // Continue trying with smaller limits
+          }
         }
-        if (Array.isArray(parsed.s) && parsed.s.length > 5) {
-          parsed.s = parsed.s.slice(0, 5);
-        }
-        return tryGenerate(JSON.stringify(parsed));
       }
     } catch {
       // Ignore

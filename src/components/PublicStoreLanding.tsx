@@ -7,6 +7,7 @@ import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency, getProductDisplayPrice, getCurrencyBadgeStyle } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
+import { PwaInstallBanner } from '@/components/PwaInstallBanner';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { STORE_SEO_CONFIG, getCategorySeoDescription, getProductSeoMeta } from '@/lib/seoHelper';
 
@@ -340,53 +341,118 @@ export const PublicStoreLanding: React.FC = () => {
 
       {/* 4. PWA Install CTA Banner */}
       {!isInstalled && (
-        <div className="hidden-pc" style={{
-          backgroundColor: '#FFF1F2',
-          border: '1px solid #FBCFE8',
-          borderRadius: '16px',
-          padding: '8px 14px',
-          margin: '8px auto 0 auto',
-          maxWidth: '1024px',
-          width: 'calc(100% - 32px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '10px',
-          boxShadow: '0 4px 12px rgba(236, 72, 153, 0.06)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '28px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
-            <div style={{ textAlign: 'left', overflow: 'hidden' }}>
-              <h4 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#831843', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                ¡Instala la App de Samy Store!
-              </h4>
-              <p style={{ fontSize: '0.7rem', color: '#BE185D', margin: 0, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Acceso 100% directo y sin conexión.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleInstallPwa}
-            className="md-btn md-btn-primary"
-            style={{
-              padding: '6px 14px',
-              fontSize: '0.76rem',
-              fontWeight: 800,
-              borderRadius: '9999px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
-            }}
-          >
-            Instalar App
-          </button>
-        </div>
+        <PwaInstallBanner 
+          onInstall={handleInstallPwa} 
+          onDismiss={() => setIsInstalled(true)} 
+        />
       )}
 
       {/* 5. Main Products Content Grid */}
-      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '36px 20px 140px 20px', flex: 1 }}>
+      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 20px 140px 20px', flex: 1 }}>
         
-        {/* Featured Products */}
+        {/* Categories Carousel / Cards FIRST */}
+        {categories.length > 0 && (
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Layers size={18} color="#EC4899" />
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                Categorías de Productos
+              </h3>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+              gap: '10px'
+            }}>
+              <div
+                onClick={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '16px',
+                  backgroundColor: selectedCategory === 'todas' ? '#FCE7F3' : 'var(--md-sys-color-surface-container)',
+                  border: selectedCategory === 'todas' ? '2px solid #EC4899' : '1px solid var(--md-sys-color-outline-variant)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  backgroundColor: selectedCategory === 'todas' ? '#EC4899' : 'var(--md-sys-color-surface-container-high)',
+                  color: selectedCategory === 'todas' ? '#FFFFFF' : '#EC4899',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Tag size={19} />
+                </div>
+                <div style={{ overflow: 'hidden' }}>
+                  <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
+                    Todas
+                  </h4>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                    {products.length} prods
+                  </span>
+                </div>
+              </div>
+
+              {categories.map(cat => {
+                const catCount = products.filter(p => p.category === cat).length;
+                const isSelected = selectedCategory === cat;
+
+                return (
+                  <div
+                    key={`cat-btn-${cat}`}
+                    onClick={() => { setSelectedCategory(cat); setSearchTerm(''); }}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '16px',
+                      backgroundColor: isSelected ? '#FCE7F3' : 'var(--md-sys-color-surface-container)',
+                      border: isSelected ? '2px solid #EC4899' : '1px solid var(--md-sys-color-outline-variant)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '12px',
+                      backgroundColor: isSelected ? '#EC4899' : 'var(--md-sys-color-surface-container-high)',
+                      color: isSelected ? '#FFFFFF' : '#EC4899',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Tag size={19} />
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {cat}
+                      </h4>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                        {catCount} {catCount === 1 ? 'prod' : 'prods'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Featured Products SECOND */}
         {products.length > 0 && selectedCategory === 'todas' && !searchTerm && (
           <div id="featured-products-section" style={{ marginBottom: '36px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
@@ -498,17 +564,29 @@ export const PublicStoreLanding: React.FC = () => {
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
-                        {(() => {
-                          const { currencyMode, exchangeRateUSD } = getCurrencySettings();
-                          const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD);
-                          return (
-                            <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                      {(() => {
+                        const { currencyMode, exchangeRateUSD, usdIndexedPricing } = getCurrencySettings();
+                        const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD, product.priceUSD, usdIndexedPricing);
+                        const badgeStyle = getCurrencyBadgeStyle(disp.currency);
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
                               {formatCurrency(disp.amount, disp.currency, true)}
                             </span>
-                          );
-                        })()}
-                      </div>
+                            <span style={{
+                              fontSize: '0.65rem',
+                              fontWeight: 900,
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              backgroundColor: badgeStyle.backgroundColor,
+                              color: badgeStyle.color,
+                              border: badgeStyle.border
+                            }}>
+                              {disp.currency === 'USD' ? 'USD' : 'CUP'}
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {!inCart ? (
                         <button
@@ -550,107 +628,6 @@ export const PublicStoreLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Categories Carousel / Cards */}
-        {categories.length > 0 && (
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <Layers size={18} color="#EC4899" />
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                Categorías de Productos
-              </h3>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-              gap: '10px'
-            }}>
-              <div
-                onClick={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '16px',
-                  backgroundColor: selectedCategory === 'todas' ? '#FCE7F3' : 'var(--md-sys-color-surface-container)',
-                  border: selectedCategory === 'todas' ? '2px solid #EC4899' : '1px solid var(--md-sys-color-outline-variant)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '12px',
-                  backgroundColor: selectedCategory === 'todas' ? '#EC4899' : 'var(--md-sys-color-surface-container-high)',
-                  color: selectedCategory === 'todas' ? '#FFFFFF' : '#EC4899',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <Tag size={19} />
-                </div>
-                <div style={{ overflow: 'hidden' }}>
-                  <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                    Todas
-                  </h4>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                    {products.length} prods
-                  </span>
-                </div>
-              </div>
-
-              {categories.map(cat => {
-                const catCount = products.filter(p => p.category === cat).length;
-                const isSelected = selectedCategory === cat;
-
-                return (
-                  <div
-                    key={`cat-btn-${cat}`}
-                    onClick={() => { setSelectedCategory(cat); setSearchTerm(''); }}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '16px',
-                      backgroundColor: isSelected ? '#FCE7F3' : 'var(--md-sys-color-surface-container)',
-                      border: isSelected ? '2px solid #EC4899' : '1px solid var(--md-sys-color-outline-variant)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '12px',
-                      backgroundColor: isSelected ? '#EC4899' : 'var(--md-sys-color-surface-container-high)',
-                      color: isSelected ? '#FFFFFF' : '#EC4899',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <Tag size={19} />
-                    </div>
-                    <div style={{ overflow: 'hidden' }}>
-                      <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {cat}
-                      </h4>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                        {catCount} {catCount === 1 ? 'prod' : 'prods'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Category SEO Description Banner */}
         {selectedCategory !== 'todas' && (

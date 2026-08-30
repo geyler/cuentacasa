@@ -311,16 +311,19 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
             Origen del Financiamiento:
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <button
               type="button"
-              onClick={() => setFundingSource('negocio')}
+              onClick={() => {
+                setFundingSource('negocio');
+                setSupplierType('propia');
+              }}
               style={{
-                padding: '10px 6px',
+                padding: '12px 8px',
                 borderRadius: '14px',
                 border: fundingSource === 'negocio' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                 fontWeight: 800,
-                fontSize: '0.75rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 backgroundColor: fundingSource === 'negocio' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface)',
                 color: fundingSource === 'negocio' ? '#FFF' : 'var(--md-sys-color-on-surface)',
@@ -333,35 +336,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
             <button
               type="button"
-              onClick={() => setFundingSource('casa')}
-              style={{
-                padding: '10px 6px',
-                borderRadius: '14px',
-                border: fundingSource === 'casa' ? '2px solid var(--md-sys-color-income)' : '1px solid var(--md-sys-color-outline-variant)',
-                fontWeight: 800,
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: fundingSource === 'casa' ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-surface)',
-                color: fundingSource === 'casa' ? '#FFF' : 'var(--md-sys-color-on-surface)',
-                transition: 'all 0.2s ease',
-                boxShadow: fundingSource === 'casa' ? 'var(--md-shadow-elevation-1)' : 'none'
-              }}
-            >
-              🏡 Cuenta Casa
-            </button>
-
-            <button
-              type="button"
               onClick={() => {
                 setFundingSource('proveedor');
                 setSupplierType('proveedor');
               }}
               style={{
-                padding: '10px 6px',
+                padding: '12px 8px',
                 borderRadius: '14px',
                 border: fundingSource === 'proveedor' ? '2px solid var(--md-sys-color-expense)' : '1px solid var(--md-sys-color-outline-variant)',
                 fontWeight: 800,
-                fontSize: '0.75rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 backgroundColor: fundingSource === 'proveedor' ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-surface)',
                 color: fundingSource === 'proveedor' ? '#FFF' : 'var(--md-sys-color-on-surface)',
@@ -369,7 +353,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 boxShadow: fundingSource === 'proveedor' ? 'var(--md-shadow-elevation-1)' : 'none'
               }}
             >
-              🤝 Consignación
+              🤝 Consignación (Proveedor)
             </button>
           </div>
         </div>

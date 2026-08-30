@@ -170,42 +170,45 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     }
   };
 
+  const [isVoteModalOpen, setIsVoteModalOpen] = useState(false);
+
   return (
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-      backdropFilter: 'blur(8px)',
-      zIndex: 2500, // Por encima de toda la barra de navegación y menús
+      backgroundColor: 'var(--md-sys-color-surface)',
+      zIndex: 2500,
       display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      padding: '0'
+      flexDirection: 'column',
+      maxWidth: '768px',
+      margin: '0 auto',
+      height: '100dvh',
+      overflow: 'hidden'
     }} className="no-print" onClick={onClose}>
 
       <div 
-        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '540px',
+          height: '100%',
           backgroundColor: 'var(--md-sys-color-surface)',
-          padding: '18px 20px 24px 20px',
-          borderRadius: '28px 28px 0 0',
-          boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '94vh',
-          animation: 'modalPop 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)',
-          position: 'relative'
+          position: 'relative',
+          borderRadius: 0
         }}
       >
-        {/* Tirador MD3 superior para deslizar */}
-        <div style={{ width: '42px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 12px auto' }} />
-
-        {/* Encabezado con insignias unificadas y botón cerrar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Encabezado con Botón Cerrar */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          padding: '14px 18px',
+          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+          backgroundColor: 'var(--md-sys-color-surface)',
+          zIndex: 10
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{
               fontSize: '0.74rem',
               fontWeight: 800,
@@ -217,23 +220,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {activeProduct.category}
             </span>
 
-            <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800 }}>
-              Código: #{activeProduct.barcode}
-            </span>
-
-            {/* Insignia de Valoración Unificada */}
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              backgroundColor: '#FEF3C7',
-              color: '#D97706',
-              fontSize: '0.74rem',
-              fontWeight: 800,
-              padding: '3px 10px',
-              borderRadius: '9999px'
-            }}>
-              <Star size={13} fill="#D97706" color="#D97706" /> {ratingScore} ({ratingCount})
+            <span style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800 }}>
+              #{activeProduct.barcode}
             </span>
           </div>
 
@@ -244,7 +232,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               border: 'none',
               color: 'var(--md-sys-color-on-surface)',
               cursor: 'pointer',
-              padding: '6px',
+              padding: '8px',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -257,31 +245,25 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         {/* CUERPO DEL DETALLE CON SCROLL INTERNO INDEPENDIENTE */}
         <div style={{
-          flex: '1 1 auto',
-          minHeight: 0,
+          flex: 1,
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
-          paddingRight: '2px',
-          marginBottom: '12px'
+          padding: '16px 20px 100px 20px'
         }}>
           
-          {/* MARCO DE IMAGEN 100% CUADRADA PERFECCIONADO */}
+          {/* MARCO DE IMAGEN 100% CUADRADA */}
           <div style={{
             width: '100%',
             aspectRatio: '1 / 1',
-            maxHeight: '340px',
-            borderRadius: '24px',
+            borderRadius: '0px',
             overflow: 'hidden',
             backgroundColor: '#F8FAFC',
-            border: '1px solid var(--md-sys-color-outline-variant)',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto'
+            justifyContent: 'center'
           }}>
             {!imageError && activeProduct.photoUrl ? (
               <img 
@@ -291,8 +273,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover', // Garantiza que sea perfectamente cuadrada sin romperse
-                  backgroundColor: '#FFFFFF'
+                  objectFit: 'cover'
                 }} 
               />
             ) : (
@@ -305,40 +286,24 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 justifyContent: 'center',
                 gap: '10px',
                 backgroundColor: '#F8FAFC',
-                color: '#64748B',
-                padding: '20px'
+                color: '#64748B'
               }}>
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
-                  backgroundColor: '#E2E8F0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <ShoppingBag size={32} opacity={0.5} />
-                </div>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800 }}>
+                <ShoppingBag size={48} opacity={0.4} />
+                <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>
                   {activeProduct.name}
-                </span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, backgroundColor: '#E2E8F0', padding: '2px 8px', borderRadius: '6px' }}>
-                  Sin foto disponible
                 </span>
               </div>
             )}
 
-            {/* Marca de AGOTADO */}
             {!activeProduct.isExternal && activeProduct.stock <= 0 && (
               <div style={{
                 position: 'absolute',
                 top: 0, left: 0, right: 0, bottom: 0,
-                backgroundColor: 'rgba(255, 255, 255, 0.55)',
+                backgroundColor: 'rgba(255, 255, 255, 0.65)',
                 backdropFilter: 'blur(3px)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10
+                justifyContent: 'center'
               }}>
                 <div style={{
                   backgroundColor: '#EF4444',
@@ -346,217 +311,205 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   fontWeight: 900,
                   fontSize: '1.2rem',
                   padding: '8px 24px',
-                  borderRadius: '16px',
-                  transform: 'rotate(-8deg)',
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                  border: '2px solid #FFF'
+                  borderRadius: '12px',
+                  transform: 'rotate(-6deg)'
                 }}>
                   AGOTADO
                 </div>
               </div>
             )}
-
-            {/* Insignia de Producto Externo */}
-            {activeProduct.isExternal && (
-              <span style={{
-                position: 'absolute',
-                top: '12px',
-                left: '12px',
-                backgroundColor: '#059669',
-                color: '#FFFFFF',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                padding: '4px 12px',
-                borderRadius: '9999px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                zIndex: 12
-              }}>
-                <Globe size={13} /> Catálogo Externo
-              </span>
-            )}
-
-            {/* Cantidad en Stock */}
-            {!activeProduct.isExternal && (
-              <span style={{
-                position: 'absolute',
-                bottom: '12px',
-                right: '12px',
-                backgroundColor: activeProduct.stock > 0 ? '#059669' : '#EF4444',
-                color: '#FFFFFF',
-                fontSize: '0.76rem',
-                fontWeight: 800,
-                padding: '4px 12px',
-                borderRadius: '9999px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                zIndex: 12
-              }}>
-                {activeProduct.stock > 0 ? `Stock: ${activeProduct.stock}${activeProduct.unit && activeProduct.unit !== 'u' ? ` ${activeProduct.unit}` : 'u'}` : 'Agotado'}
-              </span>
-            )}
           </div>
 
           {/* Título del Producto y Precio */}
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', marginBottom: '4px', lineHeight: '1.25' }}>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', marginBottom: '6px', lineHeight: '1.25' }}>
               {activeProduct.name}
-            </h2>
+            </h1>
 
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-              <span style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.03em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.03em' }}>
                 {formatCurrency(activeProduct.price, currency, true)}
               </span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', backgroundColor: 'var(--md-sys-color-surface-container-high)', border: '1px solid var(--md-sys-color-outline-variant)', padding: '2px 8px', borderRadius: '6px' }}>
-                {activeProduct.currency || 'CUP'}{activeProduct.unit && activeProduct.unit !== 'u' ? ` / ${activeProduct.unit}` : ''}
+              <span style={{
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                color: 'var(--md-sys-color-primary)',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                padding: '3px 10px',
+                borderRadius: '9999px'
+              }}>
+                {activeProduct.currency || 'CUP'}
               </span>
+            </div>
+
+            {/* Detalles Textuales Simples (Sin cuadros rígidos) */}
+            <div style={{ marginTop: '14px', fontSize: '0.86rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.6' }}>
+              <span>Categoría: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{activeProduct.category}</strong></span>
+              <span style={{ margin: '0 8px' }}>•</span>
+              <span>Disponibilidad: <strong style={{ color: activeProduct.stock > 0 ? '#059669' : '#EF4444' }}>{activeProduct.stock > 0 ? `${activeProduct.stock} en stock` : 'Agotado'}</strong></span>
+              <span style={{ margin: '0 8px' }}>•</span>
+              <span>Código: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>#{activeProduct.barcode}</strong></span>
             </div>
 
             {activeProduct.description && (
-              <div style={{ marginTop: '10px', borderTop: '1px solid var(--md-sys-color-outline-variant)', paddingTop: '10px' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>
-                  Descripción del Producto
-                </span>
-                <p style={{ fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.5', margin: 0 }}>
-                  {activeProduct.description}
-                </p>
-              </div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.5', marginTop: '12px' }}>
+                {activeProduct.description}
+              </p>
             )}
           </div>
 
-          {/* Detalles del Artículo Grid Reformateado sin jerga técnica */}
+          {/* Sección de Valoración Interactiva Estilo WhatsApp */}
           <div style={{
-            backgroundColor: 'var(--md-sys-color-surface-container-high)',
-            borderRadius: '18px',
-            padding: '12px 14px',
+            padding: '14px 0',
+            borderTop: '1px solid var(--md-sys-color-outline-variant)',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Información de Compra
-            </span>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-              <div style={{ padding: '8px 10px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-                <span style={{ fontSize: '0.64rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>Categoría</span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>{activeProduct.category}</span>
-              </div>
-
-              <div style={{ padding: '8px 10px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-                <span style={{ fontSize: '0.64rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>Disponibilidad</span>
-                {activeProduct.isExternal ? (
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Globe size={13} /> Enlace Externo
-                  </span>
-                ) : activeProduct.stock > 0 ? (
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#059669', display: 'inline-block' }} />
-                    {activeProduct.stock} unidades
-                  </span>
-                ) : (
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444', display: 'inline-block' }} />
-                    Agotado
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Desglose de Ganancias (Solo Modo Administrador) */}
-          {isAdmin && (
-            <div style={{
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
-              borderRadius: '16px',
-              padding: '12px 14px',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '8px',
-              textAlign: 'center'
-            }}>
-              <div>
-                <span style={{ fontSize: '0.64rem', fontWeight: 700, display: 'block', opacity: 0.85 }}>COSTO</span>
-                <span style={{ fontSize: '1rem', fontWeight: 800 }}>{formatCurrency(cost, '$', true)}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.64rem', fontWeight: 700, display: 'block', opacity: 0.85 }}>GANANCIA</span>
-                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#059669' }}>+{formatCurrency(profitMargin, '$', true)}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.64rem', fontWeight: 700, display: 'block', opacity: 0.85 }}>ORIGEN</span>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>{activeProduct.supplierType === 'proveedor' ? activeProduct.supplierName : 'Propio'}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Sección de Valoración Interactiva con Bloqueo de 1 Minuto */}
-          <div style={{
-            backgroundColor: '#FFFDF5',
-            borderRadius: '16px',
-            padding: '14px 16px',
-            border: '1.5px solid #FDE68A',
-            display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            gap: '8px',
-            textAlign: 'center'
+            justifyContent: 'space-between',
+            gap: '12px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#92400E' }}>
-                Valoración del producto:
-              </span>
-              <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#D97706', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Star size={16} fill="#D97706" color="#D97706" />
-                {ratingScore} / 5.0 ({ratingCount} votos)
-              </span>
-            </div>
-
-            {/* Estado de Voto y Temporizador de 1 Minuto */}
-            <div style={{ fontSize: '0.78rem', color: '#B45309', fontWeight: 700 }}>
-              {isVoteLocked ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#92400E' }}>
-                  <Lock size={13} /> Tu valoración ({userRating} estrellas) ha sido guardada.
-                </span>
-              ) : userRating > 0 ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#D97706' }}>
-                  <Clock size={13} /> Tienes {timeLeft}s para modificar tu voto:
-                </span>
-              ) : (
-                'Toca una estrella para valorar este artículo:'
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
-              {[1, 2, 3, 4, 5].map((starIndex) => (
-                <button
-                  key={starIndex}
-                  type="button"
-                  disabled={isVoteLocked}
-                  onClick={() => handleRateProduct(starIndex)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: isVoteLocked ? 'not-allowed' : 'pointer',
-                    padding: '4px',
-                    opacity: isVoteLocked ? 0.75 : 1,
-                    transition: 'transform 0.15s ease'
-                  }}
-                  title={isVoteLocked ? 'Valoración bloqueada (1 min transcurrido)' : `Valorar con ${starIndex} estrellas`}
-                >
-                  <Star
-                    size={28}
-                    fill={starIndex <= userRating ? '#F59E0B' : '#E2E8F0'}
-                    color={starIndex <= userRating ? '#D97706' : '#CBD5E1'}
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                Valoración del artículo
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star 
+                    key={s} 
+                    size={18} 
+                    fill={s <= Math.round(ratingScore) ? '#F59E0B' : '#E2E8F0'} 
+                    color={s <= Math.round(ratingScore) ? '#D97706' : '#CBD5E1'} 
                   />
-                </button>
-              ))}
+                ))}
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '6px' }}>
+                  {ratingScore} ({ratingCount})
+                </span>
+              </div>
             </div>
+
+            <button
+              onClick={() => setIsVoteModalOpen(true)}
+              style={{
+                padding: '8px 18px',
+                borderRadius: '9999px',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-on-primary-container)',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Votar
+            </button>
           </div>
 
         </div>
+
+        {/* MODAL POPUP ESTILO WHATSAPP DE VALORACIÓN */}
+        {isVoteModalOpen && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.65)',
+              zIndex: 3000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px'
+            }}
+            onClick={() => setIsVoteModalOpen(false)}
+          >
+            <div 
+              onClick={e => e.stopPropagation()}
+              style={{
+                width: '100%',
+                maxWidth: '360px',
+                backgroundColor: '#FFFFFF',
+                borderRadius: '24px',
+                padding: '24px 20px',
+                textAlign: 'center',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+            >
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0F172A', margin: 0 }}>
+                ¿Cómo fue tu experiencia con este producto?
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>
+                Selecciona la cantidad de estrellas para valorar:
+              </p>
+
+              {/* 5 Estrellas */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                {[1, 2, 3, 4, 5].map(starIndex => (
+                  <button
+                    key={starIndex}
+                    type="button"
+                    onClick={() => setUserRating(starIndex)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      transition: 'transform 0.15s ease'
+                    }}
+                  >
+                    <Star
+                      size={32}
+                      fill={starIndex <= userRating ? '#F59E0B' : '#E2E8F0'}
+                      color={starIndex <= userRating ? '#D97706' : '#CBD5E1'}
+                    />
+                  </button>
+                ))}
+              </div>
+
+              {/* Botones estilo WhatsApp: Ahora no / Enviar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsVoteModalOpen(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748B',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    padding: '8px 12px'
+                  }}
+                >
+                  Ahora no
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (userRating > 0) {
+                      handleRateProduct(userRating);
+                    }
+                    setIsVoteModalOpen(false);
+                  }}
+                  style={{
+                    backgroundColor: '#25D366',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    padding: '10px 24px',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)'
+                  }}
+                >
+                  Enviar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* BARRA DE ACCIÓN FIJA EN LA PARTE INFERIOR (STICKY BOTTOM ACTION BAR) */}
         <div style={{
