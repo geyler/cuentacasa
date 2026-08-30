@@ -184,18 +184,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     }} className="no-print" onClick={onClose}>
 
       <div 
-        className="bottom-sheet-modal"
+        className="bottom-sheet-modal full-height-sheet"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: '540px',
+          height: '100dvh',
+          maxHeight: '100dvh',
           backgroundColor: 'var(--md-sys-color-surface)',
           padding: '18px 20px 24px 20px',
-          borderRadius: '28px 28px 0 0',
+          borderRadius: '0px',
           boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '94vh',
           animation: 'modalPop 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)',
           position: 'relative'
         }}

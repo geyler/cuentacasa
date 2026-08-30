@@ -136,18 +136,19 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
       onClick={onClose}
     >
       <div
-        className="bottom-sheet-modal"
+        className="bottom-sheet-modal full-height-sheet"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
           maxWidth: '560px',
-          borderRadius: '28px 28px 0 0',
+          height: '100dvh',
+          maxHeight: '100dvh',
+          borderRadius: '0px',
           boxShadow: 'var(--md-shadow-elevation-4)',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '92vh',
           overflow: 'hidden'
         }}
       >

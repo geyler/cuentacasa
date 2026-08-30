@@ -90,19 +90,20 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
         onClick={onClose}
       >
         <div
-          className="bottom-sheet-modal"
+          className="bottom-sheet-modal full-height-sheet"
           onClick={e => e.stopPropagation()}
           style={{
             width: '100%',
             maxWidth: '550px',
+            height: '100dvh',
+            maxHeight: '100dvh',
             backgroundColor: 'var(--md-sys-color-surface)',
-            borderRadius: '24px 24px 0 0',
+            borderRadius: '0px',
             padding: '20px',
             boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
-            maxHeight: '85vh',
             overflowY: 'auto'
           }}
         >

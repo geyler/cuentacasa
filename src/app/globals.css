@@ -258,17 +258,51 @@ body {
   }
 }
 
-/* Strict Bottom Sheet Modal Container (Straight bottom corners 0 0, rounded top 28px 28px) */
+/* Strict Bottom Sheet Modal Container */
 .bottom-sheet-modal {
   animation: slideUpModal 0.28s cubic-bezier(0.1, 0.9, 0.2, 1) !important;
-  border-top-left-radius: 28px !important;
-  border-top-right-radius: 28px !important;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
   border-bottom-left-radius: 0px !important;
   border-bottom-right-radius: 0px !important;
-  border-radius: 28px 28px 0px 0px !important;
+  border-radius: 28px 28px 0px 0px;
   margin-bottom: 0 !important;
   border-bottom: none !important;
   padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+}
+
+/* Full-height sheet modals: when modal reaches full viewport height or top edge */
+.bottom-sheet-modal.full-height-sheet,
+.full-height-sheet {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  border-top-left-radius: 0px !important;
+  border-top-right-radius: 0px !important;
+  border-radius: 0px !important;
+}
+
+/* On mobile screens (max-width: 640px), when tall modals stretch near top edge, flush them completely with zero top border-radius */
+@media (max-width: 640px) {
+  .bottom-sheet-modal.full-height-sheet,
+  .full-height-sheet,
+  .bottom-sheet-modal[style*="100dvh"],
+  .bottom-sheet-modal[style*="height: 100%"],
+  .bottom-sheet-modal[style*="height:100%"],
+  .bottom-sheet-modal[style*="max-height: 90vh"],
+  .bottom-sheet-modal[style*="maxHeight: 90vh"],
+  .bottom-sheet-modal[style*="max-height: 92vh"],
+  .bottom-sheet-modal[style*="maxHeight: 92vh"],
+  .bottom-sheet-modal[style*="max-height: 94vh"],
+  .bottom-sheet-modal[style*="maxHeight: 94vh"],
+  .bottom-sheet-modal[style*="max-height: 95vh"],
+  .bottom-sheet-modal[style*="maxHeight: 95vh"],
+  .bottom-sheet-modal[style*="max-height: 100%"] {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-top-left-radius: 0px !important;
+    border-top-right-radius: 0px !important;
+    border-radius: 0px !important;
+  }
 }
 
 

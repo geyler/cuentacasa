@@ -166,11 +166,11 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
         onClick={onClose}
       >
         <div
-          className="bottom-sheet-modal"
+          className="bottom-sheet-modal full-height-sheet"
           style={{
             width: '100%',
             maxWidth: '540px',
-            height: '100%',
+            height: '100dvh',
             maxHeight: '100dvh',
             backgroundColor: 'var(--md-sys-color-surface-container)',
             padding: '16px 20px 24px 20px',
@@ -180,7 +180,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
             textAlign: 'center',
             boxShadow: 'var(--md-shadow-elevation-4)',
             position: 'relative',
-            borderRadius: '28px 28px 0 0',
+            borderRadius: '0px',
             overflowY: 'auto'
           }}
           onClick={e => e.stopPropagation()}
