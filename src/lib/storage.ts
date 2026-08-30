@@ -144,9 +144,10 @@ export function getMasterPassword(): string {
 export function setMasterPassword(password: string): void {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: '$', appName: 'Cuenta Casa', autoSync: true, masterPassword: password };
+    db.settings = { currency: '$', appName: 'Cuenta Casa', autoSync: true, masterPassword: password, updatedAt: Date.now() };
   } else {
     db.settings.masterPassword = password;
+    db.settings.updatedAt = Date.now();
   }
   saveRawDatabase(db);
 }
@@ -308,6 +309,7 @@ export function saveRawDatabase(db: RawDatabase): void {
   memoryRawString = rawStr;
   try {
     window.dispatchEvent(new CustomEvent('cuentacasa-db-changed'));
+    window.dispatchEvent(new CustomEvent('cuentacasa-currency-mode-changed', { detail: db.settings }));
   } catch (e) {}
 }
 
@@ -603,10 +605,11 @@ export function getActiveWhatsappUserId(): string | undefined {
 export function saveStoreWhatsappNumber(phone: string, activeUserId?: string): void {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: false };
+    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: false, updatedAt: Date.now() };
   }
   db.settings.storeWhatsappNumber = phone.trim();
   db.settings.activeWhatsappUserId = activeUserId;
+  db.settings.updatedAt = Date.now();
   saveRawDatabase(db);
 }
 
@@ -727,9 +730,17 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
   if (!db.supplierAccounts) db.supplierAccounts = [];
   if (!db.transactions) db.transactions = [];
   if (typeof db.storeFund !== 'number') db.storeFund = 0;
+  if (typeof db.storeFundUSD !== 'number') db.storeFundUSD = 0;
+
+  // Determine explicit sale currency
+  const saleCurrency: CurrencyType = saleData.currency || 
+    (saleData.items[0]?.currency as CurrencyType) || 
+    (saleData.items[0]?.productId ? (db.storeProducts.find(p => p.id === saleData.items[0].productId)?.currency as CurrencyType) : undefined) || 
+    'CUP';
 
   const saleRecord: StoreSaleRecord = {
     ...saleData,
+    currency: saleCurrency,
     id: `sale-${Date.now()}`,
     timestamp: Date.now()
   };
@@ -755,17 +766,27 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
           id: `sup-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
           name: item.supplierName.trim(),
           pendingPayout: 0,
+          pendingPayoutUSD: 0,
           totalPaid: 0,
+          totalPaidUSD: 0,
           updatedAt: Date.now()
         };
         db.supplierAccounts!.push(supplier);
       }
-      // Cost money goes to Supplier Pending Payout
-      supplier.pendingPayout += itemCostTotal;
+      // Cost money goes to Supplier Pending Payout (separated by currency)
+      if (saleCurrency === 'USD') {
+        supplier.pendingPayoutUSD = (supplier.pendingPayoutUSD || 0) + itemCostTotal;
+      } else {
+        supplier.pendingPayout = (supplier.pendingPayout || 0) + itemCostTotal;
+      }
       supplier.updatedAt = Date.now();
     } else {
-      // Cost money stays in Store Own Fund
-      db.storeFund! += itemCostTotal;
+      // Cost money stays in Store Own Fund (separated by currency)
+      if (saleCurrency === 'USD') {
+        db.storeFundUSD = (db.storeFundUSD || 0) + itemCostTotal;
+      } else {
+        db.storeFund = (db.storeFund || 0) + itemCostTotal;
+      }
     }
   });
 
@@ -775,13 +796,14 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     : `tienda: venta de: ${totalCount} artículos`;
 
   const now = Date.now();
+  const currSymbol = saleCurrency === 'USD' ? 'US$' : '$';
 
   // Granular Ticket-style item breakdown
   const ticketItemsList = saleData.items
-    .map(i => `• ${i.quantity}x ${i.name} ($${i.unitPrice} c/u = $${i.quantity * i.unitPrice})`)
+    .map(i => `• ${i.quantity}x ${i.name} (${currSymbol}${i.unitPrice} c/u = ${currSymbol}${i.quantity * i.unitPrice})`)
     .join('\n');
 
-  const formattedTicketNotes = `[TICKET_DE_VENTA]\n${ticketItemsList}\n-------------------\nTotal: ${saleData.currency === 'USD' ? 'US$' : '$'}${saleData.totalAmount} | Vendedor: ${saleData.sellerId || 'General'}`;
+  const formattedTicketNotes = `[TICKET_DE_VENTA]\n${ticketItemsList}\n-------------------\nTotal: ${currSymbol}${saleData.totalAmount} | Moneda: ${saleCurrency} | Vendedor: ${saleData.sellerId || 'General'}`;
 
   // 1. Register Gross Sale Income in Store Account Log
   const storeSaleTx: Transaction = {
@@ -790,7 +812,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     concept: conceptSummary,
     category: 'Ventas del Negocio',
     amount: saleData.totalAmount,
-    currency: saleData.currency || 'CUP',
+    currency: saleCurrency,
     date: saleData.date,
     accountSource: 'tienda',
     notes: formattedTicketNotes,
@@ -808,10 +830,10 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
       concept: `Ganancia Tienda: ${conceptSummary}`,
       category: 'Ganancia Tienda',
       amount: saleData.netProfit,
-      currency: saleData.currency || 'CUP',
+      currency: saleCurrency,
       date: saleData.date,
       accountSource: 'casa',
-      notes: `Venta Total: $${saleData.totalAmount} | Fondo Tienda/Proveedores retenido: $${saleData.totalCost}`,
+      notes: `Venta Total: ${currSymbol}${saleData.totalAmount} | Fondo Tienda/Proveedores retenido: ${currSymbol}${saleData.totalCost}`,
       createdAt: now + 1,
       updatedAt: now + 1,
       synced: false
@@ -821,7 +843,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
   }
 
   saveRawDatabase(db);
-  recordShiftSaleInActiveShift(saleData.items, saleData.totalAmount, 'cash', saleData.sellerId);
+  recordShiftSaleInActiveShift(saleData.items, saleData.totalAmount, 'cash', saleData.sellerId, saleCurrency);
   return saleRecord;
 }
 
@@ -922,16 +944,41 @@ export function deleteSupplierAccount(id: string): { success: boolean; error?: s
 
 export function getCalculatedStoreFund(): number {
   const db = getRawDatabase();
-  const salesRecords = db.storeSales || [];
+  const salesRecords = (db.storeSales || []).filter(s => (s.currency || 'CUP') === 'CUP');
   const suppliers = db.supplierAccounts || [];
 
   const totalAccumulatedSalesRevenue = salesRecords.reduce((acc, s) => acc + s.totalAmount, 0);
   const totalAccumulatedHouseProfits = salesRecords.reduce((acc, s) => acc + (s.netProfit || 0), 0);
-  const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + s.pendingPayout, 0);
+  const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + (s.pendingPayout || 0), 0);
 
   const houseCapitalTransactions = (db.transactions || []).filter(t => 
-    (t.concept + ' ' + (t.notes || '')).toLowerCase().includes('fondo negocio') || 
-    (t.concept + ' ' + (t.notes || '')).toLowerCase().includes('tienda')
+    (t.currency || 'CUP') === 'CUP' &&
+    ((t.concept + ' ' + (t.notes || '')).toLowerCase().includes('fondo negocio') || 
+     (t.concept + ' ' + (t.notes || '')).toLowerCase().includes('tienda'))
+  );
+  const netTransferredToCasa = houseCapitalTransactions
+    .filter(t => t.type === 'ingreso' && t.category === 'Tienda')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const netInjectedFromCasa = houseCapitalTransactions
+    .filter(t => t.type === 'gasto' && t.category === 'Tienda')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  return Math.max(0, (totalAccumulatedSalesRevenue - totalAccumulatedHouseProfits - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
+}
+
+export function getCalculatedStoreFundUSD(): number {
+  const db = getRawDatabase();
+  const salesRecords = (db.storeSales || []).filter(s => s.currency === 'USD');
+  const suppliers = db.supplierAccounts || [];
+
+  const totalAccumulatedSalesRevenue = salesRecords.reduce((acc, s) => acc + s.totalAmount, 0);
+  const totalAccumulatedHouseProfits = salesRecords.reduce((acc, s) => acc + (s.netProfit || 0), 0);
+  const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + (s.pendingPayoutUSD || 0), 0);
+
+  const houseCapitalTransactions = (db.transactions || []).filter(t => 
+    t.currency === 'USD' &&
+    ((t.concept + ' ' + (t.notes || '')).toLowerCase().includes('fondo negocio') || 
+     (t.concept + ' ' + (t.notes || '')).toLowerCase().includes('tienda'))
   );
   const netTransferredToCasa = houseCapitalTransactions
     .filter(t => t.type === 'ingreso' && t.category === 'Tienda')
@@ -974,10 +1021,11 @@ export function getCurrencySettings(): CurrencySettings {
 export function saveCurrencySettings(settings: Partial<CurrencySettings>): CurrencySettings {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true };
+    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
   }
   if (settings.currencyMode !== undefined) db.settings.currencyMode = settings.currencyMode;
   if (settings.exchangeRateUSD !== undefined) db.settings.exchangeRateUSD = settings.exchangeRateUSD;
+  db.settings.updatedAt = Date.now();
   saveRawDatabase(db);
   return getCurrencySettings();
 }
@@ -985,9 +1033,10 @@ export function saveCurrencySettings(settings: Partial<CurrencySettings>): Curre
 export function switchCurrencyMode(newMode: CurrencyMode): CurrencySettings {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true };
+    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
   }
   db.settings.currencyMode = newMode;
+  db.settings.updatedAt = Date.now();
 
   // Automate transition of inactive currency published products to "draft" (unpublished)
   if (newMode === 'USD') {
@@ -1388,20 +1437,29 @@ export function recordShiftSaleInActiveShift(
   items: StoreSaleItem[],
   totalAmount: number,
   paymentMethod: 'cash' | 'digital' = 'cash',
-  sellerId?: string
+  sellerId?: string,
+  currency: CurrencyType = 'CUP'
 ): void {
   const db = getRawDatabase();
   const shifts = db.shifts || [];
   const activeShift = shifts.find(s => s.status === 'activo' || s.status === 'apertura_pendiente');
   if (!activeShift) return;
 
-  if (paymentMethod === 'cash') {
-    activeShift.totalCashSales += totalAmount;
+  if (currency === 'USD') {
+    if (paymentMethod === 'cash') {
+      activeShift.totalCashSalesUSD = (activeShift.totalCashSalesUSD || 0) + totalAmount;
+    } else {
+      activeShift.totalDigitalSalesUSD = (activeShift.totalDigitalSalesUSD || 0) + totalAmount;
+    }
+    activeShift.expectedCashInRegisterUSD = (activeShift.initialCashFundUSD || 0) + (activeShift.totalCashSalesUSD || 0);
   } else {
-    activeShift.totalDigitalSales += totalAmount;
+    if (paymentMethod === 'cash') {
+      activeShift.totalCashSales += totalAmount;
+    } else {
+      activeShift.totalDigitalSales += totalAmount;
+    }
+    activeShift.expectedCashInRegister = activeShift.initialCashFund + activeShift.totalCashSales;
   }
-
-  activeShift.expectedCashInRegister = activeShift.initialCashFund + activeShift.totalCashSales;
 
   const currentSaleSellerId = sellerId || getLoggedInUser()?.id;
   const isShiftUserSale = currentSaleSellerId === activeShift.sellerId;
@@ -1520,6 +1578,7 @@ export interface CartQRPayload {
     price: number;
     costPrice?: number;
     quantity: number;
+    currency?: CurrencyType;
     supplierType?: 'propia' | 'proveedor';
     supplierName?: string;
   }>;
@@ -1534,6 +1593,7 @@ export function generateCartQRPayload(cart: { product: StoreProduct; quantity: n
     price: item.product.price,
     costPrice: item.product.costPrice || Math.round(item.product.price * 0.7),
     quantity: item.quantity,
+    currency: item.product.currency || 'CUP',
     supplierType: item.product.supplierType || 'propia',
     supplierName: item.product.supplierName
   }));
@@ -1573,7 +1633,8 @@ export function generateSyncQRPayload(): string {
     shifts: db.shifts || [],
     suppliers: db.supplierAccounts || [],
     users: db.users || [],
-    transactions: db.transactions || []
+    transactions: db.transactions || [],
+    settings: db.settings || { currency: 'CUP', appName: 'Samy Store', autoSync: true }
   };
 
   return JSON.stringify(payload);
@@ -1616,6 +1677,14 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
   let addedShifts = 0;
   let updatedShifts = 0;
   let addedTransactions = 0;
+
+  // 0. Merge System Settings (Currency Mode & Exchange Rate)
+  if (payload.settings) {
+    db.settings = {
+      ...(db.settings || {}),
+      ...(payload.settings || {})
+    };
+  }
 
   // 1. Additive Merge Products (UPSERT by ID)
   if (Array.isArray(payload.products)) {

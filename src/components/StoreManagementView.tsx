@@ -447,16 +447,39 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               </div>
             )}
             {currencyMode === 'BOTH' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', margin: '6px 0' }}>
-                <div style={{ padding: '8px 10px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.85)', border: '1px solid rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 900, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.03em' }}>CUP ($)</span>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#047857', wordBreak: 'break-word', lineHeight: 1.1 }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                margin: '6px 0 4px 0'
+              }}>
+                <div style={{
+                  padding: '5px 8px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                  border: '1px solid rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#047857', textTransform: 'uppercase', flexShrink: 0 }}>CUP</span>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', whiteSpace: 'nowrap', lineHeight: 1 }}>
                     {formatCurrency(totalStoreFund, 'CUP', true)}
                   </span>
                 </div>
-                <div style={{ padding: '8px 10px', borderRadius: '12px', backgroundColor: '#ECFEFF', border: '1px solid #99F6E4', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 900, color: '#0F766E', textTransform: 'uppercase', letterSpacing: '0.03em' }}>USD (US$)</span>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0F766E', wordBreak: 'break-word', lineHeight: 1.1 }}>
+                <div style={{
+                  padding: '5px 8px',
+                  borderRadius: '8px',
+                  backgroundColor: '#ECFEFF',
+                  border: '1px solid #99F6E4',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#0F766E', textTransform: 'uppercase', flexShrink: 0 }}>USD</span>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0F766E', whiteSpace: 'nowrap', lineHeight: 1 }}>
                     {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
                   </span>
                 </div>

@@ -130,6 +130,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   }, [isOpen]);
 
   const handleSelectCurrencyMode = (mode: CurrencyMode) => {
+    if (!isOwner) {
+      showToast({
+        title: 'Acceso Restringido',
+        message: 'Solo los propietarios tienen autorización para cambiar la moneda de operación del negocio.',
+        type: 'warning'
+      });
+      return;
+    }
+
     if (mode === currencyMode) return;
 
     const labels: Record<CurrencyMode, string> = {
@@ -451,66 +460,83 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Toggles for Currency Mode */}
-              <div>
-                <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-                  Selecciona la moneda principal de operación:
-                </span>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectCurrencyMode('CUP')}
-                    style={{
-                      padding: '8px 4px',
-                      borderRadius: '10px',
-                      border: currencyMode === 'CUP' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: currencyMode === 'CUP' ? '#ECFDF5' : 'var(--md-sys-color-surface)',
-                      color: currencyMode === 'CUP' ? '#047857' : 'var(--md-sys-color-on-surface)',
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      textAlign: 'center'
-                    }}
-                  >
-                    Solo CUP ($)
-                  </button>
+              {isOwner ? (
+                <div>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                    Selecciona la moneda principal de operación:
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCurrencyMode('CUP')}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: '10px',
+                        border: currencyMode === 'CUP' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: currencyMode === 'CUP' ? '#ECFDF5' : 'var(--md-sys-color-surface)',
+                        color: currencyMode === 'CUP' ? '#047857' : 'var(--md-sys-color-on-surface)',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      Solo CUP ($)
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSelectCurrencyMode('USD')}
-                    style={{
-                      padding: '8px 4px',
-                      borderRadius: '10px',
-                      border: currencyMode === 'USD' ? '2px solid #2563EB' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: currencyMode === 'USD' ? '#EFF6FF' : 'var(--md-sys-color-surface)',
-                      color: currencyMode === 'USD' ? '#1D4ED8' : 'var(--md-sys-color-on-surface)',
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      textAlign: 'center'
-                    }}
-                  >
-                    Solo USD (US$)
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCurrencyMode('USD')}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: '10px',
+                        border: currencyMode === 'USD' ? '2px solid #2563EB' : '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: currencyMode === 'USD' ? '#EFF6FF' : 'var(--md-sys-color-surface)',
+                        color: currencyMode === 'USD' ? '#1D4ED8' : 'var(--md-sys-color-on-surface)',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      Solo USD (US$)
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSelectCurrencyMode('BOTH')}
-                    style={{
-                      padding: '8px 4px',
-                      borderRadius: '10px',
-                      border: currencyMode === 'BOTH' ? '2px solid #7C3AED' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: currencyMode === 'BOTH' ? '#F5F3FF' : 'var(--md-sys-color-surface)',
-                      color: currencyMode === 'BOTH' ? '#6D28D9' : 'var(--md-sys-color-on-surface)',
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      textAlign: 'center'
-                    }}
-                  >
-                    Ambas (CUP+USD)
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCurrencyMode('BOTH')}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: '10px',
+                        border: currencyMode === 'BOTH' ? '2px solid #7C3AED' : '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: currencyMode === 'BOTH' ? '#F5F3FF' : 'var(--md-sys-color-surface)',
+                        color: currencyMode === 'BOTH' ? '#6D28D9' : 'var(--md-sys-color-on-surface)',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      Ambas (CUP+USD)
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <Lock size={14} color="var(--md-sys-color-on-surface-variant)" />
+                  <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                    La configuración del modo de moneda es gestionada únicamente por el Propietario.
+                  </span>
+                </div>
+              )}
 
               {/* Exchange Rate Setting */}
               <div style={{
@@ -531,7 +557,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                 </div>
 
-                {!isEditingExchangeRate ? (
+                {isOwner && (!isEditingExchangeRate ? (
                   <button
                     type="button"
                     onClick={() => setIsEditingExchangeRate(true)}
@@ -573,7 +599,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <Save size={12} /> Guardar
                     </button>
                   </div>
-                )}
+                ))}
               </div>
             </div>
 

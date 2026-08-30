@@ -76,40 +76,42 @@ export const StatCards: React.FC<StatCardsProps> = ({
       );
     }
 
-    // BOTH Mode: 50/50 Equal Parity Grid with equally prominent large typography
+    // BOTH Mode: Clean stacked horizontal rows with full width to prevent number line breaks on mobile
     return (
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '6px',
-        margin: '6px 0'
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        margin: '6px 0 4px 0'
       }}>
         <div style={{
-          padding: '8px 10px',
-          borderRadius: '12px',
+          padding: '5px 8px',
+          borderRadius: '8px',
           backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          border: '1px solid rgba(0,0,0,0.08)',
+          border: '1px solid rgba(0,0,0,0.06)',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '2px'
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '6px'
         }}>
-          <span style={{ fontSize: '0.66rem', fontWeight: 900, color: colorCUP, textTransform: 'uppercase', letterSpacing: '0.03em' }}>CUP ($)</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 900, color: colorCUP, wordBreak: 'break-word', lineHeight: 1.1 }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colorCUP, textTransform: 'uppercase', flexShrink: 0 }}>CUP</span>
+          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: colorCUP, whiteSpace: 'nowrap', lineHeight: 1 }}>
             {prefix}{formatCurrency(valCUP, 'CUP', showBalance)}
           </span>
         </div>
 
         <div style={{
-          padding: '8px 10px',
-          borderRadius: '12px',
+          padding: '5px 8px',
+          borderRadius: '8px',
           backgroundColor: '#ECFEFF',
           border: '1px solid #99F6E4',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '2px'
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '6px'
         }}>
-          <span style={{ fontSize: '0.66rem', fontWeight: 900, color: colorUSD, textTransform: 'uppercase', letterSpacing: '0.03em' }}>USD (US$)</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 900, color: colorUSD, wordBreak: 'break-word', lineHeight: 1.1 }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colorUSD, textTransform: 'uppercase', flexShrink: 0 }}>USD</span>
+          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: colorUSD, whiteSpace: 'nowrap', lineHeight: 1 }}>
             {prefix}{formatCurrency(valUSD, 'USD', showBalance)}
           </span>
         </div>

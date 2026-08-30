@@ -22,8 +22,10 @@ export interface Transaction {
 export interface SupplierAccount {
   id: string;
   name: string;             // e.g. "Maikel", "Carlos"
-  pendingPayout: number;    // Dinero retenido por costo de ventas pendiente de pagar
-  totalPaid: number;        // Total histórico liquidado a este proveedor
+  pendingPayout: number;    // Dinero retenido por costo de ventas pendiente de pagar (CUP)
+  pendingPayoutUSD?: number;// Dinero retenido por costo de ventas pendiente de pagar (USD)
+  totalPaid: number;        // Total histórico liquidado a este proveedor (CUP)
+  totalPaidUSD?: number;    // Total histórico liquidado a este proveedor (USD)
   updatedAt: number;
 }
 
@@ -138,13 +140,21 @@ export interface StoreShiftRecord {
   closedByUserId?: string;    // Admin/Propietario que participó en el cierre
   closedByName?: string;
   
-  // Fondo de Caja y Finanzas
-  initialCashFund: number;    // Dinero para vueltos entregado al inicio
-  totalCashSales: number;     // Ventas registradas en efectivo
-  totalDigitalSales: number;  // Ventas por transferencia/Zelle/QvaPay
-  expectedCashInRegister: number; // Fondo Inicial + Ventas Efectivo
-  realCashInRegister?: number;   // Dinero físico entregado por el dependiente
-  cashDifference?: number;       // Faltante o Sobrante
+  // Fondo de Caja y Finanzas (CUP)
+  initialCashFund: number;    // Dinero para vueltos entregado al inicio (CUP)
+  totalCashSales: number;     // Ventas registradas en efectivo (CUP)
+  totalDigitalSales: number;  // Ventas por transferencia/Zelle/QvaPay (CUP)
+  expectedCashInRegister: number; // Fondo Inicial + Ventas Efectivo (CUP)
+  realCashInRegister?: number;   // Dinero físico entregado por el dependiente (CUP)
+  cashDifference?: number;       // Faltante o Sobrante (CUP)
+
+  // Fondo de Caja y Finanzas (USD)
+  initialCashFundUSD?: number;    // Dinero para vueltos entregado al inicio (USD)
+  totalCashSalesUSD?: number;     // Ventas registradas en efectivo (USD)
+  totalDigitalSalesUSD?: number;  // Ventas por transferencia (USD)
+  expectedCashInRegisterUSD?: number; // Fondo Inicial + Ventas Efectivo (USD)
+  realCashInRegisterUSD?: number;   // Dinero físico entregado por el dependiente (USD)
+  cashDifferenceUSD?: number;       // Faltante o Sobrante (USD)
 
   // Control de Inventario
   inventorySnapshots: ShiftInventorySnapshot[];
@@ -186,6 +196,7 @@ export interface RawDatabase {
     activeWhatsappUserId?: string; // ID del usuario cuyo WhatsApp está seleccionado activamente para recibir carritos
     currencyMode?: CurrencyMode; // Mode: 'CUP' (Solo CUP), 'USD' (Solo USD), 'BOTH' (CUP + USD)
     exchangeRateUSD?: number;   // Tipo de cambio 1 USD = X CUP (e.g. 320)
+    updatedAt?: number;         // Timestamp del último cambio de configuración global
   };
 }
 
@@ -202,6 +213,7 @@ export interface QRSyncPayload {
   suppliers?: SupplierAccount[];
   users?: AppUser[];
   transactions?: Transaction[];
+  settings?: RawDatabase['settings'];
 }
 
 

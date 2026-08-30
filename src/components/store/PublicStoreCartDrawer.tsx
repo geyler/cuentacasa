@@ -39,6 +39,8 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
 
   if (!isOpen) return null;
 
+  const cartCurrency = cart[0]?.product.currency || 'CUP';
+
   const handleSendWhatsAppOrder = () => {
     if (cart.length === 0) return;
 
@@ -48,9 +50,11 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
 
     let text = `🛒 *PEDIDO SAMY STORE*\n----------------------------------\n`;
     cart.forEach((item, index) => {
-      text += `${index + 1}. *${item.product.name}*\n   Cant: ${item.quantity}u | Subtotal: $${item.product.price * item.quantity} CUP\n`;
+      const itemCurr = item.product.currency || 'CUP';
+      const formattedSubtotal = formatCurrency(item.product.price * item.quantity, itemCurr, true);
+      text += `${index + 1}. *${item.product.name}*\n   Cant: ${item.quantity}u | Subtotal: ${formattedSubtotal}\n`;
     });
-    text += `----------------------------------\n💰 *TOTAL A PAGAR: $${totalCartPrice} CUP*\n\n`;
+    text += `----------------------------------\n💰 *TOTAL A PAGAR: ${formatCurrency(totalCartPrice, cartCurrency, true)}*\n\n`;
     text += `🔗 *Ver pedido en Samy Store:*\n${cartLink}`;
 
     const encoded = encodeURIComponent(text);
@@ -186,7 +190,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                           #{item.product.barcode}
                         </span>
                         <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                          ${item.product.price} c/u
+                          {formatCurrency(item.product.price, item.product.currency || 'CUP', true)} c/u
                         </span>
                       </div>
                       <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -224,7 +228,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                     </div>
 
                     <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-income)', minWidth: '60px', textAlign: 'right' }}>
-                      ${item.product.price * item.quantity}
+                      {formatCurrency(item.product.price * item.quantity, item.product.currency || 'CUP', true)}
                     </span>
 
                     <button
@@ -247,7 +251,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                   Total a Pagar:
                 </span>
                 <span style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                  {formatCurrency(totalCartPrice, '$', true)}
+                  {formatCurrency(totalCartPrice, cartCurrency, true)}
                 </span>
               </div>
 
@@ -307,7 +311,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
         onClose={() => setIsCartQROpen(false)}
         cart={cart}
         totalCartPrice={totalCartPrice}
-        currency="$"
+        currency={cartCurrency}
       />
     </>
   );

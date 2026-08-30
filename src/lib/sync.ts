@@ -1,5 +1,5 @@
 import { getRawDatabase, saveRawDatabase } from './storage';
-import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, AppUser, RawDatabase } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, AppUser, StoreShiftRecord, RawDatabase } from '@/types';
 
 export interface SyncStatus {
   isOnline: boolean;
@@ -9,7 +9,7 @@ export interface SyncStatus {
 
 export interface PendingSyncDetailItem {
   id: string;
-  type: 'transaction' | 'delete_transaction' | 'product_delete' | 'supplier_delete' | 'user_delete' | 'user_update';
+  type: 'transaction' | 'delete_transaction' | 'product_delete' | 'supplier_delete' | 'user_delete' | 'user_update' | 'product_update' | 'sale' | 'shift' | 'supplier_update' | 'settings_update';
   title: string;
   subtitle: string;
   badgeText: string;
@@ -40,20 +40,84 @@ export function getPendingSyncDetails(): {
     });
   });
 
-  // 2. Unsynced / modified users
+  // 2. Unsynced / modified products
+  const unsyncedProducts = (db.storeProducts || []).filter(p => (p.updatedAt || p.createdAt || 0) > lastSyncTime);
+  unsyncedProducts.forEach(p => {
+    items.push({
+      id: p.id,
+      type: 'product_update',
+      title: `📦 Producto: ${p.name}`,
+      subtitle: `Precio: $${p.price} ${p.currency || 'CUP'} • Stock: ${p.stock}u • Code: ${p.barcode}`,
+      badgeText: 'Producto Creado/Modificado',
+      badgeColor: '#2563EB'
+    });
+  });
+
+  // 3. Unsynced / new sales
+  const unsyncedSales = (db.storeSales || []).filter(s => (s.timestamp || 0) > lastSyncTime);
+  unsyncedSales.forEach(s => {
+    items.push({
+      id: s.id,
+      type: 'sale',
+      title: `🛒 Venta POS: Ticket #${s.id.slice(-6)}`,
+      subtitle: `Total: $${s.totalAmount} ${s.currency || 'CUP'} • ${s.items.length} artículos`,
+      badgeText: 'Venta Registrada',
+      badgeColor: '#059669'
+    });
+  });
+
+  // 4. Unsynced / modified shifts & arqueos
+  const unsyncedShifts = (db.shifts || []).filter(s => (s.closedAt || s.openedAt || 0) > lastSyncTime);
+  unsyncedShifts.forEach(s => {
+    items.push({
+      id: s.id,
+      type: 'shift',
+      title: `🟢 Turno Vendedor: ${s.sellerName}`,
+      subtitle: `Estado: ${s.status.toUpperCase()} • Fondo Inicial: $${s.initialCashFund}`,
+      badgeText: s.status === 'activo' ? 'Turno Activo' : 'Turno Cerrado',
+      badgeColor: '#7C3AED'
+    });
+  });
+
+  // 5. Unsynced / modified suppliers
+  const unsyncedSuppliers = (db.supplierAccounts || []).filter(sup => (sup.updatedAt || 0) > lastSyncTime);
+  unsyncedSuppliers.forEach(sup => {
+    items.push({
+      id: sup.id,
+      type: 'supplier_update',
+      title: `🤝 Proveedor: ${sup.name}`,
+      subtitle: `Pendiente pago: $${sup.pendingPayout} CUP | Total pagado: $${sup.totalPaid} CUP`,
+      badgeText: 'Proveedor Modificado',
+      badgeColor: '#D97706'
+    });
+  });
+
+  // 6. Unsynced / modified app users
   const unsyncedUsers = (db.users || []).filter(u => (u.updatedAt || 0) > lastSyncTime);
   unsyncedUsers.forEach(u => {
     items.push({
       id: u.id,
       type: 'user_update',
-      title: `Usuario: ${u.name}`,
+      title: `👤 Usuario: ${u.name}`,
       subtitle: `@${u.username} (${u.role}) • Pendiente de sincronizar`,
       badgeText: 'Usuario Modificado',
       badgeColor: '#8B5CF6'
     });
   });
 
-  // 3. Deleted transactions pending cloud removal
+  // 7. System Settings Changes (Global Currency, Exchange Rate, WhatsApp, App Config)
+  if (db.settings && (db.settings.updatedAt || 0) > lastSyncTime) {
+    items.push({
+      id: 'sys-settings-update',
+      type: 'settings_update',
+      title: `🌐 Configuración Global del Sistema`,
+      subtitle: `Modo Moneda: ${db.settings.currencyMode || 'BOTH'} • Tasa: 1 USD = $${db.settings.exchangeRateUSD || 320} CUP`,
+      badgeText: 'Ajustes Globales',
+      badgeColor: '#0284C7'
+    });
+  }
+
+  // 8. Deleted transactions pending cloud removal
   (db.deletedIds || []).forEach(id => {
     items.push({
       id,
@@ -65,7 +129,7 @@ export function getPendingSyncDetails(): {
     });
   });
 
-  // 4. Deleted products pending cloud removal
+  // 9. Deleted products pending cloud removal
   (db.deletedProductIds || []).forEach(id => {
     items.push({
       id,
@@ -77,7 +141,7 @@ export function getPendingSyncDetails(): {
     });
   });
 
-  // 5. Deleted suppliers pending cloud removal
+  // 10. Deleted suppliers pending cloud removal
   (db.deletedSupplierIds || []).forEach(id => {
     items.push({
       id,
@@ -89,7 +153,7 @@ export function getPendingSyncDetails(): {
     });
   });
 
-  // 6. Deleted users pending cloud removal
+  // 11. Deleted users pending cloud removal
   (db.deletedUserIds || []).forEach(id => {
     items.push({
       id,
@@ -168,6 +232,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         storeProducts: db.storeProducts || [],
         deletedProductIds: db.deletedProductIds || [],
         storeSales: db.storeSales || [],
+        shifts: db.shifts || [],
         supplierAccounts: db.supplierAccounts || [],
         deletedSupplierIds: db.deletedSupplierIds || [],
         users: db.users || [],
@@ -207,6 +272,10 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         ? data.storeSales
         : (db.storeSales || []);
 
+      const mergedShifts: StoreShiftRecord[] = Array.isArray(data.shifts)
+        ? data.shifts
+        : (db.shifts || []);
+
       const rawMergedSuppliers: SupplierAccount[] = Array.isArray(data.supplierAccounts)
         ? data.supplierAccounts
         : (db.supplierAccounts || []);
@@ -226,15 +295,16 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         transactions: mergedTransactions,
         storeProducts: mergedProducts,
         storeSales: mergedSales,
+        shifts: mergedShifts,
         supplierAccounts: mergedSuppliers,
         users: mergedUsers,
         storeFund: data.storeFund !== undefined ? data.storeFund : (db.storeFund || 0),
         savingsFund: data.savingsFund !== undefined ? data.savingsFund : (db.savingsFund || 0),
         settings: {
+          ...(db.settings || {}),
           ...(data.settings || {}),
-          ...db.settings,
-          currencyMode: db.settings?.currencyMode || data.settings?.currencyMode || 'BOTH',
-          exchangeRateUSD: db.settings?.exchangeRateUSD || data.settings?.exchangeRateUSD || 320
+          currencyMode: data.settings?.currencyMode || db.settings?.currencyMode || 'BOTH',
+          exchangeRateUSD: data.settings?.exchangeRateUSD || db.settings?.exchangeRateUSD || 320
         },
         deletedIds: [],
         deletedProductIds: [],

@@ -383,20 +383,41 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>Fondo Inicial (Vueltos)</span>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800 }}>{formatCurrency(activeShift.initialCashFund, currency, true)}</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800 }}>
+                        {formatCurrency(activeShift.initialCashFund, 'CUP', true)}
+                        {(activeShift.initialCashFundUSD || 0) > 0 && (
+                          <span style={{ fontSize: '0.82rem', color: '#059669', display: 'block' }}>
+                            {formatCurrency(activeShift.initialCashFundUSD || 0, 'USD', true)}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>Ventas Efectivo</span>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#059669' }}>+{formatCurrency(activeShift.totalCashSales, currency, true)}</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#059669' }}>
+                        +{formatCurrency(activeShift.totalCashSales, 'CUP', true)}
+                        {(activeShift.totalCashSalesUSD || 0) > 0 && (
+                          <span style={{ fontSize: '0.82rem', color: '#059669', display: 'block' }}>
+                            +{formatCurrency(activeShift.totalCashSalesUSD || 0, 'USD', true)}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div style={{ gridColumn: 'span 2', backgroundColor: 'var(--md-sys-color-surface-container-high)', padding: '10px 12px', borderRadius: '12px', marginTop: '4px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.8rem', fontWeight: 900 }}>Debe Haber en Caja (Efectivo Esperado):</span>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
-                          {formatCurrency(activeShift.expectedCashInRegister, currency, true)}
-                        </span>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
+                            {formatCurrency(activeShift.expectedCashInRegister, 'CUP', true)}
+                          </div>
+                          {(activeShift.expectedCashInRegisterUSD || 0) > 0 && (
+                            <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#059669' }}>
+                              {formatCurrency(activeShift.expectedCashInRegisterUSD || 0, 'USD', true)}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { StoreProduct, StoreSaleItem } from '@/types';
+import { StoreProduct, StoreSaleItem, CurrencyType } from '@/types';
 import { 
   getStoreProductByBarcode, 
   getStoreProducts, 
@@ -152,6 +152,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               costPrice: costPrice,
               unitPrice: unitPrice,
               subtotal: qty * unitPrice,
+              currency: item.currency || (prod ? prod.currency : 'CUP'),
               supplierType: (prod ? prod.supplierType : item.supplierType) || 'propia',
               supplierName: prod ? prod.supplierName : item.supplierName
             });
@@ -257,6 +258,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           costPrice: product.costPrice || Math.round(product.price * 0.7),
           unitPrice: product.price,
           subtotal: product.price,
+          currency: product.currency || 'CUP',
           supplierType: product.supplierType || 'propia',
           supplierName: product.supplierName
         }
@@ -455,9 +457,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       return;
     }
 
+    const saleCurrency: CurrencyType = (ticketItems[0]?.currency as CurrencyType) || (currency as CurrencyType) || 'CUP';
+
     confirmAction({
       title: '¿Confirmar y Registrar Venta?',
-      message: `Se registrará la venta de ${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'} por un total de ${formatCurrency(totalInvoicePrice, currency, true)}.`,
+      message: `Se registrará la venta de ${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'} por un total de ${formatCurrency(totalInvoicePrice, saleCurrency, true)}.`,
       variant: 'primary',
       confirmText: 'Confirmar y Cobrar',
       onConfirm: () => {
@@ -468,13 +472,14 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           items: ticketItems,
           totalAmount: totalInvoicePrice,
           totalCost: totalInvoiceCost,
-          netProfit: estimatedNetProfit
+          netProfit: estimatedNetProfit,
+          currency: saleCurrency
         });
 
         // Trigger automatic sync with Hostinger DB
         syncDatabaseWithCloud(true).catch(err => console.warn('Sale sync warning:', err));
 
-        const saleTotalText = formatCurrency(totalInvoicePrice, currency, true);
+        const saleTotalText = formatCurrency(totalInvoicePrice, saleCurrency, true);
         const itemsListStr = ticketItems.map(i => `${i.name} (x${i.quantity})`).join(', ');
 
         setTicketItems([]);

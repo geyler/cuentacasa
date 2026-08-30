@@ -106,6 +106,7 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
           costPrice: prod.costPrice || Math.round(prod.price * 0.7),
           unitPrice: prod.price,
           subtotal: prod.price * qty,
+          currency: prod.currency || 'CUP',
           supplierType: prod.supplierType || 'propia',
           supplierName: prod.supplierName
         });

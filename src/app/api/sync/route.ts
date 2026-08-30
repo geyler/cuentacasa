@@ -14,6 +14,7 @@ interface FileCloudData {
   storeSales: StoreSaleRecord[];
   supplierAccounts: SupplierAccount[];
   users: AppUser[];
+  shifts?: any[];
   storeFund: number;
   savingsFund: number;
   settings: any;
@@ -448,6 +449,7 @@ export async function GET() {
     let currentCloudSales: StoreSaleRecord[] = [];
     let currentCloudSuppliers: SupplierAccount[] = [];
     let currentCloudUsers: AppUser[] = [];
+    let currentCloudShifts: any[] = [];
     let currentStoreFund = 0;
     let currentSavingsFund = 0;
     let currentSettings: any = {};
@@ -476,6 +478,11 @@ export async function GET() {
       currentCloudUsers = userResult.users;
       deletedUserIds = Array.from(userResult.deletedSet);
 
+      const shiftsStr = await getMySQLAppState('shifts');
+      if (shiftsStr !== null) {
+        try { currentCloudShifts = JSON.parse(shiftsStr); } catch (e) {}
+      }
+
       const storeFundStr = await getMySQLAppState('storeFund');
       if (storeFundStr !== null) currentStoreFund = Number(storeFundStr);
 
@@ -496,6 +503,7 @@ export async function GET() {
       currentCloudSales = fileData.storeSales;
       currentCloudSuppliers = fileData.supplierAccounts;
       currentCloudUsers = fileData.users;
+      currentCloudShifts = fileData.shifts || [];
       currentStoreFund = fileData.storeFund;
       currentSavingsFund = fileData.savingsFund;
       currentSettings = fileData.settings;
@@ -511,6 +519,7 @@ export async function GET() {
       transactions: currentCloudTransactions,
       storeProducts: currentCloudProducts,
       storeSales: currentCloudSales,
+      shifts: currentCloudShifts,
       supplierAccounts: currentCloudSuppliers,
       users: currentCloudUsers,
       storeFund: currentStoreFund,
@@ -887,6 +896,41 @@ export async function POST(req: NextRequest) {
       await saveMySQLUsers(usersToSaveToMySQL);
     }
 
+    // 6c. Load & Merge Shifts
+    let serverShifts: any[] = [];
+    if (isMySQLConfigured()) {
+      const shiftsStr = await getMySQLAppState('shifts');
+      if (shiftsStr !== null) {
+        try { serverShifts = JSON.parse(shiftsStr); } catch (e) {}
+      }
+    } else {
+      serverShifts = loadFileData().shifts || [];
+    }
+
+    const mergedShiftsMap = new Map<string, any>();
+    for (const sh of serverShifts) {
+      if (sh && sh.id) mergedShiftsMap.set(sh.id, sh);
+    }
+
+    const clientShifts: any[] = Array.isArray(body.shifts) ? body.shifts : [];
+    for (const sh of clientShifts) {
+      if (sh && sh.id) {
+        const existing = mergedShiftsMap.get(sh.id);
+        if (!existing) {
+          mergedShiftsMap.set(sh.id, sh);
+        } else {
+          if (sh.status === 'cerrado' || sh.sellerAcceptedOpening) {
+            mergedShiftsMap.set(sh.id, { ...existing, ...sh });
+          }
+        }
+      }
+    }
+
+    const mergedShifts = Array.from(mergedShiftsMap.values());
+    if (isMySQLConfigured()) {
+      await saveMySQLAppState('shifts', JSON.stringify(mergedShifts));
+    }
+
     // 7. Load & Merge Funds & Settings
     let mergedStoreFund = clientStoreFund !== undefined ? clientStoreFund : 0;
     let mergedSavingsFund = clientSavingsFund !== undefined ? clientSavingsFund : 0;
@@ -933,6 +977,7 @@ export async function POST(req: NextRequest) {
         transactions: mergedTransactions,
         storeProducts: mergedProducts,
         storeSales: mergedSales,
+        shifts: mergedShifts,
         supplierAccounts: mergedSuppliers,
         users: mergedUsers,
         storeFund: mergedStoreFund,
@@ -951,6 +996,7 @@ export async function POST(req: NextRequest) {
       transactions: mergedTransactions,
       storeProducts: mergedProducts,
       storeSales: mergedSales,
+      shifts: mergedShifts,
       supplierAccounts: mergedSuppliers,
       users: mergedUsers,
       storeFund: mergedStoreFund,
