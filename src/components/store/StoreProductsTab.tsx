@@ -29,7 +29,7 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
   currency = '$',
   isVendor = false
 }) => {
-  const { currencyMode, exchangeRateUSD } = getCurrencySettings();
+  const { currencyMode, exchangeRateUSD, usdIndexedPricing } = getCurrencySettings();
 
   const filteredProducts = products.filter(p => {
     if (!searchTerm.trim()) return true;
@@ -206,7 +206,7 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
                 <div style={{ textAlign: 'right' }}>
                   {(() => {
-                    const disp = getProductDisplayPrice(prod.price, prod.currency, currencyMode, exchangeRateUSD);
+                    const disp = getProductDisplayPrice(prod.price, prod.currency, currencyMode, exchangeRateUSD, prod.priceUSD, usdIndexedPricing);
                     return (
                       <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
                         {formatCurrency(disp.amount, disp.currency, true)}

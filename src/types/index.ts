@@ -35,6 +35,8 @@ export interface StoreProduct {
   name: string;
   costPrice: number;       // Precio de costo (lo que costó comprarlo)
   price: number;           // Precio de venta (al público)
+  priceUSD?: number;       // Precio base en USD (calculado/registrado para indexación opcional)
+  costPriceUSD?: number;   // Precio de costo base en USD
   currency?: CurrencyType; // Moneda: 'CUP' | 'USD'
   category: string;
   unit?: string;           // Unidad de medida e.g. "u", "lb", "kg", "bolsa", "saco", "m", "litro", "caja"
@@ -196,7 +198,11 @@ export interface RawDatabase {
     storeWhatsappNumber?: string; // Número de WhatsApp para recibir pedidos del carrito online
     activeWhatsappUserId?: string; // ID del usuario cuyo WhatsApp está seleccionado activamente para recibir carritos
     currencyMode?: CurrencyMode; // Mode: 'CUP' (Solo CUP), 'USD' (Solo USD), 'BOTH' (CUP + USD)
-    exchangeRateUSD?: number;   // Tipo de cambio 1 USD = X CUP (e.g. 320)
+    exchangeRateUSD?: number;   // Tipo de cambio 1 USD = X CUP (e.g. 675)
+    exchangeRateTrend?: 'up' | 'down' | 'stable'; // Tendencia de la tasa de elTOQUE (subiendo/bajando/estable)
+    autoSyncElToque?: boolean;  // Sincronizar automáticamente la tasa con elTOQUE si hay conexión
+    lastElToqueSync?: number;   // Timestamp de la última actualización exitosa con elTOQUE
+    usdIndexedPricing?: boolean; // Indexar inventario a USD y recalcular CUP dinámicamente según la tasa
     updatedAt?: number;         // Timestamp del último cambio de configuración global
   };
 }

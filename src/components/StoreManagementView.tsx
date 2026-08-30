@@ -15,7 +15,8 @@ import {
   transferCasaToStoreFund,
   getRawDatabase,
   getUserRole,
-  getCurrencySettings
+  getCurrencySettings,
+  syncElToqueExchangeRate
 } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency, getProductDisplayPrice } from '@/lib/invoice';
@@ -101,24 +102,34 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       setSuppliers(getSupplierAccounts());
     };
     refreshData();
+
+    // Trigger elTOQUE rate sync if enabled
+    syncElToqueExchangeRate().then(() => {
+      refreshData();
+    });
+
     window.addEventListener('cuentacasa-db-changed', refreshData);
     window.addEventListener('cuentacasa-currency-mode-changed', refreshData);
+    window.addEventListener('cuentacasa-currency-settings-changed', refreshData);
     return () => {
       window.removeEventListener('cuentacasa-db-changed', refreshData);
       window.removeEventListener('cuentacasa-currency-mode-changed', refreshData);
+      window.removeEventListener('cuentacasa-currency-settings-changed', refreshData);
     };
   }, []);
 
   // Compute Store Financial Metrics with dynamic currency mode conversion
-  const { currencyMode, exchangeRateUSD } = getCurrencySettings();
+  const { currencyMode, exchangeRateUSD, usdIndexedPricing, exchangeRateTrend, autoSyncElToque } = getCurrencySettings();
 
   const totalStoreProductsValue = products.reduce((acc, p) => {
-    const disp = getProductDisplayPrice(p.price * p.stock, p.currency, currencyMode, exchangeRateUSD);
+    const disp = getProductDisplayPrice(p.price * p.stock, p.currency, currencyMode, exchangeRateUSD, p.priceUSD ? p.priceUSD * p.stock : undefined, usdIndexedPricing);
     return acc + disp.amount;
   }, 0);
 
   const totalStoreProductsCost = products.reduce((acc, p) => {
-    const disp = getProductDisplayPrice((p.costPrice || 0) * p.stock, p.currency, currencyMode, exchangeRateUSD);
+    const costVal = (p.costPrice || 0) * p.stock;
+    const costUSD = p.costPriceUSD ? p.costPriceUSD * p.stock : undefined;
+    const disp = getProductDisplayPrice(costVal, p.currency, currencyMode, exchangeRateUSD, costUSD, usdIndexedPricing);
     return acc + disp.amount;
   }, 0);
 

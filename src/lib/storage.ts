@@ -519,9 +519,27 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
   const initialRatingScore = product.ratingScore || Number((3.8 + Math.random() * 1.2).toFixed(1));
   const initialRatingCount = product.ratingCount || Math.floor(1 + Math.random() * 17);
 
+  const currentSettings = getCurrencySettings();
+  const rate = currentSettings.exchangeRateUSD || 675;
+  const pCurr = product.currency === 'USD' ? 'USD' : 'CUP';
+
+  let computedPriceUSD: number;
+  let computedCostPriceUSD: number;
+
+  if (pCurr === 'USD') {
+    computedPriceUSD = product.price;
+    computedCostPriceUSD = product.costPrice || 0;
+  } else {
+    computedPriceUSD = product.priceUSD !== undefined ? product.priceUSD : Math.round((product.price / rate) * 10000) / 10000;
+    computedCostPriceUSD = product.costPriceUSD !== undefined ? product.costPriceUSD : Math.round(((product.costPrice || 0) / rate) * 10000) / 10000;
+  }
+
   const newProduct: StoreProduct = {
     ...product,
     barcode: cleanBarcode,
+    currency: pCurr,
+    priceUSD: computedPriceUSD,
+    costPriceUSD: computedCostPriceUSD,
     ratingScore: existingIndex !== -1 ? (product.ratingScore || db.storeProducts[existingIndex].ratingScore || initialRatingScore) : initialRatingScore,
     ratingCount: existingIndex !== -1 ? (product.ratingCount || db.storeProducts[existingIndex].ratingCount || initialRatingCount) : initialRatingCount,
     id: existingIndex !== -1 ? db.storeProducts[existingIndex].id : (product.id || `sp-${Date.now()}`),
@@ -1009,14 +1027,22 @@ export function getSavingsFundUSD(): number {
 
 export interface CurrencySettings {
   currencyMode: CurrencyMode;
-  exchangeRateUSD: number; // e.g. 320 CUP per 1 USD
+  exchangeRateUSD: number; // e.g. 675 CUP per 1 USD
+  exchangeRateTrend?: 'up' | 'down' | 'stable';
+  autoSyncElToque?: boolean;
+  lastElToqueSync?: number;
+  usdIndexedPricing?: boolean;
 }
 
 export function getCurrencySettings(): CurrencySettings {
   const db = getRawDatabase();
   return {
     currencyMode: (db.settings?.currencyMode as CurrencyMode) || 'BOTH',
-    exchangeRateUSD: db.settings?.exchangeRateUSD || 320
+    exchangeRateUSD: db.settings?.exchangeRateUSD || 675,
+    exchangeRateTrend: db.settings?.exchangeRateTrend || 'stable',
+    autoSyncElToque: db.settings?.autoSyncElToque !== undefined ? db.settings.autoSyncElToque : true,
+    lastElToqueSync: db.settings?.lastElToqueSync || 0,
+    usdIndexedPricing: db.settings?.usdIndexedPricing !== undefined ? db.settings.usdIndexedPricing : false
   };
 }
 
@@ -1027,9 +1053,43 @@ export function saveCurrencySettings(settings: Partial<CurrencySettings>): Curre
   }
   if (settings.currencyMode !== undefined) db.settings.currencyMode = settings.currencyMode;
   if (settings.exchangeRateUSD !== undefined) db.settings.exchangeRateUSD = settings.exchangeRateUSD;
+  if (settings.exchangeRateTrend !== undefined) db.settings.exchangeRateTrend = settings.exchangeRateTrend;
+  if (settings.autoSyncElToque !== undefined) db.settings.autoSyncElToque = settings.autoSyncElToque;
+  if (settings.lastElToqueSync !== undefined) db.settings.lastElToqueSync = settings.lastElToqueSync;
+  if (settings.usdIndexedPricing !== undefined) db.settings.usdIndexedPricing = settings.usdIndexedPricing;
+
   db.settings.updatedAt = Date.now();
   saveRawDatabase(db);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cuentacasa-currency-settings-changed', { detail: getCurrencySettings() }));
+  }
+
   return getCurrencySettings();
+}
+
+export async function syncElToqueExchangeRate(): Promise<CurrencySettings> {
+  const current = getCurrencySettings();
+  if (!current.autoSyncElToque) {
+    return current;
+  }
+
+  try {
+    const res = await fetch(`/api/eltoque?current=${current.exchangeRateUSD}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.usd && !isNaN(data.usd)) {
+        return saveCurrencySettings({
+          exchangeRateUSD: data.usd,
+          exchangeRateTrend: data.trend || 'stable',
+          lastElToqueSync: Date.now()
+        });
+      }
+    }
+  } catch (err) {
+    // Offline or network error
+  }
+  return current;
 }
 
 export function switchCurrencyMode(newMode: CurrencyMode): CurrencySettings {

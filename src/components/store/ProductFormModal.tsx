@@ -147,7 +147,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setCostPrice('');
       setPrice('');
       if (editingProduct) {
-        setProductCurrency(editingProduct.currency === 'USD' ? 'USD' : 'CUP');
+        setProductCurrency((editingProduct as any).currency === 'USD' ? 'USD' : 'CUP');
       } else {
         setProductCurrency('CUP');
       }

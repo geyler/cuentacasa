@@ -800,8 +800,8 @@ export const PublicStoreLanding: React.FC = () => {
                     alignItems: 'center'
                   }}>
                     {(() => {
-                      const { currencyMode, exchangeRateUSD } = getCurrencySettings();
-                      const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD);
+                      const { currencyMode, exchangeRateUSD, usdIndexedPricing } = getCurrencySettings();
+                      const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD, product.priceUSD, usdIndexedPricing);
                       const badgeStyle = getCurrencyBadgeStyle(disp.currency);
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>

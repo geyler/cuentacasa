@@ -163,27 +163,43 @@ export function formatCurrency(amount: number, currency: string = '$', showBalan
   return `${symbol} ${formatted}`;
 }
 
-// Helper for product price display according to currencyMode
+// Helper for product price display according to currencyMode and USD indexing
 export function getProductDisplayPrice(
   productPrice: number,
   productCurrency: 'CUP' | 'USD' | string | undefined,
   currencyMode: 'CUP' | 'USD' | 'BOTH',
-  exchangeRateUSD: number = 320
+  exchangeRateUSD: number = 675,
+  priceUSD?: number,
+  usdIndexedPricing?: boolean
 ): { amount: number; currency: 'CUP' | 'USD' } {
   const pCurr = productCurrency === 'USD' ? 'USD' : 'CUP';
+  const rate = exchangeRateUSD || 675;
 
-  if (currencyMode === 'CUP') {
-    if (pCurr === 'USD') {
-      return { amount: Math.round(productPrice * exchangeRateUSD * 100) / 100, currency: 'CUP' };
+  // 1. Product is registered in USD: USD price is fixed, CUP recalculates dynamically with current rate
+  if (pCurr === 'USD') {
+    if (currencyMode === 'CUP') {
+      return { amount: Math.round(productPrice * rate), currency: 'CUP' };
     }
+    return { amount: productPrice, currency: 'USD' };
+  }
+
+  // 2. Product is registered in CUP and USD indexing is active:
+  if (usdIndexedPricing) {
+    const usdVal = priceUSD !== undefined && priceUSD > 0 ? priceUSD : (productPrice / rate);
+    if (currencyMode === 'USD') {
+      return { amount: Math.round(usdVal * 100) / 100, currency: 'USD' };
+    }
+    // In CUP mode or BOTH mode: recalculate CUP display price dynamically based on rate
+    return { amount: Math.round(usdVal * rate), currency: 'CUP' };
+  }
+
+  // 3. Normal Mode (Non-indexed CUP product): CUP price stays fixed
+  if (currencyMode === 'CUP') {
     return { amount: productPrice, currency: 'CUP' };
   }
 
   if (currencyMode === 'USD') {
-    if (pCurr === 'CUP') {
-      return { amount: Math.round((productPrice / exchangeRateUSD) * 100) / 100, currency: 'USD' };
-    }
-    return { amount: productPrice, currency: 'USD' };
+    return { amount: Math.round((productPrice / rate) * 100) / 100, currency: 'USD' };
   }
 
   return { amount: productPrice, currency: pCurr };
