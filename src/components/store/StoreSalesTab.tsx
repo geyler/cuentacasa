@@ -18,12 +18,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
   const { currencyMode } = getCurrencySettings();
 
-  const filteredSales = salesRecords.filter(s => {
-    const sCurr = s.currency || 'CUP';
-    if (currencyMode === 'CUP' && sCurr !== 'CUP') return false;
-    if (currencyMode === 'USD' && sCurr !== 'USD') return false;
-    return true;
-  });
+  const filteredSales = salesRecords;
 
   return (
     <div className="md-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>

@@ -18,7 +18,7 @@ import {
   getCurrencySettings
 } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
-import { formatCurrency } from '@/lib/invoice';
+import { formatCurrency, getProductDisplayPrice } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { TransferModal } from '@/components/TransferModal';
@@ -109,26 +109,22 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     };
   }, []);
 
-  // Compute Store Financial Metrics with strict currencyMode filtering
-  const { currencyMode } = getCurrencySettings();
+  // Compute Store Financial Metrics with dynamic currency mode conversion
+  const { currencyMode, exchangeRateUSD } = getCurrencySettings();
 
-  const filteredProductsByCurrency = products.filter(p => {
-    const pCurr = p.currency || 'CUP';
-    if (currencyMode === 'CUP' && pCurr !== 'CUP') return false;
-    if (currencyMode === 'USD' && pCurr !== 'USD') return false;
-    return true;
-  });
+  const totalStoreProductsValue = products.reduce((acc, p) => {
+    const disp = getProductDisplayPrice(p.price * p.stock, p.currency, currencyMode, exchangeRateUSD);
+    return acc + disp.amount;
+  }, 0);
 
-  const totalStoreProductsValue = filteredProductsByCurrency.reduce((acc, p) => acc + (p.price * p.stock), 0);
-  const totalStoreProductsCost = filteredProductsByCurrency.reduce((acc, p) => acc + ((p.costPrice || 0) * p.stock), 0);
+  const totalStoreProductsCost = products.reduce((acc, p) => {
+    const disp = getProductDisplayPrice((p.costPrice || 0) * p.stock, p.currency, currencyMode, exchangeRateUSD);
+    return acc + disp.amount;
+  }, 0);
+
   const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + s.pendingPayout, 0);
 
-  const salesRecords = getStoreSales().filter(s => {
-    const sCurr = s.currency || 'CUP';
-    if (currencyMode === 'CUP' && sCurr !== 'CUP') return false;
-    if (currencyMode === 'USD' && sCurr !== 'USD') return false;
-    return true;
-  });
+  const salesRecords = getStoreSales();
 
   const totalAccumulatedSalesRevenue = salesRecords.reduce((acc, s) => acc + s.totalAmount, 0);
   const totalAccumulatedHouseProfits = salesRecords.reduce((acc, s) => acc + (s.netProfit || 0), 0);
@@ -504,7 +500,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📦 Valor Inventario</span>
               <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-                {filteredProductsByCurrency.length} art. ({filteredProductsByCurrency.reduce((acc, p) => acc + (p.stock || 0), 0)} u)
+                {products.length} art. ({products.reduce((acc, p) => acc + (p.stock || 0), 0)} u)
               </span>
             </div>
             <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>

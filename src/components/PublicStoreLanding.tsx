@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
 import { getStoreProducts, getStoreWhatsappNumber, formatPhotoUrl, getCurrencySettings } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
-import { formatCurrency, getProductDisplayPrice } from '@/lib/invoice';
+import { formatCurrency, getProductDisplayPrice, getCurrencyBadgeStyle } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
@@ -799,27 +799,34 @@ export const PublicStoreLanding: React.FC = () => {
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                        {formatCurrency(product.price, product.currency || 'CUP', true)}
-                        {product.unit && product.unit !== 'u' && (
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '3px' }}>
-                            / {product.unit}
+                    {(() => {
+                      const { currencyMode, exchangeRateUSD } = getCurrencySettings();
+                      const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD);
+                      const badgeStyle = getCurrencyBadgeStyle(disp.currency);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                            {formatCurrency(disp.amount, disp.currency, true)}
+                            {product.unit && product.unit !== 'u' && (
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '3px' }}>
+                                / {product.unit}
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                      <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 900,
-                        padding: '1px 5px',
-                        borderRadius: '4px',
-                        backgroundColor: (product.currency === 'USD') ? '#ECFEFF' : '#F1F5F9',
-                        color: (product.currency === 'USD') ? '#0F766E' : '#475569',
-                        border: (product.currency === 'USD') ? '1px solid #99F6E4' : '1px solid #CBD5E1'
-                      }}>
-                        {product.currency === 'USD' ? 'USD' : 'CUP'}
-                      </span>
-                    </div>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 900,
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            backgroundColor: badgeStyle.backgroundColor,
+                            color: badgeStyle.color,
+                            border: badgeStyle.border
+                          }}>
+                            {disp.currency === 'USD' ? 'USD' : 'CUP'}
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     {product.isExternal ? (
                       <button

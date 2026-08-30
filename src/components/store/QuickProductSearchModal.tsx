@@ -56,10 +56,6 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
   const { currencyMode } = getCurrencySettings();
 
   const filteredProducts = productsList.filter(prod => {
-    const pCurr = prod.currency || 'CUP';
-    if (currencyMode === 'CUP' && pCurr !== 'CUP') return false;
-    if (currencyMode === 'USD' && pCurr !== 'USD') return false;
-
     if (!searchQuery.trim()) return true;
     const term = searchQuery.toLowerCase().trim();
     return (
