@@ -142,10 +142,11 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
                       fontFamily: 'monospace',
                       fontWeight: 800,
                       fontSize: '0.7rem',
-                      backgroundColor: 'var(--md-sys-color-primary-container)',
-                      color: 'var(--md-sys-color-on-primary-container)',
-                      padding: '1px 5px',
-                      borderRadius: '5px'
+                      backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                      color: 'var(--md-sys-color-on-surface-variant)',
+                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      padding: '1px 6px',
+                      borderRadius: '6px'
                     }}>
                       #{prod.barcode}
                     </span>
@@ -170,15 +171,16 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
                         padding: '1px 6px',
                         borderRadius: '5px'
                       }}>
-                        Stock: {prod.stock}u
+                        Stock: {prod.stock}{prod.unit && prod.unit !== 'u' ? ` ${prod.unit}` : 'u'}
                       </span>
                     )}
                     {prod.supplierType === 'proveedor' && (
                       <span style={{
                         fontSize: '0.68rem',
                         fontWeight: 700,
-                        backgroundColor: '#FFF3E0',
-                        color: '#E65100',
+                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                        color: 'var(--md-sys-color-on-surface-variant)',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
                         padding: '1px 5px',
                         borderRadius: '5px'
                       }}>
@@ -208,6 +210,11 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
                     return (
                       <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
                         {formatCurrency(disp.amount, disp.currency, true)}
+                        {prod.unit && prod.unit !== 'u' && (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '3px' }}>
+                            / {prod.unit}
+                          </span>
+                        )}
                       </div>
                     );
                   })()}

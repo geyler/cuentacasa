@@ -37,6 +37,7 @@ export interface StoreProduct {
   price: number;           // Precio de venta (al público)
   currency?: CurrencyType; // Moneda: 'CUP' | 'USD'
   category: string;
+  unit?: string;           // Unidad de medida e.g. "u", "lb", "kg", "bolsa", "saco", "m", "litro", "caja"
   description?: string;
   stock: number;
   photoUrl?: string;       // 400x400 Base64 compressed image

@@ -393,7 +393,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
                 zIndex: 12
               }}>
-                {activeProduct.stock > 0 ? `Stock: ${activeProduct.stock}u` : 'Agotado'}
+                {activeProduct.stock > 0 ? `Stock: ${activeProduct.stock}${activeProduct.unit && activeProduct.unit !== 'u' ? ` ${activeProduct.unit}` : 'u'}` : 'Agotado'}
               </span>
             )}
           </div>
@@ -408,8 +408,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <span style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.03em' }}>
                 {formatCurrency(activeProduct.price, currency, true)}
               </span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#EC4899', backgroundColor: '#FCE7F3', padding: '2px 8px', borderRadius: '6px' }}>
-                {activeProduct.currency || 'CUP'}
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', backgroundColor: 'var(--md-sys-color-surface-container-high)', border: '1px solid var(--md-sys-color-outline-variant)', padding: '2px 8px', borderRadius: '6px' }}>
+                {activeProduct.currency || 'CUP'}{activeProduct.unit && activeProduct.unit !== 'u' ? ` / ${activeProduct.unit}` : ''}
               </span>
             </div>
 

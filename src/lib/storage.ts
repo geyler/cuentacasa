@@ -1618,7 +1618,7 @@ export function generateSyncQRPayload(): string {
   const currentUser = getLoggedInUser();
 
   // Compact array schema for products (v2):
-  // [id, barcode, name, price, costPrice, stock, currency, category, supplierType, supplierName, updatedAt]
+  // [id, barcode, name, price, costPrice, stock, currency, category, supplierType, supplierName, updatedAt, unit]
   const p = (db.storeProducts || []).map(prod => [
     prod.id,
     prod.barcode || '',
@@ -1630,7 +1630,8 @@ export function generateSyncQRPayload(): string {
     prod.category || '',
     prod.supplierType || 'propia',
     prod.supplierName || '',
-    prod.updatedAt || Date.now()
+    prod.updatedAt || Date.now(),
+    prod.unit || 'u'
   ]);
 
   // Compact array schema for sales (last 25 sales to fit in QR size):
@@ -1743,7 +1744,8 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
           supplierName: item[9] || '',
           published: true,
           createdAt: item[10] || Date.now(),
-          updatedAt: item[10] || Date.now()
+          updatedAt: item[10] || Date.now(),
+          unit: item[11] || 'u'
         };
 
         const idx = db.storeProducts!.findIndex(p => p.id === incProd.id || (p.barcode && incProd.barcode && p.barcode === incProd.barcode));

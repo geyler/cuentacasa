@@ -263,11 +263,11 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
                         {prod.name}
                       </div>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.68rem', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', backgroundColor: 'var(--md-sys-color-surface-container-highest)' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.68rem', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', backgroundColor: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                           #{prod.barcode}
                         </span>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                          Stock: {prod.stock || 0}u
+                          Stock: {prod.stock || 0}{prod.unit && prod.unit !== 'u' ? ` ${prod.unit}` : 'u'}
                         </span>
                       </div>
                     </div>
@@ -275,8 +275,13 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
 
                   {/* Price & Quantity Stepper */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
-                    <strong style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
+                    <strong style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
                       {formatCurrency(prod.price, prod.currency || currency, true)}
+                      {prod.unit && prod.unit !== 'u' && (
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '3px' }}>
+                          / {prod.unit}
+                        </span>
+                      )}
                     </strong>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

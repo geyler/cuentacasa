@@ -802,6 +802,11 @@ export const PublicStoreLanding: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
                       <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
                         {formatCurrency(product.price, product.currency || 'CUP', true)}
+                        {product.unit && product.unit !== 'u' && (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '3px' }}>
+                            / {product.unit}
+                          </span>
+                        )}
                       </span>
                     </div>
 

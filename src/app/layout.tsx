@@ -36,6 +36,11 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              window.addEventListener('error', function(e) {
+                if (e.message && (e.message.includes('Loading chunk') || e.message.includes('Failed to fetch dynamically imported module'))) {
+                  window.location.reload();
+                }
+              });
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(

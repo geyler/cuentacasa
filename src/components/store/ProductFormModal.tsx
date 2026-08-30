@@ -43,6 +43,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [price, setPrice] = useState<number | ''>('');
   const [productCurrency, setProductCurrency] = useState<'CUP' | 'USD'>('CUP');
   const [stock, setStock] = useState<number | ''>('');
+  const [unit, setUnit] = useState('u');
+  const [isAddingNewUnit, setIsAddingNewUnit] = useState(false);
+  const [newUnitInput, setNewUnitInput] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [published, setPublished] = useState(true);
@@ -77,6 +80,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setPrice(editingProduct.price);
       setProductCurrency(editingProduct.currency || 'CUP');
       setStock(editingProduct.stock);
+      setUnit(editingProduct.unit || 'u');
+      setIsAddingNewUnit(false);
+      setNewUnitInput('');
       setPhotoUrl(editingProduct.photoUrl || '');
       setPublished(editingProduct.published ?? true);
 
@@ -115,6 +121,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setCategory(existingCategories[0] || 'Varios');
       setIsAddingNewCategory(false);
       setNewCategoryInput('');
+      setUnit('u');
+      setIsAddingNewUnit(false);
+      setNewUnitInput('');
       setCostPrice('');
       setPrice('');
       const { currencyMode } = getCurrencySettings();
@@ -154,6 +163,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
   };
 
+  const handleAddNewUnitSubmit = () => {
+    if (newUnitInput.trim()) {
+      const cleanUnit = newUnitInput.trim();
+      setUnit(cleanUnit);
+      setIsAddingNewUnit(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || price === '' || Number(price) <= 0) return;
@@ -179,6 +196,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       name: name.trim(),
       barcode: barcode.trim() || String(Math.floor(1000 + Math.random() * 9000)),
       category: category.trim() || 'Varios',
+      unit: unit.trim() || 'u',
       costPrice: calculatedCost,
       price: Number(price),
       currency: finalCurrency,
@@ -522,6 +540,90 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <button
                 type="button"
                 onClick={handleAddNewCategorySubmit}
+                className="md-btn md-btn-primary"
+                style={{ padding: '8px 14px', fontSize: '0.82rem', borderRadius: '12px' }}
+              >
+                Añadir
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Unit of Measure Select Dropdown */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+            Unidad de Medida / Venta *
+          </label>
+
+          <select
+            value={isAddingNewUnit ? '__NEW_UNIT__' : unit}
+            onChange={(e) => {
+              if (e.target.value === '__NEW_UNIT__') {
+                setIsAddingNewUnit(true);
+                setUnit('');
+              } else {
+                setIsAddingNewUnit(false);
+                setUnit(e.target.value);
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              color: 'var(--md-sys-color-on-surface)',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              outline: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <option value="u">u (Unidad)</option>
+            <option value="lb">lb (Libra)</option>
+            <option value="kg">kg (Kilogramo)</option>
+            <option value="g">g (Gramo)</option>
+            <option value="oz">oz (Onza)</option>
+            <option value="bolsa">Bolsa</option>
+            <option value="saco">Saco</option>
+            <option value="m">m (Metro)</option>
+            <option value="cm">cm (Centímetro)</option>
+            <option value="litro">Litro</option>
+            <option value="galón">Galón</option>
+            <option value="caja">Caja</option>
+            <option value="paquete">Paquete</option>
+            <option value="listero">Listero</option>
+            <option value="par">Par</option>
+            {!['u', 'lb', 'kg', 'g', 'oz', 'bolsa', 'saco', 'm', 'cm', 'litro', 'galón', 'caja', 'paquete', 'listero', 'par'].includes(unit) && unit && (
+              <option value={unit}>Personalizada: {unit}</option>
+            )}
+            <option value="__NEW_UNIT__" style={{ fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
+              ➕ Crear Nueva Unidad...
+            </option>
+          </select>
+
+          {isAddingNewUnit && (
+            <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+              <input
+                type="text"
+                placeholder="Ej. m2, lata, frasco, rollo..."
+                value={newUnitInput}
+                onChange={e => setNewUnitInput(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  border: '2px solid var(--md-sys-color-primary)',
+                  fontSize: '0.88rem',
+                  outline: 'none',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  color: 'var(--md-sys-color-on-surface)'
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAddNewUnitSubmit}
                 className="md-btn md-btn-primary"
                 style={{ padding: '8px 14px', fontSize: '0.82rem', borderRadius: '12px' }}
               >
