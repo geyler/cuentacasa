@@ -7,7 +7,8 @@ import {
   getStoreProducts, 
   registerStoreSale,
   mergeSyncQRPayload,
-  getCurrencySettings
+  getCurrencySettings,
+  saveCurrencySettings
 } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency, calculateMultiCurrencyTotals } from '@/lib/invoice';
@@ -441,13 +442,20 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setTimeout(() => setShowSuccessBadge(false), 1600);
   };
 
-  // Multi-Currency Totals calculation
-  const { exchangeRateUSD } = getCurrencySettings();
+  // Multi-Currency Totals calculation with inline rate editing
+  const initialSettings = getCurrencySettings();
+  const [liveExchangeRate, setLiveExchangeRate] = useState<number>(initialSettings.exchangeRateUSD || 320);
   const [selectedPaymentCurrency, setSelectedPaymentCurrency] = useState<'AUTO' | 'CUP' | 'USD' | 'MIXED'>('MIXED');
   
+  const handleExchangeRateChange = (newRate: number) => {
+    const validRate = Math.max(1, newRate);
+    setLiveExchangeRate(validRate);
+    saveCurrencySettings({ exchangeRateUSD: validRate });
+  };
+
   const uniqueItemsCount = ticketItems.length;
   const totalUnitsCount = ticketItems.reduce((sum, item) => sum + item.quantity, 0);
-  const multiTotals = calculateMultiCurrencyTotals(ticketItems, exchangeRateUSD);
+  const multiTotals = calculateMultiCurrencyTotals(ticketItems, liveExchangeRate);
   const totalInvoiceCost = ticketItems.reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
 
   const handleConfirmSale = () => {
@@ -468,7 +476,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       if (selectedPaymentCurrency === 'USD') {
         finalSaleCurrency = 'USD';
         finalTotalAmount = multiTotals.equivalentUSD;
-        netProfit = multiTotals.equivalentUSD - (totalInvoiceCost / exchangeRateUSD);
+        netProfit = multiTotals.equivalentUSD - (totalInvoiceCost / liveExchangeRate);
       } else if (selectedPaymentCurrency === 'CUP') {
         finalSaleCurrency = 'CUP';
         finalTotalAmount = multiTotals.equivalentCUP;
@@ -928,9 +936,30 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0EA5E9' }}>
                   ⚠️ TICKET DUAL (CUP + USD)
                 </span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                  Tasa: 1 USD = ${exchangeRateUSD} CUP
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    Tasa: 1 USD =
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={liveExchangeRate}
+                    onChange={e => handleExchangeRateChange(parseFloat(e.target.value) || 1)}
+                    className="input-spotlight"
+                    style={{
+                      width: '64px',
+                      padding: '2px 4px',
+                      borderRadius: '6px',
+                      border: '1.5px solid #0EA5E9',
+                      backgroundColor: '#F0F9FF',
+                      color: '#0369A1',
+                      fontSize: '0.76rem',
+                      fontWeight: 900,
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#0369A1' }}>CUP</span>
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '8px', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800 }}>
@@ -1021,10 +1050,27 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
                   {multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true)}
                 </div>
-                <div style={{ fontSize: '0.68rem', opacity: 0.8, fontWeight: 700 }}>
-                  {multiTotals.hasUSD
-                    ? `Equiv: ${formatCurrency(multiTotals.equivalentCUP, 'CUP', true)} (Tasa ${exchangeRateUSD})`
-                    : `Equiv: ${formatCurrency(multiTotals.equivalentUSD, 'USD', true)} (Tasa ${exchangeRateUSD})`}
+                <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px' }}>
+                  <span>Equiv: {multiTotals.hasUSD ? formatCurrency(multiTotals.equivalentCUP, 'CUP', true) : formatCurrency(multiTotals.equivalentUSD, 'USD', true)}</span>
+                  <span>(Tasa:</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={liveExchangeRate}
+                    onChange={e => handleExchangeRateChange(parseFloat(e.target.value) || 1)}
+                    className="input-spotlight"
+                    style={{
+                      width: '52px',
+                      padding: '1px 2px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span>)</span>
                 </div>
               </div>
             </div>

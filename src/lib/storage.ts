@@ -1617,26 +1617,64 @@ export function generateSyncQRPayload(): string {
   const db = getRawDatabase();
   const currentUser = getLoggedInUser();
 
-  // Strip photoUrl (Base64 images) to keep QR payload under capacity
-  const optimizedProducts = (db.storeProducts || []).map(p => {
-    const { photoUrl, description, ...rest } = p;
-    return rest;
-  });
+  // Compact array schema for products (v2):
+  // [id, barcode, name, price, costPrice, stock, currency, category, supplierType, supplierName, updatedAt]
+  const p = (db.storeProducts || []).map(prod => [
+    prod.id,
+    prod.barcode || '',
+    prod.name,
+    prod.price,
+    prod.costPrice || 0,
+    prod.stock || 0,
+    prod.currency || 'CUP',
+    prod.category || '',
+    prod.supplierType || 'propia',
+    prod.supplierName || '',
+    prod.updatedAt || Date.now()
+  ]);
 
-  const payload: QRSyncPayload = {
-    type: 'SAMY_STORE_SYNC_V1',
-    version: db.version || '1.0',
-    senderId: currentUser?.id || 'admin',
+  // Compact array schema for sales (last 25 sales to fit in QR size):
+  // [id, date, totalAmount, totalCost, netProfit, currency, timestamp]
+  const s = (db.storeSales || []).slice(0, 25).map(sale => [
+    sale.id,
+    sale.date,
+    sale.totalAmount,
+    sale.totalCost || 0,
+    sale.netProfit || 0,
+    sale.currency || 'CUP',
+    sale.timestamp || Date.now()
+  ]);
+
+  // Compact array schema for shifts (last 10 shifts):
+  // [id, sellerId, sellerName, status, openedAt, closedAt, initialCashFund, initialCashFundUSD, totalCashSales, totalCashSalesUSD]
+  const h = (db.shifts || []).slice(0, 10).map(shift => [
+    shift.id,
+    shift.sellerId,
+    shift.sellerName,
+    shift.status,
+    shift.openedAt,
+    shift.closedAt || 0,
+    shift.initialCashFund || 0,
+    shift.initialCashFundUSD || 0,
+    shift.totalCashSales || 0,
+    shift.totalCashSalesUSD || 0
+  ]);
+
+  // Compact Settings
+  const st = {
+    e: db.settings?.exchangeRateUSD || 320,
+    m: db.settings?.currencyMode || 'BOTH',
+    c: db.settings?.currency || 'CUP'
+  };
+
+  const payload = {
+    type: 'SAMY_SYNC_V2',
     senderName: currentUser?.name || 'Administrador',
-    senderRole: currentUser?.role || 'propietario',
-    timestamp: Date.now(),
-    products: optimizedProducts,
-    sales: db.storeSales || [],
-    shifts: db.shifts || [],
-    suppliers: db.supplierAccounts || [],
-    users: db.users || [],
-    transactions: db.transactions || [],
-    settings: db.settings || { currency: 'CUP', appName: 'Samy Store', autoSync: true }
+    ts: Date.now(),
+    p,
+    s,
+    h,
+    st
   };
 
   return JSON.stringify(payload);
@@ -1654,15 +1692,11 @@ export interface MergeSyncResult {
 }
 
 export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
-  let payload: QRSyncPayload;
+  let rawObj: any;
   try {
-    payload = JSON.parse(jsonString);
+    rawObj = JSON.parse(jsonString);
   } catch {
     throw new Error('El código QR escaneado no contiene un formato de sincronización válido de Samy Store.');
-  }
-
-  if (payload.type !== 'SAMY_STORE_SYNC_V1') {
-    throw new Error('Formato de datos no compatible.');
   }
 
   const db = getRawDatabase();
@@ -1678,96 +1712,138 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
   let addedSales = 0;
   let addedShifts = 0;
   let updatedShifts = 0;
-  let addedTransactions = 0;
+  let senderName = 'Otro Dispositivo';
 
-  // 0. Merge System Settings (Currency Mode & Exchange Rate)
-  if (payload.settings) {
-    db.settings = {
-      ...(db.settings || {}),
-      ...(payload.settings || {})
-    };
-  }
+  if (rawObj.type === 'SAMY_SYNC_V2') {
+    senderName = rawObj.senderName || senderName;
 
-  // 1. Additive Merge Products (UPSERT by ID)
-  if (Array.isArray(payload.products)) {
-    payload.products.forEach(incProd => {
-      const idx = db.storeProducts!.findIndex(p => p.id === incProd.id || (p.barcode && incProd.barcode && p.barcode === incProd.barcode));
-      if (idx === -1) {
-        db.storeProducts!.push(incProd);
-        addedProducts++;
-      } else {
-        const existing = db.storeProducts![idx];
-        if ((incProd.updatedAt || 0) >= (existing.updatedAt || 0)) {
-          db.storeProducts![idx] = { ...existing, ...incProd };
-          updatedProducts++;
+    // Merge Settings
+    if (rawObj.st) {
+      db.settings = {
+        ...(db.settings || {}),
+        exchangeRateUSD: rawObj.st.e || 320,
+        currencyMode: rawObj.st.m || 'BOTH',
+        currency: rawObj.st.c || 'CUP'
+      };
+    }
+
+    // Merge Products
+    if (Array.isArray(rawObj.p)) {
+      rawObj.p.forEach((item: any) => {
+        const incProd: StoreProduct = {
+          id: item[0],
+          barcode: item[1],
+          name: item[2],
+          price: item[3],
+          costPrice: item[4],
+          stock: item[5],
+          currency: item[6] || 'CUP',
+          category: item[7] || '',
+          supplierType: item[8] || 'propia',
+          supplierName: item[9] || '',
+          published: true,
+          createdAt: item[10] || Date.now(),
+          updatedAt: item[10] || Date.now()
+        };
+
+        const idx = db.storeProducts!.findIndex(p => p.id === incProd.id || (p.barcode && incProd.barcode && p.barcode === incProd.barcode));
+        if (idx === -1) {
+          db.storeProducts!.push(incProd);
+          addedProducts++;
+        } else {
+          const existing = db.storeProducts![idx];
+          if ((incProd.updatedAt || 0) >= (existing.updatedAt || 0)) {
+            db.storeProducts![idx] = { ...existing, ...incProd };
+            updatedProducts++;
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
-  // 2. Additive Merge Sales (Deduplication by Sale ID)
-  if (Array.isArray(payload.sales)) {
-    payload.sales.forEach(incSale => {
-      const exists = db.storeSales!.some(s => s.id === incSale.id);
-      if (!exists) {
-        db.storeSales!.push(incSale);
-        addedSales++;
-      }
-    });
-    db.storeSales.sort((a, b) => b.timestamp - a.timestamp);
-  }
+    // Merge Sales
+    if (Array.isArray(rawObj.s)) {
+      rawObj.s.forEach((item: any) => {
+        const incSaleId = item[0];
+        const exists = db.storeSales!.some(s => s.id === incSaleId);
+        if (!exists) {
+          db.storeSales!.push({
+            id: incSaleId,
+            date: item[1],
+            items: [],
+            totalAmount: item[2],
+            totalCost: item[3],
+            netProfit: item[4],
+            currency: item[5] || 'CUP',
+            timestamp: item[6] || Date.now()
+          });
+          addedSales++;
+        }
+      });
+      db.storeSales.sort((a, b) => b.timestamp - a.timestamp);
+    }
 
-  // 3. Additive Merge Shifts (UPSERT by Shift ID)
-  if (Array.isArray(payload.shifts)) {
-    payload.shifts.forEach(incShift => {
-      const idx = db.shifts!.findIndex(s => s.id === incShift.id);
-      if (idx === -1) {
-        db.shifts!.unshift(incShift);
-        addedShifts++;
-      } else {
-        const existing = db.shifts![idx];
-        if (incShift.status === 'cerrado' || incShift.sellerAcceptedOpening) {
-          db.shifts![idx] = { ...existing, ...incShift };
+    // Merge Shifts
+    if (Array.isArray(rawObj.h)) {
+      rawObj.h.forEach((item: any) => {
+        const shiftId = item[0];
+        const idx = db.shifts!.findIndex(s => s.id === shiftId);
+        const incShift: any = {
+          id: shiftId,
+          sellerId: item[1],
+          sellerName: item[2],
+          status: item[3],
+          openedAt: item[4],
+          closedAt: item[5],
+          initialCashFund: item[6],
+          initialCashFundUSD: item[7],
+          totalCashSales: item[8],
+          totalCashSalesUSD: item[9]
+        };
+
+        if (idx === -1) {
+          db.shifts!.unshift(incShift);
+          addedShifts++;
+        } else {
+          db.shifts![idx] = { ...db.shifts![idx], ...incShift };
           updatedShifts++;
         }
-      }
-    });
-  }
+      });
+    }
+  } else if (rawObj.type === 'SAMY_STORE_SYNC_V1') {
+    senderName = rawObj.senderName || senderName;
+    const payload = rawObj as QRSyncPayload;
 
-  // 4. Additive Merge Suppliers
-  if (Array.isArray(payload.suppliers)) {
-    payload.suppliers.forEach(incSup => {
-      const idx = db.supplierAccounts!.findIndex(s => s.id === incSup.id || s.name.toLowerCase() === incSup.name.toLowerCase());
-      if (idx === -1) {
-        db.supplierAccounts!.push(incSup);
-      } else {
-        const existing = db.supplierAccounts![idx];
-        if ((incSup.updatedAt || 0) >= (existing.updatedAt || 0)) {
-          db.supplierAccounts![idx] = { ...existing, ...incSup };
+    if (payload.settings) {
+      db.settings = { ...(db.settings || {}), ...(payload.settings || {}) };
+    }
+
+    if (Array.isArray(payload.products)) {
+      payload.products.forEach(incProd => {
+        const idx = db.storeProducts!.findIndex(p => p.id === incProd.id || (p.barcode && incProd.barcode && p.barcode === incProd.barcode));
+        if (idx === -1) {
+          db.storeProducts!.push(incProd);
+          addedProducts++;
+        } else {
+          const existing = db.storeProducts![idx];
+          if ((incProd.updatedAt || 0) >= (existing.updatedAt || 0)) {
+            db.storeProducts![idx] = { ...existing, ...incProd };
+            updatedProducts++;
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
-  // 5. Additive Merge App Users
-  if (Array.isArray(payload.users)) {
-    payload.users.forEach(incUser => {
-      const exists = db.users!.some(u => u.id === incUser.id || u.username.toLowerCase() === incUser.username.toLowerCase());
-      if (!exists) {
-        db.users!.push(incUser);
-      }
-    });
-  }
-
-  // 6. Additive Merge Financial Transactions (Deduplication by Transaction ID)
-  if (Array.isArray(payload.transactions)) {
-    payload.transactions.forEach(incTx => {
-      const exists = db.transactions!.some(t => t.id === incTx.id);
-      if (!exists) {
-        db.transactions!.unshift(incTx);
-        addedTransactions++;
-      }
-    });
+    if (Array.isArray(payload.sales)) {
+      payload.sales.forEach(incSale => {
+        const exists = db.storeSales!.some(s => s.id === incSale.id);
+        if (!exists) {
+          db.storeSales!.push(incSale);
+          addedSales++;
+        }
+      });
+    }
+  } else {
+    throw new Error('Formato de código QR no compatible.');
   }
 
   db.lastUpdated = new Date().toISOString();
@@ -1777,12 +1853,11 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
   if (addedProducts > 0) summaryParts.push(`${addedProducts} productos nuevos`);
   if (updatedProducts > 0) summaryParts.push(`${updatedProducts} productos actualizados`);
   if (addedSales > 0) summaryParts.push(`${addedSales} ventas sincronizadas`);
-  if (addedTransactions > 0) summaryParts.push(`${addedTransactions} movimientos financieros`);
-  if (addedShifts > 0 || updatedShifts > 0) summaryParts.push(`turnos actualizados`);
+  if (addedShifts > 0 || updatedShifts > 0) summaryParts.push(`turnos sincronizados`);
 
   const summaryMsg = summaryParts.length > 0
-    ? `Sincronizados de ${payload.senderName}: ${summaryParts.join(', ')}.`
-    : `Tus datos ya estaban al día con ${payload.senderName}.`;
+    ? `Sincronizados de ${senderName}: ${summaryParts.join(', ')}.`
+    : `Tus datos ya estaban al día con ${senderName}.`;
 
   return {
     success: true,

@@ -101,8 +101,8 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
           fps: 20,
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
             return {
-              width: Math.min(viewfinderWidth * 0.88, 260),
-              height: Math.min(viewfinderHeight * 0.55, 110)
+              width: Math.min(viewfinderWidth * 0.9, 280),
+              height: Math.min(viewfinderHeight * 0.68, 140)
             };
           },
           aspectRatio: 1.777778
@@ -117,7 +117,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
             if (!code) return;
 
             const now = Date.now();
-            if (now - lastScanTimeRef.current < 1500) return; // Cooldown 1.5s
+            if (now - lastScanTimeRef.current < 400) return; // Immediate responsive trigger
             lastScanTimeRef.current = now;
 
             playScanBeep();
@@ -185,13 +185,13 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.80)',
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
         backdropFilter: 'blur(10px)',
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'flex-end',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '0'
+        padding: '12px 12px 0 12px'
       }}
       onClick={onClose}
     >
@@ -208,6 +208,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
           textAlign: 'center',
           boxShadow: 'var(--md-shadow-elevation-4)',
           position: 'relative',
+          borderRadius: '24px',
           maxHeight: '92vh',
           overflowY: 'auto'
         }}
@@ -245,11 +246,11 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
             <div
               style={{
                 width: '100%',
-                height: '200px',
-                minHeight: '200px',
-                maxHeight: '200px',
+                height: '240px',
+                minHeight: '240px',
+                maxHeight: '240px',
                 backgroundColor: '#050505',
-                borderRadius: '16px',
+                borderRadius: '18px',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
@@ -268,9 +269,9 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: '240px',
-                  height: '110px',
-                  border: '2px solid rgba(255, 255, 255, 0.4)',
+                  width: '260px',
+                  height: '140px',
+                  border: '2px solid rgba(255, 255, 255, 0.5)',
                   borderRadius: '14px',
                   boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
                   pointerEvents: 'none',
@@ -281,10 +282,10 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
                 }}
               >
                 <div className="scanner-laser-line" />
-                <div style={{ position: 'absolute', top: '6px', left: '6px', width: '14px', height: '14px', borderTop: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '3px 0 0 0' }} />
-                <div style={{ position: 'absolute', top: '6px', right: '6px', width: '14px', height: '14px', borderTop: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 3px 0 0' }} />
-                <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '14px', height: '14px', borderBottom: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '0 0 0 3px' }} />
-                <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '14px', height: '14px', borderBottom: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 0 3px 0' }} />
+                <div style={{ position: 'absolute', top: '6px', left: '6px', width: '16px', height: '16px', borderTop: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '3px 0 0 0' }} />
+                <div style={{ position: 'absolute', top: '6px', right: '6px', width: '16px', height: '16px', borderTop: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 3px 0 0' }} />
+                <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '16px', height: '16px', borderBottom: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '0 0 0 3px' }} />
+                <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '16px', height: '16px', borderBottom: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 0 3px 0' }} />
               </div>
             </div>
 

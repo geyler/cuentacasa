@@ -500,9 +500,9 @@ const QRUtil = {
  * Generate inline SVG markup string for QR code (100% offline).
  */
 export function generateQRCodeSVG(text: string, size: number = 260): string {
-  try {
+  const tryGenerate = (strToEncode: string): string => {
     const qr = new QRCodeModel(0, 1); // Auto-detect type, Error correction L (1)
-    qr.addData(text);
+    qr.addData(strToEncode);
     qr.make();
 
     const count = qr.getModuleCount();
@@ -523,7 +523,27 @@ export function generateQRCodeSVG(text: string, size: number = 260): string {
       <rect width="${size}" height="${size}" fill="#FFFFFF"/>
       <path d="${path}" fill="#000000"/>
     </svg>`;
+  };
+
+  try {
+    return tryGenerate(text);
   } catch (e) {
+    // Attempt graceful payload pruning if data exceeds single QR matrix capacity
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === 'object') {
+        if (Array.isArray(parsed.p) && parsed.p.length > 10) {
+          parsed.p = parsed.p.slice(0, 10);
+        }
+        if (Array.isArray(parsed.s) && parsed.s.length > 5) {
+          parsed.s = parsed.s.slice(0, 5);
+        }
+        return tryGenerate(JSON.stringify(parsed));
+      }
+    } catch {
+      // Ignore
+    }
+
     console.error('Offline QR SVG error:', e);
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
       <rect width="${size}" height="${size}" fill="#FEE2E2"/>
