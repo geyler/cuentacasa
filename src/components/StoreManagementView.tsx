@@ -289,424 +289,350 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '32px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '32px' }}>
 
-      {/* Dynamic Header Metrics Bar */}
-      <div className="md-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Store size={24} color="var(--md-sys-color-primary)" />
-              <span>Samy Store • Gestión del Negocio</span>
-            </h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
-              Control multi-rol, productos en stock, liquidación a proveedores y POS.
-            </p>
-          </div>
-        </div>
-
-        {/* Main Action Buttons Grid (Vender / POS, Turnos y Publicar) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
-          {onOpenScanner && (
-            <button
-              onClick={onOpenScanner}
-              style={{
-                width: '100%',
-                padding: '14px 12px',
-                borderRadius: '16px',
-                border: '2px solid var(--md-sys-color-primary)',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                color: 'var(--md-sys-color-primary)',
-                fontSize: '0.95rem',
-                fontWeight: 900,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 2px 8px rgba(0, 99, 155, 0.1)'
-              }}
-            >
-              <Scan size={20} color="var(--md-sys-color-primary)" />
-              <span>ESCANEAR Y VENDER</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => setIsShiftModalOpen(true)}
-            style={{
-              width: '100%',
-              padding: '14px 12px',
-              borderRadius: '16px',
-              border: activeShift ? '2px solid #059669' : '2px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: activeShift ? '#ECFDF5' : 'var(--md-sys-color-surface)',
-              color: activeShift ? '#065F46' : 'var(--md-sys-color-on-surface)',
-              fontSize: '0.95rem',
-              fontWeight: 900,
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Clock size={18} color={activeShift ? '#059669' : 'var(--md-sys-color-primary)'} />
-              <span>TURNOS Y CAJA</span>
-            </div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface-variant)' }}>
-              {activeShift ? `🟢 @${activeShift.sellerUsername}` : '🔴 Sin Turno Abierto'}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setIsQRSyncModalOpen(true)}
-            style={{
-              width: '100%',
-              padding: '14px 12px',
-              borderRadius: '16px',
-              border: '2px solid var(--md-sys-color-primary)',
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
-              fontSize: '0.95rem',
-              fontWeight: 900,
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '2px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <QrCode size={18} />
-              <span>SYNC QR (OFFLINE)</span>
-            </div>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, opacity: 0.8 }}>
-              📲 Pasar Datos Local
-            </span>
-          </button>
-
-          {!isVendor && (
-            <button
-              onClick={handleOpenAdd}
-              style={{
-                width: '100%',
-                padding: '14px 12px',
-                borderRadius: '16px',
-                border: 'none',
-                background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #DB2777 100%)',
-                color: '#FFFFFF',
-                fontSize: '0.95rem',
-                fontWeight: 900,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)'
-              }}
-            >
-              <Plus size={20} />
-              <span>PUBLICAR</span>
-            </button>
-          )}
-        </div>
-
-        {/* Dashboard Accounting Financial Cards (2 Columns Grid) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-          {/* Card 1: Fondo del Negocio (Clean Emerald) */}
-          <div className="md-card" style={{
-            backgroundColor: '#ECFDF5',
-            color: '#064E3B',
-            border: '1px solid #A7F3D0',
-            padding: '14px 12px',
+      {/* 1. TOP ACTION BUTTON: ESCANEAR Y VENDER */}
+      {onOpenScanner && (
+        <button
+          onClick={onOpenScanner}
+          style={{
+            width: '100%',
+            padding: '14px 16px',
+            borderRadius: '16px',
+            border: '2px solid var(--md-sys-color-primary)',
+            backgroundColor: 'var(--md-sys-color-surface)',
+            color: 'var(--md-sys-color-primary)',
+            fontSize: '1rem',
+            fontWeight: 900,
+            cursor: 'pointer',
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo del Negocio</span>
-              <div style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(5, 150, 105, 0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Wallet size={16} color="#059669" />
-              </div>
-            </div>
-            {currencyMode === 'CUP' && (
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#047857', letterSpacing: '-0.02em', margin: '6px 0 2px 0' }}>
-                {formatCurrency(totalStoreFund, 'CUP', true)}
-              </div>
-            )}
-            {currencyMode === 'USD' && (
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0F766E', letterSpacing: '-0.02em', margin: '6px 0 2px 0' }}>
-                {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
-              </div>
-            )}
-            {currencyMode === 'BOTH' && (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-                margin: '6px 0 4px 0'
-              }}>
-                <div style={{
-                  padding: '5px 8px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.85)',
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#047857', textTransform: 'uppercase', flexShrink: 0 }}>CUP</span>
-                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', whiteSpace: 'nowrap', lineHeight: 1 }}>
-                    {formatCurrency(totalStoreFund, 'CUP', true)}
-                  </span>
-                </div>
-                <div style={{
-                  padding: '5px 8px',
-                  borderRadius: '8px',
-                  backgroundColor: '#ECFEFF',
-                  border: '1px solid #99F6E4',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#0F766E', textTransform: 'uppercase', flexShrink: 0 }}>USD</span>
-                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0F766E', whiteSpace: 'nowrap', lineHeight: 1 }}>
-                    {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 700 }}>
-                {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Caja USD' : 'Caja CUP')}
-              </span>
-            </div>
-          </div>
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            boxShadow: '0 4px 12px rgba(0, 99, 155, 0.12)'
+          }}
+        >
+          <Scan size={22} color="var(--md-sys-color-primary)" />
+          <span>ESCANEAR Y VENDER</span>
+        </button>
+      )}
 
-          {/* Card 2: Valor Inventario */}
-          <div className="md-card" style={{
-            backgroundColor: 'var(--md-sys-color-surface-container-high)',
-            border: '1px solid var(--md-sys-color-outline-variant)',
-            padding: '14px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📦 Valor Inventario</span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-                {products.length} art. ({products.reduce((acc, p) => acc + (p.stock || 0), 0)} u)
-              </span>
-            </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
-              {formatCurrency(totalStoreProductsValue, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
-            </div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-              {!isVendor ? `Costo Stock: ${formatCurrency(totalStoreProductsCost, currencyMode === 'USD' ? 'USD' : 'CUP', true)}` : 'Precio público'}
-            </div>
-          </div>
-
-          {/* Card 3: Ventas Registradas */}
-          <div className="md-card" style={{
-            backgroundColor: 'var(--md-sys-color-income-container)',
-            color: 'var(--md-sys-color-on-income-container)',
-            borderColor: 'rgba(0, 135, 90, 0.2)',
-            padding: '14px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🛒 Ventas Registradas</span>
-              <TrendingUp size={16} color="var(--md-sys-color-income)" />
-            </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
-              +{formatCurrency(totalAccumulatedSalesRevenue, currency, true)}
-            </div>
-            <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
-              Ingreso total por ventas POS
-            </div>
-          </div>
-
-          {/* Card 4: Por Pagar a Proveedores / Ganancias Casa */}
-          {!isVendor ? (
-            <div className="md-card" style={{
-              backgroundColor: 'var(--md-sys-color-expense-container)',
-              color: 'var(--md-sys-color-on-expense-container)',
-              borderColor: 'rgba(211, 47, 47, 0.2)',
-              padding: '14px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🤝 Por Pagar a Proveedores</span>
-                <TrendingDown size={16} color="var(--md-sys-color-expense)" />
-              </div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-expense)' }}>
-                {formatCurrency(totalPendingSupplierDebt, currency, true)}
-              </div>
-              <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
-                Pendiente por liquidar consignación
-              </div>
-            </div>
-          ) : (
-            <div className="md-card" style={{
-              backgroundColor: 'var(--md-sys-color-surface-container)',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              padding: '14px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🛍️ Artículos Stock</span>
-              </div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0' }}>
-                {products.filter(p => p.stock > 0).length} en stock
-              </div>
-              <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                Disponibles para venta
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Sub-Tab Navigation Bar */}
-        <div style={{
+      {/* 2. MAIN 4 METRICS CARDS GRID (Sits directly on main background) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+        
+        {/* Card 1: Fondo del Negocio (Clean Emerald) */}
+        <div className="md-card" style={{
+          backgroundColor: '#ECFDF5',
+          color: '#064E3B',
+          border: '1px solid #A7F3D0',
+          padding: '14px 12px',
           display: 'flex',
-          gap: '6px',
-          overflowX: 'auto',
-          paddingTop: '8px',
-          borderTop: '1px solid var(--md-sys-color-outline-variant)'
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}>
-          <button
-            onClick={() => setActiveSubTab('products')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeSubTab === 'products' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              color: activeSubTab === 'products' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: activeSubTab === 'products' ? 800 : 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo del Negocio</span>
+            <div style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(5, 150, 105, 0.18)',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Package size={16} />
-            <span>Productos ({products.length})</span>
-          </button>
-
-          {!isVendor && (
-            <button
-              onClick={() => setActiveSubTab('suppliers')}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '9999px',
-                border: 'none',
-                backgroundColor: activeSubTab === 'suppliers' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-                color: activeSubTab === 'suppliers' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-                fontWeight: activeSubTab === 'suppliers' ? 800 : 600,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Users size={16} />
-              <span>Proveedores ({suppliers.length})</span>
-            </button>
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Wallet size={16} color="#059669" />
+            </div>
+          </div>
+          {currencyMode === 'CUP' && (
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#047857', letterSpacing: '-0.02em', margin: '6px 0 2px 0' }}>
+              {formatCurrency(totalStoreFund, 'CUP', true)}
+            </div>
           )}
-
-          {!isVendor && isOwner && (
-            <button
-              onClick={() => setActiveSubTab('transfer')}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '9999px',
-                border: 'none',
-                backgroundColor: activeSubTab === 'transfer' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-                color: activeSubTab === 'transfer' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-                fontWeight: activeSubTab === 'transfer' ? 800 : 600,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <ArrowRightLeft size={16} />
-              <span>Transferir a Casa (${totalStoreFund})</span>
-            </button>
+          {currencyMode === 'USD' && (
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0F766E', letterSpacing: '-0.02em', margin: '6px 0 2px 0' }}>
+              {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
+            </div>
           )}
-
-          <button
-            onClick={() => setActiveSubTab('sales')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeSubTab === 'sales' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-              color: activeSubTab === 'sales' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: activeSubTab === 'sales' ? 800 : 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
+          {currencyMode === 'BOTH' && (
+            <div style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Receipt size={16} />
-            <span>Ventas ({salesRecords.length})</span>
-          </button>
-
-          {!isVendor && (
-            <button
-              onClick={() => setActiveSubTab('settings')}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '9999px',
-                border: 'none',
-                backgroundColor: activeSubTab === 'settings' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-                color: activeSubTab === 'settings' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-                fontWeight: activeSubTab === 'settings' ? 800 : 600,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
+              flexDirection: 'column',
+              gap: '4px',
+              margin: '6px 0 4px 0'
+            }}>
+              <div style={{
+                padding: '5px 8px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                border: '1px solid rgba(0,0,0,0.06)',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: '6px',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <MessageCircle size={16} />
-              <span>Ajustes WhatsApp</span>
-            </button>
+                gap: '6px'
+              }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#047857', textTransform: 'uppercase', flexShrink: 0 }}>CUP</span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', whiteSpace: 'nowrap', lineHeight: 1 }}>
+                  {formatCurrency(totalStoreFund, 'CUP', true)}
+                </span>
+              </div>
+              <div style={{
+                padding: '5px 8px',
+                borderRadius: '8px',
+                backgroundColor: '#ECFEFF',
+                border: '1px solid #99F6E4',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#0F766E', textTransform: 'uppercase', flexShrink: 0 }}>USD</span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0F766E', whiteSpace: 'nowrap', lineHeight: 1 }}>
+                  {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
+                </span>
+              </div>
+            </div>
           )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 700 }}>
+              {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Caja USD' : 'Caja CUP')}
+            </span>
+          </div>
         </div>
+
+        {/* Card 2: Valor Inventario */}
+        <div className="md-card" style={{
+          backgroundColor: 'var(--md-sys-color-surface-container-high)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          padding: '14px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📦 Valor Inventario</span>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
+              {products.length} art. ({products.reduce((acc, p) => acc + (p.stock || 0), 0)} u)
+            </span>
+          </div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
+            {formatCurrency(totalStoreProductsValue, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
+          </div>
+          <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+            {!isVendor ? `Costo Stock: ${formatCurrency(totalStoreProductsCost, currencyMode === 'USD' ? 'USD' : 'CUP', true)}` : 'Precio público'}
+          </div>
+        </div>
+
+        {/* Card 3: Fondo de Ganancias */}
+        <div className="md-card" style={{
+          backgroundColor: 'var(--md-sys-color-income-container)',
+          color: 'var(--md-sys-color-on-income-container)',
+          border: '1px solid rgba(0, 135, 90, 0.2)',
+          padding: '14px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📈 Ganancias Negocio</span>
+            <TrendingUp size={16} color="var(--md-sys-color-income)" />
+          </div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
+            +{formatCurrency(totalAccumulatedHouseProfits, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
+          </div>
+          <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+            Ganancia neta acumulada
+          </div>
+        </div>
+
+        {/* Card 4: Caja / Estado de Turno (Pulsable) */}
+        <button
+          type="button"
+          onClick={() => setIsShiftModalOpen(true)}
+          className="md-card"
+          style={{
+            backgroundColor: activeShift ? '#ECFDF5' : 'var(--md-sys-color-surface-container-high)',
+            border: activeShift ? '1px solid #A7F3D0' : '1px solid var(--md-sys-color-outline-variant)',
+            padding: '14px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            textAlign: 'left',
+            cursor: 'pointer',
+            width: '100%'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: activeShift ? '#065F46' : 'var(--md-sys-color-on-surface)' }}>
+              🕒 Turno y Caja
+            </span>
+            <div style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              backgroundColor: activeShift ? 'rgba(5, 150, 105, 0.18)' : 'var(--md-sys-color-surface)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Clock size={14} color={activeShift ? '#059669' : 'var(--md-sys-color-primary)'} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, margin: '6px 0 2px 0', color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface)' }}>
+            {activeShift ? `@${activeShift.sellerUsername}` : 'Sin Turno'}
+          </div>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface-variant)' }}>
+            {activeShift ? `Ventas: ${activeShift.totalCashSales + activeShift.totalDigitalSales > 0 ? `$${activeShift.totalCashSales + activeShift.totalDigitalSales}` : 'Activo'}` : 'Abrir Turno POS'}
+          </div>
+        </button>
+
+      </div>
+
+      {/* 3. PUBLICAR BUTTON (FULL WIDTH) */}
+      {!isVendor && (
+        <button
+          onClick={handleOpenAdd}
+          style={{
+            width: '100%',
+            padding: '14px 16px',
+            borderRadius: '16px',
+            border: 'none',
+            background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #DB2777 100%)',
+            color: '#FFFFFF',
+            fontSize: '1rem',
+            fontWeight: 900,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)'
+          }}
+        >
+          <Plus size={22} />
+          <span>PUBLICAR PRODUCTO</span>
+        </button>
+      )}
+
+      {/* 4. SUB-TAB NAVIGATION BAR */}
+      <div style={{
+        display: 'flex',
+        gap: '6px',
+        overflowX: 'auto',
+        padding: '6px 0',
+        borderBottom: '1px solid var(--md-sys-color-outline-variant)'
+      }}>
+        <button
+          onClick={() => setActiveSubTab('products')}
+          style={{
+            padding: '8px 14px',
+            borderRadius: '9999px',
+            border: 'none',
+            backgroundColor: activeSubTab === 'products' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+            color: activeSubTab === 'products' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
+            fontWeight: activeSubTab === 'products' ? 800 : 600,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <Package size={16} />
+          <span>Productos ({products.length})</span>
+        </button>
+
+        {!isVendor && (
+          <button
+            onClick={() => setActiveSubTab('suppliers')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeSubTab === 'suppliers' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+              color: activeSubTab === 'suppliers' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeSubTab === 'suppliers' ? 800 : 600,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Users size={16} />
+            <span>Proveedores ({suppliers.length})</span>
+          </button>
+        )}
+
+        {!isVendor && isOwner && (
+          <button
+            onClick={() => setActiveSubTab('transfer')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeSubTab === 'transfer' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+              color: activeSubTab === 'transfer' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeSubTab === 'transfer' ? 800 : 600,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <ArrowRightLeft size={16} />
+            <span>Transferir a Casa (${totalStoreFund})</span>
+          </button>
+        )}
+
+        <button
+          onClick={() => setActiveSubTab('sales')}
+          style={{
+            padding: '8px 14px',
+            borderRadius: '9999px',
+            border: 'none',
+            backgroundColor: activeSubTab === 'sales' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+            color: activeSubTab === 'sales' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
+            fontWeight: activeSubTab === 'sales' ? 800 : 600,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <Receipt size={16} />
+          <span>Ventas ({salesRecords.length})</span>
+        </button>
+
+        {!isVendor && (
+          <button
+            onClick={() => setActiveSubTab('settings')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeSubTab === 'settings' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+              color: activeSubTab === 'settings' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeSubTab === 'settings' ? 800 : 600,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <MessageCircle size={16} />
+            <span>Ajustes WhatsApp</span>
+          </button>
+        )}
       </div>
 
       {/* SUB TAB 1: PRODUCTS INVENTORY */}

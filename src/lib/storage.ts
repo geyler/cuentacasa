@@ -549,6 +549,21 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
 
   const oldStock = existingIndex !== -1 ? (db.storeProducts[existingIndex].stock || 0) : 0;
   const newStock = product.stock || 0;
+  const addedQty = existingIndex !== -1 ? (newStock - oldStock) : newStock;
+  const isConsignment = newProduct.supplierType === 'proveedor';
+  const totalInvestment = Math.round((addedQty > 0 ? addedQty : 0) * (newProduct.costPrice || 0) * 100) / 100;
+
+  // Strict Money Control: Validate available liquidity in Fondo del Negocio before purchasing own merchandise
+  if (addedQty > 0 && (newProduct.costPrice || 0) > 0 && !isConsignment) {
+    const currentFund = pCurr === 'USD' ? (db.storeFundUSD || 0) : (db.storeFund || 0);
+    if (totalInvestment > currentFund) {
+      const currSym = pCurr === 'USD' ? 'US$' : '$';
+      throw new Error(
+        `Saldo insuficiente en el Fondo del Negocio (${currSym}${currentFund} disponible, ${currSym}${totalInvestment} requerido para ${addedQty}u de ${newProduct.name}). ` +
+        `Si el dinero provino del exterior ("el aire"), primero agrégalo como Ingreso en Casa, luego transfiérelo al Fondo del Negocio antes de comprar mercancía.`
+      );
+    }
+  }
 
   if (existingIndex !== -1) {
     db.storeProducts[existingIndex] = newProduct;
@@ -556,17 +571,23 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
     db.storeProducts.push(newProduct);
   }
 
+  // Deduct cost of own merchandise directly from business fund
+  if (addedQty > 0 && (newProduct.costPrice || 0) > 0 && !isConsignment) {
+    if (pCurr === 'USD') {
+      db.storeFundUSD = Math.max(0, (db.storeFundUSD || 0) - totalInvestment);
+    } else {
+      db.storeFund = Math.max(0, (db.storeFund || 0) - totalInvestment);
+    }
+  }
+
   saveRawDatabase(db);
 
   // Automatically update active shift snapshot if stock was increased or added
-  const addedQty = existingIndex !== -1 ? (newStock - oldStock) : newStock;
   if (addedQty > 0) {
     addStockToActiveShift(newProduct.id, addedQty);
 
     // Register transaction movement for added merchandise into store account log
     if ((newProduct.costPrice || 0) > 0) {
-      const isConsignment = newProduct.supplierType === 'proveedor';
-      const totalInvestment = Math.round(addedQty * (newProduct.costPrice || 0) * 100) / 100;
       const todayISO = new Date().toISOString().split('T')[0];
       const now = Date.now();
 
@@ -638,6 +659,23 @@ export function getSupplierAccounts(): SupplierAccount[] {
   return db.supplierAccounts || [];
 }
 
+export function getCasaAvailableBalance(currency: CurrencyType = 'CUP'): number {
+  const db = getRawDatabase();
+  const casaTxList = (db.transactions || []).filter(t => {
+    if (t.accountSource) return t.accountSource === 'casa';
+    const isStoreTx = (t.category || '').toLowerCase().includes('tienda') || 
+                      (t.category || '').toLowerCase().includes('fondo tienda') || 
+                      (t.category || '').toLowerCase().includes('proveedor') ||
+                      (t.concept || '').toLowerCase().includes('venta pos');
+    return !isStoreTx;
+  });
+  return casaTxList.reduce((acc, t) => {
+    const tCurr = t.currency || 'CUP';
+    if (tCurr !== currency) return acc;
+    return acc + (t.type === 'ingreso' ? t.amount : -t.amount);
+  }, 0);
+}
+
 export function paySupplierAccount(
   supplierIdOrName: string, 
   amount: number, 
@@ -661,6 +699,20 @@ export function paySupplierAccount(
   const payAmount = Math.min(supplier.pendingPayout, amount);
   if (payAmount <= 0) {
     return { success: false, error: 'El proveedor no tiene saldo pendiente por liquidar.' };
+  }
+
+  // Validate liquidity in source account
+  const currSym = currency === 'USD' ? 'US$' : '$';
+  if (source === 'negocio') {
+    const availFund = currency === 'USD' ? (db.storeFundUSD || 0) : (db.storeFund || 0);
+    if (payAmount > availFund) {
+      return { success: false, error: `Saldo insuficiente en Fondo del Negocio (${currSym}${availFund} disponible) para liquidar ${currSym}${payAmount}.` };
+    }
+  } else if (source === 'casa') {
+    const availCasa = getCasaAvailableBalance(currency);
+    if (payAmount > availCasa) {
+      return { success: false, error: `Saldo insuficiente en Fondo de la Casa (${currSym}${availCasa} disponible) para financiar el pago al proveedor.` };
+    }
   }
 
   supplier.pendingPayout = Math.max(0, supplier.pendingPayout - payAmount);
@@ -1183,11 +1235,19 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
     }
   }
 
+  if (fromAccount === 'ahorro' && toAccount !== 'casa') {
+    return { success: false, error: 'Desde el Fondo de Ahorro solo se permite transferir hacia el Fondo de la Casa.' };
+  }
+
   // Deduct from Source Account (in source currency)
   if (currency === 'USD') {
     const currentStoreUSD = db.storeFundUSD || 0;
     const currentSavingsUSD = db.savingsFundUSD || 0;
+    const currentCasaUSD = getCasaAvailableBalance('USD');
 
+    if (fromAccount === 'casa' && amount > currentCasaUSD) {
+      return { success: false, error: `Saldo insuficiente en Fondo de la Casa USD (US$ ${currentCasaUSD}).` };
+    }
     if (fromAccount === 'tienda' && amount > currentStoreUSD) {
       return { success: false, error: `Saldo insuficiente en Fondo Negocio USD (US$ ${currentStoreUSD}).` };
     }
@@ -1200,7 +1260,11 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
   } else {
     const currentStoreCUP = db.storeFund || 0;
     const currentSavingsCUP = db.savingsFund || 0;
+    const currentCasaCUP = getCasaAvailableBalance('CUP');
 
+    if (fromAccount === 'casa' && amount > currentCasaCUP) {
+      return { success: false, error: `Saldo insuficiente en Fondo de la Casa ($${currentCasaCUP}).` };
+    }
     if (fromAccount === 'tienda' && amount > currentStoreCUP) {
       return { success: false, error: `Saldo insuficiente en Fondo Tienda ($${currentStoreCUP}).` };
     }
