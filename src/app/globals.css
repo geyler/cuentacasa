@@ -339,7 +339,7 @@ input:focus, select:focus, textarea:focus, .input-spotlight:focus {
 }
 
 /* Html5Qrcode Camera Video Alignment Fix */
-#cuentacasa-html5-barcode-reader {
+#cuentacasa-html5-barcode-reader, #form-barcode-scanner-box {
   width: 100% !important;
   height: 100% !important;
   position: relative !important;
@@ -349,7 +349,7 @@ input:focus, select:focus, textarea:focus, .input-spotlight:focus {
   overflow: hidden !important;
 }
 
-#cuentacasa-html5-barcode-reader video {
+#cuentacasa-html5-barcode-reader video, #form-barcode-scanner-box video {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;

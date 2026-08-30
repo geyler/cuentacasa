@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StoreProduct, SupplierAccount, SupplierType } from '@/types';
-import { compressImageToBase64, getCurrencySettings } from '@/lib/storage';
+import { compressImageToBase64, getCurrencySettings, getStoreProductByBarcode } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { AppInput } from '@/components/common/AppInput';
 import { Package, X, Camera, Check, Image as ImageIcon } from 'lucide-react';
@@ -68,6 +68,26 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   useEffect(() => {
     if (scannedBarcode) {
       setBarcode(scannedBarcode);
+      const existingProduct = getStoreProductByBarcode(scannedBarcode);
+      if (existingProduct) {
+        setName(existingProduct.name);
+        setCategory(existingProduct.category || '');
+        setCostPrice(existingProduct.costPrice || '');
+        setPrice(existingProduct.price);
+        setProductCurrency(existingProduct.currency || 'CUP');
+        setStock(existingProduct.stock);
+        setUnit(existingProduct.unit || 'u');
+        setPhotoUrl(existingProduct.photoUrl || '');
+        setPublished(existingProduct.published ?? true);
+        if (existingProduct.supplierType === 'proveedor' && existingProduct.supplierName) {
+          setFundingSource('proveedor');
+          setSupplierType('proveedor');
+          setSupplierName(existingProduct.supplierName);
+        }
+        if (existingProduct.description) {
+          setDescription(existingProduct.description);
+        }
+      }
     }
   }, [scannedBarcode]);
 
@@ -240,12 +260,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '520px',
+          maxWidth: '540px',
+          height: '100%',
+          maxHeight: '100dvh',
           padding: '20px 20px 28px 20px',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
-          maxHeight: '90vh',
           overflowY: 'auto',
           boxShadow: 'var(--md-shadow-elevation-4)',
           borderTopLeftRadius: '28px',

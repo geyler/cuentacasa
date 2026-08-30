@@ -568,12 +568,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.93)',
+      backgroundColor: 'rgba(0, 0, 0, 0.95)',
       backdropFilter: 'blur(10px)',
-      zIndex: 120,
+      zIndex: 2500,
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
+      height: '100dvh',
+      width: '100vw',
       overflow: 'hidden'
     }} className="no-print">
 

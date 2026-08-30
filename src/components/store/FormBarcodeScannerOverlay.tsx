@@ -111,109 +111,80 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
         await scanner.start(
           { facingMode: 'environment' },
           config,
-          (decodedText, result) => {
-            if (!isMounted) return;
-            const code = decodedText.trim();
-            if (!code) return;
+            (decodedText) => {
+              if (!isMounted) return;
+              const code = decodedText.trim();
+              if (!code) return;
 
-            const now = Date.now();
-            if (now - lastScanTimeRef.current < 400) return; // Immediate responsive trigger
-            lastScanTimeRef.current = now;
+              const now = Date.now();
+              if (now - lastScanTimeRef.current < 800) return;
+              lastScanTimeRef.current = now;
 
-            playScanBeep();
-            
-            const formatName = result?.result?.format?.formatName || (code.length === 13 ? 'EAN_13' : code.length === 12 ? 'UPC_A' : 'Código de Barras');
-            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              playScanBeep();
+              onScan(code);
+            },
+            () => {}
+          );
 
-            setPendingCodeDetails({
-              code,
-              formatName,
-              length: code.length,
-              scannedAt: nowTime
-            });
-          },
-          () => {}
-        );
+          if (isMounted) setCameraStatus('Cámara activa. Apunta al código de barras.');
+        } catch (err) {
+          console.warn('Form camera scanner start error:', err);
+          if (isMounted) setCameraStatus('No se pudo abrir la cámara. Ingresa el código manualmente.');
+        }
+      };
 
-        if (isMounted) setCameraStatus('Cámara activa. Apunta al código de barras.');
-      } catch (err) {
-        console.warn('Form camera scanner start error:', err);
-        if (isMounted) setCameraStatus('No se pudo abrir la cámara. Ingresa el código manualmente.');
-      }
-    };
-
-    if (!pendingCodeDetails) {
       const timer = setTimeout(startScanner, 200);
       return () => {
         isMounted = false;
         clearTimeout(timer);
         stopScannerEngine();
       };
-    } else {
-      stopScannerEngine();
-    }
-  }, [pendingCodeDetails]);
+    }, []);
 
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = manualCode.trim();
-    if (clean) {
-      playScanBeep();
-      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setPendingCodeDetails({
-        code: clean,
-        formatName: 'Ingreso Manual SKU',
-        length: clean.length,
-        scannedAt: nowTime
-      });
-    }
-  };
+    const handleManualSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      const clean = manualCode.trim();
+      if (clean) {
+        playScanBeep();
+        onScan(clean);
+      }
+    };
 
-  const handleConfirmCode = () => {
-    if (pendingCodeDetails) {
-      onScan(pendingCodeDetails.code);
-    }
-  };
-
-  const handleRescan = () => {
-    setPendingCodeDetails(null);
-    setManualCode('');
-  };
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
-        backdropFilter: 'blur(10px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        padding: '12px 12px 0 12px'
-      }}
-      onClick={onClose}
-    >
+    return (
       <div
-        className="bottom-sheet-modal"
         style={{
-          width: '100%',
-          maxWidth: '480px',
-          backgroundColor: 'var(--md-sys-color-surface-container)',
-          padding: '16px 20px 24px 20px',
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.90)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 9999,
           display: 'flex',
-          flexDirection: 'column',
-          gap: '14px',
-          textAlign: 'center',
-          boxShadow: 'var(--md-shadow-elevation-4)',
-          position: 'relative',
-          borderRadius: '24px',
-          maxHeight: '92vh',
-          overflowY: 'auto'
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          padding: '0'
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={onClose}
       >
+        <div
+          className="bottom-sheet-modal"
+          style={{
+            width: '100%',
+            maxWidth: '540px',
+            height: '100%',
+            maxHeight: '100dvh',
+            backgroundColor: 'var(--md-sys-color-surface-container)',
+            padding: '16px 20px 24px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+            textAlign: 'center',
+            boxShadow: 'var(--md-shadow-elevation-4)',
+            position: 'relative',
+            borderRadius: '28px 28px 0 0',
+            overflowY: 'auto'
+          }}
+          onClick={e => e.stopPropagation()}
+        >
         {/* Material Drag Handle */}
         <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto', opacity: 0.8 }} />
         
@@ -240,9 +211,6 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
           </button>
         </div>
 
-        {/* STEP 1: CAMERA SCANNING VIEW */}
-        {!pendingCodeDetails ? (
-          <>
             <div
               style={{
                 width: '100%',
@@ -330,127 +298,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
             >
               Cancelar
             </button>
-          </>
-        ) : (
-          /* STEP 2: SCANNED CODE PREVIEW & CONFIRMATION MODAL CARD */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '6px 0' }}>
-            <div style={{
-              backgroundColor: '#ECFDF5',
-              border: '2px solid #6EE7B7',
-              borderRadius: '20px',
-              padding: '18px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-              boxShadow: '0 4px 16px rgba(5, 150, 105, 0.12)'
-            }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '50%',
-                backgroundColor: '#10B981',
-                color: '#FFFFFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-              }}>
-                <CheckCircle2 size={24} />
-              </div>
-
-              <div style={{ textAlign: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  ¡Código Leído con Éxito!
-                </span>
-                <div style={{
-                  fontSize: '1.45rem',
-                  fontWeight: 900,
-                  fontFamily: 'monospace',
-                  color: '#064E3B',
-                  margin: '6px 0',
-                  letterSpacing: '0.05em',
-                  wordBreak: 'break-all'
-                }}>
-                  #{pendingCodeDetails.code}
-                </div>
-              </div>
-
-              {/* Code Technical Metadata Box */}
-              <div style={{
-                width: '100%',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #A7F3D0',
-                borderRadius: '12px',
-                padding: '10px 14px',
-                fontSize: '0.8rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                textAlign: 'left',
-                color: '#065F46'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600, opacity: 0.8 }}>Estándar/Formato:</span>
-                  <span style={{ fontWeight: 800 }}>{pendingCodeDetails.formatName}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600, opacity: 0.8 }}>Longitud:</span>
-                  <span style={{ fontWeight: 800 }}>{pendingCodeDetails.length} caracteres</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600, opacity: 0.8 }}>Hora de Lectura:</span>
-                  <span style={{ fontWeight: 800 }}>{pendingCodeDetails.scannedAt}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={handleConfirmCode}
-                className="md-btn md-btn-primary"
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  fontSize: '0.95rem',
-                  fontWeight: 900,
-                  borderRadius: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 14px rgba(0, 99, 155, 0.25)'
-                }}
-              >
-                <CheckCircle2 size={18} />
-                <span>Confirmar y Usar Código</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleRescan}
-                className="md-btn md-btn-secondary"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '0.88rem',
-                  fontWeight: 800,
-                  borderRadius: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                <RotateCcw size={16} />
-                <span>Volver a Escanear</span>
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
