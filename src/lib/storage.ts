@@ -773,16 +773,18 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
         };
         db.supplierAccounts!.push(supplier);
       }
+      const itemCurr = item.currency || saleCurrency;
       // Cost money goes to Supplier Pending Payout (separated by currency)
-      if (saleCurrency === 'USD') {
+      if (itemCurr === 'USD') {
         supplier.pendingPayoutUSD = (supplier.pendingPayoutUSD || 0) + itemCostTotal;
       } else {
         supplier.pendingPayout = (supplier.pendingPayout || 0) + itemCostTotal;
       }
       supplier.updatedAt = Date.now();
     } else {
+      const itemCurr = item.currency || saleCurrency;
       // Cost money stays in Store Own Fund (separated by currency)
-      if (saleCurrency === 'USD') {
+      if (itemCurr === 'USD') {
         db.storeFundUSD = (db.storeFundUSD || 0) + itemCostTotal;
       } else {
         db.storeFund = (db.storeFund || 0) + itemCostTotal;

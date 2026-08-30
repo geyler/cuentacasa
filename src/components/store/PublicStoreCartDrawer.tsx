@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { StoreProduct } from '@/types';
-import { formatPhotoUrl, getStoreWhatsappNumber } from '@/lib/storage';
-import { formatCurrency } from '@/lib/invoice';
+import { formatPhotoUrl, getStoreWhatsappNumber, getCurrencySettings } from '@/lib/storage';
+import { formatCurrency, calculateMultiCurrencyTotals } from '@/lib/invoice';
 import { ShoppingBag, Trash2, Minus, Plus, MessageCircle, QrCode } from 'lucide-react';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { CartQRModal } from '@/components/CartQRModal';
@@ -39,7 +39,11 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const cartCurrency = cart[0]?.product.currency || 'CUP';
+  const { exchangeRateUSD } = getCurrencySettings();
+  const multiTotals = calculateMultiCurrencyTotals(
+    cart.map(i => ({ quantity: i.quantity, price: i.product.price, currency: i.product.currency })),
+    exchangeRateUSD
+  );
 
   const handleSendWhatsAppOrder = () => {
     if (cart.length === 0) return;
@@ -54,7 +58,13 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
       const formattedSubtotal = formatCurrency(item.product.price * item.quantity, itemCurr, true);
       text += `${index + 1}. *${item.product.name}*\n   Cant: ${item.quantity}u | Subtotal: ${formattedSubtotal}\n`;
     });
-    text += `----------------------------------\n💰 *TOTAL A PAGAR: ${formatCurrency(totalCartPrice, cartCurrency, true)}*\n\n`;
+    text += `----------------------------------\n`;
+    if (multiTotals.isMixed) {
+      text += `💰 *TOTAL EN CUENTAS SEPARADAS:*\n• $${multiTotals.totalCUP.toLocaleString('es-ES')} CUP\n• $${multiTotals.totalUSD.toLocaleString('es-ES')} USD\n(Equivalente Total: $${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP @ Tasa ${exchangeRateUSD})\n\n`;
+    } else {
+      const singleTotalStr = multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true);
+      text += `💰 *TOTAL A PAGAR: ${singleTotalStr}*\n\n`;
+    }
     text += `🔗 *Ver pedido en Samy Store:*\n${cartLink}`;
 
     const encoded = encodeURIComponent(text);
@@ -246,14 +256,30 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
           {/* Footer Summary & Actions */}
           {cart.length > 0 && (
             <div style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                  Total a Pagar:
-                </span>
-                <span style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                  {formatCurrency(totalCartPrice, cartCurrency, true)}
-                </span>
-              </div>
+              {multiTotals.isMixed ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800 }}>
+                    Total en Cuentas Separadas:
+                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                      ${multiTotals.totalCUP.toLocaleString('es-ES')} CUP + ${multiTotals.totalUSD.toLocaleString('es-ES')} USD
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                    Equivalente Total: ${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP (Tasa 1 USD = ${exchangeRateUSD} CUP)
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                    Total a Pagar:
+                  </span>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                    {multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true)}
+                  </span>
+                </div>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
                 <button
@@ -310,8 +336,8 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
         isOpen={isCartQROpen}
         onClose={() => setIsCartQROpen(false)}
         cart={cart}
-        totalCartPrice={totalCartPrice}
-        currency={cartCurrency}
+        totalCartPrice={multiTotals.equivalentCUP}
+        currency={multiTotals.hasUSD ? 'USD' : 'CUP'}
       />
     </>
   );

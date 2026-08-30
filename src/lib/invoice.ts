@@ -209,3 +209,53 @@ export function getCurrencyBadgeStyle(currency?: string) {
     badgeText: 'CUP$'
   };
 }
+
+export interface MultiCurrencyTotals {
+  totalCUP: number;
+  totalUSD: number;
+  hasCUP: boolean;
+  hasUSD: boolean;
+  isMixed: boolean;
+  equivalentCUP: number;
+  equivalentUSD: number;
+  exchangeRateUSD: number;
+}
+
+export function calculateMultiCurrencyTotals(
+  items: any[],
+  exchangeRateUSD: number = 320
+): MultiCurrencyTotals {
+  let totalCUP = 0;
+  let totalUSD = 0;
+
+  items.forEach(item => {
+    const qty = item.quantity || 1;
+    const curr = item.currency || item.product?.currency || 'CUP';
+    const unitP = item.unitPrice !== undefined ? item.unitPrice : (item.price !== undefined ? item.price : (item.product?.price || 0));
+    const sub = item.subtotal !== undefined ? item.subtotal : (unitP * qty);
+
+    if (curr === 'USD') {
+      totalUSD += sub;
+    } else {
+      totalCUP += sub;
+    }
+  });
+
+  const hasCUP = totalCUP > 0;
+  const hasUSD = totalUSD > 0;
+  const isMixed = hasCUP && hasUSD;
+  const rate = exchangeRateUSD || 320;
+  const equivalentCUP = Math.round((totalCUP + (totalUSD * rate)) * 100) / 100;
+  const equivalentUSD = Math.round((totalUSD + (rate > 0 ? totalCUP / rate : 0)) * 100) / 100;
+
+  return {
+    totalCUP: Math.round(totalCUP * 100) / 100,
+    totalUSD: Math.round(totalUSD * 100) / 100,
+    hasCUP,
+    hasUSD,
+    isMixed,
+    equivalentCUP,
+    equivalentUSD,
+    exchangeRateUSD: rate
+  };
+}

@@ -6,10 +6,11 @@ import {
   getStoreProductByBarcode, 
   getStoreProducts, 
   registerStoreSale,
-  mergeSyncQRPayload
+  mergeSyncQRPayload,
+  getCurrencySettings
 } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
-import { formatCurrency } from '@/lib/invoice';
+import { formatCurrency, calculateMultiCurrencyTotals } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { 
   Scan, 
@@ -440,12 +441,14 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setTimeout(() => setShowSuccessBadge(false), 1600);
   };
 
-  // Totals calculations
+  // Multi-Currency Totals calculation
+  const { exchangeRateUSD } = getCurrencySettings();
+  const [selectedPaymentCurrency, setSelectedPaymentCurrency] = useState<'AUTO' | 'CUP' | 'USD' | 'MIXED'>('MIXED');
+  
   const uniqueItemsCount = ticketItems.length;
   const totalUnitsCount = ticketItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totalInvoicePrice = ticketItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const multiTotals = calculateMultiCurrencyTotals(ticketItems, exchangeRateUSD);
   const totalInvoiceCost = ticketItems.reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
-  const estimatedNetProfit = totalInvoicePrice - totalInvoiceCost;
 
   const handleConfirmSale = () => {
     if (ticketItems.length === 0) {
@@ -457,11 +460,35 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       return;
     }
 
-    const saleCurrency: CurrencyType = (ticketItems[0]?.currency as CurrencyType) || (currency as CurrencyType) || 'CUP';
+    let finalSaleCurrency: CurrencyType = 'CUP';
+    let finalTotalAmount = multiTotals.equivalentCUP;
+    let netProfit = multiTotals.equivalentCUP - totalInvoiceCost;
+
+    if (multiTotals.isMixed) {
+      if (selectedPaymentCurrency === 'USD') {
+        finalSaleCurrency = 'USD';
+        finalTotalAmount = multiTotals.equivalentUSD;
+        netProfit = multiTotals.equivalentUSD - (totalInvoiceCost / exchangeRateUSD);
+      } else if (selectedPaymentCurrency === 'CUP') {
+        finalSaleCurrency = 'CUP';
+        finalTotalAmount = multiTotals.equivalentCUP;
+        netProfit = multiTotals.equivalentCUP - totalInvoiceCost;
+      } else {
+        // MIXED: Retain individual item currencies
+        finalSaleCurrency = 'CUP'; // base logging
+        finalTotalAmount = multiTotals.totalCUP; // stored base CUP total
+      }
+    } else {
+      finalSaleCurrency = multiTotals.hasUSD ? 'USD' : 'CUP';
+      finalTotalAmount = multiTotals.hasUSD ? multiTotals.totalUSD : multiTotals.totalCUP;
+      netProfit = finalTotalAmount - totalInvoiceCost;
+    }
 
     confirmAction({
       title: '¿Confirmar y Registrar Venta?',
-      message: `Se registrará la venta de ${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'} por un total de ${formatCurrency(totalInvoicePrice, saleCurrency, true)}.`,
+      message: multiTotals.isMixed && selectedPaymentCurrency === 'MIXED'
+        ? `Se registrará la venta cobrando $${multiTotals.totalCUP.toLocaleString('es-ES')} CUP y $${multiTotals.totalUSD.toLocaleString('es-ES')} USD.`
+        : `Se registrará la venta de ${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'} por un total de ${formatCurrency(finalTotalAmount, finalSaleCurrency, true)}.`,
       variant: 'primary',
       confirmText: 'Confirmar y Cobrar',
       onConfirm: () => {
@@ -470,17 +497,20 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         registerStoreSale({
           date: todayStr,
           items: ticketItems,
-          totalAmount: totalInvoicePrice,
+          totalAmount: finalTotalAmount,
           totalCost: totalInvoiceCost,
-          netProfit: estimatedNetProfit,
-          currency: saleCurrency
+          netProfit: Math.max(0, netProfit),
+          currency: finalSaleCurrency
         });
 
         // Trigger automatic sync with Hostinger DB
         syncDatabaseWithCloud(true).catch(err => console.warn('Sale sync warning:', err));
 
-        const saleTotalText = formatCurrency(totalInvoicePrice, saleCurrency, true);
-        const itemsListStr = ticketItems.map(i => `${i.name} (x${i.quantity})`).join(', ');
+        const saleTotalText = multiTotals.isMixed && selectedPaymentCurrency === 'MIXED'
+          ? `$${multiTotals.totalCUP.toLocaleString('es-ES')} CUP + $${multiTotals.totalUSD.toLocaleString('es-ES')} USD`
+          : formatCurrency(finalTotalAmount, finalSaleCurrency, true);
+          
+        const itemsListStr = ticketItems.map(i => `${i.name} (x${i.quantity} ${i.currency || 'CUP'})`).join(', ');
 
         setTicketItems([]);
         if (onSaleCompleted) onSaleCompleted();
@@ -760,6 +790,17 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                       #{item.barcode}
                     </span>
                     <h4 style={{ fontSize: '0.82rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</h4>
+                    <span style={{
+                      fontSize: '0.66rem',
+                      fontWeight: 900,
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: (item.currency || 'CUP') === 'USD' ? '#ECFEFF' : '#E6F4EA',
+                      color: (item.currency || 'CUP') === 'USD' ? '#0F766E' : '#137333',
+                      border: (item.currency || 'CUP') === 'USD' ? '1px solid #99F6E4' : '1px solid #A8DADC'
+                    }}>
+                      {item.currency || 'CUP'}
+                    </span>
                     {item.supplierType === 'proveedor' && (
                       <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--md-sys-color-expense)', backgroundColor: 'var(--md-sys-color-expense-container)', padding: '1px 4px', borderRadius: '3px' }}>
                         {item.supplierName || 'Proveedor'}
@@ -806,7 +847,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   {/* Unit Price Editable */}
                   <div>
                     <label style={{ fontSize: '0.62rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
-                      Precio ({currency}):
+                      Precio ({item.currency || 'CUP'}):
                     </label>
                     <input
                       type="number"
@@ -830,7 +871,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   {/* Subtotal Editable */}
                   <div>
                     <label style={{ fontSize: '0.62rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
-                      Subtotal ({currency}):
+                      Subtotal ({item.currency || 'CUP'}):
                     </label>
                     <input
                       type="number"
@@ -844,8 +885,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                         padding: '3px 6px',
                         borderRadius: '6px',
                         border: '1px solid var(--md-sys-color-outline-variant)',
-                        backgroundColor: 'var(--md-sys-color-income-container)',
-                        color: 'var(--md-sys-color-income)',
+                        backgroundColor: (item.currency || 'CUP') === 'USD' ? '#ECFEFF' : 'var(--md-sys-color-income-container)',
+                        color: (item.currency || 'CUP') === 'USD' ? '#0F766E' : 'var(--md-sys-color-income)',
                         fontWeight: 800,
                         fontSize: '0.78rem'
                       }}
@@ -873,26 +914,121 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }}>
         {/* Factura / Ticket Summary Box */}
         {ticketItems.length > 0 && (
-          <div style={{
-            backgroundColor: 'var(--md-sys-color-income-container)',
-            color: 'var(--md-sys-color-on-income-container)',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, display: 'block' }}>TOTAL COBRADO</span>
-              <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700, display: 'block' }}>
-                {totalUnitsCount} {totalUnitsCount === 1 ? 'artículo' : 'artículos'}
-              </span>
-            </div>
+          multiTotals.isMixed ? (
+            <div style={{
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: '2px solid #0EA5E9',
+              borderRadius: '14px',
+              padding: '10px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0EA5E9' }}>
+                  ⚠️ TICKET DUAL (CUP + USD)
+                </span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Tasa: 1 USD = ${exchangeRateUSD} CUP
+                </span>
+              </div>
 
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-              {formatCurrency(totalInvoicePrice, currency, true)}
+              <div style={{ display: 'flex', gap: '8px', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800 }}>
+                <span style={{ color: '#047857' }}>• CUP: ${multiTotals.totalCUP.toLocaleString('es-ES')}</span>
+                <span style={{ opacity: 0.4 }}>|</span>
+                <span style={{ color: '#0F766E' }}>• USD: ${multiTotals.totalUSD.toLocaleString('es-ES')}</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  ¿Cómo va a pagar el cliente?
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.1fr', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentCurrency('CUP')}
+                    style={{
+                      padding: '6px 4px',
+                      borderRadius: '8px',
+                      border: selectedPaymentCurrency === 'CUP' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: selectedPaymentCurrency === 'CUP' ? '#ECFDF5' : 'var(--md-sys-color-surface)',
+                      color: selectedPaymentCurrency === 'CUP' ? '#047857' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.7rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    En CUP<br/>
+                    <strong>${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP</strong>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentCurrency('USD')}
+                    style={{
+                      padding: '6px 4px',
+                      borderRadius: '8px',
+                      border: selectedPaymentCurrency === 'USD' ? '2px solid #0D9488' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: selectedPaymentCurrency === 'USD' ? '#CCFBF1' : 'var(--md-sys-color-surface)',
+                      color: selectedPaymentCurrency === 'USD' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.7rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    En USD<br/>
+                    <strong>${multiTotals.equivalentUSD.toLocaleString('es-ES')} USD</strong>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentCurrency('MIXED')}
+                    style={{
+                      padding: '6px 4px',
+                      borderRadius: '8px',
+                      border: selectedPaymentCurrency === 'MIXED' ? '2px solid #7C3AED' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: selectedPaymentCurrency === 'MIXED' ? '#F3E8FF' : 'var(--md-sys-color-surface)',
+                      color: selectedPaymentCurrency === 'MIXED' ? '#6D28D9' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.7rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Separado<br/>
+                    <strong>${multiTotals.totalCUP} CUP + ${multiTotals.totalUSD} USD</strong>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div style={{
+              backgroundColor: 'var(--md-sys-color-income-container)',
+              color: 'var(--md-sys-color-on-income-container)',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, display: 'block' }}>TOTAL COBRADO</span>
+                <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700, display: 'block' }}>
+                  {totalUnitsCount} {totalUnitsCount === 1 ? 'artículo' : 'artículos'}
+                </span>
+              </div>
+
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                  {multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true)}
+                </div>
+                <div style={{ fontSize: '0.68rem', opacity: 0.8, fontWeight: 700 }}>
+                  {multiTotals.hasUSD
+                    ? `Equiv: ${formatCurrency(multiTotals.equivalentCUP, 'CUP', true)} (Tasa ${exchangeRateUSD})`
+                    : `Equiv: ${formatCurrency(multiTotals.equivalentUSD, 'USD', true)} (Tasa ${exchangeRateUSD})`}
+                </div>
+              </div>
+            </div>
+          )
         )}
 
         {/* Submit Actions */}
