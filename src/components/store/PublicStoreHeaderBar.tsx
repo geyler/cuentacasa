@@ -26,7 +26,7 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
       borderBottom: '1px solid #F1F5F9',
       position: 'sticky',
       top: 0,
-      zIndex: 1100,
+      zIndex: 100,
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
     }}>
       <div style={{

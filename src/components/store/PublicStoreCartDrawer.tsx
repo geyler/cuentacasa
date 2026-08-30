@@ -81,7 +81,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
           top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.70)',
           backdropFilter: 'blur(8px)',
-          zIndex: 110,
+          zIndex: 2600,
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'center',

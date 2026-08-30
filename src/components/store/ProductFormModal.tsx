@@ -242,7 +242,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.70)',
         backdropFilter: 'blur(4px)',
-        zIndex: 110,
+        zIndex: 2000,
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',

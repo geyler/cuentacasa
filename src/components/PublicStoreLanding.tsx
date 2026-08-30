@@ -895,7 +895,7 @@ export const PublicStoreLanding: React.FC = () => {
           borderTop: '1px solid #F1F5F9',
           padding: '12px 18px',
           boxShadow: '0 -6px 24px rgba(0,0,0,0.08)',
-          zIndex: 1000
+          zIndex: 90
         }}>
           <div style={{
             maxWidth: '1024px',
