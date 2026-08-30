@@ -77,7 +77,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const scannerContainerId = 'cuentacasa-html5-barcode-reader';
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
 
-  // Scanner state
+  // Scanner & Currency state
   const [manualCode, setManualCode] = useState('');
   const [ticketItems, setTicketItems] = useState<StoreSaleItem[]>([]);
   const [showSuccessBadge, setShowSuccessBadge] = useState(false);
@@ -85,9 +85,23 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [cameraStatus, setCameraStatus] = useState<string>('Iniciando cámara...');
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
+  const [liveExchangeRate, setLiveExchangeRate] = useState<number>(320);
+  const [selectedPaymentCurrency, setSelectedPaymentCurrency] = useState<'AUTO' | 'CUP' | 'USD' | 'MIXED'>('MIXED');
 
   // Cooldown tracker to prevent duplicate scans in 1.8 seconds
   const lastScanTimeRef = useRef<number>(0);
+
+  // Sync exchange rate & initial ticket items when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const initialSettings = getCurrencySettings();
+      setLiveExchangeRate(initialSettings.exchangeRateUSD || 320);
+      setSelectedPaymentCurrency('MIXED');
+      if (initialTicketItems && initialTicketItems.length > 0) {
+        setTicketItems(initialTicketItems);
+      }
+    }
+  }, [isOpen, initialTicketItems]);
 
   const handleAddProductsFromSearch = (incomingItems: StoreSaleItem[]) => {
     let addedTotalCount = 0;
@@ -114,13 +128,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       triggerSuccessEffect(`¡${addedTotalCount} ${addedTotalCount === 1 ? 'producto agregado' : 'productos agregados'} por nombre!`);
     }
   };
-
-  // Load initial ticket items if provided (e.g. from WhatsApp order deep-link)
-  useEffect(() => {
-    if (isOpen && initialTicketItems && initialTicketItems.length > 0) {
-      setTicketItems(initialTicketItems);
-    }
-  }, [isOpen, initialTicketItems]);
 
   const handleDecodedBarcode = (decodedText: string) => {
     const rawStr = decodedText.trim();
@@ -442,11 +449,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setTimeout(() => setShowSuccessBadge(false), 1600);
   };
 
-  // Multi-Currency Totals calculation with inline rate editing
-  const initialSettings = getCurrencySettings();
-  const [liveExchangeRate, setLiveExchangeRate] = useState<number>(initialSettings.exchangeRateUSD || 320);
-  const [selectedPaymentCurrency, setSelectedPaymentCurrency] = useState<'AUTO' | 'CUP' | 'USD' | 'MIXED'>('MIXED');
-  
   const handleExchangeRateChange = (newRate: number) => {
     const validRate = Math.max(1, newRate);
     setLiveExchangeRate(validRate);
