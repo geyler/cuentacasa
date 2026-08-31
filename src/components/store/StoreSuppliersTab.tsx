@@ -31,7 +31,7 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
   const totalPaidAll = suppliers.reduce((sum, s) => sum + s.totalPaid, 0);
 
   return (
-    <div className="md-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
       
       {/* Header Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>

@@ -9,64 +9,82 @@ interface PwaInstallBannerProps {
 }
 
 export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onInstall, onDismiss }) => {
+  const [dismissed, setDismissed] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDismissed = localStorage.getItem('samy_pwa_banner_dismissed') === 'true';
+      if (isDismissed) setDismissed(true);
+    }
+  }, []);
+
   const isInstalled = typeof window !== 'undefined' && (
     window.matchMedia('(display-mode: standalone)').matches ||
     (window.navigator as any).standalone === true
   );
 
-  if (isInstalled) return null;
+  if (isInstalled || dismissed) return null;
+
+  const handleClose = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('samy_pwa_banner_dismissed', 'true');
+    }
+    setDismissed(true);
+    onDismiss();
+  };
+
   return (
     <div style={{
       position: 'fixed',
-      bottom: '90px',
+      bottom: '24px',
       left: '50%',
       transform: 'translateX(-50%)',
       width: 'calc(100% - 32px)',
-      maxWidth: '480px',
-      backgroundColor: 'var(--md-sys-color-primary-container)',
-      color: 'var(--md-sys-color-on-primary-container)',
-      padding: '14px 18px',
-      borderRadius: '20px',
-      boxShadow: 'var(--md-shadow-elevation-3)',
+      maxWidth: '440px',
+      backgroundColor: '#0F172A',
+      color: '#FFFFFF',
+      padding: '12px 16px',
+      borderRadius: '16px',
+      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
       zIndex: 95,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: '12px',
-      border: '1px solid var(--md-sys-color-primary)'
+      border: '1px solid rgba(255, 255, 255, 0.12)'
     }} className="pwa-banner no-print">
       
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{
-          width: '38px',
-          height: '38px',
-          borderRadius: '12px',
-          backgroundColor: 'var(--md-sys-color-primary)',
+          width: '36px',
+          height: '36px',
+          borderRadius: '10px',
+          backgroundColor: '#EC4899',
           color: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0
         }}>
-          <Smartphone size={22} />
+          <Smartphone size={20} />
         </div>
         <div>
-          <h4 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Instalar WebAPK "Cuenta Casa"</h4>
-          <p style={{ fontSize: '0.75rem', opacity: 0.85 }}>Uso 100% offline directo en tu móvil</p>
+          <h4 style={{ fontSize: '0.86rem', fontWeight: 800, margin: 0 }}>Instalar App Samy Store</h4>
+          <p style={{ fontSize: '0.72rem', opacity: 0.8, margin: '2px 0 0 0' }}>Funciona 100% offline en tu móvil</p>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <button
           onClick={onInstall}
           style={{
-            padding: '8px 14px',
+            padding: '7px 14px',
             borderRadius: '9999px',
             border: 'none',
-            backgroundColor: 'var(--md-sys-color-primary)',
+            backgroundColor: '#EC4899',
             color: '#FFFFFF',
-            fontWeight: 700,
-            fontSize: '0.8rem',
+            fontWeight: 800,
+            fontSize: '0.78rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -77,16 +95,18 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onInstall, o
         </button>
 
         <button
-          onClick={onDismiss}
+          onClick={handleClose}
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--md-sys-color-on-primary-container)',
+            color: '#94A3B8',
             cursor: 'pointer',
-            padding: '4px'
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center'
           }}
         >
-          <X size={18} />
+          <X size={16} />
         </button>
       </div>
 

@@ -21,7 +21,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
   const filteredSales = salesRecords;
 
   return (
-    <div className="md-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       <h3 style={{ fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Receipt size={20} color="var(--md-sys-color-primary)" />
         <span>Historial de Ventas y Recibos</span>

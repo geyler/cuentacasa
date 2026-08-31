@@ -1,4 +1,4 @@
-const CACHE_NAME = 'samy-store-pwa-v1.4.6';
+const CACHE_NAME = 'samy-store-pwa-v1.5.0';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -78,6 +78,9 @@ self.addEventListener('fetch', (event) => {
                         url.pathname.startsWith('/images/') ||
                         url.pathname.endsWith('.png') ||
                         url.pathname.endsWith('.jpg') ||
+                        url.pathname.endsWith('.jpeg') ||
+                        url.pathname.endsWith('.webp') ||
+                        url.pathname.endsWith('.svg') ||
                         url.pathname.endsWith('.css') ||
                         url.pathname.endsWith('.js') ||
                         url.pathname.endsWith('.woff2');

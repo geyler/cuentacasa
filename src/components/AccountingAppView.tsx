@@ -30,6 +30,7 @@ import { TransactionDetailModal } from '@/components/TransactionDetailModal';
 import { TransferModal } from '@/components/TransferModal';
 import { ReportView } from '@/components/ReportView';
 import { StoreManagementView } from '@/components/StoreManagementView';
+import { StoreShiftModal } from '@/components/StoreShiftModal';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { PendingSyncModal } from '@/components/PendingSyncModal';
@@ -39,7 +40,7 @@ import { PwaInstallBanner } from '@/components/PwaInstallBanner';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { ActionFeedbackProvider, useActionFeedback } from '@/components/ActionFeedbackProvider';
 
-import { Plus, Loader2, Home, Scan, Receipt, Menu, FileText, Store, LayoutDashboard } from 'lucide-react';
+import { Plus, Loader2, Home, Scan, Receipt, Menu, FileText, Store, LayoutDashboard, Settings } from 'lucide-react';
 
 function AccountingAppContent() {
   const { showToast, confirmAction, showActionResult } = useActionFeedback();
@@ -54,6 +55,7 @@ function AccountingAppContent() {
   const [modalTxType, setModalTxType] = useState<TransactionType>('gasto');
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isPendingSyncModalOpen, setIsPendingSyncModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isRawDbModalOpen, setIsRawDbModalOpen] = useState(false);
@@ -680,6 +682,7 @@ function AccountingAppContent() {
             onOpenPublicStore={() => { window.location.href = '/'; }}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
             onOpenPOS={() => setIsScannerOpen(true)}
+            onOpenShiftModal={() => setIsShiftModalOpen(true)}
           />
         )}
 
@@ -967,10 +970,48 @@ function AccountingAppContent() {
                 </div>
                 <span>Reportes</span>
               </button>
+
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px',
+                  padding: '4px 0',
+                  border: 'none',
+                  background: 'transparent',
+                  color: isSettingsOpen ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
+                  fontWeight: isSettingsOpen ? 800 : 600,
+                  fontSize: '0.7rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  padding: '4px 12px',
+                  borderRadius: '9999px',
+                  backgroundColor: isSettingsOpen ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Settings size={18} />
+                </div>
+                <span>Ajustes</span>
+              </button>
             </>
           )}
         </div>
       )}
+
+      {/* Turnos & Cierre IPV Modal */}
+      <StoreShiftModal
+        isOpen={isShiftModalOpen}
+        onClose={() => setIsShiftModalOpen(false)}
+        currency={db.settings.currency}
+      />
 
       {/* Barcode Scanner Modal (0001-9999) */}
       <BarcodeScannerModal

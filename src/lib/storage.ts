@@ -14,8 +14,10 @@ export const INITIAL_USERS: AppUser[] = [
   }
 ];
 
+export const DEFAULT_PRODUCT_IMAGE = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23F8FAFC"/><rect x="120" y="120" width="160" height="160" rx="24" fill="%23E2E8F0"/><path d="M160 220L190 190L220 220L240 200L260 220" stroke="%2394A3B8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="175" cy="165" r="15" fill="%2394A3B8"/><text x="50%" y="78%" fill="%2364748B" font-size="18" font-family="sans-serif" font-weight="bold" text-anchor="middle">Samy Store</text></svg>`;
+
 export function formatPhotoUrl(url?: string): string {
-  if (!url) return '';
+  if (!url || !url.trim()) return DEFAULT_PRODUCT_IMAGE;
   if (url.startsWith('data:image/svg+xml;utf8,')) {
     const rawSvg = url.slice('data:image/svg+xml;utf8,'.length);
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(rawSvg)}`;

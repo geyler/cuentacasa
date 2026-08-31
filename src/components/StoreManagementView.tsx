@@ -291,31 +291,19 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '32px' }}>
 
-      {/* 1. TOP ACTION BUTTON: ESCANEAR Y VENDER */}
-      {onOpenScanner && (
-        <button
-          onClick={onOpenScanner}
-          style={{
-            width: '100%',
-            padding: '14px 16px',
-            borderRadius: '16px',
-            border: '2px solid var(--md-sys-color-primary)',
-            backgroundColor: 'var(--md-sys-color-surface)',
-            color: 'var(--md-sys-color-primary)',
-            fontSize: '1rem',
-            fontWeight: 900,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            boxShadow: '0 4px 12px rgba(0, 99, 155, 0.12)'
-          }}
-        >
-          <Scan size={22} color="var(--md-sys-color-primary)" />
-          <span>ESCANEAR Y VENDER</span>
-        </button>
-      )}
+      {/* 1. TOP HEADER SECTION (Title + Publicar Button like Dashboard) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+        <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Gestión de Tienda</h2>
+        {!isVendor && (
+          <button
+            onClick={handleOpenAdd}
+            className="md-btn md-btn-primary"
+            style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+          >
+            <Plus size={16} /> Publicar
+          </button>
+        )}
+      </div>
 
       {/* 2. MAIN 4 METRICS CARDS GRID (Sits directly on main background) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
@@ -446,26 +434,24 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           </div>
         </div>
 
-        {/* Card 4: Caja / Estado de Turno (Pulsable) */}
+        {/* Card 4: Turnos y Cierre IPV */}
         <button
-          type="button"
           onClick={() => setIsShiftModalOpen(true)}
           className="md-card"
           style={{
             backgroundColor: activeShift ? '#ECFDF5' : 'var(--md-sys-color-surface-container-high)',
-            border: activeShift ? '1px solid #A7F3D0' : '1px solid var(--md-sys-color-outline-variant)',
+            border: activeShift ? '1.5px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
             padding: '14px 12px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             textAlign: 'left',
-            cursor: 'pointer',
-            width: '100%'
+            cursor: 'pointer'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: activeShift ? '#065F46' : 'var(--md-sys-color-on-surface)' }}>
-              🕒 Turno y Caja
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface)' }}>
+              📋 Turnos y Cierre IPV
             </span>
             <div style={{
               width: '24px',
@@ -483,22 +469,22 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             {activeShift ? `@${activeShift.sellerUsername}` : 'Sin Turno'}
           </div>
           <div style={{ fontSize: '0.68rem', fontWeight: 700, color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface-variant)' }}>
-            {activeShift ? `Ventas: ${activeShift.totalCashSales + activeShift.totalDigitalSales > 0 ? `$${activeShift.totalCashSales + activeShift.totalDigitalSales}` : 'Activo'}` : 'Abrir Turno POS'}
+            {activeShift ? `Cierre IPV / Ventas: $${activeShift.totalCashSales + activeShift.totalDigitalSales}` : 'Abrir Turno e IPV'}
           </div>
         </button>
 
       </div>
 
-      {/* 3. PUBLICAR BUTTON (FULL WIDTH) */}
-      {!isVendor && (
+      {/* 3. MAIN ACTION BUTTON: ESCANEAR Y VENDER (Sits right below metrics grid) */}
+      {onOpenScanner && (
         <button
-          onClick={handleOpenAdd}
+          onClick={onOpenScanner}
           style={{
             width: '100%',
             padding: '14px 16px',
             borderRadius: '16px',
             border: 'none',
-            background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #DB2777 100%)',
+            background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #0284C7 100%)',
             color: '#FFFFFF',
             fontSize: '1rem',
             fontWeight: 900,
@@ -506,12 +492,12 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)'
+            gap: '10px',
+            boxShadow: '0 4px 14px rgba(0, 99, 155, 0.22)'
           }}
         >
-          <Plus size={22} />
-          <span>PUBLICAR PRODUCTO</span>
+          <Scan size={22} />
+          <span>ESCANEAR Y VENDER</span>
         </button>
       )}
 

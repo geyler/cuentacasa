@@ -9,7 +9,8 @@ import {
   ShieldCheck, 
   PiggyBank, 
   Store,
-  Home
+  Home,
+  Clock
 } from 'lucide-react';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 
@@ -21,6 +22,7 @@ interface QuickEntryViewProps {
   onOpenPublicStore?: () => void;
   onOpenTransfer?: () => void;
   onOpenPOS?: () => void;
+  onOpenShiftModal?: () => void;
 }
 
 export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
@@ -30,7 +32,8 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   onOpenStore,
   onOpenPublicStore,
   onOpenTransfer,
-  onOpenPOS
+  onOpenPOS,
+  onOpenShiftModal
 }) => {
   const { showActionResult } = useActionFeedback();
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
@@ -405,6 +408,47 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Card 5: Turnos e IPV (Full width highlight) */}
+            <div
+              onClick={() => onOpenShiftModal && onOpenShiftModal()}
+              style={{
+                gridColumn: 'span 2',
+                padding: '12px 14px',
+                borderRadius: '16px',
+                backgroundColor: '#ECFDF5',
+                border: '1.5px solid #A7F3D0',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                textAlign: 'left',
+                boxShadow: '0 2px 8px rgba(5, 150, 105, 0.12)'
+              }}
+            >
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: '#D1FAE5',
+                color: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Clock size={20} />
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <h4 style={{ fontSize: '0.86rem', fontWeight: 900, color: '#064E3B', lineHeight: '1.2', margin: 0 }}>
+                  📋 Turnos e IPV (Cierre de Caja)
+                </h4>
+                <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 700 }}>
+                  Control de Inventario, Producto y Ventas (IPV)
+                </span>
+              </div>
+            </div>
+
           </div>
         </div>
 
