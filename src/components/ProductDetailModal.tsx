@@ -46,14 +46,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onDeleteProduct,
   isAdmin = false
 }) => {
-  useLockBodyScroll(isOpen);
-
   const currentProduct = product || initialProduct || null;
   const [activeProduct, setActiveProduct] = useState<StoreProduct | null>(currentProduct);
   const [imageError, setImageError] = useState(false);
   const [userRating, setUserRating] = useState<number>(0);
   const [voteTimestamp, setVoteTimestamp] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+
+  const showModal = Boolean(isOpen && activeProduct);
+  useLockBodyScroll(showModal);
 
   // Cargar estado de voto y tiempo restante
   useEffect(() => {
@@ -101,7 +102,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const { showToast } = useActionFeedback();
 
-  if (!isOpen || !activeProduct) return null;
+  if (!showModal || !activeProduct) return null;
 
   const cost = activeProduct.costPrice || Math.round(activeProduct.price * 0.7);
   const profitMargin = activeProduct.price - cost;

@@ -1058,7 +1058,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', marginTop: '6px' }}>
-            Samy Store v1.3.0 • Cubasoft ERP Systems
+            Samy Store v1.5.0 • Cubasoft ERP Systems
           </div>
 
         </div>
