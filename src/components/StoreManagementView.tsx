@@ -36,7 +36,8 @@ import {
   StoreSuppliersTab,
   StoreTransfersTab,
   StoreSalesTab,
-  StoreSettingsTab
+  StoreSettingsTab,
+  ValuationBookModal
 } from '@/components/store';
 
 import {
@@ -53,7 +54,8 @@ import {
   Wallet,
   TrendingDown,
   Clock,
-  QrCode
+  QrCode,
+  FileText
 } from 'lucide-react';
 
 interface StoreManagementViewProps {
@@ -95,6 +97,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [payoutSupplier, setPayoutSupplier] = useState<SupplierAccount | null>(null);
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isQRSyncModalOpen, setIsQRSyncModalOpen] = useState(false);
+  const [isValuationBookOpen, setIsValuationBookOpen] = useState(false);
 
   useEffect(() => {
     const refreshData = () => {
@@ -495,29 +498,53 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </button>
       )}
 
-      <button
-        onClick={() => setIsShiftModalOpen(true)}
-        style={{
-          width: '100%',
-          padding: '16px',
-          borderRadius: '20px',
-          border: '2px solid var(--md-sys-color-outline-variant)',
-          backgroundColor: '#FFFFFF',
-          color: 'var(--md-sys-color-on-surface)',
-          fontSize: '1.1rem',
-          fontWeight: 900,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '10px',
-          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
-          letterSpacing: '0.01em'
-        }}
-      >
-        <Clock size={24} color="#0284C7" />
-        <span>TURNOS E IPV</span>
-      </button>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <button
+          onClick={() => setIsShiftModalOpen(true)}
+          style={{
+            width: '100%',
+            padding: '14px 10px',
+            borderRadius: '18px',
+            border: '2px solid var(--md-sys-color-outline-variant)',
+            backgroundColor: '#FFFFFF',
+            color: 'var(--md-sys-color-on-surface)',
+            fontSize: '0.95rem',
+            fontWeight: 900,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)'
+          }}
+        >
+          <Clock size={20} color="#0284C7" />
+          <span>TURNOS E IPV</span>
+        </button>
+
+        <button
+          onClick={() => setIsValuationBookOpen(true)}
+          style={{
+            width: '100%',
+            padding: '14px 10px',
+            borderRadius: '18px',
+            border: '2px solid #F59E0B',
+            backgroundColor: '#FEF3C7',
+            color: '#92400E',
+            fontSize: '0.95rem',
+            fontWeight: 900,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.15)'
+          }}
+        >
+          <FileText size={20} color="#D97706" />
+          <span>TASACIONES</span>
+        </button>
+      </div>
 
       {/* 4. SUB-TAB NAVIGATION BAR */}
       <div style={{
@@ -779,6 +806,16 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         onSyncComplete={() => {
           setProducts(getStoreProducts());
           setSuppliers(getSupplierAccounts());
+        }}
+      />
+
+      {/* MODAL 8: LIBRO DE TASACIONES & INSPECCIÓN SANITARIA */}
+      <ValuationBookModal
+        isOpen={isValuationBookOpen}
+        onClose={() => setIsValuationBookOpen(false)}
+        onEditProduct={(product) => {
+          setIsValuationBookOpen(false);
+          handleOpenEdit(product);
         }}
       />
 

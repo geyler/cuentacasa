@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { AppTab } from '@/types';
-import { 
-  Home, 
-  Receipt, 
-  FileText, 
+import {
+  Home,
+  Receipt,
+  FileText,
   Eye,
   EyeOff,
   Settings,
@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
       zIndex: 80,
       boxShadow: 'var(--md-shadow-elevation-1)'
     }} className="no-print">
-      
+
       {/* Clean Single Bar */}
       <div style={{
         maxWidth: '768px',
@@ -84,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
         justifyContent: 'space-between',
         height: '56px'
       }}>
-        
+
         {/* Brand logo & Title */}
         <button
           onClick={() => isOwner && setActiveTab('quick')}
@@ -98,19 +98,19 @@ export const Header: React.FC<HeaderProps> = ({
             padding: 0
           }}
         >
-          <img 
-            src="/images/logo-nav.png" 
-            alt="Samy Store" 
-            style={{ 
-              height: '46px', 
-              width: 'auto', 
-              objectFit: 'contain', 
-              flexShrink: 0 
-            }} 
+          <img
+            src="/images/logo-nav.png"
+            alt="Samy Store"
+            style={{
+              height: '46px',
+              width: 'auto',
+              objectFit: 'contain',
+              flexShrink: 0
+            }}
           />
-          <h1 className="font-logo-script" style={{ 
-            fontSize: '1.75rem', 
-            fontWeight: 900, 
+          <h1 className="font-logo-script" style={{
+            fontSize: '1.75rem',
+            fontWeight: 900,
             letterSpacing: '-0.01em',
             color: 'var(--md-sys-color-on-surface)',
             lineHeight: 1
@@ -168,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <FileText size={16} color={activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)'} />
-              <span>Historial IPV</span>
+              <span>IPV</span>
             </button>
           )}
 
@@ -203,7 +203,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Hamburger Navigation MD3 Bottom Sheet Modal (Sliding from bottom) */}
       {isMenuOpen && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
@@ -253,7 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Menu Options List */}
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              
+
               {isOwner && (
                 <>
                   <button
@@ -431,7 +431,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Footer status */}
             <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center' }}>
-              Samy Store v1.5.0 • PWA Offline
+              Samy Store v1.6.0 • PWA Offline
             </div>
           </div>
         </div>

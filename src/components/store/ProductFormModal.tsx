@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StoreProduct, SupplierAccount, SupplierType } from '@/types';
-import { compressImageToBase64, getCurrencySettings, getStoreProductByBarcode } from '@/lib/storage';
+import { compressImageToBase64, getCurrencySettings, getStoreProductByBarcode, parseBarcodeDates } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { AppInput } from '@/components/common/AppInput';
 import { Package, X, Camera, Check, Image as ImageIcon } from 'lucide-react';
@@ -62,12 +62,20 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [externalValue, setExternalValue] = useState('');
   const [description, setDescription] = useState('');
 
+  // Valuation Book Dates (Fabricación & Vencimiento)
+  const [mfgDate, setMfgDate] = useState('');
+  const [expDate, setExpDate] = useState('');
+
   // Refs for focusing
   const productFormRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     if (scannedBarcode) {
       setBarcode(scannedBarcode);
+      const parsedDates = parseBarcodeDates(scannedBarcode);
+      if (parsedDates.expDate) setExpDate(parsedDates.expDate);
+      if (parsedDates.mfgDate) setMfgDate(parsedDates.mfgDate);
+
       const existingProduct = getStoreProductByBarcode(scannedBarcode);
       if (existingProduct) {
         setName(existingProduct.name);
@@ -79,6 +87,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         setUnit(existingProduct.unit || 'u');
         setPhotoUrl(existingProduct.photoUrl || '');
         setPublished(existingProduct.published ?? true);
+        if (existingProduct.mfgDate) setMfgDate(existingProduct.mfgDate);
+        if (existingProduct.expDate) setExpDate(existingProduct.expDate);
         if (existingProduct.supplierType === 'proveedor' && existingProduct.supplierName) {
           setFundingSource('proveedor');
           setSupplierType('proveedor');
@@ -135,6 +145,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         setExternalValue('');
       }
       setDescription(editingProduct.description || '');
+      setMfgDate(editingProduct.mfgDate || '');
+      setExpDate(editingProduct.expDate || '');
     } else {
       setName('');
       setBarcode('');
@@ -156,6 +168,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setExternalType('whatsapp');
       setExternalValue('');
       setDescription('');
+      setMfgDate('');
+      setExpDate('');
     }
   }, [editingProduct, isOpen]);
 
@@ -228,7 +242,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       supplierName: fundingSource === 'proveedor' ? supplierName.trim() : undefined,
       isExternal,
       externalUrl: finalExternalUrl,
-      description: description.trim() || undefined
+      description: description.trim() || undefined,
+      mfgDate: mfgDate.trim() || undefined,
+      expDate: expDate.trim() || undefined
     };
 
     onSaveProduct(productPayload);
@@ -448,7 +464,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               type="text"
               placeholder="Ej. 0005 o escanea del empaque"
               value={barcode}
-              onChange={e => setBarcode(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                setBarcode(val);
+                const parsed = parseBarcodeDates(val);
+                if (parsed.expDate && !expDate) setExpDate(parsed.expDate);
+                if (parsed.mfgDate && !mfgDate) setMfgDate(parsed.mfgDate);
+              }}
               className="input-spotlight"
               style={{
                 flex: 1,
@@ -879,6 +901,73 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               resize: 'vertical'
             }}
           />
+        </div>
+
+        {/* Libro de Tasaciones: Manufacturing & Expiration Dates */}
+        <div style={{
+          padding: '14px',
+          borderRadius: '16px',
+          backgroundColor: 'var(--md-sys-color-surface)',
+          border: '1px dashed var(--md-sys-color-primary)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.1rem' }}>📜</span>
+            <div>
+              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                Fechas para Libro de Tasaciones (Opcional)
+              </h4>
+              <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
+                Requerido para control sanitario e inspección de autoridades. No visible en tienda pública.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
+                F. Fabricación / Lote
+              </label>
+              <input
+                type="date"
+                value={mfgDate}
+                onChange={e => setMfgDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface-container)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontSize: '0.82rem',
+                  fontWeight: 700
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
+                F. Vencimiento / Caducidad
+              </label>
+              <input
+                type="date"
+                value={expDate}
+                onChange={e => setExpDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface-container)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontSize: '0.82rem',
+                  fontWeight: 700
+                }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Centered Photo Upload Card */}

@@ -1742,6 +1742,76 @@ export function generateCartQRPayload(cart: { product: StoreProduct; quantity: n
   return JSON.stringify(payload);
 }
 
+/**
+ * Automatically parses scanned barcode strings for GS1 Application Identifiers
+ * or ISO date patterns to auto-fill manufacturing date (MFG) and expiration date (EXP).
+ */
+export function parseBarcodeDates(barcode: string): { mfgDate?: string; expDate?: string } {
+  if (!barcode || typeof barcode !== 'string') return {};
+
+  let mfgDate: string | undefined = undefined;
+  let expDate: string | undefined = undefined;
+
+  // 1. GS1 AI (17) EXP date YYMMDD
+  const gs1ExpMatch = barcode.match(/(?:(?:17|\(17\))(\d{2})(\d{2})(\d{2}))/);
+  if (gs1ExpMatch) {
+    const yy = parseInt(gs1ExpMatch[1], 10);
+    const mm = gs1ExpMatch[2];
+    const dd = gs1ExpMatch[3];
+    const year = yy >= 70 ? `19${yy}` : `20${yy.toString().padStart(2, '0')}`;
+    const mNum = parseInt(mm, 10);
+    const dNum = parseInt(dd, 10);
+    if (mNum >= 1 && mNum <= 12 && dNum >= 1 && dNum <= 31) {
+      expDate = `${year}-${mm}-${dd}`;
+    }
+  }
+
+  // 2. GS1 AI (11) MFG date YYMMDD
+  const gs1MfgMatch = barcode.match(/(?:(?:11|\(11\))(\d{2})(\d{2})(\d{2}))/);
+  if (gs1MfgMatch) {
+    const yy = parseInt(gs1MfgMatch[1], 10);
+    const mm = gs1MfgMatch[2];
+    const dd = gs1MfgMatch[3];
+    const year = yy >= 70 ? `19${yy}` : `20${yy.toString().padStart(2, '0')}`;
+    const mNum = parseInt(mm, 10);
+    const dNum = parseInt(dd, 10);
+    if (mNum >= 1 && mNum <= 12 && dNum >= 1 && dNum <= 31) {
+      mfgDate = `${year}-${mm}-${dd}`;
+    }
+  }
+
+  // 3. Fallback ISO YYYY-MM-DD or YYYYMMDD text formats (e.g., EXP: 2026-12-31 or EXP20261231)
+  if (!expDate) {
+    const isoExpMatch = barcode.match(/(?:EXP|VENC|FVAL|EXPIRATION)[:\s-]*(\d{4})[-/]?(\d{2})[-/]?(\d{2})/i);
+    if (isoExpMatch) {
+      const year = isoExpMatch[1];
+      const mm = isoExpMatch[2];
+      const dd = isoExpMatch[3];
+      const mNum = parseInt(mm, 10);
+      const dNum = parseInt(dd, 10);
+      if (mNum >= 1 && mNum <= 12 && dNum >= 1 && dNum <= 31) {
+        expDate = `${year}-${mm}-${dd}`;
+      }
+    }
+  }
+
+  if (!mfgDate) {
+    const isoMfgMatch = barcode.match(/(?:MFG|FAB|FABR|PROD)[:\s-]*(\d{4})[-/]?(\d{2})[-/]?(\d{2})/i);
+    if (isoMfgMatch) {
+      const year = isoMfgMatch[1];
+      const mm = isoMfgMatch[2];
+      const dd = isoMfgMatch[3];
+      const mNum = parseInt(mm, 10);
+      const dNum = parseInt(dd, 10);
+      if (mNum >= 1 && mNum <= 12 && dNum >= 1 && dNum <= 31) {
+        mfgDate = `${year}-${mm}-${dd}`;
+      }
+    }
+  }
+
+  return { mfgDate, expDate };
+}
+
 export function generateSyncQRPayload(): string {
   const db = getRawDatabase();
   const currentUser = getLoggedInUser();

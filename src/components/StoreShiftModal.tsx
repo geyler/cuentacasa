@@ -17,6 +17,7 @@ import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+import { ValuationBookModal } from './store/ValuationBookModal';
 import {
   Clock,
   UserCheck,
@@ -57,7 +58,8 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
   const [activeShift, setActiveShift] = useState<StoreShiftRecord | null>(null);
   const [shiftHistory, setShiftHistory] = useState<StoreShiftRecord[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
-  const [activeTab, setActiveTab] = useState<'current' | 'history' | 'ipv'>('current');
+  const [activeTab, setActiveTab] = useState<'current' | 'history' | 'ipv' | 'tasaciones'>('current');
+  const [isValuationBookModalOpen, setIsValuationBookModalOpen] = useState<boolean>(false);
 
   // Form States for Opening Shift
   const [selectedSellerId, setSelectedSellerId] = useState<string>('');
@@ -224,54 +226,73 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', backgroundColor: 'var(--md-sys-color-surface)', padding: '4px', borderRadius: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', backgroundColor: 'var(--md-sys-color-surface)', padding: '4px', borderRadius: '12px' }}>
           <button
             type="button"
             onClick={() => { setActiveTab('current'); setIsClosingMode(false); }}
             style={{
-              padding: '8px 4px',
+              padding: '8px 2px',
               borderRadius: '8px',
               border: 'none',
               backgroundColor: activeTab === 'current' ? 'var(--md-sys-color-primary)' : 'transparent',
               color: activeTab === 'current' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
               fontWeight: 800,
-              fontSize: '0.76rem',
+              fontSize: '0.72rem',
               cursor: 'pointer'
             }}
           >
-            Turno Actual
+            Turno
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('ipv')}
             style={{
-              padding: '8px 4px',
+              padding: '8px 2px',
               borderRadius: '8px',
               border: 'none',
               backgroundColor: activeTab === 'ipv' ? 'var(--md-sys-color-primary)' : 'transparent',
               color: activeTab === 'ipv' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
               fontWeight: 800,
-              fontSize: '0.76rem',
+              fontSize: '0.72rem',
               cursor: 'pointer'
             }}
           >
-            Ver IPV del Día
+            IPV Día
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('tasaciones');
+              setIsValuationBookModalOpen(true);
+            }}
+            style={{
+              padding: '8px 2px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: activeTab === 'tasaciones' ? 'var(--md-sys-color-primary)' : 'transparent',
+              color: activeTab === 'tasaciones' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 800,
+              fontSize: '0.72rem',
+              cursor: 'pointer'
+            }}
+          >
+            Tasaciones
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('history')}
             style={{
-              padding: '8px 4px',
+              padding: '8px 2px',
               borderRadius: '8px',
               border: 'none',
               backgroundColor: activeTab === 'history' ? 'var(--md-sys-color-primary)' : 'transparent',
               color: activeTab === 'history' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
               fontWeight: 800,
-              fontSize: '0.76rem',
+              fontSize: '0.72rem',
               cursor: 'pointer'
             }}
           >
-            Historial Turnos
+            Historial
           </button>
         </div>
 
@@ -843,6 +864,15 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* SUB-MODAL: LIBRO DE TASACIONES */}
+        <ValuationBookModal
+          isOpen={isValuationBookModalOpen}
+          onClose={() => {
+            setIsValuationBookModalOpen(false);
+            setActiveTab('current');
+          }}
+        />
 
       </div>
     </div>

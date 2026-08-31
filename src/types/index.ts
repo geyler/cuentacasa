@@ -52,6 +52,8 @@ export interface StoreProduct {
   externalUrl?: string;       // WhatsApp o URL de referido/tienda externa
   ratingScore?: number;       // Promedio de estrellas (1.0 a 5.0)
   ratingCount?: number;       // Cantidad de votos recibidos
+  mfgDate?: string;           // Fecha de fabricación (YYYY-MM-DD) para Libro de Tasaciones
+  expDate?: string;           // Fecha de vencimiento (YYYY-MM-DD) para Libro de Tasaciones
   createdAt: number;
   updatedAt: number;
 }
