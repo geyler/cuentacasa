@@ -481,23 +481,48 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           onClick={onOpenScanner}
           style={{
             width: '100%',
-            padding: '14px 16px',
-            borderRadius: '16px',
-            border: 'none',
-            background: 'linear-gradient(135deg, var(--md-sys-color-primary) 0%, #0284C7 100%)',
-            color: '#FFFFFF',
-            fontSize: '1rem',
-            fontWeight: 900,
-            cursor: 'pointer',
+            padding: '16px',
+            borderRadius: '24px',
+            backgroundColor: '#FFFFFF',
+            border: '2px solid var(--md-sys-color-outline-variant)',
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '10px',
-            boxShadow: '0 4px 14px rgba(0, 99, 155, 0.22)'
+            gap: '12px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
           }}
         >
-          <Scan size={22} />
-          <span>ESCANEAR Y VENDER</span>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '14px',
+            backgroundColor: 'var(--md-sys-color-primary-container)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Scan size={24} color="var(--md-sys-color-primary)" />
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <span style={{
+              fontSize: '1.1rem',
+              fontWeight: 900,
+              color: 'var(--md-sys-color-on-surface)',
+              display: 'block',
+              lineHeight: '1.2'
+            }}>
+              ESCANEAR Y VENDER
+            </span>
+            <span style={{
+              fontSize: '0.75rem',
+              color: 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 700
+            }}>
+              Cámara o Código de Barras (0001 - 9999)
+            </span>
+          </div>
         </button>
       )}
 

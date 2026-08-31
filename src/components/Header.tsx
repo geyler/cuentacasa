@@ -283,24 +283,29 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Settings & Cloud Sync Modal Trigger Button */}
-          <button
-            onClick={onOpenSettings}
-            title="Ajustes y Configuración"
-            style={{
-              padding: '8px',
-              borderRadius: '50%',
-              border: 'none',
-              backgroundColor: 'var(--md-sys-color-surface-container-high)',
-              color: 'var(--md-sys-color-on-surface)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            {isSyncing ? <Loader2 size={19} className="animate-spin" /> : <Settings size={19} />}
-          </button>
+          {/* Reportes Header Button (Replaces top settings gear) */}
+          {isOwner && (
+            <button
+              onClick={() => setActiveTab('reports')}
+              title="Reportes y Estadísticas"
+              style={{
+                padding: '6px 12px',
+                borderRadius: '9999px',
+                border: activeTab === 'reports' ? '1px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container-high)',
+                color: activeTab === 'reports' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 800
+              }}
+            >
+              <FileText size={16} color={activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)'} />
+              <span>Reportes</span>
+            </button>
+          )}
 
           {/* User Profile Avatar Trigger Button */}
           {onOpenProfile && (

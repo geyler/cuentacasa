@@ -642,51 +642,63 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
           </div>
         )}
 
-        {/* TAB 3: IPV (INFORME DE PRODUCTOS Y VENTAS) DEL DÍA */}
+        {/* TAB 3: IPV (INFORME DE PRODUCTOS Y VENTAS) DEL DÍA - ESTILO TICKET COMPACTO */}
         {activeTab === 'ipv' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '480px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '480px', overflowY: 'auto' }}>
             <div style={{
               backgroundColor: '#FFFFFF',
-              color: '#000000',
-              padding: '16px',
-              borderRadius: '16px',
+              color: '#0F172A',
+              padding: '14px 12px',
+              borderRadius: '12px',
               border: '1.5px solid #CBD5E1',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              fontFamily: 'monospace, sans-serif',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
             }}>
-              {/* Header de la Hoja de IPV */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000000', paddingBottom: '10px', marginBottom: '12px' }}>
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0, textTransform: 'uppercase', color: '#831843' }}>
-                    📋 INFORME DE PRODUCTOS Y VENTAS (IPV)
-                  </h3>
-                  <p style={{ fontSize: '0.72rem', color: '#64748B', margin: 0, fontWeight: 700 }}>
-                    Samy Store • Fecha: {new Date().toLocaleDateString('es-CU')} • {activeShift ? `Turno de ${activeShift.sellerName}` : 'Resumen Diario General'}
-                  </p>
+              {/* Header del Ticket IPV */}
+              <div style={{ textAlign: 'center', borderBottom: '1.5px dashed #0F172A', paddingBottom: '10px', marginBottom: '10px' }}>
+                <h3 style={{ fontSize: '0.92rem', fontWeight: 900, margin: 0, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#0F172A' }}>
+                  === INFORME IPV (PRODUCTOS Y VENTAS) ===
+                </h3>
+                <p style={{ fontSize: '0.66rem', color: '#475569', margin: '4px 0 0 0', fontWeight: 700 }}>
+                  SAMY STORE • {new Date().toLocaleDateString('es-CU')} • {activeShift ? `Vendedor: ${activeShift.sellerName} (@${activeShift.sellerUsername})` : 'Arqueo General'}
+                </p>
+                <div className="no-print" style={{ marginTop: '8px', display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      borderRadius: '6px',
+                      border: '1px solid #0F172A',
+                      backgroundColor: '#F8FAFC',
+                      color: '#0F172A',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <FileSpreadsheet size={13} />
+                    <span>Imprimir Ticket IPV</span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="md-btn md-btn-secondary no-print"
-                  style={{ padding: '6px 12px', fontSize: '0.76rem', fontWeight: 800 }}
-                >
-                  <FileSpreadsheet size={15} />
-                  <span>Imprimir IPV</span>
-                </button>
               </div>
 
-              {/* Tabla de IPV */}
+              {/* Tabla de Productos Compacta Estilo Ticket */}
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem', textAlign: 'left' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.65rem', textAlign: 'left', fontFamily: 'monospace' }}>
                   <thead>
-                    <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1.5px solid #94A3B8' }}>
-                      <th style={{ padding: '6px 8px', fontWeight: 900 }}>Producto</th>
-                      <th style={{ padding: '6px 4px', fontWeight: 900, textAlign: 'center' }}>Ex. Ini</th>
-                      <th style={{ padding: '6px 4px', fontWeight: 900, textAlign: 'center' }}>Entr.</th>
-                      <th style={{ padding: '6px 4px', fontWeight: 900, textAlign: 'center' }}>Resp.</th>
-                      <th style={{ padding: '6px 4px', fontWeight: 900, textAlign: 'center' }}>Vend.</th>
-                      <th style={{ padding: '6px 4px', fontWeight: 900, textAlign: 'center' }}>Saldo</th>
-                      <th style={{ padding: '6px 6px', fontWeight: 900, textAlign: 'right' }}>Precio</th>
-                      <th style={{ padding: '6px 8px', fontWeight: 900, textAlign: 'right' }}>Importe ($)</th>
+                    <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1.5px solid #0F172A' }}>
+                      <th style={{ padding: '5px 4px', fontWeight: 900 }}>Producto</th>
+                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Ini</th>
+                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Alt</th>
+                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Resp</th>
+                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Vend</th>
+                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Saldo</th>
+                      <th style={{ padding: '5px 4px', fontWeight: 900, textAlign: 'right' }}>Precio</th>
+                      <th style={{ padding: '5px 4px', fontWeight: 900, textAlign: 'right' }}>Importe</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -707,6 +719,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                         return {
                           id: prod.id,
                           name: prod.name,
+                          barcode: prod.barcode,
                           initialStock,
                           addedStock,
                           totalToRespond,
@@ -723,31 +736,33 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                       return (
                         <>
                           {rows.map((r, idx) => (
-                            <tr key={r.id} style={{ borderBottom: '1px solid #E2E8F0', backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
-                              <td style={{ padding: '6px 8px', fontWeight: 800 }}>{r.name}</td>
-                              <td style={{ padding: '6px 4px', textAlign: 'center' }}>{r.initialStock}</td>
-                              <td style={{ padding: '6px 4px', textAlign: 'center', color: '#059669', fontWeight: 700 }}>+{r.addedStock}</td>
-                              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 800 }}>{r.totalToRespond}</td>
-                              <td style={{ padding: '6px 4px', textAlign: 'center', color: '#EC4899', fontWeight: 900 }}>{r.sold}</td>
-                              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 800, color: '#2563EB' }}>{r.finalStock}</td>
-                              <td style={{ padding: '6px 6px', textAlign: 'right', fontWeight: 700 }}>${r.price}</td>
-                              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 900, color: '#059669' }}>
+                            <tr key={r.id} style={{ borderBottom: '1px dashed #E2E8F0', backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
+                              <td style={{ padding: '4px 4px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }} title={r.name}>
+                                #{r.barcode} {r.name}
+                              </td>
+                              <td style={{ padding: '4px 2px', textAlign: 'center' }}>{r.initialStock}</td>
+                              <td style={{ padding: '4px 2px', textAlign: 'center', fontWeight: 700 }}>+{r.addedStock}</td>
+                              <td style={{ padding: '4px 2px', textAlign: 'center', fontWeight: 800 }}>{r.totalToRespond}</td>
+                              <td style={{ padding: '4px 2px', textAlign: 'center', fontWeight: 900, color: r.sold > 0 ? '#0F172A' : '#94A3B8' }}>{r.sold}</td>
+                              <td style={{ padding: '4px 2px', textAlign: 'center', fontWeight: 800 }}>{r.finalStock}</td>
+                              <td style={{ padding: '4px 4px', textAlign: 'right' }}>${r.price}</td>
+                              <td style={{ padding: '4px 4px', textAlign: 'right', fontWeight: 900 }}>
                                 ${r.totalImporte.toLocaleString()}
                               </td>
                             </tr>
                           ))}
 
-                          {/* Fila Totales */}
-                          <tr style={{ backgroundColor: '#FCE7F3', borderTop: '2px solid #EC4899', fontWeight: 900 }}>
-                            <td colSpan={4} style={{ padding: '8px', fontSize: '0.8rem', color: '#831843' }}>
+                          {/* Fila Totales Ticket */}
+                          <tr style={{ backgroundColor: '#F1F5F9', borderTop: '2px solid #0F172A', borderBottom: '2px solid #0F172A', fontWeight: 900 }}>
+                            <td colSpan={4} style={{ padding: '6px 4px', fontSize: '0.68rem', color: '#0F172A' }}>
                               TOTALES DEL INFORME (IPV)
                             </td>
-                            <td style={{ padding: '8px 4px', textAlign: 'center', fontSize: '0.85rem', color: '#BE185D' }}>
-                              {totalUnidadesVendidas} u
+                            <td style={{ padding: '6px 2px', textAlign: 'center', fontSize: '0.7rem', color: '#0F172A' }}>
+                              {totalUnidadesVendidas}u
                             </td>
-                            <td style={{ padding: '8px 4px' }}></td>
-                            <td style={{ padding: '8px 4px' }}></td>
-                            <td style={{ padding: '8px', textAlign: 'right', fontSize: '0.9rem', color: '#831843' }}>
+                            <td style={{ padding: '6px 2px' }}></td>
+                            <td style={{ padding: '6px 2px' }}></td>
+                            <td style={{ padding: '6px 4px', textAlign: 'right', fontSize: '0.74rem', color: '#0F172A' }}>
                               ${totalImporteGeneral.toLocaleString()} {currency}
                             </td>
                           </tr>
@@ -758,15 +773,15 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                 </table>
               </div>
 
-              {/* Firmas Bilaterales */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #94A3B8' }}>
+              {/* Firmas Bilaterales Ticket Style */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '20px', paddingTop: '12px', borderTop: '1.5px dashed #0F172A' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ height: '30px', borderBottom: '1px solid #000000', marginBottom: '4px' }} />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569' }}>Firma del Vendedor (Entregó)</span>
+                  <div style={{ height: '24px', borderBottom: '1px solid #0F172A', marginBottom: '4px' }} />
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>Firma Vendedor (Entregó)</span>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ height: '30px', borderBottom: '1px solid #000000', marginBottom: '4px' }} />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569' }}>Firma Administrador (Recibió)</span>
+                  <div style={{ height: '24px', borderBottom: '1px solid #0F172A', marginBottom: '4px' }} />
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase' }}>Firma Admin (Recibió)</span>
                 </div>
               </div>
             </div>

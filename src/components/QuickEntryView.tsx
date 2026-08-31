@@ -409,41 +409,41 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               </div>
             </div>
 
-            {/* Card 5: Turnos e IPV (Full width highlight) */}
+            {/* Card 5: Turnos e IPV (Full width white card matching shortcut cards) */}
             <div
               onClick={() => onOpenShiftModal && onOpenShiftModal()}
               style={{
                 gridColumn: 'span 2',
                 padding: '12px 14px',
                 borderRadius: '16px',
-                backgroundColor: '#ECFDF5',
-                border: '1.5px solid #A7F3D0',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
                 textAlign: 'left',
-                boxShadow: '0 2px 8px rgba(5, 150, 105, 0.12)'
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
               }}
             >
               <div style={{
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: '#D1FAE5',
-                color: '#059669',
+                backgroundColor: '#E0F2FE',
+                color: '#0284C7',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <Clock size={20} />
+                <Clock size={18} />
               </div>
               <div style={{ flex: 1, overflow: 'hidden' }}>
-                <h4 style={{ fontSize: '0.86rem', fontWeight: 900, color: '#064E3B', lineHeight: '1.2', margin: 0 }}>
+                <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2', margin: 0 }}>
                   📋 Turnos e IPV (Cierre de Caja)
                 </h4>
-                <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
                   Control de Inventario, Producto y Ventas (IPV)
                 </span>
               </div>

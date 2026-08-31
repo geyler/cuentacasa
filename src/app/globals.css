@@ -77,31 +77,19 @@
   padding: 0;
 }
 
-html, body {
-  min-height: 100vh;
-  font-family: var(--font-main);
-  background-color: var(--md-sys-color-surface);
-  color: var(--md-sys-color-on-surface);
-  -webkit-font-smoothing: antialiased;
-}
-
-html, body, button, div, span, label, table, td, th, h1, h2, h3, h4, h5, h6, p {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-input, textarea, [contenteditable="true"] {
-  user-select: text !important;
-  -webkit-user-select: text !important;
-  -moz-user-select: text !important;
-  -ms-user-select: text !important;
+html {
+  background-color: #0F172A;
 }
 
 body {
   display: flex;
   flex-direction: column;
+  max-width: 768px;
+  margin: 0 auto;
+  min-height: 100vh;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.25);
+  position: relative;
+  background-color: var(--md-sys-color-surface);
 }
 
 /* Skeleton Loading Shimmer Effect */

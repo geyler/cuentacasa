@@ -941,37 +941,6 @@ function AccountingAppContent() {
               </button>
 
               <button
-                onClick={() => handleTabChange('reports')}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '2px',
-                  padding: '4px 0',
-                  border: 'none',
-                  background: 'transparent',
-                  color: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-                  fontWeight: activeTab === 'reports' ? 800 : 600,
-                  fontSize: '0.7rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{
-                  padding: '4px 12px',
-                  borderRadius: '9999px',
-                  backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <FileText size={18} />
-                </div>
-                <span>Reportes</span>
-              </button>
-
-              <button
                 onClick={() => setIsSettingsOpen(true)}
                 style={{
                   flex: 1,

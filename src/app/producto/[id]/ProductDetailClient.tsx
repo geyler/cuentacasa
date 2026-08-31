@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
-import { getStoreProducts, INITIAL_SEED_PRODUCTS, formatPhotoUrl, DEFAULT_PRODUCT_IMAGE } from '@/lib/storage';
+import { getStoreProducts, INITIAL_SEED_PRODUCTS, formatPhotoUrl, DEFAULT_PRODUCT_IMAGE, getCurrencySettings } from '@/lib/storage';
 import { formatCurrency, getProductDisplayPrice, getCurrencyBadgeStyle } from '@/lib/invoice';
-import { getCurrencySettings } from '@/lib/storage';
-import { getProductSeoMeta } from '@/lib/seoHelper';
 import Link from 'next/link';
 import { 
   ArrowLeft, 
@@ -13,10 +11,7 @@ import {
   ShieldCheck, 
   Truck, 
   Store, 
-  ShoppingBag,
-  Share2,
-  CheckCircle2,
-  Sparkles
+  ShoppingBag
 } from 'lucide-react';
 
 interface ProductDetailClientProps {
@@ -26,25 +21,21 @@ interface ProductDetailClientProps {
 
 export function ProductDetailClient({ id, initialProduct }: ProductDetailClientProps) {
   const [product, setProduct] = useState<StoreProduct | undefined>(initialProduct);
-  const [loading, setLoading] = useState<boolean>(!initialProduct);
+  const [mounted, setMounted] = useState<boolean>(false);
 
   useEffect(() => {
-    if (initialProduct) {
-      setProduct(initialProduct);
-      setLoading(false);
-      return;
-    }
-
+    setMounted(true);
     const clean = decodeURIComponent(id);
     const allLocal = getStoreProducts();
     const found = allLocal.find(p => p.id === clean || p.barcode === clean.padStart(4, '0') || p.barcode === clean)
       || INITIAL_SEED_PRODUCTS.find(p => p.id === clean || p.barcode === clean.padStart(4, '0') || p.barcode === clean);
 
-    setProduct(found);
-    setLoading(false);
-  }, [id, initialProduct]);
+    if (found) {
+      setProduct(found);
+    }
+  }, [id]);
 
-  if (loading) {
+  if (!mounted && !initialProduct) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', color: 'var(--md-sys-color-primary)' }}>
@@ -78,20 +69,28 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
     );
   }
 
-  const { currencyMode, exchangeRateUSD, usdIndexedPricing } = getCurrencySettings();
-  const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD, product.priceUSD, usdIndexedPricing);
+  const currencySettings = typeof window !== 'undefined' 
+    ? getCurrencySettings() 
+    : { currencyMode: 'BOTH' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
+    
+  const disp = getProductDisplayPrice(
+    product.price || 0,
+    product.currency || 'CUP',
+    currencySettings.currencyMode,
+    currencySettings.exchangeRateUSD,
+    product.priceUSD,
+    currencySettings.usdIndexedPricing
+  );
   const badgeStyle = getCurrencyBadgeStyle(disp.currency);
-  const roundedPrice = Math.round(disp.amount);
-  const seoMeta = getProductSeoMeta(product.barcode, product.price);
 
-  const cartQuery = `${product.barcode}:1`;
+  const cartQuery = `${product.barcode || '0000'}:1`;
   const checkoutLink = `https://cuentacasa.app/app?cart=${encodeURIComponent(cartQuery)}`;
   const productSeoLink = `https://cuentacasa.app/producto/${product.id}`;
 
   let whatsappMessage = `🛒 *SOLICITUD DE COMPRA - SAMY STORE*\n📍 *Cuba*\n----------------------------------\n`;
-  whatsappMessage += `1. *${product.name}* (Cod: #${product.barcode})\n`;
-  whatsappMessage += `   Cant: 1u | Precio: ${formatCurrency(disp.amount, disp.currency, true)}\n`;
-  whatsappMessage += `----------------------------------\n💰 *TOTAL A PAGAR: ${formatCurrency(disp.amount, disp.currency, true)}*\n\n`;
+  whatsappMessage += `1. *${product.name}* (Cod: #${product.barcode || '0000'})\n`;
+  whatsappMessage += `   Cant: 1u | Precio: ${formatCurrency(disp.amount || 0, disp.currency, true)}\n`;
+  whatsappMessage += `----------------------------------\n💰 *TOTAL A PAGAR: ${formatCurrency(disp.amount || 0, disp.currency, true)}*\n\n`;
   whatsappMessage += `🔗 *Enlace Directo al Artículo:*\n${productSeoLink}\n\n`;
   whatsappMessage += `🛒 *Abrir Pedido / Cobro Inmediato:*\n${checkoutLink}`;
 
@@ -112,7 +111,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
         zIndex: 80
       }}>
         <div style={{
-          maxWidth: '1024px',
+          maxWidth: '768px',
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
@@ -155,7 +154,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
       </header>
 
       {/* Main Product SEO Page Layout */}
-      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '20px 16px 140px 16px', flex: 1 }}>
+      <main style={{ maxWidth: '768px', width: '100%', margin: '0 auto', padding: '20px 16px 140px 16px', flex: 1 }}>
         
         <div className="md-card" style={{ padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: 'var(--md-sys-color-surface-container)' }}>
           
@@ -170,17 +169,17 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               borderRadius: '9999px',
               textTransform: 'capitalize'
             }}>
-              {product.category}
+              {product.category || 'General'}
             </span>
             <span style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800, fontFamily: 'monospace' }}>
-              Código #{product.barcode}
+              Código #{product.barcode || '0000'}
             </span>
           </div>
 
           {/* Product Image Showcase */}
           <div style={{
             width: '100%',
-            height: '360px',
+            height: '320px',
             borderRadius: '20px',
             overflow: 'hidden',
             backgroundColor: 'var(--md-sys-color-surface-container-high)',
@@ -200,7 +199,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               position: 'absolute',
               bottom: '14px',
               right: '14px',
-              backgroundColor: product.stock > 0 ? '#00875A' : 'var(--md-sys-color-expense)',
+              backgroundColor: (product.stock || 0) > 0 ? '#00875A' : 'var(--md-sys-color-expense)',
               color: '#FFFFFF',
               fontSize: '0.8rem',
               fontWeight: 800,
@@ -208,19 +207,19 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               borderRadius: '9999px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
             }}>
-              {product.stock > 0 ? `Stock Disponible (${product.stock}u)` : 'Agotado'}
+              {(product.stock || 0) > 0 ? `Stock Disponible (${product.stock}u)` : 'Agotado'}
             </span>
           </div>
 
           {/* Title & Price */}
           <div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.25', marginBottom: '8px' }}>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.25', marginBottom: '8px' }}>
               {product.name}
             </h1>
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-              <span style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                {formatCurrency(disp.amount, disp.currency, true)}
+              <span style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                {formatCurrency(disp.amount || 0, disp.currency, true)}
                 {product.unit && product.unit !== 'u' && (
                   <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '4px' }}>
                     / {product.unit}
