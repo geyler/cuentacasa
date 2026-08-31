@@ -118,6 +118,15 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     };
   }, []);
 
+  // Reset scroll to top when changing sub-tabs in store management
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (typeof document !== 'undefined') {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [activeSubTab]);
+
   // Compute Store Financial Metrics with dynamic currency mode conversion
   const { currencyMode, exchangeRateUSD, usdIndexedPricing, exchangeRateTrend, autoSyncElToque } = getCurrencySettings();
 

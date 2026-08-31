@@ -166,8 +166,8 @@ function AccountingAppContent() {
       }
     }
 
-    // Scroll to top automatically when activeTab changes (preserves scroll when opening/closing modals)
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    // Initial scroll reset on mount
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
     // Background Auto sync function
     const autoSync = async (isBackgroundReconnection: boolean = false) => {
@@ -294,15 +294,34 @@ function AccountingAppContent() {
     };
   }, [loadDatabase]);
 
+  // Automatically reset scroll position to top whenever activeTab changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (typeof document !== 'undefined') {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [activeTab]);
+
   const handleTabChange = (tab: AppTab) => {
     const activeUser = getLoggedInUser();
     if (activeUser && activeUser.role !== 'propietario' && tab !== 'store') {
       return;
     }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (typeof document !== 'undefined') {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
     setIsTabTransitioning(true);
     setActiveTab(tab);
     setTimeout(() => {
       setIsTabTransitioning(false);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      if (typeof document !== 'undefined') {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }
     }, 150);
   };
 
