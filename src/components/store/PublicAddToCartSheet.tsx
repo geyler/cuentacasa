@@ -61,7 +61,7 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '500px',
+              maxWidth: '768px',
               backgroundColor: 'var(--md-sys-color-surface-container)',
               borderRadius: '28px 28px 0 0',
               padding: '20px 24px 28px 24px',
@@ -273,7 +273,7 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '500px',
+              maxWidth: '768px',
               backgroundColor: 'var(--md-sys-color-surface-container)',
               borderRadius: '28px 28px 0 0',
               padding: '24px',

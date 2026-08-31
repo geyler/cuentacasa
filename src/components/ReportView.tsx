@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Transaction, StoreShiftRecord, StoreProduct, StoreSaleRecord } from '@/types';
-import { getStoreShifts, getStoreProducts, getStoreSales } from '@/lib/storage';
+import { getStoreShifts, getStoreProducts, getStoreSales, getCurrencySettings } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { 
   Printer, 
@@ -362,17 +362,23 @@ export const ReportView: React.FC<ReportViewProps> = ({
       }}>
         {/* Ticket Header */}
         <div style={{ textAlign: 'center', borderBottom: '1.5px dashed #0F172A', paddingBottom: '12px', marginBottom: '12px' }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#0F172A' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
+            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '34px', width: 'auto', objectFit: 'contain' }} />
+            <span className="font-logo-script" style={{ fontSize: '2rem', fontWeight: 900, color: '#EC4899', lineHeight: 1 }}>
+              Samy Store
+            </span>
+          </div>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: '2px 0 0 0', letterSpacing: '0.02em', textTransform: 'uppercase', color: '#0F172A' }}>
             === INFORME CONSOLIDADO IPV ===
           </h2>
           <p style={{ fontSize: '0.72rem', color: '#475569', margin: '4px 0 0 0', fontWeight: 700 }}>
-            SAMY STORE • Rango: {timeRange.label}
+            Rango: {timeRange.label}
           </p>
         </div>
 
         {/* Tabular Inventory & Sales Breakdown (Scroll Horizontal for Mobile) */}
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table style={{ width: '100%', minWidth: '480px', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left', fontFamily: 'monospace' }}>
+          <table style={{ width: '100%', minWidth: '520px', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left', fontFamily: 'monospace' }}>
             <thead>
               <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1.5px solid #0F172A' }}>
                 <th style={{ padding: '8px 6px', fontWeight: 900 }}>Producto</th>
@@ -384,43 +390,66 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </tr>
             </thead>
             <tbody>
-              {ipvRows.map((r, idx) => (
-                <tr key={r.id} style={{ borderBottom: '1px dashed #E2E8F0', backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
-                  <td style={{ padding: '6px 6px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={r.name}>
-                    {r.name}
-                  </td>
-                  <td style={{ padding: '6px 6px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
-                    #{r.barcode}
-                  </td>
-                  <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 900, color: r.unitsSold > 0 ? '#0F172A' : '#94A3B8' }}>
-                    {r.unitsSold} u
-                  </td>
-                  <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 700 }}>
-                    {r.stock} u
-                  </td>
-                  <td style={{ padding: '6px 6px', textAlign: 'right' }}>
-                    ${r.price}
-                  </td>
-                  <td style={{ padding: '6px 6px', textAlign: 'right', fontWeight: 900 }}>
-                    ${r.totalAmount.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
+              {(() => {
+                const currSettings = typeof window !== 'undefined' ? getCurrencySettings() : { currencyMode: 'BOTH' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
+                const rate = currSettings.exchangeRateUSD || 675;
+                const isBothMode = currSettings.currencyMode === 'BOTH';
+                const totalPeriodRevenueUSD = ipvRows.reduce((acc, r) => acc + (r.totalAmount / rate), 0);
 
-              {/* Totals Row */}
-              <tr style={{ backgroundColor: '#F1F5F9', borderTop: '2px solid #0F172A', borderBottom: '2px solid #0F172A', fontWeight: 900 }}>
-                <td colSpan={2} style={{ padding: '8px 6px', fontSize: '0.74rem', color: '#0F172A' }}>
-                  TOTALES ACUMULADOS EN PERIODO
-                </td>
-                <td style={{ padding: '8px 4px', textAlign: 'center', fontSize: '0.78rem', color: '#0F172A' }}>
-                  {totalUnitsSold}u
-                </td>
-                <td style={{ padding: '8px 4px' }}></td>
-                <td style={{ padding: '8px 6px' }}></td>
-                <td style={{ padding: '8px 6px', textAlign: 'right', fontSize: '0.82rem', color: '#0F172A' }}>
-                  ${totalPeriodRevenue.toLocaleString()} {currency}
-                </td>
-              </tr>
+                return (
+                  <>
+                    {ipvRows.map((r, idx) => {
+                      const priceUSD = (r.price / rate);
+                      const totalUSD = (r.totalAmount / rate);
+
+                      return (
+                        <tr key={r.id} style={{ borderBottom: '1px dashed #E2E8F0', backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
+                          <td style={{ padding: '6px 6px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }} title={r.name}>
+                            {r.name}
+                          </td>
+                          <td style={{ padding: '6px 6px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                            #{r.barcode}
+                          </td>
+                          <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 900, color: r.unitsSold > 0 ? '#0F172A' : '#94A3B8' }}>
+                            {r.unitsSold} u
+                          </td>
+                          <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 700 }}>
+                            {r.stock} u
+                          </td>
+                          <td style={{ padding: '6px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            ${r.price} CUP
+                            {isBothMode && <span style={{ display: 'block', fontSize: '0.62rem', color: '#64748B' }}>${priceUSD.toFixed(2)} USD</span>}
+                          </td>
+                          <td style={{ padding: '6px 6px', textAlign: 'right', fontWeight: 900, whiteSpace: 'nowrap' }}>
+                            ${r.totalAmount.toLocaleString()} CUP
+                            {isBothMode && <span style={{ display: 'block', fontSize: '0.62rem', color: '#2563EB', fontWeight: 800 }}>${totalUSD.toFixed(2)} USD</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Totals Row */}
+                    <tr style={{ backgroundColor: '#F1F5F9', borderTop: '2px solid #0F172A', borderBottom: '2px solid #0F172A', fontWeight: 900 }}>
+                      <td colSpan={2} style={{ padding: '8px 6px', fontSize: '0.74rem', color: '#0F172A' }}>
+                        TOTALES ACUMULADOS EN PERIODO
+                      </td>
+                      <td style={{ padding: '8px 4px', textAlign: 'center', fontSize: '0.78rem', color: '#0F172A' }}>
+                        {totalUnitsSold}u
+                      </td>
+                      <td style={{ padding: '8px 4px' }}></td>
+                      <td style={{ padding: '8px 6px' }}></td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right', fontSize: '0.82rem', color: '#0F172A', whiteSpace: 'nowrap' }}>
+                        ${totalPeriodRevenue.toLocaleString()} CUP
+                        {isBothMode && (
+                          <div style={{ fontSize: '0.68rem', color: '#2563EB', fontWeight: 800 }}>
+                            ≈ US${totalPeriodRevenueUSD.toFixed(2)} USD (@1={rate})
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  </>
+                );
+              })()}
             </tbody>
           </table>
         </div>

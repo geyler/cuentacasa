@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
       
       {/* Clean Single Bar */}
       <div style={{
-        maxWidth: '1024px',
+        maxWidth: '768px',
         margin: '0 auto',
         padding: '8px 16px',
         display: 'flex',
@@ -118,122 +118,6 @@ export const Header: React.FC<HeaderProps> = ({
             Samy Store
           </h1>
         </button>
-
-        {/* Navigation Tabs (PC Only - Hidden on Mobile) */}
-        <nav className="hidden-mobile" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {isOwner && (
-            <>
-              <button
-                onClick={() => setActiveTab('quick')}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary)' : 'transparent',
-                  color: activeTab === 'quick' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <Home size={16} />
-                <span>Inicio</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary)' : 'transparent',
-                  color: activeTab === 'dashboard' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <LayoutDashboard size={16} />
-                <span>Dashboard</span>
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={() => setActiveTab('store')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary)' : 'transparent',
-              color: activeTab === 'store' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Store size={16} />
-            <span>Tienda</span>
-          </button>
-
-          {isOwner && (
-            <>
-              <button
-                onClick={() => setActiveTab('transactions')}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary)' : 'transparent',
-                  color: activeTab === 'transactions' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <Receipt size={16} />
-                <span>Movimientos</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('reports')}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'transparent',
-                  color: activeTab === 'reports' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <FileText size={16} />
-                <span>Historial IPV</span>
-              </button>
-            </>
-          )}
-        </nav>
 
         {/* Right Utility Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -336,7 +220,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '500px',
+              maxWidth: '768px',
               maxHeight: '85vh',
               backgroundColor: 'var(--md-sys-color-surface-container)',
               borderRadius: '28px 28px 0 0',

@@ -665,7 +665,7 @@ function AccountingAppContent() {
 
       {/* Main Content Area */}
       <main style={{
-        maxWidth: '1024px',
+        maxWidth: '768px',
         width: '100%',
         margin: '0 auto',
         padding: '16px 16px 130px 16px',

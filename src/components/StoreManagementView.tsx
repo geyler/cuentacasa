@@ -307,7 +307,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
       {/* 2. MAIN 4 METRICS CARDS GRID (Sits directly on main background) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-        
+
         {/* Card 1: Fondo del Negocio (Clean Emerald) */}
         <div className="md-card" style={{
           backgroundColor: '#ECFDF5',
@@ -507,7 +507,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         }}
       >
         <Clock size={24} color="#0284C7" />
-        <span>TURNOS E IPV (CIERRE DE CAJA)</span>
+        <span>TURNOS E IPV</span>
       </button>
 
       {/* 4. SUB-TAB NAVIGATION BAR */}

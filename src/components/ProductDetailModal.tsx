@@ -52,6 +52,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [userRating, setUserRating] = useState<number>(0);
   const [voteTimestamp, setVoteTimestamp] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [isVoteModalOpen, setIsVoteModalOpen] = useState(false);
 
   const showModal = Boolean(isOpen && activeProduct);
   useLockBodyScroll(showModal);
@@ -170,8 +171,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       });
     }
   };
-
-  const [isVoteModalOpen, setIsVoteModalOpen] = useState(false);
 
   return (
     <div style={{

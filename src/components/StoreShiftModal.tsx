@@ -2,32 +2,33 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoreShiftRecord, AppUser, ShiftInventorySnapshot } from '@/types';
-import { 
-  getActiveShift, 
-  getStoreShifts, 
-  openStoreShift, 
-  acceptShiftOpening, 
-  closeStoreShift, 
-  getAppUsers, 
-  getLoggedInUser, 
-  getStoreProducts 
+import {
+  getActiveShift,
+  getStoreShifts,
+  openStoreShift,
+  acceptShiftOpening,
+  closeStoreShift,
+  getAppUsers,
+  getLoggedInUser,
+  getStoreProducts,
+  getCurrencySettings
 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
-import { 
-  Clock, 
-  UserCheck, 
-  DollarSign, 
-  Package, 
-  ShieldAlert, 
-  CheckCircle2, 
-  AlertCircle, 
-  X, 
-  History, 
-  Plus, 
-  Check, 
+import {
+  Clock,
+  UserCheck,
+  DollarSign,
+  Package,
+  ShieldAlert,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  History,
+  Plus,
+  Check,
   ArrowRight,
   Sparkles,
   Lock,
@@ -181,15 +182,15 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
       justifyContent: 'center',
       padding: '0'
     }} className="no-print" onClick={onClose}>
-      
-      <div 
+
+      <div
         className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '540px',
+          maxWidth: '768px',
           padding: '20px 24px 28px 24px',
           borderRadius: '28px 28px 0 0',
           boxShadow: 'var(--md-shadow-elevation-4)',
@@ -355,7 +356,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
             {/* SCENARIO B: ACTIVE SHIFT EXISTS */}
             {activeShift && !isClosingMode && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                
+
                 {/* Pending Handover Acceptance Banner */}
                 {activeShift.status === 'apertura_pendiente' && (
                   <div style={{ padding: '14px', borderRadius: '16px', backgroundColor: '#FEF3C7', border: '1.5px solid #F59E0B', color: '#92400E' }}>
@@ -502,7 +503,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                   <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--md-sys-color-primary)', display: 'block', marginBottom: '6px' }}>
                     1. Arqueo de Dinero en Caja
                   </span>
-                  
+
                   <div style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '8px' }}>
                     Efectivo Esperado según ventas: <strong>{formatCurrency(activeShift.expectedCashInRegister, currency, true)}</strong>
                   </div>
@@ -658,11 +659,17 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
             }}>
               {/* Header del Ticket IPV */}
               <div style={{ textAlign: 'center', borderBottom: '1.5px dashed #0F172A', paddingBottom: '10px', marginBottom: '10px' }}>
-                <h3 style={{ fontSize: '0.92rem', fontWeight: 900, margin: 0, letterSpacing: '0.02em', textTransform: 'uppercase', color: '#0F172A' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+                  <span className="font-logo-script" style={{ fontSize: '1.8rem', fontWeight: 900, color: '#EC4899', lineHeight: 1 }}>
+                    Samy Store
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '0.88rem', fontWeight: 900, margin: '2px 0 0 0', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#0F172A' }}>
                   === INFORME IPV (PRODUCTOS Y VENTAS) ===
                 </h3>
                 <p style={{ fontSize: '0.66rem', color: '#475569', margin: '4px 0 0 0', fontWeight: 700 }}>
-                  SAMY STORE • {new Date().toLocaleDateString('es-CU')} • {activeShift ? `Vendedor: ${activeShift.sellerName} (@${activeShift.sellerUsername})` : 'Arqueo General'}
+                  {new Date().toLocaleDateString('es-CU')} • {activeShift ? `Vendedor: ${activeShift.sellerName} (@${activeShift.sellerUsername})` : 'Arqueo General'}
                 </p>
                 <div className="no-print" style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <button
@@ -716,7 +723,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
 
               {/* Tabla de Productos Compacta Estilo Ticket con Scroll Horizontal */}
               <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                <table style={{ width: '100%', minWidth: '460px', borderCollapse: 'collapse', fontSize: '0.65rem', textAlign: 'left', fontFamily: 'monospace' }}>
+                <table style={{ width: '100%', minWidth: '520px', borderCollapse: 'collapse', fontSize: '0.65rem', textAlign: 'left', fontFamily: 'monospace' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1.5px solid #0F172A' }}>
                       <th style={{ padding: '6px 4px', fontWeight: 900 }}>Producto</th>
@@ -734,6 +741,9 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                     {(() => {
                       const storeProds = getStoreProducts();
                       const snapshots = activeShift?.inventorySnapshots || [];
+                      const currSettings = typeof window !== 'undefined' ? getCurrencySettings() : { currencyMode: 'BOTH' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
+                      const rate = currSettings.exchangeRateUSD || 675;
+                      const isBothMode = currSettings.currencyMode === 'BOTH';
 
                       const rows = storeProds.map(prod => {
                         const snap = snapshots.find(s => s.productId === prod.id);
@@ -743,7 +753,9 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                         const sold = snap ? snap.soldByShiftUser : 0;
                         const finalStock = snap ? snap.expectedFinalStock : prod.stock;
                         const price = prod.price;
-                        const totalImporte = sold * price;
+                        const priceUSD = prod.priceUSD || (prod.price / rate);
+                        const totalImporteCUP = sold * price;
+                        const totalImporteUSD = sold * priceUSD;
 
                         return {
                           id: prod.id,
@@ -755,18 +767,21 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                           sold,
                           finalStock,
                           price,
-                          totalImporte
+                          priceUSD,
+                          totalImporteCUP,
+                          totalImporteUSD
                         };
                       });
 
                       const totalUnidadesVendidas = rows.reduce((acc, r) => acc + r.sold, 0);
-                      const totalImporteGeneral = rows.reduce((acc, r) => acc + r.totalImporte, 0);
+                      const totalImporteGeneralCUP = rows.reduce((acc, r) => acc + r.totalImporteCUP, 0);
+                      const totalImporteGeneralUSD = rows.reduce((acc, r) => acc + r.totalImporteUSD, 0);
 
                       return (
                         <>
                           {rows.map((r, idx) => (
                             <tr key={r.id} style={{ borderBottom: '1px dashed #E2E8F0', backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
-                              <td style={{ padding: '5px 4px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }} title={r.name}>
+                              <td style={{ padding: '5px 4px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px' }} title={r.name}>
                                 {r.name}
                               </td>
                               <td style={{ padding: '5px 4px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
@@ -777,9 +792,13 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                               <td style={{ padding: '5px 2px', textAlign: 'center', fontWeight: 800 }}>{r.totalToRespond}</td>
                               <td style={{ padding: '5px 2px', textAlign: 'center', fontWeight: 900, color: r.sold > 0 ? '#0F172A' : '#94A3B8' }}>{r.sold}</td>
                               <td style={{ padding: '5px 2px', textAlign: 'center', fontWeight: 800 }}>{r.finalStock}</td>
-                              <td style={{ padding: '5px 4px', textAlign: 'right' }}>${r.price}</td>
-                              <td style={{ padding: '5px 4px', textAlign: 'right', fontWeight: 900 }}>
-                                ${r.totalImporte.toLocaleString()}
+                              <td style={{ padding: '5px 4px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                ${r.price} CUP
+                                {isBothMode && <span style={{ display: 'block', fontSize: '0.58rem', color: '#64748B' }}>${r.priceUSD.toFixed(2)} USD</span>}
+                              </td>
+                              <td style={{ padding: '5px 4px', textAlign: 'right', fontWeight: 900, whiteSpace: 'nowrap' }}>
+                                ${r.totalImporteCUP.toLocaleString()} CUP
+                                {isBothMode && <span style={{ display: 'block', fontSize: '0.58rem', color: '#2563EB', fontWeight: 800 }}>${r.totalImporteUSD.toFixed(2)} USD</span>}
                               </td>
                             </tr>
                           ))}
@@ -794,8 +813,13 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                             </td>
                             <td style={{ padding: '6px 2px' }}></td>
                             <td style={{ padding: '6px 2px' }}></td>
-                            <td style={{ padding: '6px 4px', textAlign: 'right', fontSize: '0.74rem', color: '#0F172A' }}>
-                              ${totalImporteGeneral.toLocaleString()} {currency}
+                            <td style={{ padding: '6px 4px', textAlign: 'right', fontSize: '0.74rem', color: '#0F172A', whiteSpace: 'nowrap' }}>
+                              ${totalImporteGeneralCUP.toLocaleString()} CUP
+                              {isBothMode && (
+                                <div style={{ fontSize: '0.64rem', color: '#2563EB', fontWeight: 800 }}>
+                                  ≈ US${totalImporteGeneralUSD.toFixed(2)} USD (@1={rate})
+                                </div>
+                              )}
                             </td>
                           </tr>
                         </>

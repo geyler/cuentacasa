@@ -207,7 +207,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '480px',
+          maxWidth: '768px',
           padding: '20px 20px 28px 20px',
           display: 'flex',
           flexDirection: 'column',

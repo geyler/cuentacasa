@@ -62,7 +62,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '680px',
+          maxWidth: '768px',
           padding: '20px 24px 28px 24px',
           boxShadow: '0 -12px 48px rgba(0,0,0,0.5)',
           borderRadius: '28px 28px 0 0',

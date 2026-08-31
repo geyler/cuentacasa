@@ -166,7 +166,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '480px',
+          maxWidth: '768px',
           padding: '14px 24px 28px 24px',
           boxShadow: 'var(--md-shadow-elevation-4)',
           display: 'flex',

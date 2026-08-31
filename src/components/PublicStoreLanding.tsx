@@ -279,7 +279,7 @@ export const PublicStoreLanding: React.FC = () => {
       />
 
       {/* 3. Search Bar */}
-      <div style={{ maxWidth: '1024px', width: 'calc(100% - 32px)', margin: '14px auto 0 auto', position: 'relative' }}>
+      <div style={{ maxWidth: '768px', width: 'calc(100% - 32px)', margin: '14px auto 0 auto', position: 'relative' }}>
         <div style={{ position: 'relative', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
           <Search 
             size={22} 
@@ -348,7 +348,7 @@ export const PublicStoreLanding: React.FC = () => {
       )}
 
       {/* 5. Main Products Content Grid */}
-      <main style={{ maxWidth: '1024px', width: '100%', margin: '0 auto', padding: '24px 20px 140px 20px', flex: 1 }}>
+      <main style={{ maxWidth: '768px', width: '100%', margin: '0 auto', padding: '24px 20px 140px 20px', flex: 1 }}>
         
         {/* Categories Carousel / Cards FIRST */}
         {categories.length > 0 && (
@@ -901,7 +901,7 @@ export const PublicStoreLanding: React.FC = () => {
           zIndex: 90
         }}>
           <div style={{
-            maxWidth: '1024px',
+            maxWidth: '768px',
             margin: '0 auto',
             display: 'flex',
             alignItems: 'center',
@@ -982,7 +982,7 @@ export const PublicStoreLanding: React.FC = () => {
         borderTop: '1px solid #FBCFE8',
         textAlign: 'center'
       }}>
-        <div style={{ maxWidth: '1024px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+        <div style={{ maxWidth: '768px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '28px', width: 'auto' }} />
             <span className="font-logo-script" style={{ fontSize: '1.5rem', fontWeight: 900, color: '#831843' }}>Samy Store Las Tunas</span>

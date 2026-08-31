@@ -139,7 +139,7 @@ export const QRSyncModal: React.FC<QRSyncModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '540px',
+          maxWidth: '768px',
           padding: '20px 24px 28px 24px',
           borderRadius: '28px 28px 0 0',
           boxShadow: 'var(--md-shadow-elevation-4)',

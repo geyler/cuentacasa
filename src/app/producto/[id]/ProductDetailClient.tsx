@@ -22,6 +22,8 @@ interface ProductDetailClientProps {
 export function ProductDetailClient({ id, initialProduct }: ProductDetailClientProps) {
   const [product, setProduct] = useState<StoreProduct | undefined>(initialProduct);
   const [mounted, setMounted] = useState<boolean>(false);
+  const [returnPath, setReturnPath] = useState<string>('/');
+  const [returnLabel, setReturnLabel] = useState<string>('Volver a Samy Store');
 
   useEffect(() => {
     setMounted(true);
@@ -32,6 +34,17 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
     if (found) {
       setProduct(found);
+    }
+
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const fromParam = searchParams.get('from');
+      const referrer = document.referrer || '';
+
+      if (fromParam === 'admin' || referrer.includes('/app')) {
+        setReturnPath('/app');
+        setReturnLabel('Volver a Administración');
+      }
     }
   }, [id]);
 
@@ -50,8 +63,8 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', flexDirection: 'column' }}>
         <header style={{ backgroundColor: '#0F172A', color: '#FFFFFF', padding: '12px 16px' }}>
-          <Link href="/" style={{ color: '#EC4899', fontWeight: 800, fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ArrowLeft size={18} /> Volver a Samy Store
+          <Link href={returnPath} style={{ color: '#EC4899', fontWeight: 800, fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ArrowLeft size={18} /> {returnLabel}
           </Link>
         </header>
 
@@ -118,7 +131,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
           justifyContent: 'space-between'
         }}>
           <Link
-            href="/"
+            href={returnPath}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -130,7 +143,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
             }}
           >
             <ArrowLeft size={18} />
-            <span>Volver a Samy Store</span>
+            <span>{returnLabel}</span>
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

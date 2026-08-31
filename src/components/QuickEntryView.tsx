@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { 
-  ArrowDownRight, 
-  ArrowUpRight, 
-  Scan, 
-  LayoutDashboard, 
-  ShieldCheck, 
-  PiggyBank, 
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Scan,
+  LayoutDashboard,
+  ShieldCheck,
+  PiggyBank,
   Store,
   Home,
   Clock
@@ -82,7 +82,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
       textAlign: 'center'
     }}>
       <div style={{ maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        
+
         {/* PWA Install Call-to-Action Banner */}
         {!isInstalled && (
           <div style={{
@@ -125,19 +125,19 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             </button>
           </div>
         )}
-        
+
         {/* App Title Header */}
         <div>
-          <img 
-            src="/images/logo-loading.png" 
-            alt="Samy Store Logo" 
-            style={{ 
-              height: '110px', 
-              width: 'auto', 
-              objectFit: 'contain', 
+          <img
+            src="/images/logo-loading.png"
+            alt="Samy Store Logo"
+            style={{
+              height: '110px',
+              width: 'auto',
+              objectFit: 'contain',
               margin: '0 auto 4px auto',
               display: 'block'
-            }} 
+            }}
           />
           <h2 className="font-logo-script" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.01em', lineHeight: 1 }}>
             Samy Store
@@ -149,7 +149,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
 
         {/* 3 Main Action Buttons (Gasto, Ingreso, and Vender in White) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          
+
           {/* Big Gasto Button (Highlighted Red) */}
           <button
             onClick={onOpenGasto}
@@ -247,18 +247,18 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             }}
           >
             <Clock size={24} color="#0284C7" />
-            <span>TURNOS E IPV (CIERRE DE CAJA)</span>
+            <span>TURNOS E IPV</span>
           </button>
 
         </div>
 
         {/* Direct Access Section - Facebook Menu Style Cards (2x2 Grid) */}
         <div style={{ marginTop: '6px' }}>
-          <span style={{ 
-            fontSize: '0.75rem', 
-            fontWeight: 800, 
-            color: 'var(--md-sys-color-on-surface-variant)', 
-            textTransform: 'uppercase', 
+          <span style={{
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            color: 'var(--md-sys-color-on-surface-variant)',
+            textTransform: 'uppercase',
             letterSpacing: '0.06em',
             display: 'block',
             marginBottom: '10px',

@@ -114,7 +114,7 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
           borderBottomLeftRadius: '0px',
           borderBottomRightRadius: '0px',
           width: '100%',
-          maxWidth: '840px',
+          maxWidth: '768px',
           maxHeight: '90vh',
           overflowY: 'auto',
           boxShadow: 'var(--md-shadow-elevation-4)',

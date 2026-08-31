@@ -179,7 +179,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
               backgroundColor: '#FFFFFF',
               color: '#111827',
               width: '100%',
-              maxWidth: '480px',
+              maxWidth: '768px',
               borderTopLeftRadius: '28px',
               borderTopRightRadius: '28px',
               borderBottomLeftRadius: 0,
@@ -317,7 +317,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
             className="bottom-sheet-modal"
             style={{
               width: '100%',
-              maxWidth: '480px',
+              maxWidth: '768px',
               backgroundColor: '#FFFFFF',
               color: '#111827',
               borderTopLeftRadius: '28px',

@@ -84,7 +84,7 @@ export const PendingSyncModal: React.FC<PendingSyncModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '520px',
+          maxWidth: '768px',
           padding: '16px 20px 28px 20px',
           boxShadow: 'var(--md-shadow-elevation-4)',
           display: 'flex',

@@ -169,7 +169,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
           className="bottom-sheet-modal"
           style={{
             width: '100%',
-            maxWidth: '540px',
+            maxWidth: '768px',
             height: '100%',
             maxHeight: '100dvh',
             backgroundColor: 'var(--md-sys-color-surface-container)',

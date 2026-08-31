@@ -41,7 +41,7 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
       }} />
 
       <div style={{
-        maxWidth: '1024px',
+        maxWidth: '768px',
         margin: '0 auto',
         position: 'relative',
         zIndex: 2,

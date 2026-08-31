@@ -57,7 +57,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '560px',
+          maxWidth: '768px',
           backgroundColor: 'var(--md-sys-color-surface)',
           padding: '24px',
           boxShadow: '0 -10px 40px rgba(0,0,0,0.3)',

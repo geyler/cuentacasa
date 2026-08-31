@@ -94,7 +94,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
           onClick={e => e.stopPropagation()}
           style={{
             width: '100%',
-            maxWidth: '550px',
+            maxWidth: '768px',
             backgroundColor: 'var(--md-sys-color-surface)',
             borderRadius: '24px 24px 0 0',
             padding: '20px',
