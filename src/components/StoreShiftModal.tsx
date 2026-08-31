@@ -38,12 +38,14 @@ interface StoreShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
   currency?: string;
+  onOpenHistoryReport?: () => void;
 }
 
 export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
   isOpen,
   onClose,
-  currency = '$'
+  currency = '$',
+  onOpenHistoryReport
 }) => {
   useLockBodyScroll(isOpen);
   const { showToast, confirmAction } = useActionFeedback();
@@ -662,7 +664,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                 <p style={{ fontSize: '0.66rem', color: '#475569', margin: '4px 0 0 0', fontWeight: 700 }}>
                   SAMY STORE • {new Date().toLocaleDateString('es-CU')} • {activeShift ? `Vendedor: ${activeShift.sellerName} (@${activeShift.sellerUsername})` : 'Arqueo General'}
                 </p>
-                <div className="no-print" style={{ marginTop: '8px', display: 'flex', justifyContent: 'center' }}>
+                <div className="no-print" style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={() => window.print()}
@@ -683,22 +685,49 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                     <FileSpreadsheet size={13} />
                     <span>Imprimir Ticket IPV</span>
                   </button>
+
+                  {onOpenHistoryReport && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenHistoryReport();
+                      }}
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        borderRadius: '6px',
+                        border: '1px solid var(--md-sys-color-primary)',
+                        backgroundColor: 'var(--md-sys-color-primary-container)',
+                        color: 'var(--md-sys-color-on-primary-container)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <History size={13} />
+                      <span>Ver Historial IPV por Periodos</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Tabla de Productos Compacta Estilo Ticket */}
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.65rem', textAlign: 'left', fontFamily: 'monospace' }}>
+              {/* Tabla de Productos Compacta Estilo Ticket con Scroll Horizontal */}
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table style={{ width: '100%', minWidth: '460px', borderCollapse: 'collapse', fontSize: '0.65rem', textAlign: 'left', fontFamily: 'monospace' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1.5px solid #0F172A' }}>
-                      <th style={{ padding: '5px 4px', fontWeight: 900 }}>Producto</th>
-                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Ini</th>
-                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Alt</th>
-                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Resp</th>
-                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Vend</th>
-                      <th style={{ padding: '5px 2px', fontWeight: 900, textAlign: 'center' }}>Saldo</th>
-                      <th style={{ padding: '5px 4px', fontWeight: 900, textAlign: 'right' }}>Precio</th>
-                      <th style={{ padding: '5px 4px', fontWeight: 900, textAlign: 'right' }}>Importe</th>
+                      <th style={{ padding: '6px 4px', fontWeight: 900 }}>Producto</th>
+                      <th style={{ padding: '6px 4px', fontWeight: 900 }}>SKU / Código</th>
+                      <th style={{ padding: '6px 2px', fontWeight: 900, textAlign: 'center' }}>Inicial</th>
+                      <th style={{ padding: '6px 2px', fontWeight: 900, textAlign: 'center' }}>Altas (+)</th>
+                      <th style={{ padding: '6px 2px', fontWeight: 900, textAlign: 'center' }}>A Cargo</th>
+                      <th style={{ padding: '6px 2px', fontWeight: 900, textAlign: 'center' }}>Vendido</th>
+                      <th style={{ padding: '6px 2px', fontWeight: 900, textAlign: 'center' }}>Final</th>
+                      <th style={{ padding: '6px 4px', fontWeight: 900, textAlign: 'right' }}>Precio</th>
+                      <th style={{ padding: '6px 4px', fontWeight: 900, textAlign: 'right' }}>Importe</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -737,16 +766,19 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                         <>
                           {rows.map((r, idx) => (
                             <tr key={r.id} style={{ borderBottom: '1px dashed #E2E8F0', backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
-                              <td style={{ padding: '4px 4px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }} title={r.name}>
-                                #{r.barcode} {r.name}
+                              <td style={{ padding: '5px 4px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }} title={r.name}>
+                                {r.name}
                               </td>
-                              <td style={{ padding: '4px 2px', textAlign: 'center' }}>{r.initialStock}</td>
-                              <td style={{ padding: '4px 2px', textAlign: 'center', fontWeight: 700 }}>+{r.addedStock}</td>
-                              <td style={{ padding: '4px 2px', textAlign: 'center', fontWeight: 800 }}>{r.totalToRespond}</td>
-                              <td style={{ padding: '4px 2px', textAlign: 'center', fontWeight: 900, color: r.sold > 0 ? '#0F172A' : '#94A3B8' }}>{r.sold}</td>
-                              <td style={{ padding: '4px 2px', textAlign: 'center', fontWeight: 800 }}>{r.finalStock}</td>
-                              <td style={{ padding: '4px 4px', textAlign: 'right' }}>${r.price}</td>
-                              <td style={{ padding: '4px 4px', textAlign: 'right', fontWeight: 900 }}>
+                              <td style={{ padding: '5px 4px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                                #{r.barcode}
+                              </td>
+                              <td style={{ padding: '5px 2px', textAlign: 'center' }}>{r.initialStock}</td>
+                              <td style={{ padding: '5px 2px', textAlign: 'center', fontWeight: 700 }}>+{r.addedStock}</td>
+                              <td style={{ padding: '5px 2px', textAlign: 'center', fontWeight: 800 }}>{r.totalToRespond}</td>
+                              <td style={{ padding: '5px 2px', textAlign: 'center', fontWeight: 900, color: r.sold > 0 ? '#0F172A' : '#94A3B8' }}>{r.sold}</td>
+                              <td style={{ padding: '5px 2px', textAlign: 'center', fontWeight: 800 }}>{r.finalStock}</td>
+                              <td style={{ padding: '5px 4px', textAlign: 'right' }}>${r.price}</td>
+                              <td style={{ padding: '5px 4px', textAlign: 'right', fontWeight: 900 }}>
                                 ${r.totalImporte.toLocaleString()}
                               </td>
                             </tr>
@@ -754,7 +786,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
 
                           {/* Fila Totales Ticket */}
                           <tr style={{ backgroundColor: '#F1F5F9', borderTop: '2px solid #0F172A', borderBottom: '2px solid #0F172A', fontWeight: 900 }}>
-                            <td colSpan={4} style={{ padding: '6px 4px', fontSize: '0.68rem', color: '#0F172A' }}>
+                            <td colSpan={5} style={{ padding: '6px 4px', fontSize: '0.68rem', color: '#0F172A' }}>
                               TOTALES DEL INFORME (IPV)
                             </td>
                             <td style={{ padding: '6px 2px', textAlign: 'center', fontSize: '0.7rem', color: '#0F172A' }}>

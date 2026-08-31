@@ -229,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
               >
                 <FileText size={16} />
-                <span>Reportes</span>
+                <span>Historial IPV</span>
               </button>
             </>
           )}
@@ -284,7 +284,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <FileText size={16} color={activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)'} />
-              <span>Reportes</span>
+              <span>Historial IPV</span>
             </button>
           )}
 
@@ -486,7 +486,7 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <FileText size={20} />
-                      <span>Reportes por Fechas</span>
+                      <span>Historial IPV por Periodos</span>
                     </div>
                     <ChevronRight size={18} opacity={0.6} />
                   </button>

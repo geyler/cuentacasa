@@ -980,6 +980,7 @@ function AccountingAppContent() {
         isOpen={isShiftModalOpen}
         onClose={() => setIsShiftModalOpen(false)}
         currency={db.settings.currency}
+        onOpenHistoryReport={() => handleTabChange('reports')}
       />
 
       {/* Barcode Scanner Modal (0001-9999) */}

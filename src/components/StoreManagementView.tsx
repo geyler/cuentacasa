@@ -434,44 +434,28 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           </div>
         </div>
 
-        {/* Card 4: Turnos y Cierre IPV */}
-        <button
-          onClick={() => setIsShiftModalOpen(true)}
-          className="md-card"
-          style={{
-            backgroundColor: activeShift ? '#ECFDF5' : 'var(--md-sys-color-surface-container-high)',
-            border: activeShift ? '1.5px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
-            padding: '14px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            textAlign: 'left',
-            cursor: 'pointer'
-          }}
-        >
+        {/* Card 4: Ventas del Día / Turno Activo */}
+        <div className="md-card" style={{
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          padding: '14px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface)' }}>
-              📋 Turnos y Cierre IPV
+            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🛍️ Ventas del Día</span>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '6px', backgroundColor: activeShift ? '#DCFCE7' : 'var(--md-sys-color-surface)', color: activeShift ? '#15803D' : 'var(--md-sys-color-on-surface-variant)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
+              {activeShift ? `@${activeShift.sellerUsername}` : 'Sin Turno'}
             </span>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              backgroundColor: activeShift ? 'rgba(5, 150, 105, 0.18)' : 'var(--md-sys-color-surface)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Clock size={14} color={activeShift ? '#059669' : 'var(--md-sys-color-primary)'} />
-            </div>
           </div>
-          <div style={{ fontSize: '1.2rem', fontWeight: 900, margin: '6px 0 2px 0', color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface)' }}>
-            {activeShift ? `@${activeShift.sellerUsername}` : 'Sin Turno'}
+          <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-primary)' }}>
+            {formatCurrency(activeShift ? (activeShift.totalCashSales + activeShift.totalDigitalSales) : 0, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
           </div>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: activeShift ? '#047857' : 'var(--md-sys-color-on-surface-variant)' }}>
-            {activeShift ? `Cierre IPV / Ventas: $${activeShift.totalCashSales + activeShift.totalDigitalSales}` : 'Abrir Turno e IPV'}
+          <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+            {activeShift ? 'Total acumulado en turno activo' : 'Inicie turno para registrar ventas'}
           </div>
-        </button>
+        </div>
 
       </div>
 
