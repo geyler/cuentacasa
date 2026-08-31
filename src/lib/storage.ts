@@ -1714,24 +1714,27 @@ export interface CartQRPayload {
 
 export function generateCartQRPayload(cart: { product: StoreProduct; quantity: number }[]): string {
   const currentUser = getLoggedInUser();
-  const items = cart.map(item => ({
-    productId: item.product.id,
-    barcode: item.product.barcode,
-    name: item.product.name,
-    price: item.product.price,
-    costPrice: item.product.costPrice || Math.round(item.product.price * 0.7),
-    quantity: item.quantity,
-    currency: item.product.currency || 'CUP',
-    supplierType: item.product.supplierType || 'propia',
-    supplierName: item.product.supplierName
-  }));
+  const items = cart.map(item => {
+    const obj: any = {
+      productId: item.product.id,
+      barcode: item.product.barcode || '',
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      currency: item.product.currency || 'CUP'
+    };
+    if (item.product.costPrice) obj.costPrice = item.product.costPrice;
+    if (item.product.supplierType && item.product.supplierType !== 'propia') obj.supplierType = item.product.supplierType;
+    if (item.product.supplierName) obj.supplierName = item.product.supplierName;
+    return obj;
+  });
 
-  const totalAmount = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+  const totalAmount = items.reduce((sum: number, i: any) => sum + (i.price * i.quantity), 0);
 
   const payload: CartQRPayload = {
     type: 'SAMY_STORE_CART_V1',
     timestamp: Date.now(),
-    customerName: currentUser?.name || 'Cliente Tienda',
+    customerName: currentUser?.name || 'Cliente',
     totalAmount,
     items
   };
