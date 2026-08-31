@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
-import { formatCurrency } from '@/lib/invoice';
-import { formatPhotoUrl, getStoreWhatsappNumber, formatCubanPhone, getUserProductRating, rateStoreProduct } from '@/lib/storage';
+import { formatCurrency, getProductDisplayPrice, getCurrencyBadgeStyle } from '@/lib/invoice';
+import { formatPhotoUrl, getStoreWhatsappNumber, formatCubanPhone, getUserProductRating, rateStoreProduct, getCurrencySettings } from '@/lib/storage';
 import { 
   X, 
   MessageCircle, 
@@ -184,7 +184,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       margin: '0 auto',
       height: '100dvh',
       overflow: 'hidden'
-    }} className="no-print" onClick={onClose}>
+    }} className="no-print">
 
       <div 
         onClick={e => e.stopPropagation()}
@@ -326,21 +326,36 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {activeProduct.name}
             </h1>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.03em' }}>
-                {formatCurrency(activeProduct.price, currency, true)}
-              </span>
-              <span style={{
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                color: 'var(--md-sys-color-primary)',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                padding: '3px 10px',
-                borderRadius: '9999px'
-              }}>
-                {activeProduct.currency || 'CUP'}
-              </span>
-            </div>
+            {(() => {
+              const currencySettings = typeof window !== 'undefined' ? getCurrencySettings() : { currencyMode: 'CUP' as const, exchangeRateUSD: 350, usdIndexedPricing: false };
+              const disp = getProductDisplayPrice(
+                activeProduct.price || 0,
+                activeProduct.currency || 'CUP',
+                currencySettings.currencyMode,
+                currencySettings.exchangeRateUSD,
+                activeProduct.priceUSD,
+                currencySettings.usdIndexedPricing
+              );
+              const badgeStyle = getCurrencyBadgeStyle(disp.currency);
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.03em' }}>
+                    {formatCurrency(disp.amount, disp.currency, true)}
+                  </span>
+                  <span style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: badgeStyle.color,
+                    backgroundColor: badgeStyle.backgroundColor,
+                    border: badgeStyle.border,
+                    padding: '3px 10px',
+                    borderRadius: '9999px'
+                  }}>
+                    {disp.currency}
+                  </span>
+                </div>
+              );
+            })()}
 
             {/* Detalles Textuales Simples (Sin cuadros rígidos) */}
             <div style={{ marginTop: '14px', fontSize: '0.86rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.6' }}>

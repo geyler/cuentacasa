@@ -235,27 +235,8 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </nav>
 
-        {/* Right Utility Actions (Both Mobile & PC): Eye Balance Privacy + Settings Gear */}
+        {/* Right Utility Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          
-          {/* Eye Balance Privacy Toggle */}
-          <button
-            onClick={toggleShowBalance}
-            title={showBalance ? 'Ocultar Saldos (Modo Privado)' : 'Mostrar Saldos'}
-            style={{
-              padding: '8px',
-              borderRadius: '50%',
-              border: 'none',
-              backgroundColor: showBalance ? 'transparent' : 'var(--md-sys-color-expense-container)',
-              color: showBalance ? 'var(--md-sys-color-on-surface-variant)' : 'var(--md-sys-color-expense)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            {showBalance ? <Eye size={19} /> : <EyeOff size={19} />}
-          </button>
 
           {/* Pending Sync Actions Pill Badge Trigger */}
           {pendingSyncCount > 0 && onOpenPendingSync && (

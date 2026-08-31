@@ -225,6 +225,31 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             <span>ESCANEAR Y VENDER</span>
           </button>
 
+          {/* Turnos & IPV Button (Identical style to Escanear y Vender) */}
+          <button
+            onClick={() => onOpenShiftModal && onOpenShiftModal()}
+            style={{
+              width: '100%',
+              padding: '16px',
+              borderRadius: '20px',
+              border: '2px solid var(--md-sys-color-outline-variant)',
+              backgroundColor: '#FFFFFF',
+              color: 'var(--md-sys-color-on-surface)',
+              fontSize: '1.1rem',
+              fontWeight: 900,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
+              letterSpacing: '0.01em'
+            }}
+          >
+            <Clock size={24} color="#0284C7" />
+            <span>TURNOS E IPV (CIERRE DE CAJA)</span>
+          </button>
+
         </div>
 
         {/* Direct Access Section - Facebook Menu Style Cards (2x2 Grid) */}
@@ -405,46 +430,6 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
                   Transferencias
-                </span>
-              </div>
-            </div>
-
-            {/* Card 5: Turnos e IPV (Full width white card matching shortcut cards) */}
-            <div
-              onClick={() => onOpenShiftModal && onOpenShiftModal()}
-              style={{
-                gridColumn: 'span 2',
-                padding: '12px 14px',
-                borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
-                border: '1px solid var(--md-sys-color-outline-variant)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                textAlign: 'left',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
-              }}
-            >
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                backgroundColor: '#E0F2FE',
-                color: '#0284C7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Clock size={18} />
-              </div>
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2', margin: 0 }}>
-                  📋 Turnos e IPV (Cierre de Caja)
-                </h4>
-                <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                  Control de Inventario, Producto y Ventas (IPV)
                 </span>
               </div>
             </div>

@@ -475,56 +475,56 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
       </div>
 
-      {/* 3. MAIN ACTION BUTTON: ESCANEAR Y VENDER (Sits right below metrics grid) */}
+      {/* 3. MAIN ACTION BUTTONS: ESCANEAR Y VENDER & TURNOS E IPV */}
       {onOpenScanner && (
         <button
           onClick={onOpenScanner}
           style={{
             width: '100%',
             padding: '16px',
-            borderRadius: '24px',
-            backgroundColor: '#FFFFFF',
+            borderRadius: '20px',
             border: '2px solid var(--md-sys-color-outline-variant)',
-            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
+            backgroundColor: '#FFFFFF',
+            color: 'var(--md-sys-color-on-surface)',
+            fontSize: '1.1rem',
+            fontWeight: 900,
+            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '12px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            gap: '10px',
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
+            letterSpacing: '0.01em'
           }}
         >
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '14px',
-            backgroundColor: 'var(--md-sys-color-primary-container)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Scan size={24} color="var(--md-sys-color-primary)" />
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <span style={{
-              fontSize: '1.1rem',
-              fontWeight: 900,
-              color: 'var(--md-sys-color-on-surface)',
-              display: 'block',
-              lineHeight: '1.2'
-            }}>
-              ESCANEAR Y VENDER
-            </span>
-            <span style={{
-              fontSize: '0.75rem',
-              color: 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: 700
-            }}>
-              Cámara o Código de Barras (0001 - 9999)
-            </span>
-          </div>
+          <Scan size={24} color="var(--md-sys-color-primary)" />
+          <span>ESCANEAR Y VENDER</span>
         </button>
       )}
+
+      <button
+        onClick={() => setIsShiftModalOpen(true)}
+        style={{
+          width: '100%',
+          padding: '16px',
+          borderRadius: '20px',
+          border: '2px solid var(--md-sys-color-outline-variant)',
+          backgroundColor: '#FFFFFF',
+          color: 'var(--md-sys-color-on-surface)',
+          fontSize: '1.1rem',
+          fontWeight: 900,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
+          letterSpacing: '0.01em'
+        }}
+      >
+        <Clock size={24} color="#0284C7" />
+        <span>TURNOS E IPV (CIERRE DE CAJA)</span>
+      </button>
 
       {/* 4. SUB-TAB NAVIGATION BAR */}
       <div style={{
