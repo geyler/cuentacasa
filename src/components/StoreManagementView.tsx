@@ -160,7 +160,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     .filter(t => t.type === 'gasto' && t.category === 'Tienda')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalStoreFund = Math.max(0, (totalAccumulatedSalesRevenue - totalAccumulatedHouseProfits - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
+  const totalStoreFund = Math.max(0, (totalAccumulatedSalesRevenue - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
   const activeShift = getActiveShift();
 
   // Category List
@@ -435,14 +435,14 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📈 Ganancias Negocio</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📈 Ganancias en Tienda</span>
             <TrendingUp size={16} color="var(--md-sys-color-income)" />
           </div>
           <div style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)' }}>
             +{formatCurrency(totalAccumulatedHouseProfits, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
           </div>
           <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
-            Ganancia neta acumulada
+            Retenidas en Tienda (Mover con Transferencia)
           </div>
         </div>
 
@@ -528,9 +528,9 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             width: '100%',
             padding: '14px 10px',
             borderRadius: '18px',
-            border: '2px solid #F59E0B',
-            backgroundColor: '#FEF3C7',
-            color: '#92400E',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            backgroundColor: '#FFFFFF',
+            color: 'var(--md-sys-color-on-surface)',
             fontSize: '0.95rem',
             fontWeight: 900,
             cursor: 'pointer',
@@ -538,7 +538,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.15)'
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)'
           }}
         >
           <FileText size={20} color="#D97706" />

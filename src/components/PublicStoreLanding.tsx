@@ -123,10 +123,20 @@ export const PublicStoreLanding: React.FC = () => {
       setProducts(filterPublished(getStoreProducts()));
     };
 
+    const handleOnline = () => {
+      syncDatabaseWithCloud(false).then(res => {
+        if (res.success) {
+          refreshLanding();
+        }
+      }).catch(() => {});
+    };
+
+    window.addEventListener('online', handleOnline);
     window.addEventListener('cuentacasa-db-changed', refreshLanding);
     window.addEventListener('cuentacasa-currency-mode-changed', refreshLanding);
 
     return () => {
+      window.removeEventListener('online', handleOnline);
       window.removeEventListener('cuentacasa-db-changed', refreshLanding);
       window.removeEventListener('cuentacasa-currency-mode-changed', refreshLanding);
     };

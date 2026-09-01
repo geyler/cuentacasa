@@ -278,9 +278,19 @@ export function getRawDatabase(): RawDatabase {
       return memoryDbCache;
     }
     const parsed = JSON.parse(raw);
+    let needsMigration = false;
+    const rawTxs = Array.isArray(parsed.transactions) ? parsed.transactions : [];
+    const sanitizedTxs = rawTxs.map((tx: any) => {
+      if (tx && (tx.category === 'Ganancia Tienda' || (tx.id && tx.id.startsWith('tx-profit-'))) && tx.accountSource === 'casa') {
+        needsMigration = true;
+        return { ...tx, accountSource: 'tienda' };
+      }
+      return tx;
+    });
+
     const db: RawDatabase = {
       ...parsed,
-      transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+      transactions: sanitizedTxs,
       storeProducts: Array.isArray(parsed.storeProducts) ? parsed.storeProducts : INITIAL_SEED_PRODUCTS,
       storeSales: Array.isArray(parsed.storeSales) ? parsed.storeSales : [],
       supplierAccounts: Array.isArray(parsed.supplierAccounts) ? parsed.supplierAccounts : INITIAL_SUPPLIERS,
@@ -294,6 +304,9 @@ export function getRawDatabase(): RawDatabase {
     };
     memoryDbCache = db;
     memoryRawString = raw;
+    if (needsMigration) {
+      saveRawDatabase(db);
+    }
     return db;
   } catch (err) {
     console.error('Error parsing raw DB from LocalStorage:', err);
@@ -831,6 +844,9 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     const itemCostTotal = item.costPrice * item.quantity;
 
     // Supplier vs Own Merchandise Flow
+    const itemSubtotal = item.quantity * item.unitPrice;
+    const itemCurr = item.currency || saleCurrency;
+
     if (item.supplierType === 'proveedor' && item.supplierName) {
       let supplier = db.supplierAccounts!.find(s => s.name.toLowerCase() === item.supplierName!.toLowerCase());
       if (!supplier) {
@@ -845,21 +861,20 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
         };
         db.supplierAccounts!.push(supplier);
       }
-      const itemCurr = item.currency || saleCurrency;
-      // Cost money goes to Supplier Pending Payout (separated by currency)
       if (itemCurr === 'USD') {
         supplier.pendingPayoutUSD = (supplier.pendingPayoutUSD || 0) + itemCostTotal;
+        db.storeFundUSD = (db.storeFundUSD || 0) + itemSubtotal;
       } else {
         supplier.pendingPayout = (supplier.pendingPayout || 0) + itemCostTotal;
+        db.storeFund = (db.storeFund || 0) + itemSubtotal;
       }
       supplier.updatedAt = Date.now();
     } else {
-      const itemCurr = item.currency || saleCurrency;
-      // Cost money stays in Store Own Fund (separated by currency)
+      // All sales cash (cost + profit) remains in Store Fund until explicitly transferred
       if (itemCurr === 'USD') {
-        db.storeFundUSD = (db.storeFundUSD || 0) + itemCostTotal;
+        db.storeFundUSD = (db.storeFundUSD || 0) + itemSubtotal;
       } else {
-        db.storeFund = (db.storeFund || 0) + itemCostTotal;
+        db.storeFund = (db.storeFund || 0) + itemSubtotal;
       }
     }
   });
@@ -879,7 +894,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
 
   const formattedTicketNotes = `[TICKET_DE_VENTA]\n${ticketItemsList}\n-------------------\nTotal: ${currSymbol}${saleData.totalAmount} | Moneda: ${saleCurrency} | Vendedor: ${saleData.sellerId || 'General'}`;
 
-  // 1. Register Gross Sale Income in Store Account Log
+  // 1. Register Gross Sale Income in Store Account Log (All revenue remains in store)
   const storeSaleTx: Transaction = {
     id: `tx-sale-store-${now}`,
     type: 'ingreso',
@@ -895,26 +910,6 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     synced: false
   };
   db.transactions.unshift(storeSaleTx);
-
-  // 2. Net Profit (Ganancia Casa) is transferred to CuentaCasa Accounting DB
-  if (saleData.netProfit > 0) {
-    const newTx: Transaction = {
-      id: `tx-profit-${now + 1}`,
-      type: 'ingreso',
-      concept: `Ganancia Tienda: ${conceptSummary}`,
-      category: 'Ganancia Tienda',
-      amount: saleData.netProfit,
-      currency: saleCurrency,
-      date: saleData.date,
-      accountSource: 'casa',
-      notes: `Venta Total: ${currSymbol}${saleData.totalAmount} | Fondo Tienda/Proveedores retenido: ${currSymbol}${saleData.totalCost}`,
-      createdAt: now + 1,
-      updatedAt: now + 1,
-      synced: false
-    };
-
-    db.transactions.unshift(newTx);
-  }
 
   saveRawDatabase(db);
   recordShiftSaleInActiveShift(saleData.items, saleData.totalAmount, 'cash', saleData.sellerId, saleCurrency);
@@ -1022,7 +1017,6 @@ export function getCalculatedStoreFund(): number {
   const suppliers = db.supplierAccounts || [];
 
   const totalAccumulatedSalesRevenue = salesRecords.reduce((acc, s) => acc + s.totalAmount, 0);
-  const totalAccumulatedHouseProfits = salesRecords.reduce((acc, s) => acc + (s.netProfit || 0), 0);
   const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + (s.pendingPayout || 0), 0);
 
   const houseCapitalTransactions = (db.transactions || []).filter(t => 
@@ -1037,7 +1031,7 @@ export function getCalculatedStoreFund(): number {
     .filter(t => t.type === 'gasto' && t.category === 'Tienda')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  return Math.max(0, (totalAccumulatedSalesRevenue - totalAccumulatedHouseProfits - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
+  return Math.max(0, (totalAccumulatedSalesRevenue - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
 }
 
 export function getCalculatedStoreFundUSD(): number {
@@ -1046,7 +1040,6 @@ export function getCalculatedStoreFundUSD(): number {
   const suppliers = db.supplierAccounts || [];
 
   const totalAccumulatedSalesRevenue = salesRecords.reduce((acc, s) => acc + s.totalAmount, 0);
-  const totalAccumulatedHouseProfits = salesRecords.reduce((acc, s) => acc + (s.netProfit || 0), 0);
   const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + (s.pendingPayoutUSD || 0), 0);
 
   const houseCapitalTransactions = (db.transactions || []).filter(t => 
@@ -1061,7 +1054,7 @@ export function getCalculatedStoreFundUSD(): number {
     .filter(t => t.type === 'gasto' && t.category === 'Tienda')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  return Math.max(0, (totalAccumulatedSalesRevenue - totalAccumulatedHouseProfits - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
+  return Math.max(0, (totalAccumulatedSalesRevenue - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
 }
 
 export function getSavingsFund(): number {
@@ -1237,8 +1230,16 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
     }
   }
 
+  if ((fromAccount === 'tienda' && toAccount === 'ahorro') || (fromAccount === 'ahorro' && toAccount === 'tienda')) {
+    return { success: false, error: 'No se permite transferir directamente entre el Negocio y el Ahorro. El dinero debe pasar primero por la Casa.' };
+  }
+
   if (fromAccount === 'ahorro' && toAccount !== 'casa') {
-    return { success: false, error: 'Desde el Fondo de Ahorro solo se permite transferir hacia el Fondo de la Casa.' };
+    return { success: false, error: 'Desde la cuenta de Ahorro solo se permite transferir hacia la Casa.' };
+  }
+
+  if (toAccount === 'ahorro' && fromAccount !== 'casa') {
+    return { success: false, error: 'A la cuenta de Ahorro solo se permite transferir desde la Casa.' };
   }
 
   // Deduct from Source Account (in source currency)
@@ -1358,6 +1359,54 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
 // Transfer funds from Store Business Fund (Fondo Tienda) to Cuenta Casa Accounting
 export function transferStoreFundToCasa(amount: number, notes?: string, currency: CurrencyType = 'CUP'): { success: boolean; error?: string } {
   return executeUniversalTransfer({ fromAccount: 'tienda', toAccount: 'casa', amount, currency, notes });
+}
+
+// Retirar fondos de Ahorro como Gasto del Sistema
+export function withdrawSavingsAsExpense(
+  amount: number,
+  concept: string,
+  currency: CurrencyType = 'CUP',
+  notes?: string
+): { success: boolean; error?: string } {
+  const db = getRawDatabase();
+  if (amount <= 0) return { success: false, error: 'El monto a retirar debe ser mayor a 0.' };
+
+  if (currency === 'USD') {
+    const currentSavingsUSD = db.savingsFundUSD || 0;
+    if (amount > currentSavingsUSD) {
+      return { success: false, error: `Saldo insuficiente en Ahorro USD (US$ ${currentSavingsUSD}).` };
+    }
+    db.savingsFundUSD = currentSavingsUSD - amount;
+  } else {
+    const currentSavingsCUP = db.savingsFund || 0;
+    if (amount > currentSavingsCUP) {
+      return { success: false, error: `Saldo insuficiente en Fondo Ahorro ($${currentSavingsCUP}).` };
+    }
+    db.savingsFund = currentSavingsCUP - amount;
+  }
+
+  const now = Date.now();
+  const todayISO = new Date().toISOString().split('T')[0];
+
+  const expenseTx: Transaction = {
+    id: `tx-savings-exp-${now}`,
+    type: 'gasto',
+    concept: concept.trim() || 'Gasto / Retiro del Fondo de Ahorro',
+    category: 'Gasto de Ahorro',
+    amount: amount,
+    currency: currency,
+    date: todayISO,
+    accountSource: 'ahorro',
+    notes: notes?.trim() || 'Ahorros retirados del sistema como gasto.',
+    createdAt: now,
+    updatedAt: now,
+    synced: false
+  };
+
+  if (!db.transactions) db.transactions = [];
+  db.transactions.unshift(expenseTx);
+  saveRawDatabase(db);
+  return { success: true };
 }
 
 // Transfer funds from House (Cuenta Casa) to Store Business Fund (Fondo Tienda)

@@ -124,7 +124,7 @@
   --md-sys-color-expense-container: #FFF1F2;
   --md-sys-color-on-expense-container: #9F1239;
 
-  --md-sys-color-surface: #FDFBFD;
+  --md-sys-color-surface: #FFFFFF;
   --md-sys-color-on-surface: #1E293B;
   --md-sys-color-surface-container: #FFFFFF;
   --md-sys-color-surface-container-high: #F8FAFC;
@@ -181,7 +181,7 @@
 }
 
 html {
-  background-color: #0F172A;
+  background-color: #FFFFFF;
 }
 
 body {
@@ -191,9 +191,8 @@ body {
   max-width: 768px;
   margin: 0 auto;
   min-height: 100vh;
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.25);
   position: relative;
-  background-color: var(--md-sys-color-surface);
+  background-color: #FFFFFF;
 }
 
 /* Skeleton Loading Shimmer Effect */

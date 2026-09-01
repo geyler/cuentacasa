@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { FundAccountType, CurrencyType } from '@/types';
-import { getRawDatabase, getSavingsFund, executeUniversalTransfer, getCurrencySettings } from '@/lib/storage';
+import { getRawDatabase, getSavingsFund, executeUniversalTransfer, getCurrencySettings, withdrawSavingsAsExpense } from '@/lib/storage';
 import { formatCurrency, calculateFinancialSummary } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
-import { ArrowRightLeft, X, PiggyBank, Store, Home, Coins, RefreshCw } from 'lucide-react';
+import { ArrowRightLeft, X, PiggyBank, Store, Home, Coins, LogOut } from 'lucide-react';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -31,6 +31,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const [toAccount, setToAccount] = useState<FundAccountType>(
     defaultTo !== defaultFrom ? defaultTo : (defaultFrom === 'casa' ? 'ahorro' : 'casa')
   );
+
+  // Special mode for Savings: Withdraw as Expense out of system
+  const [isSavingsExpenseMode, setIsSavingsExpenseMode] = useState<boolean>(false);
 
   // Transfer Mode: Standard (same currency) vs Cross-Currency Conversion (USD <-> CUP)
   const [isCrossCurrencyMode, setIsCrossCurrencyMode] = useState<boolean>(false);
@@ -115,9 +118,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   const handleFromChange = (acc: FundAccountType) => {
     setFromAccount(acc);
-    if (!isCrossCurrencyMode && toAccount === acc) {
-      const remaining: FundAccountType[] = (['casa', 'tienda', 'ahorro'] as FundAccountType[]).filter(a => a !== acc);
-      setToAccount(remaining[0]);
+    setIsSavingsExpenseMode(false);
+    if (acc === 'tienda' || acc === 'ahorro') {
+      setToAccount('casa');
+    } else if (toAccount === 'casa') {
+      setToAccount('ahorro');
     }
   };
 
@@ -133,6 +138,37 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         title: 'Saldo Insuficiente',
         message: `El saldo disponible en ${getAccountLabel(fromAccount)} (${activeSourceCurrency}) es ${srcSymbol} ${availableSourceBalance}.`,
         type: 'error'
+      });
+      return;
+    }
+
+    // Handle Savings Expense Withdrawal
+    if (fromAccount === 'ahorro' && isSavingsExpenseMode) {
+      confirmAction({
+        title: '¿Confirmar Retiro como Gasto?',
+        message: `Se debitarán ${srcSymbol}${numAmount} ${activeSourceCurrency} del Fondo de Ahorro y se registrarán como Gasto (sacándolos del sistema contable).`,
+        variant: 'warning',
+        confirmText: 'Registrar Gasto de Ahorro',
+        onConfirm: () => {
+          const res = withdrawSavingsAsExpense(numAmount, notes || 'Gasto del Fondo de Ahorro', activeSourceCurrency, notes);
+          if (res.success) {
+            setAmount('');
+            setNotes('');
+            onSuccess();
+            onClose();
+            showActionResult({
+              title: '¡Gasto de Ahorro Registrado!',
+              message: `Se retiraron ${srcSymbol}${numAmount} del Fondo de Ahorro como gasto del sistema.`,
+              type: 'success'
+            });
+          } else {
+            showToast({
+              title: 'Error al Retirar',
+              message: res.error || 'No se pudo registrar el gasto de ahorro.',
+              type: 'error'
+            });
+          }
+        }
       });
       return;
     }
@@ -464,45 +500,110 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </div>
         </div>
 
-        {/* Account Selector Grid: TO */}
+        {/* Account Selector Grid: TO / DESTINATION */}
         <div>
-          <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-            2. Cuenta Destino (Ingresa {activeTargetCurrency}):
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-            {(['casa', 'tienda', 'ahorro'] as FundAccountType[]).map((acc) => {
-              const isDisabled = !isCrossCurrencyMode && fromAccount === acc;
-              const isSelected = toAccount === acc;
-              return (
-                <button
-                  key={`to-${acc}`}
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => setToAccount(acc)}
-                  style={{
-                    padding: '10px 4px',
-                    borderRadius: '12px',
-                    border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                    backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                    color: isSelected ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                    fontWeight: isSelected ? 800 : 600,
-                    fontSize: '0.78rem',
-                    cursor: isDisabled ? 'not-allowed' : 'pointer',
-                    opacity: isDisabled ? 0.4 : 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  {acc === 'casa' && <Home size={16} />}
-                  {acc === 'tienda' && <Store size={16} />}
-                  {acc === 'ahorro' && <PiggyBank size={16} />}
-                  <span>{getAccountLabel(acc).replace(/^[^\s]+\s*/, '')}</span>
-                </button>
-              );
-            })}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+              2. Destino de los Fondos:
+            </label>
+            {fromAccount === 'ahorro' && (
+              <button
+                type="button"
+                onClick={() => setIsSavingsExpenseMode(!isSavingsExpenseMode)}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '8px',
+                  border: isSavingsExpenseMode ? '1.5px solid #EF4444' : '1px solid #FCA5A5',
+                  backgroundColor: isSavingsExpenseMode ? '#FEE2E2' : '#FFF5F5',
+                  color: isSavingsExpenseMode ? '#991B1B' : '#B91C1C',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <LogOut size={13} />
+                <span>{isSavingsExpenseMode ? '✓ Sacar como Gasto' : 'Sacar como Gasto'}</span>
+              </button>
+            )}
           </div>
+
+          {!isSavingsExpenseMode ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+              {(['casa', 'tienda', 'ahorro'] as FundAccountType[]).map((acc) => {
+                const isSameAccount = !isCrossCurrencyMode && fromAccount === acc;
+                const isForbiddenCross = (fromAccount === 'tienda' && acc === 'ahorro') || (fromAccount === 'ahorro' && acc === 'tienda');
+                const isDisabled = isSameAccount || isForbiddenCross;
+                const isSelected = toAccount === acc;
+
+                return (
+                  <button
+                    key={`to-${acc}`}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => setToAccount(acc)}
+                    style={{
+                      padding: '10px 4px',
+                      borderRadius: '12px',
+                      border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                      color: isSelected ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: isSelected ? 800 : 600,
+                      fontSize: '0.78rem',
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      opacity: isDisabled ? 0.35 : 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    {acc === 'casa' && <Home size={16} />}
+                    {acc === 'tienda' && <Store size={16} />}
+                    {acc === 'ahorro' && <PiggyBank size={16} />}
+                    <span>{getAccountLabel(acc).replace(/^[^\s]+\s*/, '')}</span>
+                    {isForbiddenCross && (
+                      <span style={{ fontSize: '0.6rem', color: '#991B1B', fontWeight: 800 }}>Pasa por Casa</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{
+              padding: '12px',
+              borderRadius: '12px',
+              backgroundColor: '#FEF2F2',
+              border: '1.5px solid #FCA5A5',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <LogOut size={20} color="#DC2626" />
+              <div>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#991B1B', display: 'block' }}>
+                  Retiro del Sistema (Gasto de Ahorros)
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#B91C1C' }}>
+                  El dinero saldrá del Fondo de Ahorro y no ingresará a ninguna otra cuenta. Se registrará como gasto definitivo.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Rule Clarification Banner */}
+          {fromAccount === 'tienda' && (
+            <div style={{ marginTop: '6px', fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+              💡 Las ganancias del negocio se acumulan en la Tienda. Para usarlas en Casa, realiza una transferencia directa.
+            </div>
+          )}
+          {fromAccount === 'ahorro' && !isSavingsExpenseMode && (
+            <div style={{ marginTop: '6px', fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+              💡 El Fondo de Ahorro solo se transfiere de ida y vuelta con la Casa.
+            </div>
+          )}
         </div>
 
         {/* Balance Display Banner */}
@@ -553,7 +654,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         </div>
 
         {/* Live Calculation Preview when converting */}
-        {isCrossCurrencyMode && numAmount > 0 && (
+        {isCrossCurrencyMode && numAmount > 0 && !isSavingsExpenseMode && (
           <div style={{
             padding: '12px 14px',
             borderRadius: '12px',
@@ -580,7 +681,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </label>
           <AppInput
             type="text"
-            placeholder={isCrossCurrencyMode ? "Ej. Cambio de divisas de caja..." : "Ej. Depósito mensual de ahorro..."}
+            placeholder={isSavingsExpenseMode ? "Ej. Compra de electrodoméstico..." : isCrossCurrencyMode ? "Ej. Cambio de divisas de caja..." : "Ej. Depósito mensual de ahorro..."}
             value={notes}
             onChange={e => setNotes(e.target.value)}
           />
@@ -599,11 +700,15 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
           <button
             type="submit"
-            className="md-btn md-btn-primary"
+            className={`md-btn ${isSavingsExpenseMode ? 'md-btn-expense' : 'md-btn-primary'}`}
             style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
           >
-            <ArrowRightLeft size={18} />
-            <span>{isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`}</span>
+            {isSavingsExpenseMode ? <LogOut size={18} /> : <ArrowRightLeft size={18} />}
+            <span>
+              {isSavingsExpenseMode 
+                ? 'Registrar Gasto de Ahorro' 
+                : (isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`)}
+            </span>
           </button>
         </div>
 

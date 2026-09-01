@@ -111,31 +111,37 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.70)',
-        backdropFilter: 'blur(4px)',
+        backdropFilter: 'blur(6px)',
         zIndex: 2500,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        padding: '16px'
+        padding: '0'
       }} 
       onClick={onClose}
+      className="no-print"
     >
       <div 
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          backgroundColor: 'var(--md-sys-color-surface)',
+          backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
           maxWidth: '768px',
           maxHeight: '90dvh',
-          borderRadius: '24px',
+          borderTopLeftRadius: '28px',
+          borderTopRightRadius: '28px',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           boxShadow: 'var(--md-shadow-elevation-4)',
-          border: '1px solid var(--md-sys-color-outline-variant)'
+          borderTop: '1px solid var(--md-sys-color-outline-variant)'
         }}
       >
+        {/* Handle Drag Indicator */}
+        <div style={{ width: '44px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '10px auto 4px auto', opacity: 0.8 }} />
+
         {/* Printable Only Official Header */}
         <div className="printable-only" style={{ display: 'none', padding: '20px', borderBottom: '2px solid #000' }}>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase' }}>LIBRO OFICIAL DE TASACIONES Y VENCIMIENTOS</h1>
@@ -401,29 +407,35 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
             zIndex: 2600,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
-            padding: '16px'
+            padding: '0'
           }}
           onClick={() => setEditingDateProduct(null)}
         >
           <form
             onSubmit={handleSaveQuickDate}
             onClick={e => e.stopPropagation()}
+            className="bottom-sheet-modal"
             style={{
-              backgroundColor: 'var(--md-sys-color-surface)',
-              padding: '20px',
-              borderRadius: '20px',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              padding: '12px 20px 24px 20px',
+              borderTopLeftRadius: '28px',
+              borderTopRightRadius: '28px',
               width: '100%',
-              maxWidth: '380px',
+              maxWidth: '480px',
               display: 'flex',
               flexDirection: 'column',
               gap: '14px',
               boxShadow: 'var(--md-shadow-elevation-4)'
             }}
           >
+            {/* Handle Drag Indicator */}
+            <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 6px auto', opacity: 0.8 }} />
+
             <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>Actualizar Fechas del Producto</h4>
             <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '-8px' }}>
               {editingDateProduct.name} (SKU: {editingDateProduct.barcode})

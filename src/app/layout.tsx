@@ -37,6 +37,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               window.addEventListener('error', function(e) {
+                if (typeof navigator !== 'undefined' && !navigator.onLine) return;
                 if (e.message && (e.message.includes('Loading chunk') || e.message.includes('Failed to fetch dynamically imported module'))) {
                   window.location.reload();
                 }

@@ -67,7 +67,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
                 paddingTop: '8px',
                 borderTop: '1px dashed var(--md-sys-color-outline-variant)'
               }}>
-                <span>Ganancia Casa/Propietario: <strong style={{ color: 'var(--md-sys-color-income)' }}>${sale.netProfit}</strong></span>
+                <span>Ganancia Neta Tienda: <strong style={{ color: 'var(--md-sys-color-income)' }}>${sale.netProfit}</strong></span>
                 <span>Costo Retenido: <strong>${sale.totalCost}</strong></span>
               </div>
             </div>
@@ -156,7 +156,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
-                  Ganancia Casa
+                  Ganancia Neta Tienda
                 </span>
                 <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
                   +${selectedSale.netProfit}
@@ -220,7 +220,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
                 <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>${selectedSale.totalCost}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>Ganancia Neta para Cuenta Casa:</span>
+                <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>Ganancia Neta Retenida en Tienda:</span>
                 <strong style={{ color: 'var(--md-sys-color-income)' }}>+${selectedSale.netProfit}</strong>
               </div>
             </div>
