@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { StoreProduct, SupplierAccount, UserRole } from '@/types';
+import { StoreProduct, SupplierAccount, UserRole, CurrencyType } from '@/types';
 import {
   getStoreProducts,
   saveStoreProduct,
@@ -264,16 +264,16 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     });
   };
 
-  const handleExecutePayout = (amount: number, source: 'negocio' | 'casa') => {
+  const handleExecutePayout = (amount: number, source: 'negocio' | 'casa', payoutCurrency: CurrencyType = 'CUP') => {
     if (!payoutSupplier) return;
     try {
-      const res = paySupplierAccount(payoutSupplier.id, amount, source, currency === 'US$' ? 'USD' : 'CUP');
+      const res = paySupplierAccount(payoutSupplier.id, amount, source, payoutCurrency);
       if (res.success) {
         setSuppliers(getSupplierAccounts());
         syncDatabaseWithCloud();
         showActionResult({
           title: '¡Pago Registrado!',
-          message: res.message || `Se liquidaron $${amount} a ${payoutSupplier.name}.`,
+          message: res.message || `Se liquidaron ${payoutCurrency === 'USD' ? 'US$' : '$'}${amount} a ${payoutSupplier.name}.`,
           type: 'success'
         });
       } else {

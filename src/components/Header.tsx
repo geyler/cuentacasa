@@ -431,7 +431,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Footer status */}
             <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center' }}>
-              Samy Store v1.6.1 • PWA Offline
+              Samy Store v1.7.0 • PWA Offline
             </div>
           </div>
         </div>

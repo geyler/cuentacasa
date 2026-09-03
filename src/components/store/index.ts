@@ -13,4 +13,5 @@ export { SupplierFormModal } from './SupplierFormModal';
 export { SupplierPayoutModal } from './SupplierPayoutModal';
 export { QuickProductSearchModal } from './QuickProductSearchModal';
 export { ValuationBookModal } from './ValuationBookModal';
+export { SupplierHistoryModal } from './SupplierHistoryModal';
 

@@ -473,6 +473,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     let finalSaleCurrency: CurrencyType = 'CUP';
     let finalTotalAmount = multiTotals.equivalentCUP;
     let netProfit = multiTotals.equivalentCUP - totalInvoiceCost;
+    let totalAmountCUP: number | undefined = undefined;
+    let totalAmountUSD: number | undefined = undefined;
 
     if (multiTotals.isMixed) {
       if (selectedPaymentCurrency === 'USD') {
@@ -484,9 +486,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         finalTotalAmount = multiTotals.equivalentCUP;
         netProfit = multiTotals.equivalentCUP - totalInvoiceCost;
       } else {
-        // MIXED: Retain individual item currencies
-        finalSaleCurrency = 'CUP'; // base logging
-        finalTotalAmount = multiTotals.totalCUP; // stored base CUP total
+        // MIXED: Separado CUP + USD
+        finalSaleCurrency = 'MIXED';
+        finalTotalAmount = multiTotals.equivalentCUP; // Para referencia de total equivalente
+        totalAmountCUP = multiTotals.totalCUP;
+        totalAmountUSD = multiTotals.totalUSD;
+        netProfit = (multiTotals.totalCUP + (multiTotals.totalUSD * liveExchangeRate)) - totalInvoiceCost;
       }
     } else {
       finalSaleCurrency = multiTotals.hasUSD ? 'USD' : 'CUP';
@@ -497,7 +502,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     confirmAction({
       title: '¿Confirmar y Registrar Venta?',
       message: multiTotals.isMixed && selectedPaymentCurrency === 'MIXED'
-        ? `Se registrará la venta cobrando $${multiTotals.totalCUP.toLocaleString('es-ES')} CUP y $${multiTotals.totalUSD.toLocaleString('es-ES')} USD.`
+        ? `Se registrará la venta cobrando $${multiTotals.totalCUP.toLocaleString('es-ES')} CUP y US$${multiTotals.totalUSD.toLocaleString('es-ES')} USD.`
         : `Se registrará la venta de ${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'} por un total de ${formatCurrency(finalTotalAmount, finalSaleCurrency, true)}.`,
       variant: 'primary',
       confirmText: 'Confirmar y Cobrar',
@@ -508,6 +513,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           date: todayStr,
           items: ticketItems,
           totalAmount: finalTotalAmount,
+          totalAmountCUP: totalAmountCUP,
+          totalAmountUSD: totalAmountUSD,
           totalCost: totalInvoiceCost,
           netProfit: Math.max(0, netProfit),
           currency: finalSaleCurrency

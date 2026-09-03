@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SupplierAccount, StoreProduct } from '@/types';
+import { SupplierAccount, StoreProduct, CurrencyType } from '@/types';
 import { getStoreSales } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
-import { Users, UserPlus, Trash2, DollarSign, Receipt } from 'lucide-react';
+import { SupplierHistoryModal } from './SupplierHistoryModal';
+import { Users, UserPlus, Trash2, DollarSign, Receipt, Coins, Eye } from 'lucide-react';
 
 interface StoreSuppliersTabProps {
   suppliers: SupplierAccount[];
@@ -24,11 +25,25 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
   onDeleteSupplier
 }) => {
   const [expandedSupplierId, setExpandedSupplierId] = useState<string | null>(null);
+  const [selectedHistorySupplier, setSelectedHistorySupplier] = useState<SupplierAccount | null>(null);
 
   const consignmentProds = products.filter(p => p.supplierType === 'proveedor');
-  const totalUnsoldNet = consignmentProds.reduce((sum, p) => sum + ((p.costPrice || 0) * p.stock), 0);
-  const totalPendingDebt = suppliers.reduce((sum, s) => sum + s.pendingPayout, 0);
-  const totalPaidAll = suppliers.reduce((sum, s) => sum + s.totalPaid, 0);
+  
+  // Stock por moneda
+  const totalUnsoldCUP = consignmentProds
+    .filter(p => p.currency !== 'USD')
+    .reduce((sum, p) => sum + ((p.costPrice || 0) * p.stock), 0);
+  const totalUnsoldUSD = consignmentProds
+    .filter(p => p.currency === 'USD')
+    .reduce((sum, p) => sum + ((p.costPrice || 0) * p.stock), 0);
+
+  // Deuda pendiente acumulada por moneda
+  const totalPendingDebtCUP = suppliers.reduce((sum, s) => sum + s.pendingPayout, 0);
+  const totalPendingDebtUSD = suppliers.reduce((sum, s) => sum + (s.pendingPayoutUSD || 0), 0);
+
+  // Total pagado acumulado por moneda
+  const totalPaidCUP = suppliers.reduce((sum, s) => sum + s.totalPaid, 0);
+  const totalPaidUSD = suppliers.reduce((sum, s) => sum + (s.totalPaidUSD || 0), 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -41,7 +56,7 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
             <span>Control Financiero de Proveedores (Consignación)</span>
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
-            Auditoría en tiempo real de mercancía en inventario, ventas por liquidar, historial de pagos y liquidaciones a proveedores.
+            Auditoría en tiempo real de mercancía en inventario, ventas por liquidar en CUP/USD, historial y liquidaciones.
           </p>
         </div>
 
@@ -55,8 +70,10 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
         </button>
       </div>
 
-      {/* Top Summary Metrics Bar */}
+      {/* Top Summary Metrics Bar (Dual Moneda) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+        
+        {/* Card 1: Stock en Consignación */}
         <div style={{
           padding: '12px 14px',
           borderRadius: '16px',
@@ -67,16 +84,24 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
           gap: '4px'
         }}>
           <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-            📦 Mercancía Stock
+            📦 Mercancía Stock (Costo)
           </span>
-          <strong style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
-            {formatCurrency(totalUnsoldNet, currency, true)}
-          </strong>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <strong style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
+              ${totalUnsoldCUP.toLocaleString('es-ES')} CUP
+            </strong>
+            {totalUnsoldUSD > 0 && (
+              <strong style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0F766E' }}>
+                US$${totalUnsoldUSD.toLocaleString('es-ES')} USD
+              </strong>
+            )}
+          </div>
           <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
             {consignmentProds.reduce((s, p) => s + p.stock, 0)}u en inventario
           </span>
         </div>
 
+        {/* Card 2: Deuda Retenida por Liquidar */}
         <div style={{
           padding: '12px 14px',
           borderRadius: '16px',
@@ -87,16 +112,22 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
           gap: '4px'
         }}>
           <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-expense)' }}>
-            ⏳ Por Liquidar
+            ⏳ Por Liquidar a Proveedores
           </span>
-          <strong style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-expense)' }}>
-            {formatCurrency(totalPendingDebt, currency, true)}
-          </strong>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <strong style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-expense)' }}>
+              ${totalPendingDebtCUP.toLocaleString('es-ES')} CUP
+            </strong>
+            <strong style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0F766E' }}>
+              US$${totalPendingDebtUSD.toLocaleString('es-ES')} USD
+            </strong>
+          </div>
           <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-expense)' }}>
-            Ventas pendientes
+            Ventas realizadas pendientes de pago
           </span>
         </div>
 
+        {/* Card 3: Total Ya Liquidado */}
         <div style={{
           padding: '12px 14px',
           borderRadius: '16px',
@@ -110,23 +141,32 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
           <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
             ✅ Total Ya Liquidado (Pagado a Proveedores)
           </span>
-          <strong style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-            {formatCurrency(totalPaidAll, currency, true)}
-          </strong>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <strong style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+              ${totalPaidCUP.toLocaleString('es-ES')} CUP
+            </strong>
+            <strong style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0F766E' }}>
+              US$${totalPaidUSD.toLocaleString('es-ES')} USD
+            </strong>
+          </div>
           <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-income)' }}>
-            Entregado en efectivo a proveedores
+            Total acumulado entregado a proveedores en efectivo
           </span>
         </div>
+
       </div>
 
       {/* Supplier Cards List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {suppliers.map(sup => {
           const supProds = products.filter(p => p.supplierType === 'proveedor' && p.supplierName?.toLowerCase() === sup.name.toLowerCase());
-          const unsoldNet = supProds.reduce((sum, p) => sum + ((p.costPrice || 0) * p.stock), 0);
+          const unsoldCUP = supProds.filter(p => p.currency !== 'USD').reduce((sum, p) => sum + ((p.costPrice || 0) * p.stock), 0);
+          const unsoldUSD = supProds.filter(p => p.currency === 'USD').reduce((sum, p) => sum + ((p.costPrice || 0) * p.stock), 0);
           const totalStock = supProds.reduce((sum, p) => sum + p.stock, 0);
 
-          // Gather sales history for this supplier
+          const hasPendingDebt = sup.pendingPayout > 0 || (sup.pendingPayoutUSD || 0) > 0;
+
+          // Historial de ventas de este proveedor
           const salesHistory = getStoreSales();
           const supplierSalesItems: {
             saleId: string;
@@ -139,11 +179,13 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
             totalCost: number;
             totalPrice: number;
             profit: number;
+            currency: CurrencyType;
           }[] = [];
 
           salesHistory.forEach(sale => {
             sale.items.forEach(item => {
               if (item.supplierType === 'proveedor' && item.supplierName?.toLowerCase() === sup.name.toLowerCase()) {
+                const itemCurr: CurrencyType = item.currency || sale.currency || 'CUP';
                 const totalItemCost = item.costPrice * item.quantity;
                 const totalItemPrice = item.subtotal || (item.unitPrice * item.quantity);
                 supplierSalesItems.push({
@@ -156,11 +198,15 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
                   price: item.unitPrice,
                   totalCost: totalItemCost,
                   totalPrice: totalItemPrice,
-                  profit: totalItemPrice - totalItemCost
+                  profit: totalItemPrice - totalItemCost,
+                  currency: itemCurr
                 });
               }
             });
           });
+
+          const profitCUP = supplierSalesItems.filter(i => i.currency !== 'USD').reduce((s, i) => s + i.profit, 0);
+          const profitUSD = supplierSalesItems.filter(i => i.currency === 'USD').reduce((s, i) => s + i.profit, 0);
 
           const isExpanded = expandedSupplierId === sup.id;
 
@@ -191,7 +237,7 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
                   </span>
                 </div>
 
-                {sup.pendingPayout <= 0 && (
+                {!hasPendingDebt && (
                   <button
                     onClick={() => onDeleteSupplier(sup)}
                     title="Eliminar proveedor sin deuda"
@@ -202,79 +248,101 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
                 )}
               </div>
 
-              {/* Financial Grid (4 Pills in 2x2 Grid) */}
+              {/* Financial Grid (4 Pills con soporte doble moneda) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                 
+                {/* Mercancía sin vender */}
                 <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', fontWeight: 700 }}>
                     En Inventario (Sin Vender):
                   </span>
-                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                    {formatCurrency(unsoldNet, currency, true)}
+                  <strong style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', display: 'block' }}>
+                    ${unsoldCUP.toLocaleString('es-ES')} CUP
                   </strong>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+                  {unsoldUSD > 0 && (
+                    <strong style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F766E', display: 'block' }}>
+                      US$${unsoldUSD.toLocaleString('es-ES')} USD
+                    </strong>
+                  )}
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
                     {totalStock} unidades en stock
                   </span>
                 </div>
 
+                {/* Por Liquidar */}
                 <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-expense)', display: 'block', fontWeight: 700 }}>
                     Por Liquidar (Vendidas):
                   </span>
-                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: sup.pendingPayout > 0 ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-income)' }}>
-                    {formatCurrency(sup.pendingPayout, currency, true)}
+                  <strong style={{ fontSize: '1rem', fontWeight: 900, color: sup.pendingPayout > 0 ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+                    ${sup.pendingPayout.toLocaleString('es-ES')} CUP
                   </strong>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-                    Pendiente de pagar
+                  <strong style={{ fontSize: '0.9rem', fontWeight: 800, color: (sup.pendingPayoutUSD || 0) > 0 ? '#0F766E' : 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+                    US$${(sup.pendingPayoutUSD || 0).toLocaleString('es-ES')} USD
+                  </strong>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
+                    Pendiente de entregar
                   </span>
                 </div>
 
+                {/* Ya Liquidado */}
                 <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-income)', display: 'block', fontWeight: 700 }}>
                     Ya Liquidado (Pagado):
                   </span>
-                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                    {formatCurrency(sup.totalPaid, currency, true)}
+                  <strong style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--md-sys-color-income)', display: 'block' }}>
+                    ${sup.totalPaid.toLocaleString('es-ES')} CUP
                   </strong>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
-                    Pagos realizados
+                  <strong style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F766E', display: 'block' }}>
+                    US$${(sup.totalPaidUSD || 0).toLocaleString('es-ES')} USD
+                  </strong>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
+                    Pagos entregados
                   </span>
                 </div>
 
+                {/* Ganancia Tienda */}
                 <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-primary)', display: 'block', fontWeight: 700 }}>
                     Ganancia para la Tienda:
                   </span>
-                  <strong style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
-                    {formatCurrency(supplierSalesItems.reduce((s, i) => s + i.profit, 0), currency, true)}
+                  <strong style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--md-sys-color-primary)', display: 'block' }}>
+                    +${profitCUP.toLocaleString('es-ES')} CUP
                   </strong>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block' }}>
+                  {profitUSD > 0 && (
+                    <strong style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F766E', display: 'block' }}>
+                      +US$${profitUSD.toLocaleString('es-ES')} USD
+                    </strong>
+                  )}
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
                     Margen acumulado
                   </span>
                 </div>
 
               </div>
 
-              {/* Actions Bar: Liquidar Pago & Ver Historial de Ventas */}
+              {/* Actions Bar: Liquidar Pago & Ver Movimientos Completo */}
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => onOpenPayoutModal(sup)}
-                  disabled={sup.pendingPayout <= 0}
+                  disabled={!hasPendingDebt}
                   className="md-btn md-btn-primary"
                   style={{
                     flex: 1,
                     padding: '10px 14px',
                     fontSize: '0.85rem',
-                    opacity: sup.pendingPayout <= 0 ? 0.4 : 1,
-                    cursor: sup.pendingPayout <= 0 ? 'not-allowed' : 'pointer'
+                    opacity: !hasPendingDebt ? 0.4 : 1,
+                    cursor: !hasPendingDebt ? 'not-allowed' : 'pointer'
                   }}
                 >
                   <DollarSign size={16} />
-                  <span>Liquidar Pago (${sup.pendingPayout})</span>
+                  <span>
+                    Liquidar Pago {!hasPendingDebt ? '(Sin deuda)' : `($${sup.pendingPayout} CUP / US$${sup.pendingPayoutUSD || 0} USD)`}
+                  </span>
                 </button>
 
                 <button
-                  onClick={() => setExpandedSupplierId(isExpanded ? null : sup.id)}
+                  onClick={() => setSelectedHistorySupplier(sup)}
                   className="md-btn md-btn-secondary"
                   style={{
                     padding: '10px 14px',
@@ -282,77 +350,23 @@ export const StoreSuppliersTab: React.FC<StoreSuppliersTabProps> = ({
                     gap: '6px'
                   }}
                 >
-                  <Receipt size={16} />
-                  <span>{isExpanded ? 'Ocultar Historial' : `Historial Ventas (${supplierSalesItems.length})`}</span>
+                  <Eye size={16} />
+                  <span>Ver Movimientos ({supplierSalesItems.length})</span>
                 </button>
               </div>
-
-              {/* Expanded Sales History Table for this Supplier */}
-              {isExpanded && (
-                <div style={{
-                  marginTop: '8px',
-                  padding: '14px',
-                  borderRadius: '14px',
-                  backgroundColor: 'var(--md-sys-color-surface)',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}>
-                  <h5 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Receipt size={16} color="var(--md-sys-color-primary)" />
-                    <span>Historial Detallado de Ventas de {sup.name}</span>
-                  </h5>
-
-                  {supplierSalesItems.length === 0 ? (
-                    <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', fontStyle: 'italic', margin: 0 }}>
-                      Aún no se han registrado ventas de productos pertenecientes a {sup.name}.
-                    </p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
-                      {supplierSalesItems.map((item, idx) => (
-                        <div
-                          key={`${item.saleId}-${idx}`}
-                          style={{
-                            padding: '10px 12px',
-                            borderRadius: '10px',
-                            backgroundColor: 'var(--md-sys-color-surface-container)',
-                            border: '1px solid var(--md-sys-color-outline-variant)',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            gap: '10px',
-                            fontSize: '0.8rem'
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                              {item.name} <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)' }}>(#{item.barcode})</span>
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                              {new Date(item.timestamp).toLocaleString('es-ES')} | Cantidad: <strong>{item.quantity}u</strong>
-                            </div>
-                          </div>
-
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontWeight: 800, color: 'var(--md-sys-color-expense)' }}>
-                              A Proveedor: {formatCurrency(item.totalCost, currency, true)}
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-income)' }}>
-                              Venta Total: {formatCurrency(item.totalPrice, currency, true)} (Ganancia: +${item.profit})
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
             </div>
           );
         })}
       </div>
+
+      {/* Full-Screen Supplier History Modal */}
+      <SupplierHistoryModal
+        supplier={selectedHistorySupplier}
+        products={products}
+        currency={currency}
+        onClose={() => setSelectedHistorySupplier(null)}
+      />
 
     </div>
   );

@@ -3,13 +3,13 @@
 import React, { useState } from 'react';
 import { formatCurrency } from '@/lib/invoice';
 import { Receipt, X, Package, Calendar, DollarSign, Tag, CheckCircle2 } from 'lucide-react';
+import { getCurrencySettings } from '@/lib/storage';
+import { ReceiptTicketView } from '@/components/common/ReceiptTicketView';
 
 interface StoreSalesTabProps {
   salesRecords: any[];
   currency?: string;
 }
-
-import { getCurrencySettings } from '@/lib/storage';
 
 export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
   salesRecords,
@@ -32,46 +32,28 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
           Aún no hay ventas registradas. Escanea productos para realizar tu primera venta.
         </p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredSales.map(sale => (
-            <div
-              key={sale.id}
-              onClick={() => setSelectedSale(sale)}
-              style={{
-                padding: '14px 16px',
-                borderRadius: '16px',
-                border: '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
-                cursor: 'pointer',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-              }}
-              className="hover-card"
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Receipt size={14} /> Ticket #{sale.id.slice(-6)} • {sale.date}
-                </span>
-                <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                  {formatCurrency(sale.totalAmount, sale.currency || currency, true)}
-                </span>
-              </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {filteredSales.map(sale => {
+            const formattedNotes = sale.items
+              ? `[TICKET_DE_VENTA] Comprobante de Venta #${sale.id.slice(-6)}\n` +
+                sale.items.map((i: any) => `• ${i.quantity}x ${i.name} ($${i.unitPrice} c/u = $${i.subtotal || i.quantity * i.unitPrice})`).join('\n') +
+                `\n------------\nTotal: $${sale.totalAmount} | Moneda: ${sale.currency || 'CUP'} | Vendedor: ${sale.seller || 'General'}`
+              : sale.notes;
 
-              <div style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface)', marginBottom: '8px', fontWeight: 600 }}>
-                {sale.items.map((i: any) => `${i.name} (x${i.quantity})`).join(', ')}
+            return (
+              <div key={sale.id} onClick={() => setSelectedSale(sale)} style={{ cursor: 'pointer' }}>
+                <ReceiptTicketView
+                  note={formattedNotes}
+                  ticketId={sale.id.slice(-6)}
+                  totalCUP={sale.totalAmountCUP || (sale.currency === 'USD' ? undefined : sale.totalAmount)}
+                  totalUSD={sale.totalAmountUSD || (sale.currency === 'USD' ? sale.totalAmount : undefined)}
+                  currency={sale.currency}
+                  seller={sale.seller}
+                  timestamp={sale.createdAt || Date.now()}
+                />
               </div>
-
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '0.74rem',
-                paddingTop: '8px',
-                borderTop: '1px dashed var(--md-sys-color-outline-variant)'
-              }}>
-                <span>Ganancia Neta Tienda: <strong style={{ color: 'var(--md-sys-color-income)' }}>${sale.netProfit}</strong></span>
-                <span>Costo Retenido: <strong>${sale.totalCost}</strong></span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

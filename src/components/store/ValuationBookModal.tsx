@@ -110,37 +110,31 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.70)',
-        backdropFilter: 'blur(6px)',
+        backgroundColor: 'var(--md-sys-color-surface)',
         zIndex: 2500,
         display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        padding: '0'
+        flexDirection: 'column',
+        height: '100dvh',
+        width: '100%',
+        maxWidth: '768px',
+        margin: '0 auto',
+        overflow: 'hidden'
       }} 
       onClick={onClose}
       className="no-print"
     >
       <div 
-        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '768px',
-          maxHeight: '90dvh',
-          borderTopLeftRadius: '28px',
-          borderTopRightRadius: '28px',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          boxShadow: 'var(--md-shadow-elevation-4)',
-          borderTop: '1px solid var(--md-sys-color-outline-variant)'
+          overflow: 'hidden'
         }}
       >
-        {/* Handle Drag Indicator */}
-        <div style={{ width: '44px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '10px auto 4px auto', opacity: 0.8 }} />
 
         {/* Printable Only Official Header */}
         <div className="printable-only" style={{ display: 'none', padding: '20px', borderBottom: '2px solid #000' }}>

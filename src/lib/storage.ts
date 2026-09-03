@@ -711,15 +711,18 @@ export function paySupplierAccount(
     return { success: false, error: 'El monto a liquidar debe ser mayor a 0.' };
   }
 
-  const payAmount = Math.min(supplier.pendingPayout, amount);
+  const isUSD = currency === 'USD';
+  const pendingDebt = isUSD ? (supplier.pendingPayoutUSD || 0) : (supplier.pendingPayout || 0);
+
+  const payAmount = Math.min(pendingDebt, amount);
   if (payAmount <= 0) {
-    return { success: false, error: 'El proveedor no tiene saldo pendiente por liquidar.' };
+    return { success: false, error: `El proveedor no tiene saldo pendiente por liquidar en ${isUSD ? 'USD' : 'CUP'}.` };
   }
 
-  // Validate liquidity in source account
-  const currSym = currency === 'USD' ? 'US$' : '$';
+  // Validar liquidez disponible según origen y moneda
+  const currSym = isUSD ? 'US$' : '$';
   if (source === 'negocio') {
-    const availFund = currency === 'USD' ? (db.storeFundUSD || 0) : (db.storeFund || 0);
+    const availFund = isUSD ? (db.storeFundUSD || 0) : (db.storeFund || 0);
     if (payAmount > availFund) {
       return { success: false, error: `Saldo insuficiente en Fondo del Negocio (${currSym}${availFund} disponible) para liquidar ${currSym}${payAmount}.` };
     }
@@ -730,8 +733,14 @@ export function paySupplierAccount(
     }
   }
 
-  supplier.pendingPayout = Math.max(0, supplier.pendingPayout - payAmount);
-  supplier.totalPaid = (supplier.totalPaid || 0) + payAmount;
+  // Actualizar deuda retenida y total histórico pagado según moneda
+  if (isUSD) {
+    supplier.pendingPayoutUSD = Math.max(0, (supplier.pendingPayoutUSD || 0) - payAmount);
+    supplier.totalPaidUSD = (supplier.totalPaidUSD || 0) + payAmount;
+  } else {
+    supplier.pendingPayout = Math.max(0, (supplier.pendingPayout || 0) - payAmount);
+    supplier.totalPaid = (supplier.totalPaid || 0) + payAmount;
+  }
   supplier.updatedAt = Date.now();
 
   const todayISO = new Date().toISOString().split('T')[0];
@@ -739,17 +748,17 @@ export function paySupplierAccount(
   if (!db.transactions) db.transactions = [];
 
   if (source === 'casa') {
-    // Dual transaction registration: Outgoing from House, Credit entry to Store
+    // Registro doble: Salida de Casa y Aporte Entrante a Tienda
     const houseExpenseTx: Transaction = {
       id: `tx-sup-pay-casa-${now}`,
       type: 'gasto',
-      concept: `Liquidación Proveedor: ${supplier.name} (Pago desde Casa)`,
+      concept: `Liquidación Proveedor: ${supplier.name} (${isUSD ? 'USD' : 'CUP'} desde Casa)`,
       category: 'Pago Proveedor Consignación',
       amount: payAmount,
       currency: currency,
       date: todayISO,
       accountSource: 'casa',
-      notes: `Pago directo en efectivo a ${supplier.name} con fondos de Casa.`,
+      notes: `Pago en efectivo a ${supplier.name} con fondos de Casa.`,
       createdAt: now,
       updatedAt: now,
       synced: false
@@ -772,8 +781,8 @@ export function paySupplierAccount(
 
     db.transactions.unshift(houseExpenseTx, storeIncomeTx);
   } else {
-    // Paid from Store Business Fund
-    if (currency === 'USD') {
+    // Pago directo desde el Fondo del Negocio (Tienda)
+    if (isUSD) {
       db.storeFundUSD = Math.max(0, (db.storeFundUSD || 0) - payAmount);
     } else {
       db.storeFund = Math.max(0, (db.storeFund || 0) - payAmount);
@@ -782,13 +791,13 @@ export function paySupplierAccount(
     const storeExpenseTx: Transaction = {
       id: `tx-sup-pay-store-${now}`,
       type: 'gasto',
-      concept: `Liquidación a Proveedor: ${supplier.name}`,
+      concept: `Liquidación a Proveedor: ${supplier.name} (${isUSD ? 'USD' : 'CUP'})`,
       category: 'Pago Proveedor Consignación',
       amount: payAmount,
       currency: currency,
       date: todayISO,
       accountSource: 'tienda',
-      notes: `Pago a proveedor efectuado con ganancias/fondo del negocio. Saldo restante tienda: $${db.storeFund}`,
+      notes: `Pago a proveedor efectuado con fondo del negocio (${isUSD ? 'USD' : 'CUP'}).`,
       createdAt: now,
       updatedAt: now,
       synced: false
@@ -798,7 +807,7 @@ export function paySupplierAccount(
   }
 
   saveRawDatabase(db);
-  return { success: true, message: `Se liquidaron $${payAmount} a la cuenta del proveedor ${supplier.name}.` };
+  return { success: true, message: `Se liquidaron ${currSym}${payAmount} a la cuenta del proveedor ${supplier.name}.` };
 }
 
 // --- Store Sales & Dual Accounting Helpers ---
@@ -817,22 +826,43 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
   if (typeof db.storeFund !== 'number') db.storeFund = 0;
   if (typeof db.storeFundUSD !== 'number') db.storeFundUSD = 0;
 
-  // Determine explicit sale currency
-  const saleCurrency: CurrencyType = saleData.currency || 
-    (saleData.items[0]?.currency as CurrencyType) || 
-    (saleData.items[0]?.productId ? (db.storeProducts.find(p => p.id === saleData.items[0].productId)?.currency as CurrencyType) : undefined) || 
-    'CUP';
+  // Calcular desglose de cobro por moneda si hay ítems mixtos o desglosados
+  let subtotalCUPFromItems = 0;
+  let subtotalUSDFromItems = 0;
+
+  saleData.items.forEach(item => {
+    const itemCurr = item.currency || saleData.currency || 'CUP';
+    const sub = item.subtotal !== undefined ? item.subtotal : (item.unitPrice * item.quantity);
+    if (itemCurr === 'USD') {
+      subtotalUSDFromItems += sub;
+    } else {
+      subtotalCUPFromItems += sub;
+    }
+  });
+
+  const hasMixedItems = subtotalCUPFromItems > 0 && subtotalUSDFromItems > 0;
+  const isExplicitMixed = saleData.currency === 'MIXED' || (saleData.totalAmountCUP !== undefined && saleData.totalAmountUSD !== undefined);
+
+  // Determinar si registramos doble transacción o transacción única
+  const isMixedSale = hasMixedItems || isExplicitMixed;
+
+  const totalAmountCUP = saleData.totalAmountCUP !== undefined ? saleData.totalAmountCUP : subtotalCUPFromItems;
+  const totalAmountUSD = saleData.totalAmountUSD !== undefined ? saleData.totalAmountUSD : subtotalUSDFromItems;
+
+  const saleCurrency: CurrencyType = isMixedSale ? 'MIXED' : (saleData.currency || (subtotalUSDFromItems > 0 ? 'USD' : 'CUP'));
 
   const saleRecord: StoreSaleRecord = {
     ...saleData,
     currency: saleCurrency,
+    totalAmountCUP: isMixedSale ? totalAmountCUP : (saleCurrency === 'CUP' ? saleData.totalAmount : 0),
+    totalAmountUSD: isMixedSale ? totalAmountUSD : (saleCurrency === 'USD' ? saleData.totalAmount : 0),
     id: `sale-${Date.now()}`,
     timestamp: Date.now()
   };
 
   db.storeSales.unshift(saleRecord);
 
-  // Update stock, salesCount, store fund, and supplier accounts
+  // Actualizar inventario, contadores de ventas, fondo del negocio y cuentas de proveedores
   saleData.items.forEach(item => {
     const prod = db.storeProducts!.find(p => p.id === item.productId || p.barcode === item.barcode);
     if (prod) {
@@ -842,10 +872,8 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     }
 
     const itemCostTotal = item.costPrice * item.quantity;
-
-    // Supplier vs Own Merchandise Flow
-    const itemSubtotal = item.quantity * item.unitPrice;
-    const itemCurr = item.currency || saleCurrency;
+    const itemSubtotal = item.subtotal !== undefined ? item.subtotal : (item.quantity * item.unitPrice);
+    const itemCurr = item.currency || (saleCurrency === 'USD' ? 'USD' : 'CUP');
 
     if (item.supplierType === 'proveedor' && item.supplierName) {
       let supplier = db.supplierAccounts!.find(s => s.name.toLowerCase() === item.supplierName!.toLowerCase());
@@ -870,7 +898,6 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
       }
       supplier.updatedAt = Date.now();
     } else {
-      // All sales cash (cost + profit) remains in Store Fund until explicitly transferred
       if (itemCurr === 'USD') {
         db.storeFundUSD = (db.storeFundUSD || 0) + itemSubtotal;
       } else {
@@ -885,31 +912,71 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     : `tienda: venta de: ${totalCount} artículos`;
 
   const now = Date.now();
-  const currSymbol = saleCurrency === 'USD' ? 'US$' : '$';
 
-  // Granular Ticket-style item breakdown
+  // Desglose de ítems para el ticket de venta
   const ticketItemsList = saleData.items
-    .map(i => `• ${i.quantity}x ${i.name} (${currSymbol}${i.unitPrice} c/u = ${currSymbol}${i.quantity * i.unitPrice})`)
+    .map(i => `• ${i.quantity}x ${i.name} (${i.currency === 'USD' ? 'US$' : '$'}${i.unitPrice} c/u = ${i.currency === 'USD' ? 'US$' : '$'}${i.quantity * i.unitPrice})`)
     .join('\n');
 
-  const formattedTicketNotes = `[TICKET_DE_VENTA]\n${ticketItemsList}\n-------------------\nTotal: ${currSymbol}${saleData.totalAmount} | Moneda: ${saleCurrency} | Vendedor: ${saleData.sellerId || 'General'}`;
+  if (isMixedSale) {
+    const formattedTicketNotes = `[TICKET_DE_VENTA_MIXTO]\n${ticketItemsList}\n-------------------\nTotal CUP: $${totalAmountCUP} | Total USD: US$${totalAmountUSD} | Vendedor: ${saleData.sellerId || 'General'}`;
 
-  // 1. Register Gross Sale Income in Store Account Log (All revenue remains in store)
-  const storeSaleTx: Transaction = {
-    id: `tx-sale-store-${now}`,
-    type: 'ingreso',
-    concept: conceptSummary,
-    category: 'Ventas del Negocio',
-    amount: saleData.totalAmount,
-    currency: saleCurrency,
-    date: saleData.date,
-    accountSource: 'tienda',
-    notes: formattedTicketNotes,
-    createdAt: now,
-    updatedAt: now,
-    synced: false
-  };
-  db.transactions.unshift(storeSaleTx);
+    // Registrar 2 transacciones de ingreso si ambas monedas tienen montos mayores a 0
+    if (totalAmountCUP > 0) {
+      const storeSaleTxCUP: Transaction = {
+        id: `tx-sale-store-cup-${now}`,
+        type: 'ingreso',
+        concept: `${conceptSummary} (CUP)`,
+        category: 'Ventas del Negocio',
+        amount: totalAmountCUP,
+        currency: 'CUP',
+        date: saleData.date,
+        accountSource: 'tienda',
+        notes: formattedTicketNotes,
+        createdAt: now,
+        updatedAt: now,
+        synced: false
+      };
+      db.transactions.unshift(storeSaleTxCUP);
+    }
+
+    if (totalAmountUSD > 0) {
+      const storeSaleTxUSD: Transaction = {
+        id: `tx-sale-store-usd-${now + 1}`,
+        type: 'ingreso',
+        concept: `${conceptSummary} (USD)`,
+        category: 'Ventas del Negocio',
+        amount: totalAmountUSD,
+        currency: 'USD',
+        date: saleData.date,
+        accountSource: 'tienda',
+        notes: formattedTicketNotes,
+        createdAt: now + 1,
+        updatedAt: now + 1,
+        synced: false
+      };
+      db.transactions.unshift(storeSaleTxUSD);
+    }
+  } else {
+    const currSymbol = saleCurrency === 'USD' ? 'US$' : '$';
+    const formattedTicketNotes = `[TICKET_DE_VENTA]\n${ticketItemsList}\n-------------------\nTotal: ${currSymbol}${saleData.totalAmount} | Moneda: ${saleCurrency} | Vendedor: ${saleData.sellerId || 'General'}`;
+
+    const storeSaleTx: Transaction = {
+      id: `tx-sale-store-${now}`,
+      type: 'ingreso',
+      concept: conceptSummary,
+      category: 'Ventas del Negocio',
+      amount: saleData.totalAmount,
+      currency: saleCurrency === 'USD' ? 'USD' : 'CUP',
+      date: saleData.date,
+      accountSource: 'tienda',
+      notes: formattedTicketNotes,
+      createdAt: now,
+      updatedAt: now,
+      synced: false
+    };
+    db.transactions.unshift(storeSaleTx);
+  }
 
   saveRawDatabase(db);
   recordShiftSaleInActiveShift(saleData.items, saleData.totalAmount, 'cash', saleData.sellerId, saleCurrency);

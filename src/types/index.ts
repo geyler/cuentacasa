@@ -1,7 +1,7 @@
 export type TransactionType = 'ingreso' | 'gasto';
 export type SupplierType = 'propia' | 'proveedor';
 export type FundAccountType = 'casa' | 'tienda' | 'ahorro';
-export type CurrencyType = 'CUP' | 'USD';
+export type CurrencyType = 'CUP' | 'USD' | 'MIXED';
 export type CurrencyMode = 'CUP' | 'USD' | 'BOTH';
 
 export interface Transaction {
@@ -77,6 +77,8 @@ export interface StoreSaleRecord {
   timestamp: number;
   items: StoreSaleItem[];
   totalAmount: number;     // Total cobrado al cliente
+  totalAmountCUP?: number; // Desglose cobrado en CUP (si es mixta)
+  totalAmountUSD?: number; // Desglose cobrado en USD (si es mixta)
   totalCost: number;       // Total costo de adquisición
   netProfit: number;       // Ganancia neta (que va a CuentaCasa)
   currency?: CurrencyType;

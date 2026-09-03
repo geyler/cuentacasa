@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FundAccountType, CurrencyType } from '@/types';
-import { getRawDatabase, getSavingsFund, executeUniversalTransfer, getCurrencySettings, withdrawSavingsAsExpense } from '@/lib/storage';
+import { getRawDatabase, getSavingsFund, getCasaAvailableBalance, executeUniversalTransfer, getCurrencySettings, withdrawSavingsAsExpense } from '@/lib/storage';
 import { formatCurrency, calculateFinancialSummary } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
@@ -63,7 +63,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   if (!isOpen) return null;
 
   const rawDb = getRawDatabase();
-  const casaSummary = calculateFinancialSummary(rawDb.transactions || []);
 
   // Effective Source & Target Currency
   const activeSourceCurrency: CurrencyType = isCrossCurrencyMode
@@ -78,13 +77,13 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const getAccountBalanceInCurrency = (acc: FundAccountType, curr: CurrencyType): number => {
     if (curr === 'USD') {
       switch (acc) {
-        case 'casa': return casaSummary.netBalanceUSD || 0;
+        case 'casa': return getCasaAvailableBalance('USD');
         case 'tienda': return rawDb.storeFundUSD || 0;
         case 'ahorro': return rawDb.savingsFundUSD || 0;
       }
     } else {
       switch (acc) {
-        case 'casa': return casaSummary.netBalance;
+        case 'casa': return getCasaAvailableBalance('CUP');
         case 'tienda': return rawDb.storeFund || 0;
         case 'ahorro': return getSavingsFund();
       }

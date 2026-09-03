@@ -5,6 +5,7 @@ import { Transaction } from '@/types';
 import { formatCurrency, isTransactionEditable, getRemainingEditableTime } from '@/lib/invoice';
 import { X, Calendar, Clock, Tag, DollarSign, Edit3, Trash2, ShieldCheck, AlertCircle, Store, Home, Info, Receipt } from 'lucide-react';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+import { ReceiptTicketView } from '@/components/common/ReceiptTicketView';
 
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
@@ -199,21 +200,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
           {/* Explicit Notes / Explanation or Ticket Detail */}
           {transaction.notes?.includes('[TICKET_DE_VENTA]') ? (
-            <div style={{
-              backgroundColor: '#FFFDF5',
-              border: '2px dashed #E2E8F0',
-              borderRadius: '16px',
-              padding: '16px'
-            }}>
-              <div style={{ textAlign: 'center', borderBottom: '1px dashed #CBD5E1', paddingBottom: '8px', marginBottom: '10px' }}>
-                <Receipt size={22} style={{ color: 'var(--md-sys-color-primary)', margin: '0 auto 4px auto', display: 'block' }} />
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1E293B', margin: 0 }}>🧾 TICKET DE TIENDA SAMY STORE</h4>
-                <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700 }}>Comprobante de Venta #{transaction.id.slice(-6)}</span>
-              </div>
-              <pre style={{ fontSize: '0.82rem', color: '#0F172A', whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'monospace', fontWeight: 700, lineHeight: 1.4 }}>
-                {transaction.notes.replace('[TICKET_DE_VENTA]\n', '')}
-              </pre>
-            </div>
+            <ReceiptTicketView note={transaction.notes} timestamp={transaction.createdAt} />
           ) : (
             <div style={{
               backgroundColor: 'var(--md-sys-color-surface-container-high)',
