@@ -107,46 +107,64 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.70)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'var(--md-sys-color-surface)',
       zIndex: 2200,
       display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      padding: '0'
+      flexDirection: 'column',
+      height: '100dvh',
+      width: '100%',
+      maxWidth: '768px',
+      margin: '0 auto',
+      overflow: 'hidden'
     }} className="no-print" onClick={onClose}>
       
       <div 
-        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '768px',
-          padding: '20px 24px 28px 24px',
-          borderRadius: '28px 28px 0 0',
-          boxShadow: 'var(--md-shadow-elevation-4)',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
-          maxHeight: '92vh',
-          overflowY: 'auto'
+          overflow: 'hidden'
         }}
       >
-        {/* Drag Handle */}
-        <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
-
-        {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Header Bar */}
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--md-sys-color-surface-container)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Sparkles size={20} color="var(--md-sys-color-primary)" />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0 }}>Mi Perfil de Usuario</h3>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0, color: 'var(--md-sys-color-on-surface)' }}>
+              Mi Perfil de Usuario
+            </h3>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface)', cursor: 'pointer', padding: '4px' }}>
-            <X size={22} />
+          <button
+            onClick={onClose}
+            style={{
+              background: 'var(--md-sys-color-surface-container-high)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              borderRadius: '50%',
+              color: 'var(--md-sys-color-on-surface)',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <X size={20} />
           </button>
         </div>
+
+        {/* Scroll Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* User Identity Card */}
         <div style={{
@@ -393,6 +411,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <LogOut size={18} />
             <span>Cerrar Sesión (@{currentUser.username})</span>
           </button>
+        </div>
+
         </div>
 
       </div>

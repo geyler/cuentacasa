@@ -44,52 +44,45 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.78)',
-        backdropFilter: 'blur(12px)',
+        backgroundColor: 'var(--md-sys-color-surface)',
         zIndex: 2000,
         display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        padding: '0'
+        flexDirection: 'column',
+        height: '100dvh',
+        width: '100%',
+        maxWidth: '768px',
+        margin: '0 auto',
+        overflow: 'hidden'
       }}
       className="no-print"
       onClick={onClose}
     >
       <div
-        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '768px',
-          padding: '20px 24px 28px 24px',
-          boxShadow: '0 -12px 48px rgba(0,0,0,0.5)',
-          borderRadius: '28px 28px 0 0',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
-          maxHeight: '92vh',
-          overflowY: 'auto'
+          overflow: 'hidden'
         }}
       >
-        {/* Material Design Drag Handle */}
+        {/* Modal Header Bar */}
         <div style={{
-          width: '42px',
-          height: '5px',
-          borderRadius: '9999px',
-          backgroundColor: 'var(--md-sys-color-outline-variant)',
-          margin: '0 auto 2px auto',
-          opacity: 0.8
-        }} />
-
-        {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--md-sys-color-surface-container)'
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '16px',
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
               background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
               color: '#FFFFFF',
               display: 'flex',
@@ -98,11 +91,11 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
               boxShadow: '0 4px 16px rgba(236, 72, 153, 0.35)',
               flexShrink: 0
             }}>
-              <Store size={26} />
+              <Store size={24} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: '1.2' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 900, lineHeight: '1.2', margin: 0 }}>
                   Cubasoft ERP & Samy Store
                 </h3>
                 <span style={{
@@ -119,7 +112,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
                   <Sparkles size={11} /> DEMO EN VIVO
                 </span>
               </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0', fontWeight: 600 }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0', fontWeight: 600 }}>
                 Plataforma Profesional de Gestión Comercial & Tienda PWA Offline
               </p>
             </div>
@@ -133,12 +126,18 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
               borderRadius: '50%',
               color: 'var(--md-sys-color-on-surface)',
               cursor: 'pointer',
-              padding: '8px'
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             <X size={20} />
           </button>
         </div>
+
+        {/* Scroll Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* Navigation Sub-Tabs */}
         <div style={{
@@ -477,6 +476,8 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
             <PhoneCall size={16} />
             <span>Adquirir</span>
           </a>
+        </div>
+
         </div>
 
       </div>

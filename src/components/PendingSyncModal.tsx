@@ -66,51 +66,39 @@ export const PendingSyncModal: React.FC<PendingSyncModalProps> = ({
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.72)',
-        backdropFilter: 'blur(8px)',
+        backgroundColor: 'var(--md-sys-color-surface)',
         zIndex: 2200,
         display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        padding: 0
+        flexDirection: 'column',
+        height: '100dvh',
+        width: '100%',
+        maxWidth: '768px',
+        margin: '0 auto',
+        overflow: 'hidden'
       }}
       className="no-print"
       onClick={onClose}
     >
       <div
-        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '768px',
-          padding: '16px 20px 28px 20px',
-          boxShadow: 'var(--md-shadow-elevation-4)',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
-          maxHeight: '90vh',
-          overflowY: 'auto'
+          overflow: 'hidden'
         }}
       >
-        {/* Drag Handle */}
-        <div style={{
-          width: '36px',
-          height: '4px',
-          borderRadius: '9999px',
-          backgroundColor: 'var(--md-sys-color-outline-variant)',
-          margin: '0 auto 4px auto',
-          opacity: 0.8
-        }} />
-
         {/* Modal Header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           borderBottom: '1px solid var(--md-sys-color-outline-variant)',
-          paddingBottom: '12px'
+          padding: '16px 20px',
+          backgroundColor: 'var(--md-sys-color-surface-container)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
@@ -138,17 +126,23 @@ export const PendingSyncModal: React.FC<PendingSyncModalProps> = ({
           <button
             onClick={onClose}
             style={{
-              background: 'none',
-              border: 'none',
+              background: 'var(--md-sys-color-surface-container-high)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              borderRadius: '50%',
               color: 'var(--md-sys-color-on-surface)',
               cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '50%'
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
+
+        {/* Scroll Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* Network Status Info Badge */}
         <div style={{
@@ -272,6 +266,8 @@ export const PendingSyncModal: React.FC<PendingSyncModalProps> = ({
           <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', fontWeight: 600 }}>
             💡 La subida manual fuerza un tiempo de espera de 30 segundos para redes lentas o inestables.
           </span>
+        </div>
+
         </div>
 
       </div>

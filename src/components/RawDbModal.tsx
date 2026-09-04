@@ -94,54 +94,44 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.70)',
-      backdropFilter: 'blur(8px)',
-      zIndex: 110,
+      backgroundColor: 'var(--md-sys-color-surface)',
+      zIndex: 2500,
       display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      padding: '0'
+      flexDirection: 'column',
+      height: '100dvh',
+      width: '100%',
+      maxWidth: '768px',
+      margin: '0 auto',
+      overflow: 'hidden'
     }} className="no-print" onClick={onClose}>
       
       <div 
-        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '28px',
-          borderTopRightRadius: '28px',
-          borderBottomLeftRadius: '0px',
-          borderBottomRightRadius: '0px',
           width: '100%',
-          maxWidth: '768px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          boxShadow: 'var(--md-shadow-elevation-4)',
-          padding: '14px 24px 28px 24px',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px'
+          overflow: 'hidden'
         }}
       >
-        {/* Material Design Drag Handle */}
+        {/* Header Bar */}
         <div style={{
-          width: '36px',
-          height: '4px',
-          borderRadius: '9999px',
-          backgroundColor: 'var(--md-sys-color-outline-variant)',
-          margin: '0 auto 4px auto',
-          opacity: 0.8
-        }} />
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--md-sys-color-surface-container)'
+        }}>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', margin: 0, color: 'var(--md-sys-color-on-surface)' }}>
               <FileCode size={22} color="var(--md-sys-color-primary)" />
               <span>Base de Datos Cruda (Archivo JSON)</span>
             </h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0' }}>
               Los datos se almacenan 100% offline en archivos JSON crudos. Puedes editarlos, copiarlos o exportarlos.
             </p>
           </div>
@@ -149,16 +139,23 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
           <button
             onClick={onClose}
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--md-sys-color-on-surface-variant)',
+              background: 'var(--md-sys-color-surface-container-high)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              borderRadius: '50%',
+              color: 'var(--md-sys-color-on-surface)',
               cursor: 'pointer',
-              padding: '6px'
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
+
+        {/* Scroll Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* Status Alert Banner */}
         {statusMessage && (
@@ -239,6 +236,8 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
             lineHeight: '1.4'
           }}
         />
+
+        </div>
 
       </div>
     </div>

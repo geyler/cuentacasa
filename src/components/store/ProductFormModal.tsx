@@ -107,7 +107,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setCategory(editingProduct.category || '');
       setCostPrice(editingProduct.costPrice || '');
       setPrice(editingProduct.price);
-      setProductCurrency(editingProduct.currency || 'CUP');
+      setProductCurrency(editingProduct.currency === 'USD' ? 'USD' : 'CUP');
       setStock(editingProduct.stock);
       setUnit(editingProduct.unit || 'u');
       setIsAddingNewUnit(false);
@@ -193,7 +193,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setCategory(p.category || '');
     setCostPrice(p.costPrice || '');
     setPrice(p.price);
-    setProductCurrency(p.currency || 'CUP');
+    setProductCurrency(p.currency === 'USD' ? 'USD' : 'CUP');
     setStock(p.stock);
     setUnit(p.unit || 'u');
     setPhotoUrl(p.photoUrl || '');
@@ -1176,35 +1176,32 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(6px)',
+            backgroundColor: 'var(--md-sys-color-surface)',
             zIndex: 2600,
             display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            padding: '0'
+            flexDirection: 'column',
+            height: '100dvh',
+            width: '100%',
+            maxWidth: '768px',
+            margin: '0 auto',
+            overflow: 'hidden'
           }}
           onClick={() => setExistingProductAlert(null)}
         >
           <div
-            className="bottom-sheet-modal"
             onClick={e => e.stopPropagation()}
             style={{
               backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
               width: '100%',
-              maxWidth: '560px',
-              padding: '16px 20px 28px 20px',
-              borderTopLeftRadius: '28px',
-              borderTopRightRadius: '28px',
+              height: '100%',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              boxShadow: 'var(--md-shadow-elevation-4)'
+              overflowY: 'auto'
             }}
           >
-            {/* Handle Drag Indicator */}
-            <div style={{ width: '44px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto', opacity: 0.8 }} />
 
             {/* Warning Banner Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

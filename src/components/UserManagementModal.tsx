@@ -119,54 +119,72 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.70)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'var(--md-sys-color-surface)',
       zIndex: 2400,
       display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      padding: '0'
+      flexDirection: 'column',
+      height: '100dvh',
+      width: '100%',
+      maxWidth: '768px',
+      margin: '0 auto',
+      overflow: 'hidden'
     }} className="no-print" onClick={onClose}>
       
       <div 
-        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '768px',
-          padding: '20px 24px 28px 24px',
-          borderRadius: '28px 28px 0 0',
-          boxShadow: 'var(--md-shadow-elevation-4)',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
-          maxHeight: '92vh',
-          overflowY: 'auto'
+          overflow: 'hidden'
         }}
       >
-        {/* Drag Handle */}
-        <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 8px auto' }} />
-
-        {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--md-sys-color-outline-variant)', paddingBottom: '12px' }}>
+        {/* Header Bar */}
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--md-sys-color-surface-container)'
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={20} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0 }}>Gestión de Usuarios</h3>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0, color: 'var(--md-sys-color-on-surface)' }}>
+                Gestión de Usuarios
+              </h3>
               <span style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
                 {usersList.length} usuarios registrados en el sistema
               </span>
             </div>
           </div>
 
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface)', cursor: 'pointer', padding: '6px' }}>
-            <X size={22} />
+          <button
+            onClick={onClose}
+            style={{
+              background: 'var(--md-sys-color-surface-container-high)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              borderRadius: '50%',
+              color: 'var(--md-sys-color-on-surface)',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <X size={20} />
           </button>
         </div>
+
+        {/* Scroll Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* Botón para Desplegar Formulario de Nuevo Usuario */}
         {(isOwner || currentUser?.role === 'administrador') && !showAddForm && (
@@ -423,6 +441,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
               </div>
             );
           })}
+        </div>
+
         </div>
 
       </div>

@@ -44,7 +44,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         setType(editingTransaction.type);
         setConcept(editingTransaction.concept);
         setAmount(editingTransaction.amount.toString());
-        setCurrency(editingTransaction.currency || 'CUP');
+        setCurrency(editingTransaction.currency === 'USD' ? 'USD' : 'CUP');
         setError('');
       } else {
         setType(initialType);
@@ -135,13 +135,15 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.70)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'var(--md-sys-color-surface)',
       zIndex: 2000,
       display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      padding: '0'
+      flexDirection: 'column',
+      height: '100dvh',
+      width: '100%',
+      maxWidth: '768px',
+      margin: '0 auto',
+      overflow: 'hidden'
     }} className="no-print" onClick={() => {
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
@@ -151,7 +153,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }}>
       
       <div 
-        className="bottom-sheet-modal"
         onClick={e => {
           e.stopPropagation();
           const target = e.target as HTMLElement;
@@ -166,14 +167,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '768px',
-          padding: '14px 24px 28px 24px',
-          boxShadow: 'var(--md-shadow-elevation-4)',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
-          maxHeight: '90vh',
           overflowY: 'auto',
+          padding: '20px',
+          gap: '16px',
           position: 'relative'
         }}
       >
@@ -183,7 +182,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             position: 'absolute',
             top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            borderRadius: '28px 28px 0 0',
             zIndex: 50,
             display: 'flex',
             flexDirection: 'column',
@@ -196,16 +194,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>Guardando transacción...</span>
           </div>
         )}
-
-        {/* Material Design Drag Handle */}
-        <div style={{
-          width: '36px',
-          height: '4px',
-          borderRadius: '9999px',
-          backgroundColor: 'var(--md-sys-color-outline-variant)',
-          margin: '0 auto 4px auto',
-          opacity: 0.8
-        }} />
 
         {/* Header */}
         <div style={{

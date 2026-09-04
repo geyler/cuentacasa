@@ -154,55 +154,39 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
     <ActionFeedbackContext.Provider value={{ showToast, confirmAction, showActionResult }}>
       {children}
 
-      {/* Modern Confirmation Bottom Sheet Modal */}
+      {/* Modern Confirmation Full-Screen Modal */}
       {confirmModal && (
         <div
           className="no-print"
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
+            backgroundColor: 'var(--md-sys-color-surface)',
             zIndex: 100000,
             display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            padding: 0
+            flexDirection: 'column',
+            height: '100dvh',
+            width: '100%',
+            maxWidth: '768px',
+            margin: '0 auto',
+            overflow: 'hidden'
           }}
           onClick={handleCancelConfirm}
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="bottom-sheet-modal"
             style={{
-              backgroundColor: '#FFFFFF',
-              color: '#111827',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              color: 'var(--md-sys-color-on-surface)',
               width: '100%',
-              maxWidth: '768px',
-              borderTopLeftRadius: '28px',
-              borderTopRightRadius: '28px',
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              padding: '20px 24px 28px 24px',
-              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.25)',
+              height: '100%',
+              padding: '20px 24px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+              overflowY: 'auto'
             }}
           >
-            {/* Drag Handle Top Bar */}
-            <div style={{
-              width: '40px',
-              height: '4px',
-              borderRadius: '9999px',
-              backgroundColor: '#E5E7EB',
-              margin: '0 auto 4px auto',
-              opacity: 0.9
-            }} />
 
             {/* Header Layout */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
@@ -294,55 +278,39 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         </div>
       )}
 
-      {/* Blocking Bottom Sheet Modal for Toasts & Action Results (Matches Screenshot 1 & 2) */}
+      {/* Blocking Full-Screen Modal for Toasts & Action Results */}
       {actionResult && (
         <div
           className="no-print"
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
+            backgroundColor: 'var(--md-sys-color-surface)',
             zIndex: 100000,
             display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            padding: 0
+            flexDirection: 'column',
+            height: '100dvh',
+            width: '100%',
+            maxWidth: '768px',
+            margin: '0 auto',
+            overflow: 'hidden'
           }}
           onClick={() => setActionResult(null)}
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="bottom-sheet-modal"
             style={{
               width: '100%',
-              maxWidth: '768px',
-              backgroundColor: '#FFFFFF',
-              color: '#111827',
-              borderTopLeftRadius: '28px',
-              borderTopRightRadius: '28px',
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              padding: '20px 24px 28px 24px',
+              height: '100%',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              color: 'var(--md-sys-color-on-surface)',
+              padding: '20px 24px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.25)',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+              overflowY: 'auto'
             }}
           >
-            {/* Drag Handle Pill */}
-            <div style={{
-              width: '40px',
-              height: '4px',
-              borderRadius: '9999px',
-              backgroundColor: '#E5E7EB',
-              margin: '0 auto 4px auto',
-              opacity: 0.9
-            }} />
 
             {/* Header Row: Icon + Title + Message + X Close Button */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>

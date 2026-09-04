@@ -44,37 +44,38 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.70)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'var(--md-sys-color-surface)',
       zIndex: 2000,
       display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      padding: '0'
+      flexDirection: 'column',
+      height: '100dvh',
+      width: '100%',
+      maxWidth: '768px',
+      margin: '0 auto',
+      overflow: 'hidden'
     }} className="no-print" onClick={onClose}>
 
       <div 
-        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '768px',
-          backgroundColor: 'var(--md-sys-color-surface)',
-          padding: '24px',
-          boxShadow: '0 -10px 40px rgba(0,0,0,0.3)',
+          height: '100%',
+          backgroundColor: 'var(--md-sys-color-surface-container)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          animation: 'modalPop 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)'
+          overflow: 'hidden'
         }}
       >
-        {/* MD3 Bottom-Sheet Top Drag Handle */}
-        <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 8px auto' }} />
 
         {/* Header Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--md-sys-color-surface-container)'
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '42px',
@@ -111,17 +112,23 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           <button
             onClick={onClose}
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--md-sys-color-on-surface-variant)',
+              background: 'var(--md-sys-color-surface-container-high)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              color: 'var(--md-sys-color-on-surface)',
               cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '50%'
+              padding: '8px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
+
+        {/* Scrollable Modal Content Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
         {/* Amount Card Showcase */}
         <div style={{
@@ -197,6 +204,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               </span>
             </div>
           </div>
+        </div>
 
           {/* Explicit Notes / Explanation or Ticket Detail */}
           {transaction.notes?.includes('[TICKET_DE_VENTA]') ? (
@@ -237,8 +245,14 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
         </div>
 
-        {/* Modal Actions */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+        {/* Modal Actions Footer */}
+        <div style={{
+          padding: '14px 20px',
+          borderTop: '1px solid var(--md-sys-color-outline-variant)',
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          display: 'flex',
+          gap: '10px'
+        }}>
           {editable && onEdit && (
             <button
               onClick={() => {

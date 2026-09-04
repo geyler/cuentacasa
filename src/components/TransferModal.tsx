@@ -225,43 +225,44 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.70)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'var(--md-sys-color-surface)',
       zIndex: 2000,
       display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      padding: '0'
+      flexDirection: 'column',
+      height: '100dvh',
+      width: '100%',
+      maxWidth: '768px',
+      margin: '0 auto',
+      overflow: 'hidden'
     }} onClick={onClose}>
       
       <form
         onClick={e => e.stopPropagation()}
         onSubmit={handleExecuteTransfer}
-        className="bottom-sheet-modal"
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
-          maxWidth: '768px',
-          padding: '20px 20px 28px 20px',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px',
-          boxShadow: 'var(--md-shadow-elevation-4)',
-          maxHeight: '90vh',
-          overflowY: 'auto'
+          overflow: 'hidden'
         }}
       >
-        {/* Handle Drag Indicator */}
-        <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto', opacity: 0.8 }} />
-
-        {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Header Bar */}
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'var(--md-sys-color-surface-container)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
+              width: '38px',
+              height: '38px',
+              borderRadius: '12px',
               backgroundColor: 'var(--md-sys-color-primary-container)',
               color: 'var(--md-sys-color-on-primary-container)',
               display: 'flex',
@@ -270,14 +271,36 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             }}>
               <ArrowRightLeft size={20} />
             </div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
-              {isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : 'Transferir entre Cuentas'}
-            </h3>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--md-sys-color-on-surface)' }}>
+                {isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : 'Transferir entre Cuentas'}
+              </h3>
+              <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                Control de saldos internos y caja
+              </span>
+            </div>
           </div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-on-surface-variant)', cursor: 'pointer', padding: '4px' }}>
-            <X size={22} />
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'var(--md-sys-color-surface-container-high)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              borderRadius: '50%',
+              color: 'var(--md-sys-color-on-surface)',
+              cursor: 'pointer',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <X size={20} />
           </button>
         </div>
+
+        {/* Scrollable Form Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
         {/* Mode Selector: Misma Moneda vs Conversión USD ↔ CUP */}
         {(() => {
@@ -686,8 +709,14 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           />
         </div>
 
-        {/* Submit Actions */}
-        <div style={{ display: 'flex', gap: '12px', marginTop: '6px', paddingTop: '10px', borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+        {/* Submit Actions Footer */}
+        <div style={{
+          padding: '14px 20px',
+          borderTop: '1px solid var(--md-sys-color-outline-variant)',
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          display: 'flex',
+          gap: '12px'
+        }}>
           <button
             type="button"
             onClick={onClose}
@@ -709,6 +738,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 : (isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`)}
             </span>
           </button>
+        </div>
+
         </div>
 
       </form>

@@ -155,61 +155,64 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
         style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.90)',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: 'var(--md-sys-color-surface)',
           zIndex: 9999,
           display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          padding: '0'
+          flexDirection: 'column',
+          height: '100dvh',
+          width: '100%',
+          maxWidth: '768px',
+          margin: '0 auto',
+          overflow: 'hidden'
         }}
         onClick={onClose}
       >
         <div
-          className="bottom-sheet-modal"
           style={{
             width: '100%',
-            maxWidth: '768px',
             height: '100%',
-            maxHeight: '100dvh',
             backgroundColor: 'var(--md-sys-color-surface-container)',
-            padding: '16px 20px 24px 20px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '14px',
-            textAlign: 'center',
-            boxShadow: 'var(--md-shadow-elevation-4)',
-            position: 'relative',
-            borderRadius: '28px 28px 0 0',
-            overflowY: 'auto'
+            overflow: 'hidden'
           }}
           onClick={e => e.stopPropagation()}
         >
-        {/* Material Drag Handle */}
-        <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto', opacity: 0.8 }} />
-        
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Scan size={22} color="var(--md-sys-color-primary)" />
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-              Escáner de Código / SKU
-            </h3>
+          {/* Header Bar */}
+          <div style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: 'var(--md-sys-color-surface-container)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Scan size={22} color="var(--md-sys-color-primary)" />
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', margin: 0 }}>
+                Escáner de Código / SKU
+              </h3>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'var(--md-sys-color-surface-container-high)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                padding: '8px',
+                color: 'var(--md-sys-color-on-surface)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={20} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '6px',
-              color: 'var(--md-sys-color-on-surface-variant)',
-              borderRadius: '50%'
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
+
+          {/* Scroll Body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
 
             <div
               style={{
@@ -298,6 +301,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
             >
               Cancelar
             </button>
+          </div>
         </div>
       </div>
     );

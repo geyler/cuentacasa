@@ -353,48 +353,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       <div style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.70)',
-        backdropFilter: 'blur(8px)',
+        backgroundColor: 'var(--md-sys-color-surface)',
         zIndex: 2000,
         display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        padding: '0'
+        flexDirection: 'column',
+        height: '100dvh',
+        width: '100%',
+        maxWidth: '768px',
+        margin: '0 auto',
+        overflow: 'hidden'
       }} className="no-print" onClick={onClose}>
         
         <div 
-          className="bottom-sheet-modal"
           onClick={e => e.stopPropagation()}
           style={{
             backgroundColor: 'var(--md-sys-color-surface-container)',
             color: 'var(--md-sys-color-on-surface)',
             width: '100%',
-            maxWidth: '768px',
-            padding: '14px 24px 28px 24px',
-            boxShadow: 'var(--md-shadow-elevation-4)',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            gap: '20px',
-            maxHeight: '90vh',
-            overflowY: 'auto'
+            overflow: 'hidden'
           }}
         >
-          {/* Handle Drag */}
+          {/* Modal Header Bar */}
           <div style={{
-            width: '36px',
-            height: '4px',
-            borderRadius: '9999px',
-            backgroundColor: 'var(--md-sys-color-outline-variant)',
-            margin: '0 auto 4px auto'
-          }} />
-
-          {/* Modal Title Bar */}
-          <div style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--md-sys-color-outline-variant)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderBottom: '1px solid var(--md-sys-color-outline-variant)',
-            paddingBottom: '12px'
+            backgroundColor: 'var(--md-sys-color-surface-container)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
@@ -422,17 +411,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               onClick={onClose}
               style={{
-                background: 'none',
-                border: 'none',
+                background: 'var(--md-sys-color-surface-container-high)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                borderRadius: '50%',
                 color: 'var(--md-sys-color-on-surface)',
                 cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '50%'
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              <X size={22} />
+              <X size={20} />
             </button>
           </div>
+
+          {/* Scroll Body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
           {/* Main Controls List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1061,6 +1056,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             Samy Store v1.7.0 • Cubasoft ERP Systems
           </div>
 
+          </div>
+
         </div>
 
       </div>
@@ -1081,99 +1078,119 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
+            backgroundColor: 'var(--md-sys-color-surface)',
             zIndex: 2500,
             display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            padding: '0'
+            flexDirection: 'column',
+            height: '100dvh',
+            width: '100%',
+            maxWidth: '768px',
+            margin: '0 auto',
+            overflow: 'hidden'
           }}
         >
           <div 
             onClick={e => e.stopPropagation()}
-            className="bottom-sheet-modal"
             style={{
               backgroundColor: 'var(--md-sys-color-surface)',
               color: 'var(--md-sys-color-on-surface)',
-              borderRadius: '28px 28px 0 0',
-              padding: '24px 20px calc(24px + env(safe-area-inset-bottom, 0px)) 20px',
-              maxWidth: '768px',
               width: '100%',
-              boxShadow: 'var(--md-shadow-elevation-4)',
-              borderTop: '3px solid var(--md-sys-color-expense)',
-              maxHeight: '90vh',
-              overflowY: 'auto'
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
             }}
           >
-            {/* Handle visual */}
+            {/* Header Bar */}
             <div style={{
-              width: '36px',
-              height: '4px',
-              backgroundColor: 'var(--md-sys-color-outline-variant)',
-              borderRadius: '9999px',
-              margin: '0 auto 16px auto'
-            }} />
-
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-expense)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Lock size={20} />
-              Confirmar Reinicio Completo
-            </h3>
-            
-            <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '16px', lineHeight: '1.4' }}>
-              Se borrarán todos los productos, ventas, movimientos y proveedores de la tienda y la casa. <strong>Se conservarán tus usuarios y roles activos.</strong>
-            </p>
-
-            <form onSubmit={handleConfirmMasterPassReset} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <input
-                type="password"
-                placeholder="Contraseña del Propietario"
-                value={masterPasswordInput}
-                onChange={e => setMasterPasswordInput(e.target.value)}
-                required
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--md-sys-color-surface-container)'
+            }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-expense)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Lock size={20} />
+                Confirmar Reinicio Completo
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsMasterPassModalOpen(false)}
                 style={{
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '1.5px solid var(--md-sys-color-outline)',
-                  backgroundColor: 'var(--md-sys-color-surface-container)',
+                  background: 'var(--md-sys-color-surface-container-high)',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  borderRadius: '50%',
                   color: 'var(--md-sys-color-on-surface)',
-                  fontSize: '0.9rem',
-                  fontWeight: 700
+                  cursor: 'pointer',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
-              />
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-              {masterPassError && (
-                <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-expense)', fontWeight: 800 }}>
-                  ❌ {masterPassError}
-                </span>
-              )}
+            {/* Scroll Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, lineHeight: '1.4' }}>
+                Se borrarán todos los productos, ventas, movimientos y proveedores de la tienda y la casa. <strong>Se conservarán tus usuarios y roles activos.</strong>
+              </p>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsMasterPassModalOpen(false)}
-                  className="md-btn md-btn-secondary"
-                  style={{ flex: 1, padding: '10px', fontSize: '0.85rem' }}
-                >
-                  Cancelar
-                </button>
-                
-                <button
-                  type="submit"
-                  className="md-btn"
+              <form onSubmit={handleConfirmMasterPassReset} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <input
+                  type="password"
+                  placeholder="Contraseña del Propietario"
+                  value={masterPasswordInput}
+                  onChange={e => setMasterPasswordInput(e.target.value)}
+                  required
                   style={{
-                    flex: 1,
-                    padding: '10px',
-                    fontSize: '0.85rem',
-                    backgroundColor: 'var(--md-sys-color-expense)',
-                    color: '#FFF',
-                    fontWeight: 800
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--md-sys-color-outline)',
+                    backgroundColor: 'var(--md-sys-color-surface-container)',
+                    color: 'var(--md-sys-color-on-surface)',
+                    fontSize: '0.9rem',
+                    fontWeight: 700
                   }}
-                >
-                  Confirmar Borrado
-                </button>
-              </div>
-            </form>
+                />
+
+                {masterPassError && (
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-expense)', fontWeight: 800 }}>
+                    ❌ {masterPassError}
+                  </span>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsMasterPassModalOpen(false)}
+                    className="md-btn md-btn-secondary"
+                    style={{ flex: 1, padding: '12px', fontSize: '0.88rem' }}
+                  >
+                    Cancelar
+                  </button>
+                  
+                  <button
+                    type="submit"
+                    className="md-btn"
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      fontSize: '0.88rem',
+                      backgroundColor: 'var(--md-sys-color-expense)',
+                      color: '#FFF',
+                      fontWeight: 800
+                    }}
+                  >
+                    Confirmar Borrado
+                  </button>
+                </div>
+              </form>
+            </div>
+
           </div>
         </div>
       )}

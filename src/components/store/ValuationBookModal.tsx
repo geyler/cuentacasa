@@ -400,40 +400,58 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)',
+            backgroundColor: 'var(--md-sys-color-surface)',
             zIndex: 2600,
             display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            padding: '0'
+            flexDirection: 'column',
+            height: '100dvh',
+            width: '100%',
+            maxWidth: '768px',
+            margin: '0 auto',
+            overflow: 'hidden'
           }}
           onClick={() => setEditingDateProduct(null)}
         >
           <form
             onSubmit={handleSaveQuickDate}
             onClick={e => e.stopPropagation()}
-            className="bottom-sheet-modal"
             style={{
               backgroundColor: 'var(--md-sys-color-surface-container)',
-              padding: '12px 20px 24px 20px',
-              borderTopLeftRadius: '28px',
-              borderTopRightRadius: '28px',
+              color: 'var(--md-sys-color-on-surface)',
+              padding: '20px',
               width: '100%',
-              maxWidth: '480px',
+              height: '100%',
               display: 'flex',
               flexDirection: 'column',
               gap: '14px',
-              boxShadow: 'var(--md-shadow-elevation-4)'
+              overflowY: 'auto'
             }}
           >
-            {/* Handle Drag Indicator */}
-            <div style={{ width: '40px', height: '4px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 6px auto', opacity: 0.8 }} />
-
-            <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>Actualizar Fechas del Producto</h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '-8px' }}>
-              {editingDateProduct.name} (SKU: {editingDateProduct.barcode})
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>Actualizar Fechas del Producto</h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0' }}>
+                  {editingDateProduct.name} (SKU: {editingDateProduct.barcode})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDateProduct(null)}
+                style={{
+                  background: 'var(--md-sys-color-surface-container-high)',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  borderRadius: '50%',
+                  color: 'var(--md-sys-color-on-surface)',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
