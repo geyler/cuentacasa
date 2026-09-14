@@ -37,7 +37,15 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
   totalCartCount,
   totalCartPrice
 }) => {
-  useLockBodyScroll(!!productToAddToCart || !!addedSuccessModal?.show);
+  const isSheetOpen = !!productToAddToCart || !!addedSuccessModal?.show;
+  const handleCloseAll = () => {
+    if (addedSuccessModal?.show) {
+      onCloseSuccessModal();
+    } else {
+      onClose();
+    }
+  };
+  useLockBodyScroll(isSheetOpen, handleCloseAll);
 
   return (
     <>

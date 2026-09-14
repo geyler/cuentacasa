@@ -22,7 +22,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   onDelete,
   currency = '$'
 }) => {
-  useLockBodyScroll(!!transaction);
+  useLockBodyScroll(!!transaction, onClose);
   if (!transaction) return null;
 
 

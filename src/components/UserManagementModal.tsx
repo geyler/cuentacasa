@@ -26,7 +26,7 @@ interface UserManagementModalProps {
 }
 
 export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClose }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const { showToast, confirmAction } = useActionFeedback();
 
   const currentUser = getLoggedInUser();

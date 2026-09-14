@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import { getLoggedInUser } from '@/lib/storage';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface HeaderProps {
   activeTab: AppTab;
@@ -55,6 +56,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const isMenuOpen = externalMenuOpen !== undefined ? externalMenuOpen : internalMenuOpen;
   const setIsMenuOpen = setExternalMenuOpen || setInternalMenuOpen;
+
+  useLockBodyScroll(isMenuOpen, () => setIsMenuOpen(false));
 
   const currentUser = getLoggedInUser();
   const isOwner = !currentUser || currentUser.role === 'propietario';

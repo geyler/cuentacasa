@@ -34,7 +34,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
   totalCartCount,
   totalCartPrice
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const [isCartQROpen, setIsCartQROpen] = useState(false);
 
   if (!isOpen) return null;

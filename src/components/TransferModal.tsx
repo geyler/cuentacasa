@@ -24,7 +24,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   defaultFrom = 'casa',
   defaultTo = 'ahorro'
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const { showActionResult, showToast, confirmAction } = useActionFeedback();
 
   const [fromAccount, setFromAccount] = useState<FundAccountType>(defaultFrom);

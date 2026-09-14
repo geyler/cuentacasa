@@ -30,7 +30,7 @@ interface CubasoftInfoModalProps {
 }
 
 export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, onClose }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const [activeTab, setActiveTab] = useState<'features' | 'guide' | 'pricing' | 'contact'>('features');
 
   if (!isOpen) return null;

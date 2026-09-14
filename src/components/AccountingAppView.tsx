@@ -641,7 +641,7 @@ function AccountingAppContent() {
   const isAnyModalOpen = isTxModalOpen || isSettingsOpen || isPendingSyncModalOpen || isRawDbModalOpen || isScannerOpen || isTransferModalOpen || !!selectedTxForDetailModal || isNavMenuOpen;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div className="mobile-system-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       
       {/* Top Background Sync Progress Banner */}
       {syncBanner.show && (

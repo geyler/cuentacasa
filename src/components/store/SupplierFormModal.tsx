@@ -15,7 +15,7 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
   onClose,
   onSubmit
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const [nameInput, setNameInput] = useState('');
 
 

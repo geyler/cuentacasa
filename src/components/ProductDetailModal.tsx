@@ -55,7 +55,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [isVoteModalOpen, setIsVoteModalOpen] = useState(false);
 
   const showModal = Boolean(isOpen && activeProduct);
-  useLockBodyScroll(showModal);
+  useLockBodyScroll(showModal, onClose);
+  useLockBodyScroll(isVoteModalOpen, () => setIsVoteModalOpen(false));
 
   // Cargar estado de voto y tiempo restante
   useEffect(() => {
@@ -173,30 +174,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'var(--md-sys-color-surface)',
-      zIndex: 2500,
-      display: 'flex',
-      flexDirection: 'column',
-      maxWidth: '768px',
-      margin: '0 auto',
-      height: '100dvh',
-      overflow: 'hidden'
-    }} className="no-print">
-
+    <div 
+      className="product-modal-backdrop no-print"
+      onClick={onClose}
+    >
       <div 
+        className="product-modal-content"
         onClick={e => e.stopPropagation()}
-        style={{
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'var(--md-sys-color-surface)',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          borderRadius: 0
-        }}
       >
         {/* Encabezado con Botón Cerrar */}
         <div style={{ 

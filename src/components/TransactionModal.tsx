@@ -22,7 +22,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   initialType = 'gasto',
   editingTransaction
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
 
   const [type, setType] = useState<TransactionType>(initialType);
   const [concept, setConcept] = useState('');

@@ -72,7 +72,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   currency = '$',
   initialTicketItems = []
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const { showToast, confirmAction, showActionResult } = useActionFeedback();
   const scannerContainerId = 'cuentacasa-html5-barcode-reader';
   const html5QrcodeRef = useRef<Html5Qrcode | null>(null);

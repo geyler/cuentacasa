@@ -18,7 +18,7 @@ export const SupplierPayoutModal: React.FC<SupplierPayoutModalProps> = ({
   onExecutePayout,
   currency = '$'
 }) => {
-  useLockBodyScroll(!!supplier);
+  useLockBodyScroll(!!supplier, onClose);
   const [payoutSource, setPayoutSource] = useState<'negocio' | 'casa'>('negocio');
   const [payoutCurrency, setPayoutCurrency] = useState<CurrencyType>('CUP');
   const [payoutAmount, setPayoutAmount] = useState<number | ''>('');

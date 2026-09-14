@@ -17,7 +17,7 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
   onClose,
   onEditProduct
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'expired' | 'warning' | 'valid' | 'nodate'>('all');

@@ -30,7 +30,11 @@ import {
   Globe,
   Star,
   Zap,
-  Layers
+  Layers,
+  Truck,
+  ShieldCheck,
+  MapPin,
+  X
 } from 'lucide-react';
 
 interface CartItem {
@@ -265,24 +269,40 @@ export const PublicStoreLanding: React.FC = () => {
     window.open(waUrl, '_blank');
   };
 
+  const handleDirectWhatsAppContact = () => {
+    const targetPhone = getStoreWhatsappNumber();
+    const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
+    const text = encodeURIComponent('¡Hola Samy Store! Quisiera consultar sobre los productos disponibles y entregas en Las Tunas.');
+    const waUrl = cleanPhone ? `https://wa.me/+${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, '_blank');
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', flexDirection: 'column' }}>
       
-      {/* 1. Header Bar */}
+      {/* 1. Header Bar (Web PC & Móvil) */}
       <PublicStoreHeaderBar
         totalCartCount={totalCartCount}
+        totalCartPrice={totalCartPrice}
         isCartOpen={isCartOpen}
         setIsCartOpen={setIsCartOpen}
         isUserLoggedIn={isUserLoggedIn}
         onResetFilters={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onWhatsAppClick={handleDirectWhatsAppContact}
       />
 
-      {/* 2. Full-Width Hero Section */}
+      {/* 2. Full-Width Hero Section (Estilo Qubazar / Cubasoft) */}
       <PublicStoreHeroBanner
         onSearchClick={() => {
           const searchEl = document.getElementById('store-hero-search-input');
-          searchEl?.focus();
-          searchEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (searchEl) {
+            searchEl.focus();
+            searchEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            window.scrollTo({ top: 300, behavior: 'smooth' });
+          }
         }}
         onFeaturedClick={() => {
           const featEl = document.getElementById('featured-products-section');
@@ -296,8 +316,8 @@ export const PublicStoreLanding: React.FC = () => {
         onSelectCategory={(cat) => setSelectedCategory(cat)}
       />
 
-      {/* 3. Search Bar */}
-      <div style={{ maxWidth: '768px', width: 'calc(100% - 32px)', margin: '14px auto 0 auto', position: 'relative' }}>
+      {/* 3. Mobile Search Bar (Visible sólo en móviles, en PC está en el header) */}
+      <div className="mobile-only" style={{ width: 'calc(100% - 32px)', margin: '14px auto 0 auto', position: 'relative' }}>
         <div style={{ position: 'relative', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
           <Search 
             size={22} 
@@ -317,15 +337,15 @@ export const PublicStoreLanding: React.FC = () => {
             onChange={e => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
-              padding: '16px 48px 16px 54px',
+              padding: '14px 44px 14px 50px',
               borderRadius: '9999px',
               border: '2px solid #FBCFE8',
               backgroundColor: '#FFFFFF',
               color: '#0F172A',
-              fontSize: '0.98rem',
+              fontSize: '0.96rem',
               fontWeight: 700,
               outline: 'none',
-              boxShadow: '0 6px 20px rgba(236, 72, 153, 0.08)',
+              boxShadow: '0 4px 16px rgba(236, 72, 153, 0.08)',
               transition: 'all 0.2s ease'
             }}
           />
@@ -334,7 +354,7 @@ export const PublicStoreLanding: React.FC = () => {
               onClick={() => setSearchTerm('')}
               style={{
                 position: 'absolute',
-                right: '16px',
+                right: '14px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 background: '#F1F5F9',
@@ -359,14 +379,16 @@ export const PublicStoreLanding: React.FC = () => {
 
       {/* 4. PWA Install CTA Banner */}
       {!isInstalled && (
-        <PwaInstallBanner 
-          onInstall={handleInstallPwa} 
-          onDismiss={() => setIsInstalled(true)} 
-        />
+        <div className="store-container" style={{ marginTop: '12px' }}>
+          <PwaInstallBanner 
+            onInstall={handleInstallPwa} 
+            onDismiss={() => setIsInstalled(true)} 
+          />
+        </div>
       )}
 
-      {/* 5. Main Products Content Grid */}
-      <main style={{ maxWidth: '768px', width: '100%', margin: '0 auto', padding: '24px 20px 140px 20px', flex: 1 }}>
+      {/* 5. Main Products Content Grid (Ancho completo responsivo en PC) */}
+      <main className="store-container" style={{ padding: '28px 16px 140px 16px', flex: 1 }}>
         
         {/* Categories Carousel / Cards FIRST */}
         {categories.length > 0 && (
@@ -480,11 +502,7 @@ export const PublicStoreLanding: React.FC = () => {
               </h3>
             </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-              gap: '18px'
-            }}>
+            <div className="store-product-grid" style={{ marginBottom: '16px' }}>
               {products.slice(0, 4).map(product => {
                 const inCart = cart.find(item => item.product.id === product.id);
                 const cardSeo = getProductSeoMeta(product.barcode, product.price);
@@ -493,7 +511,7 @@ export const PublicStoreLanding: React.FC = () => {
                 return (
                   <div
                     key={`feat-${product.id}`}
-                    className="md-card"
+                    className="store-product-card"
                     onClick={() => handleOpenProductModal(product)}
                     style={{
                       padding: '14px',
@@ -501,13 +519,7 @@ export const PublicStoreLanding: React.FC = () => {
                       flexDirection: 'column',
                       justifyContent: 'space-between',
                       gap: '12px',
-                      borderRadius: '20px',
-                      cursor: 'pointer',
-                      transition: 'all 0.25s ease',
-                      border: '1px solid #F1F5F9',
-                      backgroundColor: '#FFFFFF',
-                      position: 'relative',
-                      boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)'
+                      position: 'relative'
                     }}
                   >
                     <div>
@@ -521,6 +533,7 @@ export const PublicStoreLanding: React.FC = () => {
                         position: 'relative'
                       }}>
                         <img 
+                          className="store-product-img"
                           src={formattedImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
                           alt={product.name} 
                           onError={(e) => {
@@ -687,11 +700,7 @@ export const PublicStoreLanding: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-            gap: '18px'
-          }}>
+          <div className="store-product-grid">
             {filteredProducts.map(product => {
               const inCart = cart.find(item => item.product.id === product.id);
               const cardSeo = getProductSeoMeta(product.barcode, product.price);
@@ -700,7 +709,7 @@ export const PublicStoreLanding: React.FC = () => {
               return (
                 <div
                   key={product.id}
-                  className="md-card"
+                  className="store-product-card"
                   onClick={() => handleOpenProductModal(product)}
                   style={{
                     padding: '14px',
@@ -708,13 +717,7 @@ export const PublicStoreLanding: React.FC = () => {
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     gap: '12px',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                    border: '1px solid #F1F5F9',
-                    backgroundColor: '#FFFFFF',
-                    position: 'relative',
-                    boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)'
+                    position: 'relative'
                   }}
                 >
                   <div>
@@ -728,6 +731,7 @@ export const PublicStoreLanding: React.FC = () => {
                       position: 'relative'
                     }}>
                       <img 
+                        className="store-product-img"
                         src={formattedImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
                         alt={product.name} 
                         onError={(e) => {
@@ -903,9 +907,174 @@ export const PublicStoreLanding: React.FC = () => {
           isAdmin={false}
         />
 
+        {/* Value Proposition & Benefits Section (Estilo Qubazar / Cubasoft) */}
+        <section style={{
+          marginTop: '50px',
+          marginBottom: '20px',
+          borderRadius: '26px',
+          background: 'linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%)',
+          border: '1px solid #FBCFE8',
+          padding: '36px 24px',
+          boxShadow: '0 8px 24px rgba(236, 72, 153, 0.05)'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#BE185D', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Experiencia Samy Store
+            </span>
+            <h3 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#831843', marginTop: '4px', letterSpacing: '-0.02em' }}>
+              ¿Por qué Comprar en Samy Store?
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: '#9D174D', maxWidth: '620px', margin: '6px auto 0 auto', fontWeight: 500 }}>
+              El mercado online más rápido y conveniente de Las Tunas. Compras fáciles, seguras y directas a tu WhatsApp.
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '20px'
+          }}>
+            {/* Benefit 1 */}
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '18px',
+              padding: '20px',
+              border: '1px solid #FBCFE8',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+              display: 'flex',
+              gap: '14px',
+              alignItems: 'flex-start'
+            }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: '#ECFDF5',
+                color: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Truck size={22} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
+                  Envíos Rápidos en Las Tunas
+                </h4>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.45', margin: 0 }}>
+                  Entregas ágiles y directas a tu puerta en toda la ciudad. Recibe tus compras sin demoras.
+                </p>
+              </div>
+            </div>
+
+            {/* Benefit 2 */}
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '18px',
+              padding: '20px',
+              border: '1px solid #FBCFE8',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+              display: 'flex',
+              gap: '14px',
+              alignItems: 'flex-start'
+            }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: '#EFF6FF',
+                color: '#2563EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <MessageCircle size={22} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
+                  Pedidos por WhatsApp
+                </h4>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.45', margin: 0 }}>
+                  Elige tus artículos y encarga con un solo clic, sin contraseñas ni registros obligatorios.
+                </p>
+              </div>
+            </div>
+
+            {/* Benefit 3 */}
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '18px',
+              padding: '20px',
+              border: '1px solid #FBCFE8',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+              display: 'flex',
+              gap: '14px',
+              alignItems: 'flex-start'
+            }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: '#FEF3C7',
+                color: '#D97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Sparkles size={22} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
+                  Precios en CUP y USD
+                </h4>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.45', margin: 0 }}>
+                  Claridad total en importes con conversión dinámica a tasa actualizada de mercado.
+                </p>
+              </div>
+            </div>
+
+            {/* Benefit 4 */}
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '18px',
+              padding: '20px',
+              border: '1px solid #FBCFE8',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+              display: 'flex',
+              gap: '14px',
+              alignItems: 'flex-start'
+            }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: '#FCE7F3',
+                color: '#BE185D',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <ShieldCheck size={22} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
+                  Garantía & Calidad
+                </h4>
+                <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.45', margin: 0 }}>
+                  Artículos revisados con stock disponible en tienda y atención personalizada garantizada.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
 
-      {/* 6. Floating Bottom Cart Bar */}
+      {/* 6. Floating Bottom Cart Bar (Responsive Container) */}
       {totalCartCount > 0 && !isCartOpen && (
         <div style={{
           position: 'fixed',
@@ -918,9 +1087,7 @@ export const PublicStoreLanding: React.FC = () => {
           boxShadow: '0 -6px 24px rgba(0,0,0,0.08)',
           zIndex: 90
         }}>
-          <div style={{
-            maxWidth: '768px',
-            margin: '0 auto',
+          <div className="store-container" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -943,7 +1110,7 @@ export const PublicStoreLanding: React.FC = () => {
               style={{
                 backgroundColor: '#25D366',
                 color: '#FFFFFF',
-                padding: '12px 22px',
+                padding: '12px 24px',
                 fontSize: '0.95rem',
                 fontWeight: 800,
                 borderRadius: '9999px',
@@ -951,12 +1118,12 @@ export const PublicStoreLanding: React.FC = () => {
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '8px',
                 boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)'
               }}
             >
               <MessageCircle size={20} />
-              <span>Encargar</span>
+              <span>Encargar por WhatsApp</span>
             </button>
           </div>
         </div>
@@ -991,93 +1158,192 @@ export const PublicStoreLanding: React.FC = () => {
         totalCartPrice={totalCartPrice}
       />
 
-      {/* 9. Light & Feminine Footer */}
+      {/* 9. Full Web Desktop & Mobile Footer (Estilo Qubazar / Cubasoft) */}
       <footer style={{
         backgroundColor: '#FFF0F5',
         color: '#831843',
-        padding: '36px 16px 44px 16px',
-        marginTop: 'auto',
         borderTop: '1px solid #FBCFE8',
-        textAlign: 'center'
+        marginTop: 'auto'
       }}>
-        <div style={{ maxWidth: '768px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '28px', width: 'auto' }} />
-            <span className="font-logo-script" style={{ fontSize: '1.5rem', fontWeight: 900, color: '#831843' }}>Samy Store Las Tunas</span>
+        <div className="store-container" style={{ padding: '48px 16px 28px 16px' }}>
+          
+          {/* Top Multi-Column Grid on Desktop */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '36px',
+            marginBottom: '36px'
+          }}>
+            {/* Col 1: Brand & Bio */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '40px', width: 'auto' }} />
+                <span className="font-logo-script" style={{ fontSize: '1.75rem', fontWeight: 900, color: '#831843' }}>
+                  Samy Store
+                </span>
+              </div>
+              <p style={{ fontSize: '0.86rem', color: '#9D174D', lineHeight: '1.6', margin: 0, fontWeight: 500 }}>
+                Tu mercado digital y tienda física de preferencia en Las Tunas, Cuba. Insumos seleccionados, electrodomésticos, aseo y variedad con pedidos rápidos vía WhatsApp y entregas a domicilio.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '0.8rem', fontWeight: 700, color: '#BE185D' }}>
+                <MapPin size={14} />
+                <span>Las Tunas, Cuba • Envíos Locales</span>
+              </div>
+            </div>
+
+            {/* Col 2: Categorías Rápidas */}
+            <div>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#831843', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Categorías Populares
+              </h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {categories.slice(0, 6).map(cat => (
+                  <li key={`footer-cat-${cat}`}>
+                    <button
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        window.scrollTo({ top: 400, behavior: 'smooth' });
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: '#9D174D',
+                        fontSize: '0.86rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textTransform: 'capitalize',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span style={{ color: '#EC4899' }}>•</span> {cat}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Col 3: Atención y Envíos */}
+            <div>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#831843', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Atención al Cliente
+              </h4>
+              <p style={{ fontSize: '0.85rem', color: '#9D174D', lineHeight: '1.5', margin: '0 0 12px 0', fontWeight: 500 }}>
+                Horario de Pedidos: Lunes a Domingo de 8:00 AM a 8:00 PM. Entregas directas a domicilio.
+              </p>
+              <button
+                onClick={handleDirectWhatsAppContact}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#25D366',
+                  color: '#FFFFFF',
+                  padding: '10px 18px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(37, 211, 102, 0.3)'
+                }}
+              >
+                <MessageCircle size={16} />
+                <span>Contactar por WhatsApp</span>
+              </button>
+            </div>
+
+            {/* Col 4: Cubasoft ERP & Tecnología */}
+            <div>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#831843', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Tecnología & Gestión
+              </h4>
+              <p style={{ fontSize: '0.85rem', color: '#9D174D', lineHeight: '1.5', margin: '0 0 10px 0', fontWeight: 500 }}>
+                Plataforma PWA impulsada por el ecosistema de <strong>Cubasoft ERP</strong>.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsCubasoftModalOpen(true);
+                  }}
+                  style={{
+                    color: '#DB2777',
+                    textDecoration: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <Zap size={14} /> Conoce Cubasoft ERP
+                </a>
+                <a
+                  href="https://cubasoft.net"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: '#BE185D',
+                    textDecoration: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <Globe size={14} /> Desarrollado por Cubasoft.net
+                </a>
+                <div style={{ marginTop: '6px' }}>
+                  <a
+                    href="/login?force=true"
+                    style={{
+                      color: '#BE185D',
+                      textDecoration: 'none',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '6px 14px',
+                      borderRadius: '9999px',
+                      backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                      border: '1px solid #FBCFE8'
+                    }}
+                  >
+                    <Lock size={13} />
+                    <span>Acceso al Sistema</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <p style={{ fontSize: '0.84rem', color: '#9D174D', maxWidth: '600px', margin: 0, lineHeight: '1.5', fontWeight: 600 }}>
-            Tu tienda preferida en Las Tunas. Insumos, electrodomésticos y variadas ofertas con pedido directo por WhatsApp y entregas rápidas. Impulsada por <strong>Cubasoft ERP</strong>.
-          </p>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', justifyContent: 'center', alignItems: 'center', marginTop: '6px' }}>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setIsCubasoftModalOpen(true);
-              }}
-              style={{
-                color: '#DB2777',
-                textDecoration: 'none',
-                fontWeight: 800,
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <Zap size={14} /> Ver Sistema Cubasoft ERP
-            </a>
-
-            <span style={{ color: '#F472B6' }}>•</span>
-
-            <a
-              href="https://cubasoft.net"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: '#BE185D',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <Globe size={14} /> Desarrollado por Cubasoft.net
-            </a>
+          {/* Bottom Copyright Bar */}
+          <div style={{
+            borderTop: '1px solid #FBCFE8',
+            paddingTop: '20px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            fontSize: '0.8rem',
+            color: '#9D174D',
+            fontWeight: 600
+          }}>
+            <span>
+              © {new Date().getFullYear()} Samy Store. Todos los derechos reservados.
+            </span>
+            <span>
+              Las Tunas, Cuba • Desarrollado con tecnología de <strong style={{ color: '#831843' }}>Cubasoft</strong>
+            </span>
           </div>
-
-          {/* Enlace solitario en medio antes del copyright para acceder al login */}
-          <div style={{ margin: '12px 0 6px 0', width: '100%', textAlign: 'center' }}>
-            <a
-              href="/login?force=true"
-              style={{
-                color: '#BE185D',
-                textDecoration: 'none',
-                fontWeight: 800,
-                fontSize: '0.88rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 18px',
-                borderRadius: '9999px',
-                backgroundColor: 'rgba(236, 72, 153, 0.08)',
-                border: '1px solid #FBCFE8',
-                boxShadow: '0 2px 8px rgba(236, 72, 153, 0.06)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <Lock size={14} />
-              <span>Acceder</span>
-            </a>
-          </div>
-
-          <span style={{ fontSize: '0.75rem', color: '#9D174D', marginTop: '4px', opacity: 0.8 }}>
-            © {new Date().getFullYear()} Samy Store. Todos los derechos reservados.
-          </span>
 
         </div>
       </footer>

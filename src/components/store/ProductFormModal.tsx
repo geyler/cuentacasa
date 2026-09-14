@@ -38,7 +38,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   currency = '$',
   scannedBarcode
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const { showToast } = useActionFeedback();
 
   // Form State

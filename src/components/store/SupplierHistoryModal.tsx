@@ -20,7 +20,7 @@ export const SupplierHistoryModal: React.FC<SupplierHistoryModalProps> = ({
   currency = '$',
   onClose
 }) => {
-  useLockBodyScroll(!!supplier);
+  useLockBodyScroll(!!supplier, onClose);
   const [activeTab, setActiveTab] = useState<'inventory' | 'sales' | 'payouts'>('inventory');
 
   if (!supplier) return null;

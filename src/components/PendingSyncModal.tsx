@@ -33,7 +33,7 @@ export const PendingSyncModal: React.FC<PendingSyncModalProps> = ({
   isSyncing,
   isOnline
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const { showToast } = useActionFeedback();
   const [details, setDetails] = useState<{ totalCount: number; items: PendingSyncDetailItem[] }>({
     totalCount: 0,

@@ -30,7 +30,7 @@ export const QRSyncModal: React.FC<QRSyncModalProps> = ({
   onClose,
   onSyncComplete
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const { showToast } = useActionFeedback();
   const currentUser = getLoggedInUser();
 

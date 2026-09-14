@@ -29,7 +29,7 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
   onAddProductsToTicket,
   currency = '$'
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [searchQuery, setSearchQuery] = useState('');

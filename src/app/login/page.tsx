@@ -80,7 +80,7 @@ function PureLoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)' }}>
+    <div className="mobile-system-container" style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)' }}>
       <LoginScreen
         mode={mode}
         onMasterLoginSuccess={handleMasterLoginSuccess}

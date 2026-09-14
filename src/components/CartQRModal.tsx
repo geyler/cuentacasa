@@ -28,7 +28,7 @@ export const CartQRModal: React.FC<CartQRModalProps> = ({
   totalCartPrice,
   currency = '$'
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
 
   const qrDataUrl = useMemo(() => {
     if (!isOpen || cart.length === 0) return '';

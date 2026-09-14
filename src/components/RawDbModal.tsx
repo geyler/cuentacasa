@@ -5,6 +5,7 @@ import { getRawDatabaseString, saveRawDatabaseString, exportDatabaseFile } from 
 import { X, Copy, Download, Upload, Save, Check, FileCode } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface RawDbModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
   onClose,
   onDbUpdated
 }) => {
+  useLockBodyScroll(isOpen, onClose);
   const { showToast, confirmAction } = useActionFeedback();
   const [jsonText, setJsonText] = useState('');
   const [copied, setCopied] = useState(false);

@@ -49,7 +49,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
   currency = '$',
   onOpenHistoryReport
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const { showToast, confirmAction } = useActionFeedback();
 
   const currentUser = getLoggedInUser();

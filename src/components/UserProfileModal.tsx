@@ -35,7 +35,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onLogout,
   currency = '$'
 }) => {
-  useLockBodyScroll(isOpen);
+  useLockBodyScroll(isOpen, onClose);
   const { showToast } = useActionFeedback();
 
   const currentUser = getLoggedInUser();
