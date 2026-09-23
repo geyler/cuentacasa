@@ -3,22 +3,26 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const currentRateParam = searchParams.get('current');
-  const currentRate = currentRateParam ? parseFloat(currentRateParam) : 675;
+  const currentRate = currentRateParam ? parseFloat(currentRateParam) : 720;
 
-  let fetchedRate = 675; // Default reference rate as of user statement
-  let eurRate: number | undefined = 770;
-  let mlcRate: number | undefined = 477.65;
+  let fetchedRate = currentRate; // Conservar la tasa actual si el scraping no responde o falla
+  let eurRate: number | undefined = undefined;
+  let mlcRate: number | undefined = undefined;
   let fetchedFromRemote = false;
 
   try {
-    // Attempt 1: Fetch directly from elTOQUE RSS / API mirror
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
     const response = await fetch('https://tasas.eltoque.com/', {
+      signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
       },
       next: { revalidate: 300 } // Cache for 5 minutes
     });
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       const html = await response.text();

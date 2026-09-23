@@ -340,6 +340,7 @@ export function clearAllDatabaseRecords(): void {
     lastUpdated: new Date().toISOString(),
     settings: {
       currency: '$',
+      currencyMode: 'CUP',
       appName: 'Samy Store',
       autoSync: true,
       masterPassword: 'Del1Al9'
@@ -1246,7 +1247,7 @@ export interface CurrencySettings {
 export function getCurrencySettings(): CurrencySettings {
   const db = getRawDatabase();
   return {
-    currencyMode: (db.settings?.currencyMode as CurrencyMode) || 'BOTH',
+    currencyMode: (db.settings?.currencyMode as CurrencyMode) || 'CUP',
     exchangeRateUSD: db.settings?.exchangeRateUSD || 675,
     exchangeRateTrend: db.settings?.exchangeRateTrend || 'stable',
     autoSyncElToque: db.settings?.autoSyncElToque !== undefined ? db.settings.autoSyncElToque : true,
@@ -1287,7 +1288,7 @@ export async function syncElToqueExchangeRate(): Promise<CurrencySettings> {
     const res = await fetch(`/api/eltoque?current=${current.exchangeRateUSD}`);
     if (res.ok) {
       const data = await res.json();
-      if (data.success && data.usd && !isNaN(data.usd)) {
+      if (data.success && data.synced && data.usd && !isNaN(data.usd)) {
         return saveCurrencySettings({
           exchangeRateUSD: data.usd,
           exchangeRateTrend: data.trend || 'stable',
@@ -2074,7 +2075,7 @@ export function generateSyncQRPayload(): string {
   // Compact Settings
   const st = {
     e: db.settings?.exchangeRateUSD || 320,
-    m: db.settings?.currencyMode || 'BOTH',
+    m: db.settings?.currencyMode || 'CUP',
     c: db.settings?.currency || 'CUP'
   };
 
@@ -2133,7 +2134,7 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
       db.settings = {
         ...(db.settings || {}),
         exchangeRateUSD: rawObj.st.e || 320,
-        currencyMode: rawObj.st.m || 'BOTH',
+        currencyMode: rawObj.st.m || 'CUP',
         currency: rawObj.st.c || 'CUP'
       };
     }

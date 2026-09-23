@@ -99,7 +99,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
   const currencySettings = typeof window !== 'undefined' 
     ? getCurrencySettings() 
-    : { currencyMode: 'BOTH' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
+    : { currencyMode: 'CUP' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
     
   const disp = getProductDisplayPrice(
     product.price || 0,

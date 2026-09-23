@@ -791,7 +791,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                     {(() => {
                       const storeProds = getStoreProducts();
                       const snapshots = activeShift?.inventorySnapshots || [];
-                      const currSettings = typeof window !== 'undefined' ? getCurrencySettings() : { currencyMode: 'BOTH' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
+                      const currSettings = typeof window !== 'undefined' ? getCurrencySettings() : { currencyMode: 'CUP' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
                       const rate = currSettings.exchangeRateUSD || 675;
                       const isBothMode = currSettings.currencyMode === 'BOTH';
 

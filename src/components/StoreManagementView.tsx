@@ -11,8 +11,6 @@ import {
   paySupplierAccount,
   saveSupplierAccount,
   deleteSupplierAccount,
-  transferStoreFundToCasa,
-  transferCasaToStoreFund,
   getRawDatabase,
   getUserRole,
   getCurrencySettings,
@@ -34,9 +32,7 @@ import {
   SupplierPayoutModal,
   StoreProductsTab,
   StoreSuppliersTab,
-  StoreTransfersTab,
   StoreSalesTab,
-  StoreSettingsTab,
   ValuationBookModal
 } from '@/components/store';
 
@@ -83,7 +79,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [selectedProductForDetailModal, setSelectedProductForDetailModal] = useState<StoreProduct | null>(null);
 
   // Navigation Sub-Tabs
-  const [activeSubTab, setActiveSubTab] = useState<'products' | 'suppliers' | 'transfer' | 'sales' | 'settings'>('products');
+  const [activeSubTab, setActiveSubTab] = useState<'products' | 'suppliers' | 'sales'>('products');
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -285,22 +281,6 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     }
   };
 
-  // Fund Transfers Execution
-  const handleExecuteTransfer = (direction: 'store_to_casa' | 'casa_to_store', amount: number, notes: string) => {
-    try {
-      if (direction === 'store_to_casa') {
-        transferStoreFundToCasa(amount, notes);
-        showToast({ title: '¡Transferencia Exitosa!', message: `Se enviaron $${amount} del Fondo Tienda a Cuenta Casa.`, type: 'success' });
-      } else {
-        transferCasaToStoreFund(amount, notes);
-        showToast({ title: '¡Inyección Exitosa!', message: `Se inyectaron $${amount} de Cuenta Casa a Fondo Tienda.`, type: 'success' });
-      }
-      syncDatabaseWithCloud();
-    } catch (err: any) {
-      showToast({ title: 'Error en Transferencia', message: err.message, type: 'error' });
-    }
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '32px' }}>
 
@@ -322,15 +302,21 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
 
         {/* Card 1: Fondo del Negocio (Clean Emerald) */}
-        <div className="md-card" style={{
-          backgroundColor: '#ECFDF5',
-          color: '#064E3B',
-          border: '1px solid #A7F3D0',
-          padding: '14px 12px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between'
-        }}>
+        <div 
+          className="md-card" 
+          onClick={() => isOwner && setIsUniversalTransferModalOpen(true)}
+          style={{
+            backgroundColor: '#ECFDF5',
+            color: '#064E3B',
+            border: '1px solid #A7F3D0',
+            padding: '14px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            cursor: isOwner ? 'pointer' : 'default'
+          }}
+          title={isOwner ? "Clic para transferir entre cuentas" : undefined}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo del Negocio</span>
             <div style={{
@@ -599,29 +585,6 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           </button>
         )}
 
-        {!isVendor && isOwner && (
-          <button
-            onClick={() => setActiveSubTab('transfer')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeSubTab === 'transfer' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
-              color: activeSubTab === 'transfer' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: activeSubTab === 'transfer' ? 800 : 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <ArrowRightLeft size={16} />
-            <span>Transferir a Casa (${totalStoreFund})</span>
-          </button>
-        )}
-
         <button
           onClick={() => setActiveSubTab('sales')}
           style={{
@@ -642,29 +605,6 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           <Receipt size={16} />
           <span>Ventas ({salesRecords.length})</span>
         </button>
-
-        {!isVendor && (
-          <button
-            onClick={() => setActiveSubTab('settings')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              backgroundColor: activeSubTab === 'settings' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
-              color: activeSubTab === 'settings' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-              fontWeight: activeSubTab === 'settings' ? 800 : 600,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <MessageCircle size={16} />
-            <span>Ajustes WhatsApp</span>
-          </button>
-        )}
       </div>
 
       {/* SUB TAB 1: PRODUCTS INVENTORY */}
@@ -694,29 +634,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         />
       )}
 
-      {/* SUB TAB 3: TRANSFER STORE FUND TO CUENTA CASA */}
-      {activeSubTab === 'transfer' && !isVendor && isOwner && (
-        <StoreTransfersTab
-          currency={currency}
-          totalStoreFund={totalStoreFund}
-          onOpenUniversalTransfer={() => setIsUniversalTransferModalOpen(true)}
-          onExecuteTransfer={handleExecuteTransfer}
-        />
-      )}
-
-      {/* SUB TAB 4: SALES LOG */}
       {/* SUB TAB 3: SALES LOG */}
       {activeSubTab === 'sales' && (
         <StoreSalesTab
           salesRecords={salesRecords}
           currency={currency}
-        />
-      )}
-
-      {/* SUB TAB 5: WHATSAPP SETTINGS */}
-      {activeSubTab === 'settings' && !isVendor && (
-        <StoreSettingsTab
-          onShowToast={showToast}
         />
       )}
 

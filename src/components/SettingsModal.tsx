@@ -417,76 +417,90 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     subtitle: string;
     badge?: string;
     onClick: () => void;
-    iconBg?: string;
-    iconColor?: string;
-  }> = ({ icon, title, subtitle, badge, onClick, iconBg = 'var(--md-sys-color-primary-container)', iconColor = 'var(--md-sys-color-on-primary-container)' }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        padding: '12px 14px',
-        borderRadius: '16px',
-        border: '1px solid var(--md-sys-color-outline-variant)',
-        backgroundColor: 'var(--md-sys-color-surface)',
-        cursor: 'pointer',
-        textAlign: 'left',
-        transition: 'background-color 0.15s ease'
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-        <div style={{
-          width: '38px',
-          height: '38px',
-          borderRadius: '12px',
-          backgroundColor: iconBg,
-          color: iconColor,
+    badgeVariant?: 'neutral' | 'success' | 'warning' | 'info';
+  }> = ({ icon, title, subtitle, badge, badgeVariant = 'neutral', onClick }) => {
+    let badgeBg = 'var(--md-sys-color-surface-variant)';
+    let badgeColor = 'var(--md-sys-color-on-surface-variant)';
+    if (badgeVariant === 'success') {
+      badgeBg = '#ECFDF5';
+      badgeColor = '#065F46';
+    } else if (badgeVariant === 'warning') {
+      badgeBg = '#FFFBEB';
+      badgeColor = '#92400E';
+    } else if (badgeVariant === 'info') {
+      badgeBg = 'var(--md-sys-color-primary-container)';
+      badgeColor = 'var(--md-sys-color-on-primary-container)';
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0
-        }}>
-          {icon}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-              {title}
-            </span>
-            {badge && (
-              <span style={{
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                color: 'var(--md-sys-color-on-primary-container)',
-                flexShrink: 0
-              }}>
-                {badge}
-              </span>
-            )}
-          </div>
-          <span style={{
-            fontSize: '0.74rem',
-            color: 'var(--md-sys-color-on-surface-variant)',
-            fontWeight: 600,
-            display: 'block',
-            marginTop: '2px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+          justifyContent: 'space-between',
+          width: '100%',
+          padding: '12px 14px',
+          borderRadius: '16px',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          backgroundColor: 'var(--md-sys-color-surface)',
+          cursor: 'pointer',
+          textAlign: 'left',
+          transition: 'background-color 0.15s ease'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '12px',
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            color: 'var(--md-sys-color-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
           }}>
-            {subtitle}
-          </span>
+            {icon}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                {title}
+              </span>
+              {badge && (
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  backgroundColor: badgeBg,
+                  color: badgeColor,
+                  flexShrink: 0
+                }}>
+                  {badge}
+                </span>
+              )}
+            </div>
+            <span style={{
+              fontSize: '0.74rem',
+              color: 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: 600,
+              display: 'block',
+              marginTop: '2px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {subtitle}
+            </span>
+          </div>
         </div>
-      </div>
-      <ChevronRight size={18} style={{ color: 'var(--md-sys-color-outline)', flexShrink: 0, marginLeft: '8px' }} />
-    </button>
-  );
+        <ChevronRight size={18} style={{ color: 'var(--md-sys-color-outline)', flexShrink: 0, marginLeft: '8px' }} />
+      </button>
+    );
+  };
 
   return (
     <>
@@ -586,8 +600,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               subtitle={isOwner ? "Saldos de Casa, Negocio, Ahorro y transferencias" : "Saldo disponible en el Negocio"}
               badge={isOwner ? "3 Cuentas" : "Negocio"}
               onClick={() => setIsTransferModalOpen(true)}
-              iconBg="#EFF6FF"
-              iconColor="#1D4ED8"
             />
 
             {/* 2. Ajustes de Monedas */}
@@ -596,9 +608,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               title="Ajustes de Monedas"
               subtitle={`Modo activo: ${currencyMode === 'BOTH' ? 'Ambas (CUP + USD)' : currencyMode === 'CUP' ? 'Solo CUP ($)' : 'Solo USD (US$)'}`}
               badge={currencyMode === 'BOTH' ? 'CUP + USD' : currencyMode}
+              badgeVariant={currencyMode === 'CUP' ? 'neutral' : 'info'}
               onClick={() => setActiveSubModal('currencies')}
-              iconBg="#F5F3FF"
-              iconColor="#6D28D9"
             />
 
             {/* 3. Tasa de Cambio */}
@@ -608,8 +619,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               subtitle={`1 USD = $${exchangeRateUSD} CUP • Mercado informal`}
               badge={`$${exchangeRateUSD}`}
               onClick={() => setActiveSubModal('exchangeRate')}
-              iconBg="#F0FDF4"
-              iconColor="#166534"
             />
 
             {/* Group 2: Operación y Comunicación */}
@@ -623,9 +632,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               title="WhatsApp de Pedidos"
               subtitle={whatsappPhone ? `Recepción en: ${formattedWhatsapp}` : 'Sin número configurado'}
               badge={whatsappPhone ? 'Activo' : 'Pendiente'}
+              badgeVariant={whatsappPhone ? 'success' : 'warning'}
               onClick={() => setActiveSubModal('whatsapp')}
-              iconBg="#ECFDF5"
-              iconColor="#059669"
             />
 
             {/* 5. Gestión de Usuarios (Propietario Only) */}
@@ -636,8 +644,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 subtitle={`${usersList.length} usuarios con roles y permisos`}
                 badge={`${usersList.length} usuarios`}
                 onClick={() => setIsUserManagementOpen(true)}
-                iconBg="#FEF3C7"
-                iconColor="#B45309"
               />
             )}
 
@@ -652,9 +658,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               title="Seguridad y Datos"
               subtitle="PIN de acceso, gestión de caché y reinicio"
               badge={hasPin ? 'PIN Activo' : undefined}
+              badgeVariant={hasPin ? 'success' : 'neutral'}
               onClick={() => setActiveSubModal('security')}
-              iconBg="#FDF2F8"
-              iconColor="#DB2777"
             />
 
             {/* Direct Settings Options */}
@@ -837,7 +842,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Coins size={20} color="#7C3AED" />
+                <Coins size={20} color="var(--md-sys-color-primary)" />
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>Ajustes de Monedas</h3>
               </div>
               <button
@@ -849,132 +854,139 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, lineHeight: 1.4 }}>
-              Define cómo opera la tienda y el control contable del sistema.
+              Define cómo opera la tienda y el control contable del sistema. Por defecto opera en <strong>pesos cubanos (CUP)</strong>.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => handleSelectCurrencyMode('BOTH')}
-                style={{
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: currencyMode === 'BOTH' ? '2px solid #7C3AED' : '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: currencyMode === 'BOTH' ? '#F5F3FF' : 'var(--md-sys-color-surface)',
-                  color: currencyMode === 'BOTH' ? '#6D28D9' : 'var(--md-sys-color-on-surface)',
-                  fontSize: '0.88rem',
-                  fontWeight: 800,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <div>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', display: 'block' }}>
-                    Tipo de Cambio Referencial
-                  </span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                    1 USD = ${exchangeRateUSD} CUP
-                  </span>
-                  <span style={{ display: 'block', fontSize: '0.92rem' }}>Ambas Monedas (CUP + USD)</span>
-                  <span style={{ fontSize: '0.72rem', opacity: 0.8, fontWeight: 600 }}>Permite transacciones y precios en CUP y USD en paralelo.</span>
-                </div>
-                {currencyMode === 'BOTH' && <CheckCircle2 size={18} color="#7C3AED" />}
-              </button>
-
-                {isOwner && (!isEditingExchangeRate ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingExchangeRate(true)}
-                    className="md-btn md-btn-secondary"
-                    style={{ padding: '6px 12px', fontSize: '0.78rem', fontWeight: 800 }}
-                  >
-                    Cambiar Tasa
-                  </button>
-                ) : (
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>1 USD =</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        pattern="[0-9]*"
-                        style={{
-                          width: '75px',
-                          padding: '6px',
-                          borderRadius: '8px',
-                          border: '1.5px solid var(--md-sys-color-primary)',
-                          backgroundColor: 'var(--md-sys-color-surface)',
-                          fontSize: '0.88rem',
-                          fontWeight: 800,
-                          textAlign: 'center'
-                        }}
-                        value={exchangeRateUSD}
-                        onChange={e => setExchangeRateUSD(e.target.value === '' ? '' as any : parseFloat(e.target.value))}
-                      />
-                      <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>CUP</span>
-                    </div>
+              {/* Option 1: Solo CUP (Moneda Base) */}
               <button
                 type="button"
                 onClick={() => handleSelectCurrencyMode('CUP')}
                 style={{
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: currencyMode === 'CUP' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: currencyMode === 'CUP' ? '#ECFDF5' : 'var(--md-sys-color-surface)',
-                  color: currencyMode === 'CUP' ? '#047857' : 'var(--md-sys-color-on-surface)',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
+                  border: currencyMode === 'CUP' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: currencyMode === 'CUP' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                  color: 'var(--md-sys-color-on-surface)',
                   fontSize: '0.88rem',
                   fontWeight: 800,
                   textAlign: 'left',
                   cursor: 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <div>
-                  <span style={{ display: 'block', fontSize: '0.92rem' }}>Solo CUP ($)</span>
-                  <span style={{ fontSize: '0.72rem', opacity: 0.8, fontWeight: 600 }}>Operación exclusiva en pesos cubanos. Oculta saldos en USD.</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.94rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                      Solo CUP ($)
+                    </span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface-variant)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      Base
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, marginTop: '3px', display: 'block' }}>
+                    Operación exclusiva en pesos cubanos. Oculta saldos y precios en divisas.
+                  </span>
                 </div>
-                {currencyMode === 'CUP' && <CheckCircle2 size={18} color="#059669" />}
+                {currencyMode === 'CUP' && <CheckCircle2 size={20} color="var(--md-sys-color-primary)" />}
               </button>
 
-                    <button
-                      type="button"
-                      onClick={handleSaveExchangeRate}
-                      className="md-btn md-btn-primary"
-                      style={{ padding: '6px 10px', fontSize: '0.76rem', fontWeight: 800 }}
-                    >
-                      <Save size={12} /> Guardar
-                    </button>
-                  </div>
-                ))}
+              {/* Option 2: Ambas Monedas (CUP + USD) */}
+              <button
+                type="button"
+                onClick={() => handleSelectCurrencyMode('BOTH')}
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: '16px',
+                  border: currencyMode === 'BOTH' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: currencyMode === 'BOTH' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '0.94rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', display: 'block' }}>
+                    Ambas Monedas (CUP + USD)
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, marginTop: '3px', display: 'block' }}>
+                    Permite transacciones y precios en CUP y USD con tasa referencial (1 USD = ${exchangeRateUSD} CUP).
+                  </span>
+                </div>
+                {currencyMode === 'BOTH' && <CheckCircle2 size={20} color="var(--md-sys-color-primary)" />}
+              </button>
+
+              {/* Option 3: Solo USD (US$) */}
               <button
                 type="button"
                 onClick={() => handleSelectCurrencyMode('USD')}
                 style={{
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: currencyMode === 'USD' ? '2px solid #2563EB' : '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: currencyMode === 'USD' ? '#EFF6FF' : 'var(--md-sys-color-surface)',
-                  color: currencyMode === 'USD' ? '#1D4ED8' : 'var(--md-sys-color-on-surface)',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
+                  border: currencyMode === 'USD' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: currencyMode === 'USD' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                  color: 'var(--md-sys-color-on-surface)',
                   fontSize: '0.88rem',
                   fontWeight: 800,
                   textAlign: 'left',
                   cursor: 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <div>
-                  <span style={{ display: 'block', fontSize: '0.92rem' }}>Solo USD (US$)</span>
-                  <span style={{ fontSize: '0.72rem', opacity: 0.8, fontWeight: 600 }}>Operación exclusiva en dólares. Oculta saldos en CUP.</span>
+                  <span style={{ fontSize: '0.94rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', display: 'block' }}>
+                    Solo USD (US$)
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, marginTop: '3px', display: 'block' }}>
+                    Operación exclusiva en dólares. Oculta saldos en CUP.
+                  </span>
                 </div>
-                {currencyMode === 'USD' && <CheckCircle2 size={18} color="#2563EB" />}
+                {currencyMode === 'USD' && <CheckCircle2 size={20} color="var(--md-sys-color-primary)" />}
               </button>
+
+              {/* Tasa de cambio referencial (visible si activa ambas monedas) */}
+              {currencyMode === 'BOTH' && (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  marginTop: '4px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <TrendingUp size={16} color="var(--md-sys-color-primary)" />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>
+                      1 USD = ${exchangeRateUSD} CUP
+                    </span>
+                  </div>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveSubModal('exchangeRate')}
+                      className="md-btn md-btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: '0.76rem', fontWeight: 800 }}
+                    >
+                      Ajustar Tasa
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
