@@ -124,40 +124,50 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const isOwner = currentUser.role === 'propietario';
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'var(--md-sys-color-surface)',
-      zIndex: 2200,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100dvh',
-      width: '100%',
-      maxWidth: '768px',
-      margin: '0 auto',
-      overflow: 'hidden'
-    }} className="no-print" onClick={onClose}>
-      
+    <div
+      className="no-print"
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.55)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 2200,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        maxWidth: '768px',
+        margin: '0 auto'
+      }}
+      onClick={onClose}
+    >
       <div 
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
+          borderTopLeftRadius: '24px',
+          borderTopRightRadius: '24px',
           width: '100%',
-          height: '100%',
+          maxHeight: '90dvh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
         }}
       >
+        {/* Grab Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+          <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
+        </div>
+
         {/* Header Bar */}
         <div style={{
-          padding: '16px 20px',
+          padding: '12px 20px 14px 20px',
           borderBottom: '1px solid var(--md-sys-color-outline-variant)',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: 'var(--md-sys-color-surface-container)'
+          alignItems: 'center'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Sparkles size={20} color="var(--md-sys-color-primary)" />

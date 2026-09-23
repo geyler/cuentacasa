@@ -232,41 +232,51 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const savingsBalUSD = rawDb.savingsFundUSD || 0;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'var(--md-sys-color-surface)',
-      zIndex: 2200,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100dvh',
-      width: '100%',
-      maxWidth: '768px',
-      margin: '0 auto',
-      overflow: 'hidden'
-    }} onClick={onClose}>
-      
+    <div
+      className="no-print"
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.55)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 2200,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        maxWidth: '768px',
+        margin: '0 auto'
+      }}
+      onClick={onClose}
+    >
       <form
         onClick={e => e.stopPropagation()}
         onSubmit={isOwner ? handleExecuteTransfer : (e) => { e.preventDefault(); onClose(); }}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
+          borderTopLeftRadius: '24px',
+          borderTopRightRadius: '24px',
           width: '100%',
-          height: '100%',
+          maxHeight: '92dvh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
         }}
       >
+        {/* Grab Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+          <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
+        </div>
+
         {/* Header Bar */}
         <div style={{
-          padding: '16px 20px',
+          padding: '12px 20px 14px 20px',
           borderBottom: '1px solid var(--md-sys-color-outline-variant)',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: 'var(--md-sys-color-surface-container)'
+          alignItems: 'center'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
@@ -283,11 +293,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             </div>
             <div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--md-sys-color-on-surface)' }}>
-                {isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : 'Transferir entre Cuentas'}
-                {isOwner ? (isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : 'Cuentas y Transferencias') : 'Saldos de Cuenta'}
+                {isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : (isOwner ? 'Cuentas y Transferencias' : 'Saldos de Cuenta')}
               </h3>
               <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                Control de saldos internos y caja
                 {isOwner ? 'Intercambio de fondos y control financiero' : 'Consulta de saldo de operaciones'}
               </span>
             </div>
@@ -312,7 +320,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         </div>
 
         {/* Scrollable Form Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
         {/* Top Balances Cards (3 for owner, 1 for admin) */}
@@ -850,14 +857,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           display: 'flex',
           gap: '12px'
         }}>
-          <button
-            type="button"
-            onClick={onClose}
-            className="md-btn md-btn-secondary"
-            style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 700 }}
-          >
-            Cancelar
-          </button>
           {isOwner ? (
             <>
               <button
@@ -869,18 +868,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 Cancelar
               </button>
 
-          <button
-            type="submit"
-            className={`md-btn ${isSavingsExpenseMode ? 'md-btn-expense' : 'md-btn-primary'}`}
-            style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-          >
-            {isSavingsExpenseMode ? <LogOut size={18} /> : <ArrowRightLeft size={18} />}
-            <span>
-              {isSavingsExpenseMode 
-                ? 'Registrar Gasto de Ahorro' 
-                : (isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`)}
-            </span>
-          </button>
               <button
                 type="submit"
                 className={`md-btn ${isSavingsExpenseMode ? 'md-btn-expense' : 'md-btn-primary'}`}
@@ -904,8 +891,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               Cerrar Vista
             </button>
           )}
-        </div>
-
         </div>
 
       </form>

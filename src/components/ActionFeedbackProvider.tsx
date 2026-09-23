@@ -154,22 +154,21 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
     <ActionFeedbackContext.Provider value={{ showToast, confirmAction, showActionResult }}>
       {children}
 
-      {/* Modern Confirmation Full-Screen Modal */}
+      {/* Modern Confirmation Bottom-Sheet Modal */}
       {confirmModal && (
         <div
           className="no-print"
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'var(--md-sys-color-surface)',
+            backgroundColor: 'rgba(0, 0, 0, 0.55)',
+            backdropFilter: 'blur(4px)',
             zIndex: 100000,
             display: 'flex',
             flexDirection: 'column',
-            height: '100dvh',
-            width: '100%',
+            justifyContent: 'flex-end',
             maxWidth: '768px',
-            margin: '0 auto',
-            overflow: 'hidden'
+            margin: '0 auto'
           }}
           onClick={handleCancelConfirm}
         >
@@ -178,15 +177,23 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
             style={{
               backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
+              borderTopLeftRadius: '24px',
+              borderTopRightRadius: '24px',
               width: '100%',
-              height: '100%',
-              padding: '20px 24px',
+              maxHeight: '85dvh',
+              padding: '16px 20px 24px 20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
             }}
           >
+            {/* Grab Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
+            </div>
 
             {/* Header Layout */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
@@ -278,22 +285,21 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         </div>
       )}
 
-      {/* Blocking Full-Screen Modal for Toasts & Action Results */}
+      {/* Bottom-Sheet Modal for Toasts & Action Results */}
       {actionResult && (
         <div
           className="no-print"
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'var(--md-sys-color-surface)',
+            backgroundColor: 'rgba(0, 0, 0, 0.55)',
+            backdropFilter: 'blur(4px)',
             zIndex: 100000,
             display: 'flex',
             flexDirection: 'column',
-            height: '100dvh',
-            width: '100%',
+            justifyContent: 'flex-end',
             maxWidth: '768px',
-            margin: '0 auto',
-            overflow: 'hidden'
+            margin: '0 auto'
           }}
           onClick={() => setActionResult(null)}
         >
@@ -301,16 +307,24 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              height: '100%',
+              maxHeight: '85dvh',
               backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
-              padding: '20px 24px',
+              borderTopLeftRadius: '24px',
+              borderTopRightRadius: '24px',
+              padding: '16px 20px 24px 20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
             }}
           >
+            {/* Grab Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
+            </div>
 
             {/* Header Row: Icon + Title + Message + X Close Button */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
