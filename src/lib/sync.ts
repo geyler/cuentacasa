@@ -9,7 +9,7 @@ export interface SyncStatus {
 
 export interface PendingSyncDetailItem {
   id: string;
-  type: 'transaction' | 'delete_transaction' | 'product_delete' | 'supplier_delete' | 'user_delete' | 'user_update' | 'product_update' | 'sale' | 'shift' | 'supplier_update' | 'settings_update';
+  type: 'transaction' | 'delete_transaction' | 'product_delete' | 'supplier_delete' | 'user_delete' | 'user_update' | 'product_update' | 'sale' | 'shift' | 'supplier_update' | 'settings_update' | 'reset_db';
   title: string;
   subtitle: string;
   badgeText: string;
@@ -25,6 +25,18 @@ export function getPendingSyncDetails(): {
   const items: PendingSyncDetailItem[] = [];
   const lastSyncTime = db.lastSync ? new Date(db.lastSync).getTime() : 0;
 
+  // 0. Pending Full Database Reset
+  if (db.pendingReset) {
+    items.push({
+      id: 'pending-reset-db',
+      type: 'reset_db',
+      title: 'Reinicio de Base de Datos Programado',
+      subtitle: 'Se limpiará el historial antiguo en la nube y se conservarán tus nuevos movimientos',
+      badgeText: 'Reinicio Pendiente',
+      badgeColor: '#DC2626'
+    });
+  }
+
   // 1. Unsynced transactions
   const unsyncedTxs = (db.transactions || []).filter(t => !t.synced);
   unsyncedTxs.forEach(t => {
@@ -32,10 +44,10 @@ export function getPendingSyncDetails(): {
     items.push({
       id: t.id,
       type: 'transaction',
-      title: `${isIngreso ? '🟢 Ingreso' : '🔴 Gasto'}: ${t.concept}`,
+      title: `${isIngreso ? 'Ingreso' : 'Gasto'}: ${t.concept}`,
       subtitle: `$${t.amount.toLocaleString()} • ${t.date} (${t.accountSource || 'casa'})`,
       badgeText: isIngreso ? 'Ingreso Pendiente' : 'Gasto Pendiente',
-      badgeColor: isIngreso ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)',
+      badgeColor: isIngreso ? '#047857' : '#B91C1C',
       date: t.date
     });
   });
@@ -46,10 +58,10 @@ export function getPendingSyncDetails(): {
     items.push({
       id: p.id,
       type: 'product_update',
-      title: `📦 Producto: ${p.name}`,
+      title: `Producto: ${p.name}`,
       subtitle: `Precio: $${p.price} ${p.currency || 'CUP'} • Stock: ${p.stock}u • Code: ${p.barcode}`,
-      badgeText: 'Producto Creado/Modificado',
-      badgeColor: '#2563EB'
+      badgeText: 'Producto',
+      badgeColor: '#1D4ED8'
     });
   });
 
@@ -59,9 +71,9 @@ export function getPendingSyncDetails(): {
     items.push({
       id: s.id,
       type: 'sale',
-      title: `🛒 Venta POS: Ticket #${s.id.slice(-6)}`,
+      title: `Venta POS: Ticket #${s.id.slice(-6)}`,
       subtitle: `Total: $${s.totalAmount} ${s.currency || 'CUP'} • ${s.items.length} artículos`,
-      badgeText: 'Venta Registrada',
+      badgeText: 'Venta',
       badgeColor: '#059669'
     });
   });
@@ -72,10 +84,10 @@ export function getPendingSyncDetails(): {
     items.push({
       id: s.id,
       type: 'shift',
-      title: `🟢 Turno Vendedor: ${s.sellerName}`,
+      title: `Turno de Caja: ${s.sellerName}`,
       subtitle: `Estado: ${s.status.toUpperCase()} • Fondo Inicial: $${s.initialCashFund}`,
       badgeText: s.status === 'activo' ? 'Turno Activo' : 'Turno Cerrado',
-      badgeColor: '#7C3AED'
+      badgeColor: '#475569'
     });
   });
 
@@ -85,10 +97,10 @@ export function getPendingSyncDetails(): {
     items.push({
       id: sup.id,
       type: 'supplier_update',
-      title: `🤝 Proveedor: ${sup.name}`,
+      title: `Proveedor: ${sup.name}`,
       subtitle: `Pendiente pago: $${sup.pendingPayout} CUP | Total pagado: $${sup.totalPaid} CUP`,
-      badgeText: 'Proveedor Modificado',
-      badgeColor: '#D97706'
+      badgeText: 'Proveedor',
+      badgeColor: '#B45309'
     });
   });
 
@@ -98,10 +110,10 @@ export function getPendingSyncDetails(): {
     items.push({
       id: u.id,
       type: 'user_update',
-      title: `👤 Usuario: ${u.name}`,
+      title: `Usuario: ${u.name}`,
       subtitle: `@${u.username} (${u.role}) • Pendiente de sincronizar`,
-      badgeText: 'Usuario Modificado',
-      badgeColor: '#8B5CF6'
+      badgeText: 'Usuario',
+      badgeColor: '#475569'
     });
   });
 
@@ -110,10 +122,10 @@ export function getPendingSyncDetails(): {
     items.push({
       id: 'sys-settings-update',
       type: 'settings_update',
-      title: `🌐 Configuración Global del Sistema`,
+      title: `Configuración del Sistema`,
       subtitle: `Modo Moneda: ${db.settings.currencyMode || 'BOTH'} • Tasa: 1 USD = $${db.settings.exchangeRateUSD || 320} CUP`,
-      badgeText: 'Ajustes Globales',
-      badgeColor: '#0284C7'
+      badgeText: 'Ajustes',
+      badgeColor: '#0369A1'
     });
   }
 
@@ -227,6 +239,8 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       },
       body: JSON.stringify({
         clientLastSync: lastSyncTime,
+        pendingReset: !!db.pendingReset,
+        pendingResetAt: db.pendingResetAt || 0,
         transactions: db.transactions,
         deletedIds: db.deletedIds || [],
         storeProducts: db.storeProducts || [],
@@ -253,6 +267,16 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     const data = await res.json();
     if (data.success && Array.isArray(data.transactions)) {
       lastSyncFailedTime = 0; // Reset failure timestamp on success
+
+      // 1. Safety snapshot of local DB prior to applying remote state
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('cuentacasa_offline_safety_snapshot', JSON.stringify({
+            timestamp: Date.now(),
+            previousDb: db
+          }));
+        }
+      } catch (e) {}
 
       const serverDeletedIds: string[] = Array.isArray(data.deletedIds) ? data.deletedIds : [];
       const serverDeletedProductIds: string[] = Array.isArray(data.deletedProductIds) ? data.deletedProductIds : [];
@@ -290,10 +314,20 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       const mergedSuppliers = rawMergedSuppliers.filter(s => !serverDeletedSupplierIds.includes(s.id));
       const mergedUsers = rawMergedUsers.filter(u => !serverDeletedUserIds.includes(u.id));
 
+      // Safeguard: Retain any local unsynced transactions not yet in server list
+      const returnedTxIds = new Set(mergedTransactions.map(t => t.id));
+      const unsyncedLocals = (db.transactions || []).filter(t => !t.synced && !returnedTxIds.has(t.id));
+      const finalTransactions = [...unsyncedLocals, ...mergedTransactions];
+
+      // Safeguard: Retain any local product created post-reset not yet in server list
+      const returnedProdIds = new Set(mergedProducts.map(p => p.id));
+      const localProducts = (db.storeProducts || []).filter(p => !returnedProdIds.has(p.id) && (p.createdAt || 0) > (db.pendingResetAt || 0));
+      const finalProducts = [...localProducts, ...mergedProducts];
+
       const updatedDb: RawDatabase = {
         ...db,
-        transactions: mergedTransactions,
-        storeProducts: mergedProducts,
+        transactions: finalTransactions,
+        storeProducts: finalProducts,
         storeSales: mergedSales,
         shifts: mergedShifts,
         supplierAccounts: mergedSuppliers,
@@ -306,6 +340,8 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
           currencyMode: data.settings?.currencyMode || db.settings?.currencyMode || 'BOTH',
           exchangeRateUSD: data.settings?.exchangeRateUSD || db.settings?.exchangeRateUSD || 320
         },
+        pendingReset: false,
+        pendingResetAt: undefined,
         deletedIds: [],
         deletedProductIds: [],
         deletedSupplierIds: [],

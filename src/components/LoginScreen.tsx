@@ -79,12 +79,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     let user = authenticateUser(username, password);
 
     // If local authentication fails and device is online, attempt cloud sync fallback
+    // If local authentication fails and device is online, attempt quick cloud sync fallback (max 2.5s)
     if (!user && typeof window !== 'undefined' && navigator.onLine) {
       try {
         await syncDatabaseWithCloud(true);
+        await Promise.race([
+          syncDatabaseWithCloud(true),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Quick Timeout')), 2500))
+        ]);
         user = authenticateUser(username, password);
       } catch (err) {
         // Continue to error if cloud sync fails
+        // Continue to error immediately if cloud sync times out or fails
       }
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { StoreProduct } from '@/types';
 import { getStoreProducts, getStoreWhatsappNumber, formatPhotoUrl, getCurrencySettings } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
@@ -1300,8 +1301,8 @@ export const PublicStoreLanding: React.FC = () => {
                   <Globe size={14} /> Desarrollado por Cubasoft.net
                 </a>
                 <div style={{ marginTop: '6px' }}>
-                  <a
-                    href="/login?force=true"
+                  <Link
+                    href="/app"
                     style={{
                       color: '#BE185D',
                       textDecoration: 'none',
@@ -1318,7 +1319,7 @@ export const PublicStoreLanding: React.FC = () => {
                   >
                     <Lock size={13} />
                     <span>Acceso al Sistema</span>
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>

@@ -230,9 +230,17 @@ export const PendingSyncModal: React.FC<PendingSyncModalProps> = ({
             ))
           )}
         </div>
+      </div> {/* Fin del Scroll Body */}
 
-        {/* Action Button: Manual Sync */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+      {/* Action Button Footer (Fixed at bottom) */}
+        <div style={{
+          padding: '14px 20px',
+          borderTop: '1px solid var(--md-sys-color-outline-variant)',
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
           <button
             onClick={handleManualSync}
             disabled={isSyncing}
@@ -264,10 +272,8 @@ export const PendingSyncModal: React.FC<PendingSyncModalProps> = ({
           </button>
 
           <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', fontWeight: 600 }}>
-            💡 La subida manual fuerza un tiempo de espera de 30 segundos para redes lentas o inestables.
+            💡 La subida manual fuerza un tiempo de espera para redes móviles.
           </span>
-        </div>
-
         </div>
 
       </div>

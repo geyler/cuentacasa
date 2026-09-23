@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { FundAccountType, CurrencyType } from '@/types';
-import { getRawDatabase, getSavingsFund, getCasaAvailableBalance, executeUniversalTransfer, getCurrencySettings, withdrawSavingsAsExpense } from '@/lib/storage';
+import { getRawDatabase, getSavingsFund, getCasaAvailableBalance, executeUniversalTransfer, getCurrencySettings, withdrawSavingsAsExpense, getLoggedInUser } from '@/lib/storage';
 import { formatCurrency, calculateFinancialSummary } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
-import { ArrowRightLeft, X, PiggyBank, Store, Home, Coins, LogOut } from 'lucide-react';
+import { ArrowRightLeft, X, PiggyBank, Store, Home, Coins, LogOut, Wallet, Lock } from 'lucide-react';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -221,12 +221,22 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     });
   };
 
+  const currentUser = getLoggedInUser();
+  const isOwner = currentUser?.role === 'propietario';
+
+  const casaBalCUP = getCasaAvailableBalance('CUP');
+  const casaBalUSD = getCasaAvailableBalance('USD');
+  const storeBalCUP = rawDb.storeFund || 0;
+  const storeBalUSD = rawDb.storeFundUSD || 0;
+  const savingsBalCUP = getSavingsFund();
+  const savingsBalUSD = rawDb.savingsFundUSD || 0;
+
   return (
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
       backgroundColor: 'var(--md-sys-color-surface)',
-      zIndex: 2000,
+      zIndex: 2200,
       display: 'flex',
       flexDirection: 'column',
       height: '100dvh',
@@ -238,7 +248,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       
       <form
         onClick={e => e.stopPropagation()}
-        onSubmit={handleExecuteTransfer}
+        onSubmit={isOwner ? handleExecuteTransfer : (e) => { e.preventDefault(); onClose(); }}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
@@ -274,9 +284,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             <div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--md-sys-color-on-surface)' }}>
                 {isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : 'Transferir entre Cuentas'}
+                {isOwner ? (isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : 'Cuentas y Transferencias') : 'Saldos de Cuenta'}
               </h3>
               <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
                 Control de saldos internos y caja
+                {isOwner ? 'Intercambio de fondos y control financiero' : 'Consulta de saldo de operaciones'}
               </span>
             </div>
           </div>
@@ -301,6 +313,123 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
         {/* Scrollable Form Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+        {/* Top Balances Cards (3 for owner, 1 for admin) */}
+        {isOwner ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '8px'
+          }}>
+            {/* 1. Casa */}
+            <div style={{
+              padding: '10px',
+              borderRadius: '14px',
+              backgroundColor: '#FDF2F8',
+              border: '1.5px solid #FBCFE8',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px'
+            }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#9D174D' }}>🏡 Casa</span>
+              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#9D174D', whiteSpace: 'nowrap' }}>
+                ${casaBalCUP.toLocaleString('es-ES')}
+              </div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#BE185D', whiteSpace: 'nowrap' }}>
+                US$ {casaBalUSD.toLocaleString('es-ES')}
+              </span>
+            </div>
+
+            {/* 2. Negocio */}
+            <div style={{
+              padding: '10px',
+              borderRadius: '14px',
+              backgroundColor: '#ECFDF5',
+              border: '1.5px solid #A7F3D0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px'
+            }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#065F46' }}>🏬 Negocio</span>
+              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#047857', whiteSpace: 'nowrap' }}>
+                ${storeBalCUP.toLocaleString('es-ES')}
+              </div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F766E', whiteSpace: 'nowrap' }}>
+                US$ {storeBalUSD.toLocaleString('es-ES')}
+              </span>
+            </div>
+
+            {/* 3. Ahorro */}
+            <div style={{
+              padding: '10px',
+              borderRadius: '14px',
+              backgroundColor: '#F5F3FF',
+              border: '1.5px solid #DDD6FE',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px'
+            }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#5B21B6' }}>🐷 Ahorro</span>
+              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#6D28D9', whiteSpace: 'nowrap' }}>
+                ${savingsBalCUP.toLocaleString('es-ES')}
+              </div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#7C3AED', whiteSpace: 'nowrap' }}>
+                US$ {savingsBalUSD.toLocaleString('es-ES')}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            padding: '16px',
+            borderRadius: '16px',
+            backgroundColor: '#ECFDF5',
+            border: '1.5px solid #A7F3D0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#065F46' }}>🏬 Saldo Disponible del Negocio</span>
+              <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#A7F3D0', color: '#064E3B', fontWeight: 800 }}>
+                Administración
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '20px', alignItems: 'baseline', marginTop: '2px' }}>
+              <div>
+                <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 700, display: 'block' }}>Moneda Nacional:</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#047857' }}>
+                  ${storeBalCUP.toLocaleString('es-ES')} CUP
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.72rem', color: '#0F766E', fontWeight: 700, display: 'block' }}>Divisa:</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0F766E' }}>
+                  US$ {storeBalUSD.toLocaleString('es-ES')} USD
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isOwner ? (
+          <div style={{
+            padding: '16px',
+            borderRadius: '14px',
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginTop: '8px'
+          }}>
+            <Lock size={18} color="var(--md-sys-color-on-surface-variant)" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: 1.4 }}>
+              Las transferencias entre cuentas y el acceso a las cuentas de Casa y Ahorro están restringidas exclusivamente al <strong>Propietario</strong> del sistema.
+            </span>
+          </div>
+        ) : (
+          <>
 
         {/* Mode Selector: Misma Moneda vs Conversión USD ↔ CUP */}
         {(() => {
@@ -708,6 +837,10 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             onChange={e => setNotes(e.target.value)}
           />
         </div>
+        </>
+        )}
+
+        </div>
 
         {/* Submit Actions Footer */}
         <div style={{
@@ -725,6 +858,16 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           >
             Cancelar
           </button>
+          {isOwner ? (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                className="md-btn md-btn-secondary"
+                style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 700 }}
+              >
+                Cancelar
+              </button>
 
           <button
             type="submit"
@@ -738,6 +881,29 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 : (isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`)}
             </span>
           </button>
+              <button
+                type="submit"
+                className={`md-btn ${isSavingsExpenseMode ? 'md-btn-expense' : 'md-btn-primary'}`}
+                style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                {isSavingsExpenseMode ? <LogOut size={18} /> : <ArrowRightLeft size={18} />}
+                <span>
+                  {isSavingsExpenseMode 
+                    ? 'Registrar Gasto de Ahorro' 
+                    : (isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`)}
+                </span>
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="md-btn md-btn-primary"
+              style={{ width: '100%', padding: '14px', fontSize: '0.9rem', fontWeight: 800 }}
+            >
+              Cerrar Vista
+            </button>
+          )}
         </div>
 
         </div>

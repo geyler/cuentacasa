@@ -207,7 +207,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         </div>
 
           {/* Explicit Notes / Explanation or Ticket Detail */}
-          {transaction.notes?.includes('[TICKET_DE_VENTA]') ? (
+          {transaction.notes?.includes('[TICKET_') ? (
             <ReceiptTicketView note={transaction.notes} timestamp={transaction.createdAt} />
           ) : (
             <div style={{

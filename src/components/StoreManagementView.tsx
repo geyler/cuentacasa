@@ -160,7 +160,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     .filter(t => t.type === 'gasto' && t.category === 'Tienda')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalStoreFund = Math.max(0, (totalAccumulatedSalesRevenue - totalPendingSupplierDebt) + (netInjectedFromCasa - netTransferredToCasa));
+  const totalStoreFund = rawDb.storeFund !== undefined ? Number(rawDb.storeFund) : 0;
+  const totalStoreFundUSD = rawDb.storeFundUSD !== undefined ? Number(rawDb.storeFundUSD) : 0;
   const activeShift = getActiveShift();
 
   // Category List
@@ -704,6 +705,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
       )}
 
       {/* SUB TAB 4: SALES LOG */}
+      {/* SUB TAB 3: SALES LOG */}
       {activeSubTab === 'sales' && (
         <StoreSalesTab
           salesRecords={salesRecords}

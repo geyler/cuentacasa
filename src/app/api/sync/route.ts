@@ -553,8 +553,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const now = Date.now();
 
-    // 0. Process Full Database Reset (Preserving configured users)
-    if (body.resetAll) {
+    const isResetRequested = !!(body.resetAll || body.pendingReset);
+    const resetTimestamp = Number(body.pendingResetAt || body.resetAt || now);
+
+    // 0. Process Full Database Reset if requested (Preserving configured users)
+    if (isResetRequested) {
       if (isMySQLConfigured() && pool) {
         try {
           await pool.query('DELETE FROM transactions');
@@ -566,7 +569,7 @@ export async function POST(req: NextRequest) {
           await pool.query('DELETE FROM deleted_store_products');
           await pool.query('DELETE FROM deleted_supplier_accounts');
           await pool.query('DELETE FROM deleted_app_users');
-          await saveMySQLAppState('lastResetAt', String(now));
+          await saveMySQLAppState('lastResetAt', String(resetTimestamp));
         } catch (dbErr) {
           console.warn('MySQL reset error:', dbErr);
         }
@@ -578,34 +581,39 @@ export async function POST(req: NextRequest) {
         storeSales: [],
         supplierAccounts: [],
         users: existingData.users || [],
+        shifts: [],
         storeFund: 0,
         savingsFund: 0,
-        settings: {},
+        settings: existingData.settings || {},
         deletedIds: [],
         deletedProductIds: [],
         deletedSupplierIds: [],
         deletedUserIds: [],
-        lastResetAt: now
+        lastResetAt: resetTimestamp
       });
-      return NextResponse.json({
-        success: true,
-        transactions: [],
-        storeProducts: [],
-        storeSales: [],
-        supplierAccounts: [],
-        users: existingData.users || [],
-        storeFund: 0,
-        savingsFund: 0,
-        settings: {},
-        deletedIds: [],
-        deletedProductIds: [],
-        deletedSupplierIds: [],
-        deletedUserIds: [],
-        lastResetAt: now,
-        count: 0,
-        productCount: 0,
-        message: 'Base de datos vaciada y reiniciada a cero en la nube (usuarios conservados).'
-      });
+
+      // If standalone reset without any accompanying payload, return immediately
+      if (body.resetAll && (!Array.isArray(body.transactions) || body.transactions.length === 0) && (!Array.isArray(body.storeProducts) || body.storeProducts.length === 0)) {
+        return NextResponse.json({
+          success: true,
+          transactions: [],
+          storeProducts: [],
+          storeSales: [],
+          supplierAccounts: [],
+          users: existingData.users || [],
+          storeFund: 0,
+          savingsFund: 0,
+          settings: {},
+          deletedIds: [],
+          deletedProductIds: [],
+          deletedSupplierIds: [],
+          deletedUserIds: [],
+          lastResetAt: resetTimestamp,
+          count: 0,
+          productCount: 0,
+          message: 'Base de datos vaciada y reiniciada a cero en la nube (usuarios conservados).'
+        });
+      }
     }
 
     // Check server lastResetAt
@@ -616,15 +624,40 @@ export async function POST(req: NextRequest) {
     } else {
       serverLastResetAt = loadFileData().lastResetAt || 0;
     }
+    if (isResetRequested) {
+      serverLastResetAt = resetTimestamp;
+    }
 
     const clientLastSync = Number(body.clientLastSync || 0);
-    const wasResetAfterClientSync = serverLastResetAt > 0 && clientLastSync < serverLastResetAt;
+    // Only check if client sync predates a prior reset if this request itself is NOT performing the reset
+    const wasResetAfterClientSync = !isResetRequested && serverLastResetAt > 0 && clientLastSync < serverLastResetAt;
 
-    // If client sync predates a server database reset, ignore client's old operational payload!
-    let clientTransactions: Transaction[] = !wasResetAfterClientSync && Array.isArray(body.transactions) ? body.transactions : [];
-    let clientProducts: StoreProduct[] = !wasResetAfterClientSync && Array.isArray(body.storeProducts) ? body.storeProducts : [];
-    let clientSales: StoreSaleRecord[] = !wasResetAfterClientSync && Array.isArray(body.storeSales) ? body.storeSales : [];
-    let clientSuppliers: SupplierAccount[] = !wasResetAfterClientSync && Array.isArray(body.supplierAccounts) ? body.supplierAccounts : [];
+    // Filter client items:
+    // If wasResetAfterClientSync, discard ONLY pre-reset items (createdAt < serverLastResetAt).
+    // Any item created AT or AFTER serverLastResetAt is post-reset and MUST BE PRESERVED!
+    let clientTransactions: Transaction[] = Array.isArray(body.transactions)
+      ? (wasResetAfterClientSync
+          ? body.transactions.filter((t: Transaction) => ((t as any).createdAt || t.updatedAt || 0) >= serverLastResetAt)
+          : body.transactions)
+      : [];
+
+    let clientProducts: StoreProduct[] = Array.isArray(body.storeProducts)
+      ? (wasResetAfterClientSync
+          ? body.storeProducts.filter((p: StoreProduct) => ((p as any).createdAt || (p as any).updatedAt || 0) >= serverLastResetAt)
+          : body.storeProducts)
+      : [];
+
+    let clientSales: StoreSaleRecord[] = Array.isArray(body.storeSales)
+      ? (wasResetAfterClientSync
+          ? body.storeSales.filter((s: StoreSaleRecord) => (s.timestamp || 0) >= serverLastResetAt)
+          : body.storeSales)
+      : [];
+
+    let clientSuppliers: SupplierAccount[] = Array.isArray(body.supplierAccounts)
+      ? (wasResetAfterClientSync
+          ? body.supplierAccounts.filter((s: SupplierAccount) => ((s as any).createdAt || (s as any).updatedAt || 0) >= serverLastResetAt)
+          : body.supplierAccounts)
+      : [];
 
     const deletedIds: string[] = Array.isArray(body.deletedIds) ? body.deletedIds : [];
     const deletedProductIds: string[] = Array.isArray(body.deletedProductIds) ? body.deletedProductIds : [];

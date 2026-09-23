@@ -29,11 +29,23 @@ export interface SupplierAccount {
   updatedAt: number;
 }
 
+export interface ProductCostBatch {
+  id: string;
+  sku?: string;
+  barcode?: string;
+  costPrice: number;
+  costPriceUSD?: number;
+  initialStock: number;
+  remainingStock: number;
+  supplierName?: string;
+  createdAt: number;
+}
+
 export interface StoreProduct {
   id: string;
   barcode: string;         // 4-digit numeric code e.g. "0001" to "9999" (Solo interno)
   name: string;
-  costPrice: number;       // Precio de costo (lo que costó comprarlo)
+  costPrice: number;       // Precio de costo (lo que costó comprarlo o costo promedio/actual)
   price: number;           // Precio de venta (al público)
   priceUSD?: number;       // Precio base en USD (calculado/registrado para indexación opcional)
   costPriceUSD?: number;   // Precio de costo base en USD
@@ -54,6 +66,8 @@ export interface StoreProduct {
   ratingCount?: number;       // Cantidad de votos recibidos
   mfgDate?: string;           // Fecha de fabricación (YYYY-MM-DD) para Libro de Tasaciones
   expDate?: string;           // Fecha de vencimiento (YYYY-MM-DD) para Libro de Tasaciones
+  batches?: ProductCostBatch[]; // Capas de inventario por lote PEPS/FIFO
+  secondaryBarcodes?: string[]; // Códigos de barra o SKUs alternativos enlazados
   createdAt: number;
   updatedAt: number;
 }
@@ -84,6 +98,7 @@ export interface StoreSaleRecord {
   currency?: CurrencyType;
   sellerId?: string;
   sellerUsername?: string;
+  sellerName?: string;
 }
 
 export type ReportPeriod = 'hoy' | '7dias' | '15dias' | '28dias' | '90dias' | 'personalizado';
@@ -183,6 +198,8 @@ export interface RawDatabase {
   deletedSupplierIds?: string[];
   deletedUserIds?: string[];
   deletedShiftIds?: string[];
+  pendingReset?: boolean;
+  pendingResetAt?: number;
   storeProducts?: StoreProduct[];
   storeSales?: StoreSaleRecord[];
   supplierAccounts?: SupplierAccount[];

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Receipt, Coins, DollarSign } from 'lucide-react';
+import { Receipt, Coins, DollarSign, ShoppingBag, Handshake, CheckCircle2 } from 'lucide-react';
 
 interface ReceiptTicketViewProps {
   note?: string;
@@ -26,10 +26,14 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
 }) => {
   if (!note && !propTotalCUP && !propTotalUSD) return null;
 
+  const isPurchase = note.includes('[TICKET_DE_COMPRA]');
+  const isPayout = note.includes('[TICKET_DE_LIQUIDACION]');
+  const isSale = note.includes('[TICKET_DE_VENTA') || (!isPurchase && !isPayout);
+
   // Extraer el Ticket ID
   let ticketId = propTicketId;
   if (!ticketId && note) {
-    const idMatch = note.match(/#(\d+)/) || note.match(/Comprobante de Venta #(\d+)/);
+    const idMatch = note.match(/#(\d+)/) || note.match(/Comprobante(?: de Venta)? #(\d+)/);
     if (idMatch) ticketId = idMatch[1];
   }
 
@@ -37,23 +41,27 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
   const items: { name: string; qty: string; unitPrice?: string; subtotal?: string }[] = [];
   let extractedTotal = '';
   let extractedMoneda = propCurrency || '';
-  let extractedVendedor = propSeller || 'General';
+  let extractedVendedor = propSeller || '';
+  let extractedProveedor = '';
 
   if (note) {
     // Dividir líneas por punto '•' o saltos de línea
     const lines = note.split(/(?:•|\n)/).map(l => l.trim()).filter(Boolean);
 
     lines.forEach(line => {
-      // Buscar información de vendedor / total / moneda
-      if (line.includes('Total:') || line.includes('Moneda:') || line.includes('Vendedor:')) {
-        const totalMatch = line.match(/Total:\s*\$?([\d\.,]+)/i);
-        if (totalMatch) extractedTotal = totalMatch[1];
+      // Buscar información de vendedor / total / proveedor / moneda
+      if (line.includes('Total:') || line.includes('Total Liquidado:') || line.includes('Moneda:') || line.includes('Vendedor:') || line.includes('Proveedor:')) {
+        const totalMatch = line.match(/(?:Total|Total Liquidado):\s*\$?([A-Za-z\$]*\s*[\d\.,]+)/i);
+        if (totalMatch) extractedTotal = totalMatch[1].replace(/^[^\d]+/, '');
 
         const monedaMatch = line.match(/Moneda:\s*([A-Z]+)/i);
         if (monedaMatch) extractedMoneda = monedaMatch[1];
 
         const vendedorMatch = line.match(/Vendedor:\s*([^\s\|]+)/i);
         if (vendedorMatch) extractedVendedor = vendedorMatch[1];
+
+        const proveedorMatch = line.match(/Proveedor:\s*([^\|]+)/i);
+        if (proveedorMatch) extractedProveedor = proveedorMatch[1].trim();
         return;
       }
 
@@ -72,6 +80,21 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
       }
     });
   }
+
+  const titleText = isPurchase 
+    ? 'COMPROBANTE DE COMPRA DE MERCANCÍA' 
+    : isPayout 
+      ? 'COMPROBANTE DE LIQUIDACIÓN A PROVEEDOR' 
+      : 'TICKET DE TIENDA SAMY STORE';
+
+  const subtitleText = isPurchase
+    ? `Entrada de Mercancía ${ticketId ? `#${ticketId}` : ''}`
+    : isPayout
+      ? `Liquidación de Cuenta ${ticketId ? `#${ticketId}` : ''}`
+      : `Comprobante de Venta ${ticketId ? `#${ticketId}` : ''}`;
+
+  const headerBgColor = isPurchase ? '#EFF6FF' : isPayout ? '#F0FDF4' : '#FCE7F3';
+  const headerIconColor = isPurchase ? '#2563EB' : isPayout ? '#16A34A' : '#DB2777';
 
   return (
     <div
@@ -95,19 +118,19 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
           width: '32px',
           height: '32px',
           borderRadius: '10px',
-          backgroundColor: '#FCE7F3',
-          color: '#DB2777',
+          backgroundColor: headerBgColor,
+          color: headerIconColor,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <Receipt size={18} />
+          {isPurchase ? <ShoppingBag size={18} /> : isPayout ? <CheckCircle2 size={18} /> : <Receipt size={18} />}
         </div>
-        <h4 style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '0.03em' }}>
-          TICKET DE TIENDA SAMY STORE
+        <h4 style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '0.03em' }}>
+          {titleText}
         </h4>
         <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700 }}>
-          Comprobante de Venta {ticketId ? `#${ticketId}` : ''} {timestamp ? `• ${new Date(timestamp).toLocaleDateString('es-ES')}` : ''}
+          {subtitleText} {timestamp ? `• ${new Date(timestamp).toLocaleDateString('es-ES')}` : ''}
         </span>
       </div>
 
@@ -139,11 +162,11 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
       {/* Línea Divisoria */}
       <div style={{ borderTop: '1px dotted #94A3B8', margin: '2px 0' }} />
 
-      {/* Pie del Ticket: Totales y Vendedor */}
+      {/* Pie del Ticket: Totales, Proveedor o Vendedor */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', fontSize: '0.78rem', fontWeight: 800 }}>
         <div>
-          <span>Total: </span>
-          <strong style={{ color: '#059669', fontSize: '0.92rem' }}>
+          <span>{isPayout ? 'Total Liquidado: ' : isPurchase ? 'Inversión Total: ' : 'Total: '}</span>
+          <strong style={{ color: isPurchase ? '#2563EB' : '#059669', fontSize: '0.92rem' }}>
             {propTotalCUP ? `$${propTotalCUP.toLocaleString('es-ES')} CUP` : ''}
             {propTotalUSD ? ` ${propTotalCUP ? '|' : ''} US$${propTotalUSD.toLocaleString('es-ES')} USD` : ''}
             {!propTotalCUP && !propTotalUSD && (extractedTotal ? `$${extractedTotal}` : '')}
@@ -156,7 +179,11 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
               {extractedMoneda}
             </span>
           )}
-          <span>Vendedor: <strong>{extractedVendedor}</strong></span>
+          {extractedProveedor ? (
+            <span>Proveedor: <strong>{extractedProveedor}</strong></span>
+          ) : extractedVendedor ? (
+            <span>Vendedor: <strong>{extractedVendedor}</strong></span>
+          ) : null}
         </div>
       </div>
 

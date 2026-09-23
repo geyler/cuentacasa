@@ -1,4 +1,4 @@
-const CACHE_NAME = 'samy-store-pwa-v1.7.0';
+const CACHE_NAME = 'samy-store-pwa-v1.7.1';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -11,7 +11,9 @@ const PRECACHE_ASSETS = [
   '/icons/maskable-512.png',
   '/images/logo-loading.png',
   '/images/logo-nav.png',
-  '/images/store_hero_bg.png'
+  '/images/store_hero_bg.png',
+  '/fonts/font_1.woff2',
+  '/fonts/font_1.ttf'
 ];
 
 // Install event - Precache core app shell so installed PWA works 100% offline
@@ -123,6 +125,7 @@ self.addEventListener('fetch', (event) => {
                         url.pathname.endsWith('.css') ||
                         url.pathname.endsWith('.js') ||
                         url.pathname.endsWith('.woff2') ||
+                        url.pathname.endsWith('.ttf') ||
                         url.pathname.endsWith('.ico');
 
   if (isStaticAsset) {
@@ -140,8 +143,8 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse;
         }
 
-        // Asset not in cache yet: try fetching network
-        return fetch(event.request)
+        // Asset not in cache yet: try fetching network with 2s timeout
+        return fetchWithTimeout(event.request, 2000)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const responseToCache = networkResponse.clone();
@@ -151,6 +154,7 @@ self.addEventListener('fetch', (event) => {
           })
           .catch(() => {
             // Offline and asset missing: return safe 404 response instead of crashing respondWith
+            // Offline or network blackout: return safe 404 response instead of crashing respondWith
             return new Response('', { status: 404, statusText: 'Offline Asset Not Found' });
           });
       })

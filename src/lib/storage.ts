@@ -334,6 +334,7 @@ export function clearAllDatabaseRecords(): void {
   const currentUsers = getAppUsers();
   const activeUser = getLoggedInUser();
 
+  const now = Date.now();
   const resetDb: RawDatabase = {
     version: '1.3.0',
     lastUpdated: new Date().toISOString(),
@@ -347,14 +348,19 @@ export function clearAllDatabaseRecords(): void {
     storeProducts: [],
     storeSales: [],
     supplierAccounts: [],
+    shifts: [],
     users: currentUsers.length > 0 ? currentUsers : INITIAL_USERS,
     storeFund: 0,
+    storeFundUSD: 0,
     savingsFund: 0,
+    savingsFundUSD: 0,
     deletedIds: [],
     deletedProductIds: [],
     deletedSupplierIds: [],
     deletedUserIds: [],
-    lastSync: new Date().toISOString()
+    pendingReset: true,
+    pendingResetAt: now,
+    lastSync: undefined
   };
   
   saveRawDatabase(resetDb);
@@ -606,6 +612,9 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
       const todayISO = new Date().toISOString().split('T')[0];
       const now = Date.now();
 
+      const currSym = (newProduct.currency || 'CUP') === 'USD' ? 'US$' : '$';
+      const buyTicketNotes = `[TICKET_DE_COMPRA]\n• ${addedQty}x ${newProduct.name} (${currSym}${newProduct.costPrice} c/u = ${currSym}${totalInvestment})\n-------------------\nTotal: ${currSym}${totalInvestment} | Moneda: ${newProduct.currency || 'CUP'} | Proveedor: ${newProduct.supplierName || 'Propia'} | Stock Resultante: ${newProduct.stock || addedQty}u`;
+
       const addStockTx: Transaction = {
         id: `tx-stock-add-${now}`,
         type: 'gasto',
@@ -615,13 +624,27 @@ export function saveStoreProduct(product: Omit<StoreProduct, 'id' | 'createdAt' 
         currency: newProduct.currency || 'CUP',
         date: todayISO,
         accountSource: 'tienda',
-        notes: `Proveedor: ${newProduct.supplierName || 'Propia'} | Entrada de ${addedQty}u @ $${newProduct.costPrice}/u`,
+        notes: buyTicketNotes,
         createdAt: now,
         updatedAt: now,
         synced: false
       };
       if (!db.transactions) db.transactions = [];
       db.transactions.unshift(addStockTx);
+
+      // Registrar lote / capa de inventario FIFO
+      if (!newProduct.batches) newProduct.batches = [];
+      newProduct.batches.push({
+        id: `batch-${now}`,
+        barcode: newProduct.barcode,
+        costPrice: newProduct.costPrice || 0,
+        costPriceUSD: newProduct.costPriceUSD || 0,
+        initialStock: addedQty,
+        remainingStock: addedQty,
+        supplierName: newProduct.supplierName,
+        createdAt: now
+      });
+
       saveRawDatabase(db);
     }
   }
@@ -747,6 +770,50 @@ export function paySupplierAccount(
   const now = Date.now();
   if (!db.transactions) db.transactions = [];
 
+  // Recopilar artículos vendidos de este proveedor desde la última liquidación
+  const prevPayoutTx = (db.transactions || []).find(t => 
+    (t.category === 'Pago Proveedor Consignación' || (t.concept && t.concept.includes('Liquidación'))) &&
+    (t.concept || '').toLowerCase().includes(supplier.name.toLowerCase())
+  );
+  const lastPayoutTime = prevPayoutTx ? (prevPayoutTx.createdAt || 0) : 0;
+
+  const supplierSales = (db.storeSales || []).filter(s => (s.timestamp || 0) >= lastPayoutTime);
+  const soldItemsMap: { [prodKey: string]: { name: string; qty: number; costPrice: number; totalCost: number; currency: string } } = {};
+
+  supplierSales.forEach(sale => {
+    (sale.items || []).forEach(item => {
+      if (item.supplierType === 'proveedor' && (item.supplierName || '').toLowerCase() === supplier.name.toLowerCase()) {
+        const itemCurr = item.currency || (isUSD ? 'USD' : 'CUP');
+        if (itemCurr === currency) {
+          const key = `${item.productId || item.name}_${item.costPrice}`;
+          if (!soldItemsMap[key]) {
+            soldItemsMap[key] = {
+              name: item.name,
+              qty: 0,
+              costPrice: item.costPrice,
+              totalCost: 0,
+              currency: itemCurr
+            };
+          }
+          soldItemsMap[key].qty += item.quantity;
+          soldItemsMap[key].totalCost += item.quantity * item.costPrice;
+        }
+      }
+    });
+  });
+
+  const soldItemsList = Object.values(soldItemsMap);
+  let itemsTicketText = '';
+  if (soldItemsList.length > 0) {
+    itemsTicketText = soldItemsList
+      .map(it => `• ${it.qty}x ${it.name} (${currSym}${it.costPrice} c/u = ${currSym}${it.totalCost})`)
+      .join('\n');
+  } else {
+    itemsTicketText = `• Liquidación a cuenta de deuda acumulada con ${supplier.name}`;
+  }
+
+  const payoutTicketNotes = `[TICKET_DE_LIQUIDACION]\n${itemsTicketText}\n-------------------\nTotal Liquidado: ${currSym}${payAmount} | Moneda: ${currency} | Proveedor: ${supplier.name} | Origen: ${source === 'casa' ? 'Fondo de la Casa' : 'Fondo del Negocio'}`;
+
   if (source === 'casa') {
     // Registro doble: Salida de Casa y Aporte Entrante a Tienda
     const houseExpenseTx: Transaction = {
@@ -758,7 +825,7 @@ export function paySupplierAccount(
       currency: currency,
       date: todayISO,
       accountSource: 'casa',
-      notes: `Pago en efectivo a ${supplier.name} con fondos de Casa.`,
+      notes: payoutTicketNotes,
       createdAt: now,
       updatedAt: now,
       synced: false
@@ -773,7 +840,7 @@ export function paySupplierAccount(
       currency: currency,
       date: todayISO,
       accountSource: 'tienda',
-      notes: `Financiamiento recibido de Casa para saldar deuda con ${supplier.name}.`,
+      notes: payoutTicketNotes,
       createdAt: now + 1,
       updatedAt: now + 1,
       synced: false
@@ -797,7 +864,7 @@ export function paySupplierAccount(
       currency: currency,
       date: todayISO,
       accountSource: 'tienda',
-      notes: `Pago a proveedor efectuado con fondo del negocio (${isUSD ? 'USD' : 'CUP'}).`,
+      notes: payoutTicketNotes,
       createdAt: now,
       updatedAt: now,
       synced: false
@@ -826,6 +893,11 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
   if (typeof db.storeFund !== 'number') db.storeFund = 0;
   if (typeof db.storeFundUSD !== 'number') db.storeFundUSD = 0;
 
+  const currentUser = getLoggedInUser();
+  const effectiveSellerId = saleData.sellerId || currentUser?.id;
+  const effectiveSellerUsername = saleData.sellerUsername || currentUser?.username;
+  const effectiveSellerName = saleData.sellerName || currentUser?.name || effectiveSellerUsername || 'General';
+
   // Calcular desglose de cobro por moneda si hay ítems mixtos o desglosados
   let subtotalCUPFromItems = 0;
   let subtotalUSDFromItems = 0;
@@ -853,6 +925,9 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
 
   const saleRecord: StoreSaleRecord = {
     ...saleData,
+    sellerId: effectiveSellerId,
+    sellerUsername: effectiveSellerUsername,
+    sellerName: effectiveSellerName,
     currency: saleCurrency,
     totalAmountCUP: isMixedSale ? totalAmountCUP : (saleCurrency === 'CUP' ? saleData.totalAmount : 0),
     totalAmountUSD: isMixedSale ? totalAmountUSD : (saleCurrency === 'USD' ? saleData.totalAmount : 0),
@@ -868,6 +943,20 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     if (prod) {
       prod.stock = Math.max(0, prod.stock - item.quantity);
       prod.salesCount = (prod.salesCount || 0) + item.quantity;
+      
+      // Consumir capas de lotes FIFO si existen
+      if (prod.batches && prod.batches.length > 0) {
+        let toTake = item.quantity;
+        for (const batch of prod.batches) {
+          if (toTake <= 0) break;
+          if (batch.remainingStock > 0) {
+            const deduct = Math.min(batch.remainingStock, toTake);
+            batch.remainingStock -= deduct;
+            toTake -= deduct;
+          }
+        }
+      }
+      
       prod.updatedAt = Date.now();
     }
 
@@ -919,7 +1008,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     .join('\n');
 
   if (isMixedSale) {
-    const formattedTicketNotes = `[TICKET_DE_VENTA_MIXTO]\n${ticketItemsList}\n-------------------\nTotal CUP: $${totalAmountCUP} | Total USD: US$${totalAmountUSD} | Vendedor: ${saleData.sellerId || 'General'}`;
+    const formattedTicketNotes = `[TICKET_DE_VENTA_MIXTO]\n${ticketItemsList}\n-------------------\nTotal CUP: $${totalAmountCUP} | Total USD: US$${totalAmountUSD} | Vendedor: ${effectiveSellerName}`;
 
     // Registrar 2 transacciones de ingreso si ambas monedas tienen montos mayores a 0
     if (totalAmountCUP > 0) {
@@ -959,7 +1048,7 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     }
   } else {
     const currSymbol = saleCurrency === 'USD' ? 'US$' : '$';
-    const formattedTicketNotes = `[TICKET_DE_VENTA]\n${ticketItemsList}\n-------------------\nTotal: ${currSymbol}${saleData.totalAmount} | Moneda: ${saleCurrency} | Vendedor: ${saleData.sellerId || 'General'}`;
+    const formattedTicketNotes = `[TICKET_DE_VENTA]\n${ticketItemsList}\n-------------------\nTotal: ${currSymbol}${saleData.totalAmount} | Moneda: ${saleCurrency} | Vendedor: ${effectiveSellerName}`;
 
     const storeSaleTx: Transaction = {
       id: `tx-sale-store-${now}`,
@@ -1080,6 +1169,9 @@ export function deleteSupplierAccount(id: string): { success: boolean; error?: s
 
 export function getCalculatedStoreFund(): number {
   const db = getRawDatabase();
+  if (db.storeFund !== undefined && !isNaN(Number(db.storeFund))) {
+    return Number(db.storeFund);
+  }
   const salesRecords = (db.storeSales || []).filter(s => (s.currency || 'CUP') === 'CUP');
   const suppliers = db.supplierAccounts || [];
 
@@ -1103,6 +1195,9 @@ export function getCalculatedStoreFund(): number {
 
 export function getCalculatedStoreFundUSD(): number {
   const db = getRawDatabase();
+  if (db.storeFundUSD !== undefined && !isNaN(Number(db.storeFundUSD))) {
+    return Number(db.storeFundUSD);
+  }
   const salesRecords = (db.storeSales || []).filter(s => s.currency === 'USD');
   const suppliers = db.supplierAccounts || [];
 

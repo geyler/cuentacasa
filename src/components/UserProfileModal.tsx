@@ -60,13 +60,33 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   // Calculate user-specific sales statistics
   const allSales = getStoreSales();
-  const userSales = allSales.filter(s => s.sellerId === currentUser.id || s.sellerUsername === currentUser.username);
+  const userSales = allSales.filter(s => {
+    if (s.sellerId && s.sellerId === currentUser.id) return true;
+    if (s.sellerUsername && s.sellerUsername.toLowerCase() === currentUser.username.toLowerCase()) return true;
+    if (s.sellerName && currentUser.name && s.sellerName.toLowerCase() === currentUser.name.toLowerCase()) return true;
+    // Fallback: Si no había seller asignado y el usuario actual es el propietario, incluirlo
+    if (!s.sellerId && !s.sellerUsername && currentUser.role === 'propietario') return true;
+    return false;
+  });
   
   const totalUnitsSold = userSales.reduce((acc, s) => {
-    return acc + s.items.reduce((sum, item) => sum + item.quantity, 0);
+    return acc + (s.items || []).reduce((sum, item) => sum + item.quantity, 0);
   }, 0);
 
-  const totalAmountSold = userSales.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
+  let userTotalCUP = 0;
+  let userTotalUSD = 0;
+  userSales.forEach(s => {
+    if (s.totalAmountCUP !== undefined || s.totalAmountUSD !== undefined) {
+      userTotalCUP += s.totalAmountCUP || 0;
+      userTotalUSD += s.totalAmountUSD || 0;
+    } else if (s.currency === 'USD') {
+      userTotalUSD += s.totalAmount || 0;
+    } else {
+      userTotalCUP += s.totalAmount || 0;
+    }
+  });
+
+  const totalAmountSold = userTotalCUP;
 
   const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,8 +268,15 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <DollarSign size={14} color="#059669" />
                 <span>Total Facturado</span>
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#047857', marginTop: '4px' }}>
-                {formatCurrency(totalAmountSold, currency, true)}
+              <div style={{ marginTop: '4px' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#047857', lineHeight: 1.1 }}>
+                  ${userTotalCUP.toLocaleString('es-ES')} CUP
+                </div>
+                {userTotalUSD > 0 && (
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1D4ED8', marginTop: '2px' }}>
+                    + US$ {userTotalUSD.toLocaleString('es-ES')} USD
+                  </div>
+                )}
               </div>
               <span style={{ fontSize: '0.66rem', color: '#065F46', fontWeight: 600 }}>
                 Recaudación propia

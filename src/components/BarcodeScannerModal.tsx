@@ -8,7 +8,8 @@ import {
   registerStoreSale,
   mergeSyncQRPayload,
   getCurrencySettings,
-  saveCurrencySettings
+  saveCurrencySettings,
+  getLoggedInUser
 } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency, calculateMultiCurrencyTotals } from '@/lib/invoice';
@@ -509,6 +510,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       onConfirm: () => {
         const todayStr = new Date().toISOString().split('T')[0];
 
+        const loggedUser = getLoggedInUser();
+
         registerStoreSale({
           date: todayStr,
           items: ticketItems,
@@ -517,7 +520,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           totalAmountUSD: totalAmountUSD,
           totalCost: totalInvoiceCost,
           netProfit: Math.max(0, netProfit),
-          currency: finalSaleCurrency
+          currency: finalSaleCurrency,
+          sellerId: loggedUser?.id,
+          sellerUsername: loggedUser?.username,
+          sellerName: loggedUser?.name || loggedUser?.username || 'General'
         });
 
         // Trigger automatic sync with Hostinger DB
