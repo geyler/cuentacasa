@@ -163,7 +163,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
         <div className="md-card" style={{
           backgroundColor: 'var(--md-sys-color-expense-container)',
           color: 'var(--md-sys-color-on-expense-container)',
-          border: '1px solid #FECDD3',
+          border: '1px solid rgba(220, 38, 38, 0.2)',
           padding: '14px 12px',
           display: 'flex',
           flexDirection: 'column',

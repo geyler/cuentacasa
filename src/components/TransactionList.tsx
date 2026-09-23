@@ -132,7 +132,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               gap: '6px',
               backgroundColor: movementScope === 'casa' ? 'var(--md-sys-color-primary)' : 'transparent',
               color: movementScope === 'casa' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              boxShadow: movementScope === 'casa' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
+              boxShadow: movementScope === 'casa' ? '0 4px 12px rgba(26, 115, 232, 0.25)' : 'none',
               transition: 'all 0.2s ease'
             }}
           >
@@ -156,7 +156,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               gap: '6px',
               backgroundColor: movementScope === 'tienda' ? 'var(--md-sys-color-primary)' : 'transparent',
               color: movementScope === 'tienda' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              boxShadow: movementScope === 'tienda' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
+              boxShadow: movementScope === 'tienda' ? '0 4px 12px rgba(26, 115, 232, 0.25)' : 'none',
               transition: 'all 0.2s ease'
             }}
           >
@@ -180,7 +180,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               gap: '6px',
               backgroundColor: movementScope === 'ahorro' ? 'var(--md-sys-color-primary)' : 'transparent',
               color: movementScope === 'ahorro' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              boxShadow: movementScope === 'ahorro' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
+              boxShadow: movementScope === 'ahorro' ? '0 4px 12px rgba(26, 115, 232, 0.25)' : 'none',
               transition: 'all 0.2s ease'
             }}
           >
