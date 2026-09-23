@@ -253,10 +253,10 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
                 }}
               >
                 <div className="scanner-laser-line" />
-                <div style={{ position: 'absolute', top: '6px', left: '6px', width: '16px', height: '16px', borderTop: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '3px 0 0 0' }} />
-                <div style={{ position: 'absolute', top: '6px', right: '6px', width: '16px', height: '16px', borderTop: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 3px 0 0' }} />
-                <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '16px', height: '16px', borderBottom: '3px solid #EC4899', borderLeft: '3px solid #EC4899', borderRadius: '0 0 0 3px' }} />
-                <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '16px', height: '16px', borderBottom: '3px solid #EC4899', borderRight: '3px solid #EC4899', borderRadius: '0 0 3px 0' }} />
+                <div style={{ position: 'absolute', top: '6px', left: '6px', width: '16px', height: '16px', borderTop: '3px solid var(--md-sys-color-primary)', borderLeft: '3px solid var(--md-sys-color-primary)', borderRadius: '3px 0 0 0' }} />
+                <div style={{ position: 'absolute', top: '6px', right: '6px', width: '16px', height: '16px', borderTop: '3px solid var(--md-sys-color-primary)', borderRight: '3px solid var(--md-sys-color-primary)', borderRadius: '0 3px 0 0' }} />
+                <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '16px', height: '16px', borderBottom: '3px solid var(--md-sys-color-primary)', borderLeft: '3px solid var(--md-sys-color-primary)', borderRadius: '0 0 0 3px' }} />
+                <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '16px', height: '16px', borderBottom: '3px solid var(--md-sys-color-primary)', borderRight: '3px solid var(--md-sys-color-primary)', borderRadius: '0 0 3px 0' }} />
               </div>
             </div>
 

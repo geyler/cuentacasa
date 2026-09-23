@@ -132,7 +132,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         return <AlertTriangle size={24} color="#D97706" />;
       case 'info':
       default:
-        return <Info size={24} color="#EC4899" />;
+        return <Info size={24} color="var(--md-sys-color-primary)" />;
     }
   };
 
@@ -146,7 +146,7 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
         return { backgroundColor: '#FEF3C7', color: '#D97706' };
       case 'info':
       default:
-        return { backgroundColor: '#FCE7F3', color: '#EC4899' };
+        return { backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-primary)' };
     }
   };
 
@@ -207,15 +207,15 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
                 flexShrink: 0,
                 backgroundColor: confirmModal.variant === 'danger' ? '#FEE2E2' :
                                  confirmModal.variant === 'warning' ? '#FEF3C7' :
-                                 '#FCE7F3',
+                                 'var(--md-sys-color-primary-container)',
                 color: confirmModal.variant === 'danger' ? '#DC2626' :
                        confirmModal.variant === 'warning' ? '#D97706' :
-                       '#EC4899'
+                       'var(--md-sys-color-primary)'
               }}>
                 {confirmModal.icon || (
                   confirmModal.variant === 'danger' ? <Trash2 size={24} color="#DC2626" /> :
                   confirmModal.variant === 'warning' ? <ShieldAlert size={24} color="#D97706" /> :
-                  <HelpCircle size={24} color="#EC4899" />
+                  <HelpCircle size={24} color="var(--md-sys-color-primary)" />
                 )}
               </div>
 
@@ -269,12 +269,12 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
                   border: 'none',
                   backgroundColor: confirmModal.variant === 'danger' ? '#EF4444' :
                                    confirmModal.variant === 'warning' ? '#D97706' :
-                                   '#EC4899',
+                                   'var(--md-sys-color-primary)',
                   color: '#FFFFFF',
                   fontSize: '0.92rem',
                   fontWeight: 800,
                   cursor: 'pointer',
-                  boxShadow: confirmModal.variant === 'danger' ? '0 4px 14px rgba(239, 68, 68, 0.3)' : '0 4px 14px rgba(236, 72, 153, 0.3)'
+                  boxShadow: confirmModal.variant === 'danger' ? '0 4px 14px rgba(239, 68, 68, 0.3)' : '0 4px 14px rgba(26, 115, 232, 0.3)'
                 }}
               >
                 {isExecutingConfirm ? 'Procesando...' : (confirmModal.confirmText || 'Confirmar')}
@@ -401,9 +401,9 @@ export const ActionFeedbackProvider: React.FC<ActionFeedbackProviderProps> = ({ 
                   border: isSecondary ? '1px solid #E5E7EB' : 'none',
                   backgroundColor: isSecondary ? '#F9FAFB' :
                                    isExpense ? '#EF4444' :
-                                   '#EC4899', // Bright Pink from Screenshot 2
+                                   'var(--md-sys-color-primary)',
                   color: isSecondary ? '#111827' : '#FFFFFF',
-                  boxShadow: (!isSecondary && !isExpense) ? '0 4px 14px rgba(236, 72, 153, 0.3)' : undefined
+                  boxShadow: (!isSecondary && !isExpense) ? '0 4px 14px rgba(26, 115, 232, 0.3)' : undefined
                 };
 
                 if (act.href) {

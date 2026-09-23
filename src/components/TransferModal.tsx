@@ -333,17 +333,17 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             <div style={{
               padding: '10px',
               borderRadius: '14px',
-              backgroundColor: '#FDF2F8',
-              border: '1.5px solid #FBCFE8',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
               display: 'flex',
               flexDirection: 'column',
               gap: '2px'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#9D174D' }}>🏡 Casa</span>
-              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#9D174D', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>🏡 Casa</span>
+              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap' }}>
                 ${casaBalCUP.toLocaleString('es-ES')}
               </div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#BE185D', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', whiteSpace: 'nowrap' }}>
                 US$ {casaBalUSD.toLocaleString('es-ES')}
               </span>
             </div>

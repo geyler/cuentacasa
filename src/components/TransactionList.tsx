@@ -290,9 +290,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               (tx.category.toLowerCase().includes('tienda') || tx.category.toLowerCase().includes('proveedor') || tx.concept.toLowerCase().includes('venta pos')) ? 'tienda' : 'casa'
             );
             const scopeLabel = scopeType === 'tienda' ? '🏪 Tienda' : scopeType === 'ahorro' ? '🐖 Ahorro' : '🏠 Casa';
-            const scopeBg = scopeType === 'tienda' ? '#FCE7F3' : scopeType === 'ahorro' ? '#F3E8FF' : '#E0F2FE';
-            const scopeColor = scopeType === 'tienda' ? '#DB2777' : scopeType === 'ahorro' ? '#7E22CE' : '#0284C7';
-            const scopeBorder = scopeType === 'tienda' ? '1px solid #FBCFE8' : scopeType === 'ahorro' ? '1px solid #E9D5FF' : '1px solid #BAE6FD';
+            const scopeBg = scopeType === 'tienda' ? 'var(--md-sys-color-primary-container)' : scopeType === 'ahorro' ? 'var(--md-sys-color-surface-container-high)' : 'var(--md-sys-color-surface-container)';
+            const scopeColor = scopeType === 'tienda' ? 'var(--md-sys-color-primary)' : scopeType === 'ahorro' ? 'var(--md-sys-color-on-surface-variant)' : 'var(--md-sys-color-on-surface)';
+            const scopeBorder = scopeType === 'tienda' ? '1px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)';
 
             return (
               <div

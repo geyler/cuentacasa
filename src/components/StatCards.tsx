@@ -201,30 +201,30 @@ export const StatCards: React.FC<StatCardsProps> = ({
         <div className="md-card" style={{
           backgroundColor: 'var(--md-sys-color-primary-container)',
           color: 'var(--md-sys-color-on-primary-container)',
-          border: '1px solid #FBCFE8',
+          border: '1px solid var(--md-sys-color-outline)',
           padding: '14px 12px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#9D174D' }}>🏡 Fondo de la Casa</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-primary-container)' }}>🏡 Fondo de la Casa</span>
             <div style={{
               width: '28px',
               height: '28px',
               borderRadius: '50%',
-              backgroundColor: 'rgba(236, 72, 153, 0.18)',
+              backgroundColor: 'rgba(26, 115, 232, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <Wallet size={16} color="#DB2777" />
+              <Wallet size={16} color="var(--md-sys-color-primary)" />
             </div>
           </div>
-          {renderValueBlock(summary.netBalance, summary.netBalanceUSD || 0, '#831843', '#0F766E')}
+          {renderValueBlock(summary.netBalance, summary.netBalanceUSD || 0, 'var(--md-sys-color-on-primary-container)', '#0F766E')}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#BE185D', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-primary-container)', fontWeight: 700 }}>
               {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Saldo USD' : 'Saldo CUP')}
             </span>
           </div>

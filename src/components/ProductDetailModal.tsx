@@ -196,8 +196,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <span style={{
               fontSize: '0.74rem',
               fontWeight: 800,
-              backgroundColor: '#FCE7F3',
-              color: '#BE185D',
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              color: 'var(--md-sys-color-primary)',
               padding: '4px 12px',
               borderRadius: '9999px'
             }}>

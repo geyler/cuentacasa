@@ -300,7 +300,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 style={{
                   padding: '8px',
                   borderRadius: '10px',
-                  border: currency === 'CUP' ? '1px solid #FBCFE8' : 'none',
+                  border: currency === 'CUP' ? '1px solid var(--md-sys-color-primary)' : 'none',
                   backgroundColor: currency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
                   color: currency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
                   fontWeight: 800,

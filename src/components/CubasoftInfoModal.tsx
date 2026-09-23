@@ -89,12 +89,12 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
               width: '44px',
               height: '44px',
               borderRadius: '14px',
-              background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
+              background: 'var(--md-sys-color-primary)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(236, 72, 153, 0.35)',
+              boxShadow: '0 4px 16px rgba(26, 115, 232, 0.35)',
               flexShrink: 0
             }}>
               <Store size={24} />
@@ -254,7 +254,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
 
               <div style={{ padding: '12px', borderRadius: '14px', border: '1px solid var(--md-sys-color-outline-variant)', backgroundColor: 'var(--md-sys-color-surface)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#BE185D', fontWeight: 900, fontSize: '0.88rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--md-sys-color-primary)', fontWeight: 900, fontSize: '0.88rem' }}>
                   <QrCode size={18} /> Sincronización QR P2P Offline
                 </div>
                 <p style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, lineHeight: '1.35' }}>

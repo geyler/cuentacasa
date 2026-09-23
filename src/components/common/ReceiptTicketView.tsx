@@ -93,8 +93,8 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
       ? `Liquidación de Cuenta ${ticketId ? `#${ticketId}` : ''}`
       : `Comprobante de Venta ${ticketId ? `#${ticketId}` : ''}`;
 
-  const headerBgColor = isPurchase ? '#EFF6FF' : isPayout ? '#F0FDF4' : '#FCE7F3';
-  const headerIconColor = isPurchase ? '#2563EB' : isPayout ? '#16A34A' : '#DB2777';
+  const headerBgColor = isPurchase ? '#EFF6FF' : isPayout ? '#F0FDF4' : 'var(--md-sys-color-primary-container)';
+  const headerIconColor = isPurchase ? '#2563EB' : isPayout ? '#16A34A' : 'var(--md-sys-color-primary)';
 
   return (
     <div

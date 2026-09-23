@@ -1302,7 +1302,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ShieldCheck size={20} color="#DB2777" />
+                <ShieldCheck size={20} color="var(--md-sys-color-primary)" />
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>Seguridad y Almacenamiento</h3>
               </div>
               <button

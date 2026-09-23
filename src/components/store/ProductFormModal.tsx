@@ -738,7 +738,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 style={{
                   padding: '10px',
                   borderRadius: '10px',
-                  border: productCurrency === 'CUP' ? '1px solid #FBCFE8' : 'none',
+                  border: productCurrency === 'CUP' ? '1px solid var(--md-sys-color-primary)' : 'none',
                   backgroundColor: productCurrency === 'CUP' ? 'var(--md-sys-color-primary)' : 'transparent',
                   color: productCurrency === 'CUP' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
                   fontWeight: 800,

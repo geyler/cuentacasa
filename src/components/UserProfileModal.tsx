@@ -198,8 +198,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
         {/* User Identity Card */}
         <div style={{
-          backgroundColor: isOwner ? '#FFF5F8' : 'var(--md-sys-color-surface)',
-          border: isOwner ? '1.5px solid #FBCFE8' : '1px solid var(--md-sys-color-outline-variant)',
+          backgroundColor: 'var(--md-sys-color-surface-container-high)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
           borderRadius: '20px',
           padding: '16px',
           display: 'flex',
@@ -210,7 +210,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             width: '54px',
             height: '54px',
             borderRadius: '50%',
-            backgroundColor: isOwner ? '#BE185D' : 'var(--md-sys-color-primary)',
+            backgroundColor: 'var(--md-sys-color-primary)',
             color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
@@ -234,8 +234,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <span style={{
                 textTransform: 'capitalize',
                 fontWeight: 900,
-                color: isOwner ? '#BE185D' : 'var(--md-sys-color-primary)',
-                backgroundColor: isOwner ? '#FCE7F3' : 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-primary)',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
                 padding: '1px 8px',
                 borderRadius: '6px',
                 fontSize: '0.72rem'

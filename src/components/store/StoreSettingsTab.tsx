@@ -372,7 +372,7 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({ onShowToast 
                     width: '38px',
                     height: '38px',
                     borderRadius: '50%',
-                    backgroundColor: u.role === 'propietario' ? '#BE185D' : 'var(--md-sys-color-primary-container)',
+                    backgroundColor: u.role === 'propietario' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-primary-container)',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -386,7 +386,7 @@ export const StoreSettingsTab: React.FC<StoreSettingsTabProps> = ({ onShowToast 
                   <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                     <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 900, backgroundColor: u.role === 'propietario' ? '#FCE7F3' : '#E0F2FE', color: u.role === 'propietario' ? '#BE185D' : '#0284C7', padding: '1px 6px', borderRadius: '6px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 900, backgroundColor: u.role === 'propietario' ? 'var(--md-sys-color-primary-container)' : '#E0F2FE', color: u.role === 'propietario' ? 'var(--md-sys-color-primary)' : '#0284C7', padding: '1px 6px', borderRadius: '6px', flexShrink: 0 }}>
                         {u.role}
                       </span>
                     </div>

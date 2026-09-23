@@ -711,7 +711,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
               <div style={{ textAlign: 'center', borderBottom: '1.5px dashed #0F172A', paddingBottom: '10px', marginBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
                   <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
-                  <span className="font-logo-script" style={{ fontSize: '1.8rem', fontWeight: 900, color: '#EC4899', lineHeight: 1 }}>
+                  <span className="font-logo-script" style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--md-sys-color-primary)', lineHeight: 1 }}>
                     Samy Store
                   </span>
                 </div>

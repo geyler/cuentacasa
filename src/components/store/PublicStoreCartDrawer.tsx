@@ -116,8 +116,8 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: '#FCE7F3',
-                color: '#EC4899',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -196,7 +196,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
 
                     <div style={{ overflow: 'hidden' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, backgroundColor: '#FCE7F3', color: '#EC4899', padding: '1px 5px', borderRadius: '4px' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-primary)', padding: '1px 5px', borderRadius: '4px' }}>
                           #{item.product.barcode}
                         </span>
                         <span style={{
@@ -339,7 +339,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                 <button
                   onClick={() => setIsCartQROpen(true)}
                   style={{
-                    backgroundColor: '#EC4899',
+                    backgroundColor: 'var(--md-sys-color-primary)',
                     color: '#FFFFFF',
                     padding: '12px 14px',
                     borderRadius: '9999px',
@@ -351,7 +351,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+                    boxShadow: '0 4px 16px rgba(26, 115, 232, 0.4)'
                   }}
                 >
                   <QrCode size={18} />

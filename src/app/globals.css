@@ -111,33 +111,33 @@
 :root {
   --font-main: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   
-  /* Material 3 / Material UI Pink & Soft Tonal Color System */
-  --md-sys-color-primary: #EC4899;
+  /* Material 3 / Google & Facebook Clean Unified Color System */
+  --md-sys-color-primary: #1A73E8;
   --md-sys-color-on-primary: #FFFFFF;
-  --md-sys-color-primary-container: #FCE7F3;
-  --md-sys-color-on-primary-container: #831843;
+  --md-sys-color-primary-container: #EFF6FF;
+  --md-sys-color-on-primary-container: #1E40AF;
   
   --md-sys-color-income: #059669;
   --md-sys-color-income-container: #ECFDF5;
   --md-sys-color-on-income-container: #065F46;
 
-  --md-sys-color-expense: #E11D48;
-  --md-sys-color-expense-container: #FFF1F2;
-  --md-sys-color-on-expense-container: #9F1239;
+  --md-sys-color-expense: #DC2626;
+  --md-sys-color-expense-container: #FEF2F2;
+  --md-sys-color-on-expense-container: #991B1B;
 
   --md-sys-color-surface: #FFFFFF;
-  --md-sys-color-on-surface: #1E293B;
+  --md-sys-color-on-surface: #0F172A;
   --md-sys-color-surface-container: #FFFFFF;
   --md-sys-color-surface-container-high: #F8FAFC;
   --md-sys-color-surface-variant: #F1F5F9;
   --md-sys-color-on-surface-variant: #64748B;
   
-  --md-sys-color-outline: #CBD5E1;
+  --md-sys-color-outline: #E2E8F0;
   --md-sys-color-outline-variant: #F1F5F9;
   
-  --md-shadow-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.08), 0px 1px 2px rgba(0, 0, 0, 0.12);
-  --md-shadow-elevation-2: 0px 4px 12px rgba(0, 0, 0, 0.08), 0px 2px 4px rgba(0, 0, 0, 0.06);
-  --md-shadow-elevation-3: 0px 8px 24px rgba(0, 0, 0, 0.12), 0px 4px 8px rgba(0, 0, 0, 0.08);
+  --md-shadow-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.06), 0px 1px 2px rgba(0, 0, 0, 0.08);
+  --md-shadow-elevation-2: 0px 4px 12px rgba(0, 0, 0, 0.06), 0px 2px 4px rgba(0, 0, 0, 0.04);
+  --md-shadow-elevation-3: 0px 8px 24px rgba(0, 0, 0, 0.08), 0px 4px 8px rgba(0, 0, 0, 0.05);
 
   --radius-xl: 28px;
   --radius-l: 20px;
@@ -146,29 +146,29 @@
 }
 
 [data-theme="dark"] {
-  /* Material 3 Dark Pink Color System */
-  --md-sys-color-primary: #F472B6;
-  --md-sys-color-on-primary: #831843;
-  --md-sys-color-primary-container: #500724;
-  --md-sys-color-on-primary-container: #FCE7F3;
+  /* Material 3 Dark Blue System */
+  --md-sys-color-primary: #8AB4F8;
+  --md-sys-color-on-primary: #0F172A;
+  --md-sys-color-primary-container: #1E3A8A;
+  --md-sys-color-on-primary-container: #DBEAFE;
 
-  --md-sys-color-income: #36B37E;
-  --md-sys-color-income-container: #003822;
-  --md-sys-color-on-income-container: #E6F4EA;
+  --md-sys-color-income: #34D399;
+  --md-sys-color-income-container: #064E3B;
+  --md-sys-color-on-income-container: #D1FAE5;
 
-  --md-sys-color-expense: #FF6B6B;
-  --md-sys-color-expense-container: #410E0B;
-  --md-sys-color-on-expense-container: #FCE8E6;
+  --md-sys-color-expense: #F87171;
+  --md-sys-color-expense-container: #7F1D1D;
+  --md-sys-color-on-expense-container: #FEE2E2;
 
-  --md-sys-color-surface: #121316;
-  --md-sys-color-on-surface: #E2E2E6;
-  --md-sys-color-surface-container: #1C1D22;
-  --md-sys-color-surface-container-high: #272930;
-  --md-sys-color-surface-variant: #44474F;
-  --md-sys-color-on-surface-variant: #C4C6D0;
+  --md-sys-color-surface: #0F172A;
+  --md-sys-color-on-surface: #F8FAFC;
+  --md-sys-color-surface-container: #1E293B;
+  --md-sys-color-surface-container-high: #334155;
+  --md-sys-color-surface-variant: #334155;
+  --md-sys-color-on-surface-variant: #94A3B8;
 
-  --md-sys-color-outline: #8E9099;
-  --md-sys-color-outline-variant: #44474F;
+  --md-sys-color-outline: #475569;
+  --md-sys-color-outline-variant: #334155;
   
   --md-shadow-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.3);
   --md-shadow-elevation-2: 0px 4px 14px rgba(0, 0, 0, 0.4);
@@ -419,8 +419,8 @@ body {
 @media (hover: hover) and (pointer: fine) {
   .store-product-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 14px 30px rgba(236, 72, 153, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
-    border-color: #FBCFE8;
+    box-shadow: 0 14px 30px rgba(26, 115, 232, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+    border-color: var(--md-sys-color-primary);
   }
   .store-product-card:hover .store-product-img {
     transform: scale(1.06);

@@ -327,7 +327,7 @@ export const PublicStoreLanding: React.FC = () => {
               left: '20px',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#EC4899'
+              color: 'var(--md-sys-color-primary)'
             }} 
           />
           <input
@@ -340,13 +340,13 @@ export const PublicStoreLanding: React.FC = () => {
               width: '100%',
               padding: '14px 44px 14px 50px',
               borderRadius: '9999px',
-              border: '2px solid #FBCFE8',
+              border: '1.5px solid var(--md-sys-color-outline-variant)',
               backgroundColor: '#FFFFFF',
               color: '#0F172A',
               fontSize: '0.96rem',
               fontWeight: 700,
               outline: 'none',
-              boxShadow: '0 4px 16px rgba(236, 72, 153, 0.08)',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
               transition: 'all 0.2s ease'
             }}
           />
@@ -395,7 +395,7 @@ export const PublicStoreLanding: React.FC = () => {
         {categories.length > 0 && (
           <div style={{ marginBottom: '28px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <Layers size={18} color="#EC4899" />
+              <Layers size={18} color="var(--md-sys-color-primary)" />
               <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
                 Categorías de Productos
               </h3>
@@ -411,8 +411,8 @@ export const PublicStoreLanding: React.FC = () => {
                 style={{
                   padding: '12px 14px',
                   borderRadius: '16px',
-                  backgroundColor: selectedCategory === 'todas' ? '#FCE7F3' : 'var(--md-sys-color-surface-container)',
-                  border: selectedCategory === 'todas' ? '2px solid #EC4899' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: selectedCategory === 'todas' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+                  border: selectedCategory === 'todas' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                   cursor: 'pointer',
                   display: 'flex',
@@ -425,8 +425,8 @@ export const PublicStoreLanding: React.FC = () => {
                   width: '38px',
                   height: '38px',
                   borderRadius: '12px',
-                  backgroundColor: selectedCategory === 'todas' ? '#EC4899' : 'var(--md-sys-color-surface-container-high)',
-                  color: selectedCategory === 'todas' ? '#FFFFFF' : '#EC4899',
+                  backgroundColor: selectedCategory === 'todas' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
+                  color: selectedCategory === 'todas' ? '#FFFFFF' : 'var(--md-sys-color-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -455,8 +455,8 @@ export const PublicStoreLanding: React.FC = () => {
                     style={{
                       padding: '12px 14px',
                       borderRadius: '16px',
-                      backgroundColor: isSelected ? '#FCE7F3' : 'var(--md-sys-color-surface-container)',
-                      border: isSelected ? '2px solid #EC4899' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+                      border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                       cursor: 'pointer',
                       display: 'flex',
@@ -469,8 +469,8 @@ export const PublicStoreLanding: React.FC = () => {
                       width: '38px',
                       height: '38px',
                       borderRadius: '12px',
-                      backgroundColor: isSelected ? '#EC4899' : 'var(--md-sys-color-surface-container-high)',
-                      color: isSelected ? '#FFFFFF' : '#EC4899',
+                      backgroundColor: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
+                      color: isSelected ? '#FFFFFF' : 'var(--md-sys-color-primary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -635,7 +635,7 @@ export const PublicStoreLanding: React.FC = () => {
                             padding: '6px 10px',
                             fontSize: '0.75rem',
                             borderRadius: '9999px',
-                            backgroundColor: '#EC4899',
+                            backgroundColor: 'var(--md-sys-color-primary)',
                             color: '#FFFFFF',
                             border: 'none',
                             fontWeight: 800,
@@ -646,8 +646,8 @@ export const PublicStoreLanding: React.FC = () => {
                         </button>
                       ) : (
                         <span style={{
-                          backgroundColor: '#FCE7F3',
-                          color: '#831843',
+                          backgroundColor: 'var(--md-sys-color-primary-container)',
+                          color: 'var(--md-sys-color-primary)',
                           padding: '3px 10px',
                           borderRadius: '9999px',
                           fontSize: '0.75rem',
@@ -671,16 +671,16 @@ export const PublicStoreLanding: React.FC = () => {
             marginBottom: '20px',
             padding: '12px 16px',
             borderRadius: '14px',
-            backgroundColor: '#FCE7F3',
-            color: '#831843',
+            backgroundColor: 'var(--md-sys-color-primary-container)',
+            color: 'var(--md-sys-color-on-primary-container)',
             fontSize: '0.85rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            border: '1px solid #FBCFE8'
+            border: '1px solid var(--md-sys-color-outline-variant)'
           }}>
-            <Sparkles size={16} color="#EC4899" />
+            <Sparkles size={16} color="var(--md-sys-color-primary)" />
             <span>{getCategorySeoDescription(selectedCategory)}</span>
           </div>
         )}
@@ -870,7 +870,7 @@ export const PublicStoreLanding: React.FC = () => {
                           padding: '6px 10px',
                           fontSize: '0.75rem',
                           borderRadius: '9999px',
-                          backgroundColor: '#EC4899',
+                          backgroundColor: 'var(--md-sys-color-primary)',
                           color: '#FFFFFF',
                           border: 'none',
                           fontWeight: 800,
@@ -882,8 +882,8 @@ export const PublicStoreLanding: React.FC = () => {
                       </button>
                     ) : (
                       <span style={{
-                        backgroundColor: '#FCE7F3',
-                        color: '#831843',
+                        backgroundColor: 'var(--md-sys-color-primary-container)',
+                        color: 'var(--md-sys-color-primary)',
                         padding: '3px 10px',
                         borderRadius: '9999px',
                         fontSize: '0.75rem',
@@ -913,19 +913,19 @@ export const PublicStoreLanding: React.FC = () => {
           marginTop: '50px',
           marginBottom: '20px',
           borderRadius: '26px',
-          background: 'linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%)',
-          border: '1px solid #FBCFE8',
+          backgroundColor: 'var(--md-sys-color-surface-container-low)',
+          border: '1px solid var(--md-sys-color-outline)',
           padding: '36px 24px',
-          boxShadow: '0 8px 24px rgba(236, 72, 153, 0.05)'
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#BE185D', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Experiencia Samy Store
             </span>
-            <h3 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#831843', marginTop: '4px', letterSpacing: '-0.02em' }}>
+            <h3 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', marginTop: '4px', letterSpacing: '-0.02em' }}>
               ¿Por qué Comprar en Samy Store?
             </h3>
-            <p style={{ fontSize: '0.9rem', color: '#9D174D', maxWidth: '620px', margin: '6px auto 0 auto', fontWeight: 500 }}>
+            <p style={{ fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface-variant)', maxWidth: '620px', margin: '6px auto 0 auto', fontWeight: 500 }}>
               El mercado online más rápido y conveniente de Las Tunas. Compras fáciles, seguras y directas a tu WhatsApp.
             </p>
           </div>
@@ -940,7 +940,7 @@ export const PublicStoreLanding: React.FC = () => {
               backgroundColor: '#FFFFFF',
               borderRadius: '18px',
               padding: '20px',
-              border: '1px solid #FBCFE8',
+              border: '1px solid var(--md-sys-color-outline)',
               boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
               display: 'flex',
               gap: '14px',
@@ -974,7 +974,7 @@ export const PublicStoreLanding: React.FC = () => {
               backgroundColor: '#FFFFFF',
               borderRadius: '18px',
               padding: '20px',
-              border: '1px solid #FBCFE8',
+              border: '1px solid var(--md-sys-color-outline)',
               boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
               display: 'flex',
               gap: '14px',
@@ -1008,7 +1008,7 @@ export const PublicStoreLanding: React.FC = () => {
               backgroundColor: '#FFFFFF',
               borderRadius: '18px',
               padding: '20px',
-              border: '1px solid #FBCFE8',
+              border: '1px solid var(--md-sys-color-outline)',
               boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
               display: 'flex',
               gap: '14px',
@@ -1042,7 +1042,7 @@ export const PublicStoreLanding: React.FC = () => {
               backgroundColor: '#FFFFFF',
               borderRadius: '18px',
               padding: '20px',
-              border: '1px solid #FBCFE8',
+              border: '1px solid var(--md-sys-color-outline)',
               boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
               display: 'flex',
               gap: '14px',
@@ -1052,8 +1052,8 @@ export const PublicStoreLanding: React.FC = () => {
                 width: '44px',
                 height: '44px',
                 borderRadius: '12px',
-                backgroundColor: '#FCE7F3',
-                color: '#BE185D',
+                backgroundColor: '#EFF6FF',
+                color: 'var(--md-sys-color-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1102,7 +1102,7 @@ export const PublicStoreLanding: React.FC = () => {
                 Carrito ({totalCartCount} {totalCartCount === 1 ? 'ítem' : 'ítems'})
               </span>
               <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669' }}>
-                {formatCurrency(totalCartPrice, '$', true)} <span style={{ fontSize: '0.78rem', color: '#EC4899', fontWeight: 800 }}>CUP</span>
+                {formatCurrency(totalCartPrice, '$', true)} <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>CUP</span>
               </span>
             </div>
 
@@ -1161,9 +1161,9 @@ export const PublicStoreLanding: React.FC = () => {
 
       {/* 9. Full Web Desktop & Mobile Footer (Estilo Qubazar / Cubasoft) */}
       <footer style={{
-        backgroundColor: '#FFF0F5',
-        color: '#831843',
-        borderTop: '1px solid #FBCFE8',
+        backgroundColor: 'var(--md-sys-color-surface-container-low)',
+        color: 'var(--md-sys-color-on-surface)',
+        borderTop: '1px solid var(--md-sys-color-outline)',
         marginTop: 'auto'
       }}>
         <div className="store-container" style={{ padding: '48px 16px 28px 16px' }}>
@@ -1179,14 +1179,14 @@ export const PublicStoreLanding: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
                 <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '40px', width: 'auto' }} />
-                <span className="font-logo-script" style={{ fontSize: '1.75rem', fontWeight: 900, color: '#831843' }}>
+                <span className="font-logo-script" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
                   Samy Store
                 </span>
               </div>
-              <p style={{ fontSize: '0.86rem', color: '#9D174D', lineHeight: '1.6', margin: 0, fontWeight: 500 }}>
+              <p style={{ fontSize: '0.86rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.6', margin: 0, fontWeight: 500 }}>
                 Tu mercado digital y tienda física de preferencia en Las Tunas, Cuba. Insumos seleccionados, electrodomésticos, aseo y variedad con pedidos rápidos vía WhatsApp y entregas a domicilio.
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '0.8rem', fontWeight: 700, color: '#BE185D' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--md-sys-color-primary)' }}>
                 <MapPin size={14} />
                 <span>Las Tunas, Cuba • Envíos Locales</span>
               </div>
@@ -1194,7 +1194,7 @@ export const PublicStoreLanding: React.FC = () => {
 
             {/* Col 2: Categorías Rápidas */}
             <div>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#831843', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Categorías Populares
               </h4>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1209,7 +1209,7 @@ export const PublicStoreLanding: React.FC = () => {
                         background: 'none',
                         border: 'none',
                         padding: 0,
-                        color: '#9D174D',
+                        color: 'var(--md-sys-color-on-surface-variant)',
                         fontSize: '0.86rem',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -1220,7 +1220,7 @@ export const PublicStoreLanding: React.FC = () => {
                         gap: '6px'
                       }}
                     >
-                      <span style={{ color: '#EC4899' }}>•</span> {cat}
+                      <span style={{ color: 'var(--md-sys-color-primary)' }}>•</span> {cat}
                     </button>
                   </li>
                 ))}
@@ -1229,10 +1229,10 @@ export const PublicStoreLanding: React.FC = () => {
 
             {/* Col 3: Atención y Envíos */}
             <div>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#831843', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Atención al Cliente
               </h4>
-              <p style={{ fontSize: '0.85rem', color: '#9D174D', lineHeight: '1.5', margin: '0 0 12px 0', fontWeight: 500 }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.5', margin: '0 0 12px 0', fontWeight: 500 }}>
                 Horario de Pedidos: Lunes a Domingo de 8:00 AM a 8:00 PM. Entregas directas a domicilio.
               </p>
               <button
@@ -1259,10 +1259,10 @@ export const PublicStoreLanding: React.FC = () => {
 
             {/* Col 4: Cubasoft ERP & Tecnología */}
             <div>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#831843', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Tecnología & Gestión
               </h4>
-              <p style={{ fontSize: '0.85rem', color: '#9D174D', lineHeight: '1.5', margin: '0 0 10px 0', fontWeight: 500 }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.5', margin: '0 0 10px 0', fontWeight: 500 }}>
                 Plataforma PWA impulsada por el ecosistema de <strong>Cubasoft ERP</strong>.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
@@ -1273,7 +1273,7 @@ export const PublicStoreLanding: React.FC = () => {
                     setIsCubasoftModalOpen(true);
                   }}
                   style={{
-                    color: '#DB2777',
+                    color: 'var(--md-sys-color-primary)',
                     textDecoration: 'none',
                     fontWeight: 800,
                     fontSize: '0.84rem',
@@ -1289,7 +1289,7 @@ export const PublicStoreLanding: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    color: '#BE185D',
+                    color: 'var(--md-sys-color-on-surface-variant)',
                     textDecoration: 'none',
                     fontWeight: 700,
                     fontSize: '0.84rem',
@@ -1304,7 +1304,7 @@ export const PublicStoreLanding: React.FC = () => {
                   <Link
                     href="/app"
                     style={{
-                      color: '#BE185D',
+                      color: 'var(--md-sys-color-primary)',
                       textDecoration: 'none',
                       fontWeight: 800,
                       fontSize: '0.82rem',
@@ -1313,8 +1313,8 @@ export const PublicStoreLanding: React.FC = () => {
                       gap: '5px',
                       padding: '6px 14px',
                       borderRadius: '9999px',
-                      backgroundColor: 'rgba(236, 72, 153, 0.1)',
-                      border: '1px solid #FBCFE8'
+                      backgroundColor: 'var(--md-sys-color-primary-container)',
+                      border: '1px solid var(--md-sys-color-outline-variant)'
                     }}
                   >
                     <Lock size={13} />
@@ -1327,7 +1327,7 @@ export const PublicStoreLanding: React.FC = () => {
 
           {/* Bottom Copyright Bar */}
           <div style={{
-            borderTop: '1px solid #FBCFE8',
+            borderTop: '1px solid var(--md-sys-color-outline)',
             paddingTop: '20px',
             display: 'flex',
             flexWrap: 'wrap',
@@ -1335,14 +1335,14 @@ export const PublicStoreLanding: React.FC = () => {
             justifyContent: 'space-between',
             gap: '12px',
             fontSize: '0.8rem',
-            color: '#9D174D',
+            color: 'var(--md-sys-color-on-surface-variant)',
             fontWeight: 600
           }}>
             <span>
               © {new Date().getFullYear()} Samy Store. Todos los derechos reservados.
             </span>
             <span>
-              Las Tunas, Cuba • Desarrollado con tecnología de <strong style={{ color: '#831843' }}>Cubasoft</strong>
+              Las Tunas, Cuba • Desarrollado con tecnología de <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>Cubasoft</strong>
             </span>
           </div>
 

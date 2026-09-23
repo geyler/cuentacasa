@@ -174,8 +174,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         borderRadius: '28px',
         padding: '28px 24px',
         textAlign: 'center',
-        boxShadow: '0 12px 36px rgba(236, 72, 153, 0.15)',
-        border: '1px solid #FBCFE8',
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.08)',
+        border: '1px solid var(--md-sys-color-outline)',
         transition: 'all 0.2s ease'
       }}>
         
@@ -194,10 +194,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         </div>
 
 
-        <h1 className="font-logo-script" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#831843', margin: 0, lineHeight: 1 }}>
+        <h1 className="font-logo-script" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#0F172A', margin: 0, lineHeight: 1 }}>
           Samy Store
         </h1>
-        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#DB2777', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', margin: '4px 0 12px 0' }}>
+        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', margin: '4px 0 12px 0' }}>
           Gestión & Punto de Venta
         </span>
 
@@ -261,18 +261,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       height: '56px',
                       borderRadius: '16px',
                       border: isCurrent 
-                        ? '2.5px solid #EC4899' 
+                        ? '2.5px solid var(--md-sys-color-primary)' 
                         : isFilled 
-                        ? '2px solid #DB2777' 
-                        : '2px solid #E2E8F0',
-                      backgroundColor: isFilled ? '#FDF2F8' : '#F8FAFC',
+                        ? '2px solid var(--md-sys-color-primary)' 
+                        : '2px solid var(--md-sys-color-outline)',
+                      backgroundColor: isFilled ? 'var(--md-sys-color-primary-container)' : '#F8FAFC',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '1.5rem',
                       fontWeight: 900,
-                      color: '#831843',
-                      boxShadow: isCurrent ? '0 0 0 4px rgba(236, 72, 153, 0.2)' : 'none',
+                      color: 'var(--md-sys-color-primary)',
+                      boxShadow: isCurrent ? '0 0 0 4px rgba(26, 115, 232, 0.2)' : 'none',
                       transition: 'all 0.18s ease'
                     }}
                   >
@@ -354,8 +354,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   height: '48px',
                   borderRadius: '14px',
                   border: 'none',
-                  backgroundColor: '#FCE7F3',
-                  color: '#BE185D',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                  color: 'var(--md-sys-color-on-surface)',
                   fontSize: '0.85rem',
                   fontWeight: 800,
                   cursor: 'pointer'
@@ -374,12 +374,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 padding: '14px',
                 borderRadius: '9999px',
                 border: 'none',
-                background: pin.length === 4 ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : '#E2E8F0',
+                background: pin.length === 4 ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
                 color: pin.length === 4 ? '#FFFFFF' : '#94A3B8',
                 fontSize: '0.98rem',
                 fontWeight: 800,
                 cursor: pin.length === 4 ? 'pointer' : 'not-allowed',
-                boxShadow: pin.length === 4 ? '0 4px 16px rgba(236, 72, 153, 0.35)' : 'none',
+                boxShadow: pin.length === 4 ? '0 4px 16px rgba(26, 115, 232, 0.35)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -400,7 +400,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#DB2777',
+                  color: 'var(--md-sys-color-primary)',
                   fontSize: '0.82rem',
                   fontWeight: 800,
                   cursor: 'pointer',
@@ -459,16 +459,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     width: '100%',
                     padding: '14px 16px 14px 40px',
                     borderRadius: '14px',
-                    border: '1.5px solid #FBCFE8',
+                    border: '1.5px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: '#FFFFFF',
                     color: '#0F172A',
                     fontSize: '1rem',
                     fontWeight: 700,
                     outline: 'none',
-                    boxShadow: '0 2px 8px rgba(236, 72, 153, 0.06)'
+                    boxShadow: 'none'
                   }}
                 />
-                <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#DB2777' }} />
+                <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--md-sys-color-primary)' }} />
               </div>
             </div>
 
@@ -488,7 +488,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     width: '100%',
                     padding: '14px 40px 14px 40px',
                     borderRadius: '14px',
-                    border: '1.5px solid #FBCFE8',
+                    border: '1.5px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: '#FFFFFF',
                     color: '#0F172A',
                     fontSize: '1rem',
@@ -496,7 +496,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     outline: 'none'
                   }}
                 />
-                <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#DB2777' }} />
+                <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--md-sys-color-primary)' }} />
               </div>
             </div>
 
@@ -508,12 +508,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 padding: '14px',
                 borderRadius: '9999px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
+                background: 'var(--md-sys-color-primary)',
                 color: '#FFFFFF',
                 fontSize: '0.98rem',
                 fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(236, 72, 153, 0.35)',
+                boxShadow: '0 4px 16px rgba(26, 115, 232, 0.35)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -527,16 +527,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         )}
 
         {/* Volver al Catálogo / Tienda Button en el pie del login */}
-        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #FBCFE8' }}>
+        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed var(--md-sys-color-outline)' }}>
           <a
             href="/"
             style={{
               width: '100%',
               padding: '12px 16px',
               borderRadius: '9999px',
-              border: '1.5px solid #FBCFE8',
-              backgroundColor: '#FDF2F8',
-              color: '#DB2777',
+              border: '1.5px solid var(--md-sys-color-outline)',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              color: 'var(--md-sys-color-on-surface)',
               fontSize: '0.88rem',
               fontWeight: 800,
               display: 'flex',
@@ -545,7 +545,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               gap: '8px',
               textDecoration: 'none',
               transition: 'all 0.2s ease',
-              boxShadow: '0 2px 8px rgba(236, 72, 153, 0.08)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
             }}
           >
             <ArrowLeft size={16} />

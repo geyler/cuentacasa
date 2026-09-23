@@ -77,7 +77,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', flexDirection: 'column' }}>
         <header style={{ backgroundColor: '#0F172A', color: '#FFFFFF', padding: '14px 16px' }}>
           <div className="store-container">
-            <Link href={returnPath} style={{ color: '#EC4899', fontWeight: 800, fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Link href={returnPath} style={{ color: 'var(--md-sys-color-primary)', fontWeight: 800, fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <ArrowLeft size={18} /> {returnLabel}
             </Link>
           </div>
@@ -168,7 +168,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              color: '#BE185D',
+              color: 'var(--md-sys-color-primary)',
               fontWeight: 800,
               fontSize: '0.92rem',
               textDecoration: 'none'
@@ -192,8 +192,8 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              backgroundColor: '#FCE7F3',
-              color: '#BE185D',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              color: 'var(--md-sys-color-on-surface)',
               border: 'none',
               borderRadius: '9999px',
               padding: '8px 14px',
@@ -213,7 +213,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
         
         {/* Breadcrumb Navigation */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', fontSize: '0.84rem', color: '#64748B', fontWeight: 600 }}>
-          <Link href="/" style={{ color: '#BE185D', textDecoration: 'none', fontWeight: 700 }}>Inicio</Link>
+          <Link href="/" style={{ color: 'var(--md-sys-color-primary)', textDecoration: 'none', fontWeight: 700 }}>Inicio</Link>
           <span>/</span>
           <span style={{ textTransform: 'capitalize' }}>{product.category || 'Catálogo'}</span>
           <span>/</span>
@@ -300,8 +300,8 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               <span style={{
                 fontSize: '0.82rem',
                 fontWeight: 800,
-                backgroundColor: '#FCE7F3',
-                color: '#831843',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-primary)',
                 padding: '5px 14px',
                 borderRadius: '9999px',
                 textTransform: 'capitalize'
@@ -322,8 +322,8 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
             <div style={{
               padding: '16px 20px',
               borderRadius: '18px',
-              backgroundColor: '#FDF2F8',
-              border: '1px solid #FBCFE8',
+              backgroundColor: 'var(--md-sys-color-surface-container-low)',
+              border: '1px solid var(--md-sys-color-outline)',
               display: 'flex',
               alignItems: 'baseline',
               justifyContent: 'space-between',
@@ -331,7 +331,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               gap: '12px'
             }}>
               <div>
-                <span style={{ fontSize: '0.78rem', color: '#9D174D', fontWeight: 800, display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800, display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>
                   Precio Unitario
                 </span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
@@ -486,8 +486,8 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <ShieldCheck size={18} color="#BE185D" />
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <ShieldCheck size={18} color="var(--md-sys-color-primary)" />
                 </div>
                 <div>
                   <h5 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
@@ -514,7 +514,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                   Artículos que también te podrían interesar en <strong>{product.category || 'Samy Store'}</strong>
                 </p>
               </div>
-              <Link href="/" style={{ fontSize: '0.86rem', fontWeight: 800, color: '#BE185D', textDecoration: 'none' }}>
+              <Link href="/" style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', textDecoration: 'none' }}>
                 Ver Catálogo Completo →
               </Link>
             </div>
@@ -576,7 +576,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                       <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#059669' }}>
                         {formatCurrency(relDisp.amount, relDisp.currency, true)}
                       </span>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#BE185D', backgroundColor: '#FCE7F3', padding: '2px 8px', borderRadius: '6px' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '2px 8px', borderRadius: '6px' }}>
                         {rel.category}
                       </span>
                     </div>
@@ -591,15 +591,15 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
       {/* Footer */}
       <footer style={{
-        backgroundColor: '#FFF0F5',
-        color: '#831843',
-        borderTop: '1px solid #FBCFE8',
+        backgroundColor: 'var(--md-sys-color-surface-container-low)',
+        color: 'var(--md-sys-color-on-surface)',
+        borderTop: '1px solid var(--md-sys-color-outline)',
         padding: '28px 16px',
         textAlign: 'center',
         marginTop: 'auto'
       }}>
         <div className="store-container">
-          <p style={{ fontSize: '0.84rem', color: '#9D174D', margin: 0, fontWeight: 600 }}>
+          <p style={{ fontSize: '0.84rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, fontWeight: 600 }}>
             © {new Date().getFullYear()} Samy Store Las Tunas. Tienda Oficial. Desarrollado con tecnología de Cubasoft.
           </p>
         </div>

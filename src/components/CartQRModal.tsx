@@ -87,7 +87,7 @@ export const CartQRModal: React.FC<CartQRModalProps> = ({
           alignItems: 'center'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#FCE7F3', color: '#EC4899', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <QrCode size={22} />
             </div>
             <div>
@@ -125,8 +125,8 @@ export const CartQRModal: React.FC<CartQRModalProps> = ({
               backgroundColor: '#FFFFFF',
               padding: '16px',
               borderRadius: '24px',
-              boxShadow: '0 8px 30px rgba(236, 72, 153, 0.15)',
-              border: '2px solid #FBCFE8',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)',
+              border: '2px solid var(--md-sys-color-outline)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -146,8 +146,8 @@ export const CartQRModal: React.FC<CartQRModalProps> = ({
 
             {/* Cart Summary Banner */}
             <div style={{
-              backgroundColor: '#FFF1F2',
-              border: '1px solid #FBCFE8',
+              backgroundColor: 'var(--md-sys-color-surface-container-low)',
+              border: '1px solid var(--md-sys-color-outline)',
               borderRadius: '16px',
               padding: '12px 16px',
               width: '100%',
@@ -156,8 +156,8 @@ export const CartQRModal: React.FC<CartQRModalProps> = ({
               alignItems: 'center'
             }}>
               <div style={{ textAlign: 'left' }}>
-                <span style={{ fontSize: '0.72rem', color: '#9D174D', fontWeight: 700, display: 'block' }}>PEDIDO SELECCIONADO</span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#831843' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>PEDIDO SELECCIONADO</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
                   {totalItemsCount} {totalItemsCount === 1 ? 'artículo' : 'artículos'}
                 </span>
               </div>
@@ -179,7 +179,7 @@ export const CartQRModal: React.FC<CartQRModalProps> = ({
               alignItems: 'center',
               gap: '8px'
             }}>
-              <Sparkles size={18} color="#EC4899" style={{ flexShrink: 0 }} />
+              <Sparkles size={18} color="var(--md-sys-color-primary)" style={{ flexShrink: 0 }} />
               <span>Muestra este código al vendedor para que escanee tu carrito y procese la venta al instante.</span>
             </div>
 

@@ -19,13 +19,13 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
       width: '100%',
       margin: 0,
       borderRadius: 0,
-      background: 'linear-gradient(135deg, #BE185D 0%, #EC4899 45%, #831843 100%)',
-      backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 40%), radial-gradient(circle at 80% 80%, rgba(253, 224, 71, 0.12) 0%, transparent 40%), linear-gradient(135deg, #BE185D 0%, #EC4899 45%, #831843 100%)',
+      background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #1A73E8 100%)',
+      backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12) 0%, transparent 40%), radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 40%), linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #1A73E8 100%)',
       color: '#FFFFFF',
       padding: '40px 0 46px 0',
       position: 'relative',
       overflow: 'hidden',
-      boxShadow: '0 10px 30px rgba(190, 24, 93, 0.15)'
+      boxShadow: '0 10px 30px rgba(15, 23, 42, 0.15)'
     }}>
       {/* Decorative Grid Pattern Overlay like Qubazar */}
       <div style={{
@@ -104,7 +104,7 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
                 onClick={onSearchClick}
                 style={{
                   backgroundColor: '#FFFFFF',
-                  color: '#9D174D',
+                  color: '#1A73E8',
                   padding: '13px 26px',
                   borderRadius: '9999px',
                   fontWeight: 900,
@@ -114,33 +114,34 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.14)',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.16)',
                   transition: 'all 0.2s ease'
                 }}
               >
-                <Search size={18} color="#BE185D" />
+                <Search size={18} color="#1A73E8" />
                 Explorar Catálogo
               </button>
 
               <button
                 onClick={onFeaturedClick}
                 style={{
-                  backgroundColor: '#FDE047',
-                  color: '#1E293B',
+                  backgroundColor: 'rgba(255, 255, 255, 0.16)',
+                  color: '#FFFFFF',
                   padding: '13px 24px',
                   borderRadius: '9999px',
                   fontWeight: 900,
                   fontSize: '0.94rem',
-                  border: 'none',
+                  border: '1px solid rgba(255, 255, 255, 0.28)',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  boxShadow: '0 6px 20px rgba(253, 224, 71, 0.35)',
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.12)',
                   transition: 'all 0.2s ease'
                 }}
               >
-                <Sparkles size={18} color="#1E293B" />
+                <Sparkles size={18} color="#93C5FD" />
                 Más Vendidos
               </button>
             </div>
@@ -244,7 +245,7 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
                 <div style={{
                   height: '58px',
                   borderRadius: '12px',
-                  backgroundColor: '#FFF0F5',
+                  backgroundColor: '#EEF2FF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -257,12 +258,12 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
                   Ropa & Calzado
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#EC4899' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6366F1' }}>
                     Novedades
                   </span>
-                  <ArrowRight size={12} color="#EC4899" />
+                  <ArrowRight size={12} color="#6366F1" />
                 </div>
-                <div style={{ height: '4px', backgroundColor: '#EC4899', borderRadius: '9999px', marginTop: '6px' }} />
+                <div style={{ height: '4px', backgroundColor: '#6366F1', borderRadius: '9999px', marginTop: '6px' }} />
               </div>
 
               {/* Category 3: Electrodomésticos */}

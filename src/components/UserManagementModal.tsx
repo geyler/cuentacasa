@@ -285,9 +285,9 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                   style={{
                     padding: '10px 6px',
                     borderRadius: '10px',
-                    border: role === 'propietario' ? '2px solid #BE185D' : '1px solid var(--md-sys-color-outline-variant)',
-                    backgroundColor: role === 'propietario' ? '#FCE7F3' : 'var(--md-sys-color-surface)',
-                    color: role === 'propietario' ? '#BE185D' : 'var(--md-sys-color-on-surface)',
+                    border: role === 'propietario' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: role === 'propietario' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                    color: role === 'propietario' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface)',
                     fontWeight: 800,
                     fontSize: '0.78rem',
                     cursor: 'pointer',
@@ -366,8 +366,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                 style={{
                   padding: '12px 14px',
                   borderRadius: '14px',
-                  border: isOwnerRole ? '1.5px solid #FBCFE8' : '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: isOwnerRole ? '#FFF5F8' : 'var(--md-sys-color-surface)',
+                  border: isOwnerRole ? '1.5px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: isOwnerRole ? 'var(--md-sys-color-surface-container-high)' : 'var(--md-sys-color-surface)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -379,7 +379,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                     width: '38px',
                     height: '38px',
                     borderRadius: '50%',
-                    backgroundColor: isOwnerRole ? '#BE185D' : '#334155',
+                    backgroundColor: isOwnerRole ? 'var(--md-sys-color-primary)' : '#334155',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -394,7 +394,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                     <div style={{ fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>{u.name}</span>
                       {isSelf && (
-                        <span style={{ fontSize: '0.65rem', backgroundColor: '#DB2777', color: '#FFF', padding: '1px 6px', borderRadius: '4px', fontWeight: 900 }}>
+                        <span style={{ fontSize: '0.65rem', backgroundColor: 'var(--md-sys-color-primary)', color: '#FFF', padding: '1px 6px', borderRadius: '4px', fontWeight: 900 }}>
                           Tú
                         </span>
                       )}
@@ -402,7 +402,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                     <div style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span>@{u.username}</span>
                       <span>•</span>
-                      <span style={{ textTransform: 'capitalize', fontWeight: 800, color: isOwnerRole ? '#BE185D' : 'inherit' }}>
+                      <span style={{ textTransform: 'capitalize', fontWeight: 800, color: isOwnerRole ? 'var(--md-sys-color-primary)' : 'inherit' }}>
                         {u.role}
                       </span>
                       {u.whatsappNumber && (

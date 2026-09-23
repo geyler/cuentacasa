@@ -64,8 +64,8 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
               <span className="desktop-only" style={{
                 fontSize: '0.68rem',
                 fontWeight: 800,
-                color: '#BE185D',
-                backgroundColor: '#FCE7F3',
+                color: 'var(--md-sys-color-primary)',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
                 padding: '2px 8px',
                 borderRadius: '9999px',
                 letterSpacing: '0.02em'
@@ -93,7 +93,7 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
                   left: '16px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#EC4899'
+                  color: 'var(--md-sys-color-primary)'
                 }} 
               />
               <input
@@ -105,9 +105,9 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
                   width: '100%',
                   padding: '11px 40px 11px 46px',
                   borderRadius: '9999px',
-                  border: '1.5px solid #FBCFE8',
-                  backgroundColor: '#FDF2F8',
-                  color: '#0F172A',
+                  border: '1.5px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface-container)',
+                  color: 'var(--md-sys-color-on-surface)',
                   fontSize: '0.92rem',
                   fontWeight: 600,
                   outline: 'none',
@@ -179,14 +179,14 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
               padding: totalCartCount > 0 ? '8px 16px' : '9px 14px',
               borderRadius: '9999px',
               border: 'none',
-              background: 'linear-gradient(135deg, #EC4899 0%, #D946EF 100%)',
+              background: 'var(--md-sys-color-primary)',
               color: '#FFFFFF',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35)',
+              boxShadow: '0 4px 14px rgba(26, 115, 232, 0.35)',
               transition: 'all 0.2s ease'
             }}
           >
@@ -197,8 +197,8 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
                   position: 'absolute',
                   top: '-8px',
                   right: '-10px',
-                  backgroundColor: '#FFF100',
-                  color: '#0F172A',
+                  backgroundColor: '#DC2626',
+                  color: '#FFFFFF',
                   minWidth: '20px',
                   height: '20px',
                   padding: '0 4px',
