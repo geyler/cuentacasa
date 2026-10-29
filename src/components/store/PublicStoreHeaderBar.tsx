@@ -76,7 +76,6 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
   onHowToBuyClick
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCategoryBarVisible, setIsCategoryBarVisible] = useState(true);
   const [customization, setCustomization] = useState(() => getStoreCustomizationSettings());
 
   React.useEffect(() => {
@@ -92,47 +91,6 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
   }, []);
 
   useLockBodyScroll(isMobileMenuOpen, () => setIsMobileMenuOpen(false));
-
-  React.useEffect(() => {
-    let lastScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
-    let ticking = false;
-    const SCROLL_THRESHOLD = 25; // Distancia mínima de desplazamiento para cambiar de dirección (evita pestañeo y rebotes)
-
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentY = window.scrollY;
-
-          // Cerca de la parte superior: mantener la barra siempre visible
-          if (currentY <= 60) {
-            setIsCategoryBarVisible(true);
-            lastScrollY = currentY;
-            ticking = false;
-            return;
-          }
-
-          const diff = currentY - lastScrollY;
-
-          // Solo alternar si el usuario se ha desplazado más del umbral con un gesto decisivo
-          if (diff > SCROLL_THRESHOLD && currentY > 100) {
-            // Scroll deliberado hacia abajo -> ocultar barra de categorías para ganar pantalla
-            setIsCategoryBarVisible(false);
-            lastScrollY = currentY;
-          } else if (diff < -SCROLL_THRESHOLD) {
-            // Scroll deliberado hacia arriba -> mostrar inmediatamente
-            setIsCategoryBarVisible(true);
-            lastScrollY = currentY;
-          }
-
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   return (
     <>
@@ -553,15 +511,10 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
           </div>
         </div>
 
-        {/* NIVEL 2: Sub-barra de Categorías (Auto-ocultable dinámicamente al hacer scroll para ahorrar espacio) */}
+        {/* NIVEL 2: Sub-barra de Categorías (Fija y Estable, navegación fluida sin saltos ni pestañeos) */}
         <div style={{
           backgroundColor: 'var(--brand-primary-subtle-dark, #162440)',
-          borderBottom: isCategoryBarVisible ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
-          maxHeight: isCategoryBarVisible ? '50px' : '0px',
-          opacity: isCategoryBarVisible ? 1 : 0,
-          overflow: 'hidden',
-          transition: 'max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, border-bottom 0.2s ease',
-          pointerEvents: isCategoryBarVisible ? 'auto' : 'none'
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           <div
             className="store-container no-scrollbar"
