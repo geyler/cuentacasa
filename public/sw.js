@@ -1,4 +1,4 @@
-const CACHE_NAME = 'samy-store-pwa-v1.7.1';
+const CACHE_NAME = 'samy-store-pwa-v1.9.2';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -73,8 +73,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Exclude API requests from SW cache
-  if (url.pathname.startsWith('/api/')) {
+  // Exclude localhost / development and API requests from SW cache
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.pathname.startsWith('/api/')) {
     return;
   }
 
@@ -153,8 +153,6 @@ self.addEventListener('fetch', (event) => {
             return networkResponse;
           })
           .catch(() => {
-            // Offline and asset missing: return safe 404 response instead of crashing respondWith
-            // Offline or network blackout: return safe 404 response instead of crashing respondWith
             return new Response('', { status: 404, statusText: 'Offline Asset Not Found' });
           });
       })
@@ -162,3 +160,4 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 });
+

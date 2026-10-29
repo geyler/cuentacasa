@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Transaction, StoreShiftRecord, StoreProduct, StoreSaleRecord } from '@/types';
-import { getStoreShifts, getStoreProducts, getStoreSales, getCurrencySettings } from '@/lib/storage';
+import { getStoreShifts, getStoreProducts, getStoreSales, getCurrencySettings, DEFAULT_EXCHANGE_RATE_USD } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
+import { formatDateTime } from '@/lib/dateUtils';
 import { 
   Printer, 
   Calendar, 
@@ -114,7 +115,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // Filter Shifts in Period
   const filteredShifts = shifts.filter(s => s.openedAt >= timeRange.startMs && s.openedAt <= timeRange.endMs);
 
-  // Aggregate Product Sales Data
+  const currSettings = typeof window !== 'undefined'
+    ? getCurrencySettings()
+    : { currencyMode: 'CUP' as const, exchangeRateUSD: DEFAULT_EXCHANGE_RATE_USD, usdIndexedPricing: false };
+  const activeRate = currSettings.exchangeRateUSD || DEFAULT_EXCHANGE_RATE_USD;
+
+  // Aggregate Product Sales Data (normalized to CUP base so CUP and USD columns are consistent)
   const productAggregationMap: Record<string, {
     id: string;
     name: string;
@@ -127,12 +133,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
   // Initialize with all products
   products.forEach(p => {
+    const pPriceCUP = p.currency === 'USD' ? Math.round(p.price * activeRate) : p.price;
     productAggregationMap[p.id] = {
       id: p.id,
       name: p.name,
       barcode: p.barcode,
       stock: p.stock,
-      price: p.price,
+      price: pPriceCUP,
       unitsSold: 0,
       totalAmount: 0
     };
@@ -141,18 +148,21 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // Accumulate from sales
   filteredSales.forEach(sale => {
     sale.items.forEach(item => {
+      const itemCurr = item.currency || (sale.currency === 'USD' ? 'USD' : 'CUP');
+      const subtotalCUP = itemCurr === 'USD' ? Math.round(item.subtotal * activeRate) : item.subtotal;
+      const unitPriceCUP = itemCurr === 'USD' ? Math.round(item.unitPrice * activeRate) : item.unitPrice;
       if (productAggregationMap[item.productId]) {
         productAggregationMap[item.productId].unitsSold += item.quantity;
-        productAggregationMap[item.productId].totalAmount += item.subtotal;
+        productAggregationMap[item.productId].totalAmount += subtotalCUP;
       } else {
         productAggregationMap[item.productId] = {
           id: item.productId,
           name: item.name,
           barcode: item.barcode,
           stock: 0,
-          price: item.unitPrice,
+          price: unitPriceCUP,
           unitsSold: item.quantity,
-          totalAmount: item.subtotal
+          totalAmount: subtotalCUP
         };
       }
     });
@@ -391,8 +401,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
             </thead>
             <tbody>
               {(() => {
-                const currSettings = typeof window !== 'undefined' ? getCurrencySettings() : { currencyMode: 'CUP' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
-                const rate = currSettings.exchangeRateUSD || 675;
+                const rate = activeRate;
                 const isBothMode = currSettings.currencyMode === 'BOTH';
                 const totalPeriodRevenueUSD = ipvRows.reduce((acc, r) => acc + (r.totalAmount / rate), 0);
 
@@ -416,13 +425,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 700 }}>
                             {r.stock} u
                           </td>
-                          <td style={{ padding: '6px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <td className="tabular-nums" style={{ padding: '6px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                             ${r.price} CUP
-                            {isBothMode && <span style={{ display: 'block', fontSize: '0.62rem', color: '#64748B' }}>${priceUSD.toFixed(2)} USD</span>}
+                            {isBothMode && <span style={{ display: 'block', fontSize: '0.62rem', color: 'var(--brand-secondary-dark, #115E59)' }}>${priceUSD.toFixed(2)} USD</span>}
                           </td>
-                          <td style={{ padding: '6px 6px', textAlign: 'right', fontWeight: 900, whiteSpace: 'nowrap' }}>
+                          <td className="tabular-nums" style={{ padding: '6px 6px', textAlign: 'right', fontWeight: 900, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                             ${r.totalAmount.toLocaleString()} CUP
-                            {isBothMode && <span style={{ display: 'block', fontSize: '0.62rem', color: '#2563EB', fontWeight: 800 }}>${totalUSD.toFixed(2)} USD</span>}
+                            {isBothMode && <span style={{ display: 'block', fontSize: '0.62rem', color: 'var(--brand-secondary-dark, #115E59)', fontWeight: 800 }}>${totalUSD.toFixed(2)} USD</span>}
                           </td>
                         </tr>
                       );
@@ -433,15 +442,15 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       <td colSpan={2} style={{ padding: '8px 6px', fontSize: '0.74rem', color: '#0F172A' }}>
                         TOTALES ACUMULADOS EN PERIODO
                       </td>
-                      <td style={{ padding: '8px 4px', textAlign: 'center', fontSize: '0.78rem', color: '#0F172A' }}>
+                      <td className="tabular-nums" style={{ padding: '8px 4px', textAlign: 'center', fontSize: '0.78rem', color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>
                         {totalUnitsSold}u
                       </td>
                       <td style={{ padding: '8px 4px' }}></td>
                       <td style={{ padding: '8px 6px' }}></td>
-                      <td style={{ padding: '8px 6px', textAlign: 'right', fontSize: '0.82rem', color: '#0F172A', whiteSpace: 'nowrap' }}>
+                      <td className="tabular-nums" style={{ padding: '8px 6px', textAlign: 'right', fontSize: '0.82rem', color: '#0F172A', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                         ${totalPeriodRevenue.toLocaleString()} CUP
                         {isBothMode && (
-                          <div style={{ fontSize: '0.68rem', color: '#2563EB', fontWeight: 800 }}>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--brand-secondary-dark, #115E59)', fontWeight: 800 }}>
                             ≈ US${totalPeriodRevenueUSD.toFixed(2)} USD (@1={rate})
                           </div>
                         )}
@@ -470,19 +479,20 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 <div 
                   key={s.id}
                   style={{
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #CBD5E1',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--md-sys-color-surface-container)',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    color: 'var(--md-sys-color-on-surface)',
                     fontSize: '0.75rem'
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <strong style={{ fontSize: '0.82rem' }}>Vendedor: {s.sellerName} (@{s.sellerUsername})</strong>
-                      <div style={{ color: '#475569', fontSize: '0.7rem', marginTop: '2px' }}>
-                        Abierto: {new Date(s.openedAt).toLocaleString('es-CU')} 
-                        {s.closedAt && ` • Cerrado: ${new Date(s.closedAt).toLocaleString('es-CU')}`}
+                      <strong style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface)' }}>👤 Vendedor: {s.sellerName} (@{s.sellerUsername})</strong>
+                      <div style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.7rem', marginTop: '2px' }}>
+                        Abierto: {formatDateTime(s.openedAt)} 
+                        {s.closedAt && ` • Cerrado: ${formatDateTime(s.closedAt)}`}
                       </div>
                     </div>
 
@@ -490,25 +500,26 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       fontWeight: 900,
                       padding: '2px 8px',
                       borderRadius: '6px',
-                      backgroundColor: s.status === 'cerrado' ? '#E2E8F0' : '#DCFCE7',
-                      color: s.status === 'cerrado' ? '#334155' : '#15803D'
+                      backgroundColor: s.status === 'cerrado' ? 'var(--md-sys-color-surface-container-high)' : 'var(--md-sys-color-income-container)',
+                      color: s.status === 'cerrado' ? 'var(--md-sys-color-on-surface-variant)' : 'var(--md-sys-color-on-income-container)',
+                      border: '1px solid var(--md-sys-color-outline-variant)'
                     }}>
                       {s.status.toUpperCase()}
                     </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '8px', backgroundColor: '#FFFFFF', padding: '6px 8px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '8px', backgroundColor: 'var(--md-sys-color-surface)', padding: '8px', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)' }}>
                     <div>
-                      <span style={{ color: '#64748B', fontSize: '0.68rem' }}>Efectivo Resp.</span>
-                      <div style={{ fontWeight: 800 }}>${s.expectedCashInRegister}</div>
+                      <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.68rem', display: 'block' }}>Efectivo Resp.</span>
+                      <div style={{ fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>${s.expectedCashInRegister}</div>
                     </div>
                     <div>
-                      <span style={{ color: '#64748B', fontSize: '0.68rem' }}>Efectivo Entregado</span>
-                      <div style={{ fontWeight: 800 }}>${s.realCashInRegister || 0}</div>
+                      <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.68rem', display: 'block' }}>Efectivo Entregado</span>
+                      <div style={{ fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>${s.realCashInRegister || 0}</div>
                     </div>
                     <div>
-                      <span style={{ color: '#64748B', fontSize: '0.68rem' }}>Diferencia</span>
-                      <div style={{ fontWeight: 900, color: (s.cashDifference || 0) >= 0 ? '#16A34A' : '#DC2626' }}>
+                      <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontSize: '0.68rem', display: 'block' }}>Diferencia</span>
+                      <div style={{ fontWeight: 900, color: (s.cashDifference || 0) >= 0 ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)' }}>
                         ${s.cashDifference || 0}
                       </div>
                     </div>

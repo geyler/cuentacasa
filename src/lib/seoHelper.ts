@@ -73,3 +73,151 @@ export function getCategorySeoDescription(categoryName: string): string {
   }
   return `Productos de ${categoryName} en Samy Store Las Tunas. Compra online rápida y segura respaldada por Cubasoft ERP.`;
 }
+
+export interface CategoryVisualMeta {
+  name: string;
+  emoji: string;
+  accentColor: string;
+  bgSoft: string;
+  borderSoft: string;
+  badgeText: string;
+}
+
+const CATEGORY_VISUAL_PRESETS: Array<{
+  keywords: string[];
+  emoji: string;
+  accentColor: string;
+  bgSoft: string;
+  borderSoft: string;
+  badgeText: string;
+}> = [
+  {
+    keywords: ['alimento', 'viveres', 'víveres', 'comida', 'grano', 'arroz', 'aceite', 'harina', 'despensa', 'agro'],
+    emoji: '🌾',
+    accentColor: '#059669',
+    bgSoft: '#ECFDF5',
+    borderSoft: '#A7F3D0',
+    badgeText: 'Canasta Básica'
+  },
+  {
+    keywords: ['carnic', 'cárnic', 'pollo', 'cerdo', 'embutido', 'congelado', 'pescado'],
+    emoji: '🥩',
+    accentColor: '#DC2626',
+    bgSoft: '#FEF2F2',
+    borderSoft: '#FECACA',
+    badgeText: 'Frescos'
+  },
+  {
+    keywords: ['lacteo', 'lácteo', 'leche', 'queso', 'yogurt', 'mantequilla'],
+    emoji: '🥛',
+    accentColor: '#0284C7',
+    bgSoft: '#F0F9FF',
+    borderSoft: '#BAE6FD',
+    badgeText: 'Refrigerados'
+  },
+  {
+    keywords: ['bebida', 'refresco', 'jugo', 'malta', 'cerveza', 'agua', 'licor', 'vino'],
+    emoji: '🥤',
+    accentColor: '#EA580C',
+    bgSoft: '#FFF7ED',
+    borderSoft: '#FED7AA',
+    badgeText: 'Refrescantes'
+  },
+  {
+    keywords: ['aseo', 'limpieza', 'higiene', 'jabon', 'jabón', 'detergente', 'perfumeria', 'perfumería', 'cosmetico'],
+    emoji: '✨',
+    accentColor: '#0D9488',
+    bgSoft: '#F0FDFA',
+    borderSoft: '#99F6E4',
+    badgeText: 'Hogar & Aseo'
+  },
+  {
+    keywords: ['electro', 'ventilador', 'olla', 'cocina', ' TV', 'televisor', 'clima', 'split', 'nevera', 'refrigerador'],
+    emoji: '🔌',
+    accentColor: '#2563EB',
+    bgSoft: '#EFF6FF',
+    borderSoft: '#BFDBFE',
+    badgeText: 'Garantizados'
+  },
+  {
+    keywords: ['tecno', 'celular', 'telefono', 'teléfono', 'movil', 'móvil', 'accesorio', 'audio', 'bocina', 'computo'],
+    emoji: '📱',
+    accentColor: '#4F46E5',
+    bgSoft: '#EEF2FF',
+    borderSoft: '#C7D2FE',
+    badgeText: 'Tecnología'
+  },
+  {
+    keywords: ['ropa', 'calzado', 'zapato', 'vestido', 'camisa', 'moda', 'confeccion', 'textil'],
+    emoji: '👕',
+    accentColor: '#7C3AED',
+    bgSoft: '#F5F3FF',
+    borderSoft: '#DDD6FE',
+    badgeText: 'Moda & Estilo'
+  },
+  {
+    keywords: ['confiteria', 'confitería', 'dulce', 'galleta', 'chocolate', 'snack', 'merienda', 'panaderia', 'pan'],
+    emoji: '🍪',
+    accentColor: '#D97706',
+    bgSoft: '#FFFBEB',
+    borderSoft: '#FDE68A',
+    badgeText: 'Meriendas'
+  },
+  {
+    keywords: ['ferreteria', 'ferretería', 'herramienta', 'pintura', 'construccion', 'electricidad', 'plomeria'],
+    emoji: '🛠️',
+    accentColor: '#475569',
+    bgSoft: '#F8FAFC',
+    borderSoft: '#CBD5E1',
+    badgeText: 'Soluciones'
+  },
+  {
+    keywords: ['hogar', 'decoracion', 'mueble', 'plastico', 'plástico', 'util', 'útil'],
+    emoji: '🏠',
+    accentColor: '#0891B2',
+    bgSoft: '#ECFEFF',
+    borderSoft: '#A5F3FC',
+    badgeText: 'Todo Hogar'
+  }
+];
+
+const FALLBACK_PALETTES = [
+  { emoji: '🛍️', accentColor: '#2563EB', bgSoft: '#EFF6FF', borderSoft: '#BFDBFE', badgeText: 'Destacados' },
+  { emoji: '📦', accentColor: '#059669', bgSoft: '#ECFDF5', borderSoft: '#A7F3D0', badgeText: 'Disponibles' },
+  { emoji: '⭐', accentColor: '#D97706', bgSoft: '#FFFBEB', borderSoft: '#FDE68A', badgeText: 'Populares' },
+  { emoji: '💎', accentColor: '#7C3AED', bgSoft: '#F5F3FF', borderSoft: '#DDD6FE', badgeText: 'Selección' },
+];
+
+export function getCategoryVisualMeta(categoryName: string): CategoryVisualMeta {
+  const clean = (categoryName || 'General').trim();
+  const lower = clean.toLowerCase();
+
+  for (const preset of CATEGORY_VISUAL_PRESETS) {
+    if (preset.keywords.some(kw => lower.includes(kw))) {
+      return {
+        name: clean,
+        emoji: preset.emoji,
+        accentColor: 'var(--brand-primary, #1A73E8)',
+        bgSoft: 'var(--brand-primary-light, #EFF6FF)',
+        borderSoft: 'var(--brand-primary-border, #BFDBFE)',
+        badgeText: preset.badgeText
+      };
+    }
+  }
+
+  let hash = 0;
+  for (let i = 0; i < lower.length; i++) {
+    hash = (hash << 5) - hash + lower.charCodeAt(i);
+    hash |= 0;
+  }
+  const palette = FALLBACK_PALETTES[Math.abs(hash) % FALLBACK_PALETTES.length];
+  return {
+    name: clean,
+    emoji: palette.emoji,
+    accentColor: 'var(--brand-primary, #1A73E8)',
+    bgSoft: 'var(--brand-primary-light, #EFF6FF)',
+    borderSoft: 'var(--brand-primary-border, #BFDBFE)',
+    badgeText: palette.badgeText
+  };
+}
+

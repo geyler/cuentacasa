@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { formatCurrency } from '@/lib/invoice';
-import { Receipt, X, Package, Calendar, DollarSign, Tag, CheckCircle2 } from 'lucide-react';
+import { Receipt, X, Package, Calendar, DollarSign, Tag, CheckCircle2, ChevronRight, User, ShoppingBag } from 'lucide-react';
 import { getCurrencySettings } from '@/lib/storage';
 import { ReceiptTicketView } from '@/components/common/ReceiptTicketView';
+import { formatRecordDateTime } from '@/lib/dateUtils';
 
 interface StoreSalesTabProps {
   salesRecords: any[];
@@ -22,214 +23,349 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <h3 style={{ fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Receipt size={20} color="var(--md-sys-color-primary)" />
-        <span>Historial de Ventas y Recibos</span>
-      </h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+          <Receipt size={20} color="var(--md-sys-color-primary)" />
+          <span>Historial de Ventas y Recibos</span>
+        </h3>
+        <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+          {filteredSales.length} {filteredSales.length === 1 ? 'venta registrada' : 'ventas registradas'}
+        </span>
+      </div>
 
       {filteredSales.length === 0 ? (
-        <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', padding: '20px' }}>
-          Aún no hay ventas registradas. Escanea productos para realizar tu primera venta.
-        </p>
+        <div className="md-card" style={{ padding: '36px 16px', textAlign: 'center' }}>
+          <ShoppingBag size={36} style={{ color: 'var(--md-sys-color-outline)', margin: '0 auto 8px auto' }} />
+          <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface)', margin: '0 0 4px 0' }}>
+            Aún no hay ventas registradas
+          </p>
+          <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
+            Usa el punto de venta (Escanear / POS) para realizar tu primera venta.
+          </p>
+        </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filteredSales.map(sale => {
-            const formattedNotes = sale.items
-              ? `[TICKET_DE_VENTA] Comprobante de Venta #${sale.id.slice(-6)}\n` +
-                sale.items.map((i: any) => `• ${i.quantity}x ${i.name} ($${i.unitPrice} c/u = $${i.subtotal || i.quantity * i.unitPrice})`).join('\n') +
-                `\n------------\nTotal: $${sale.totalAmount} | Moneda: ${sale.currency || 'CUP'} | Vendedor: ${sale.seller || 'General'}`
-              : sale.notes;
+            const saleItems = sale.items || [];
+            const itemsTitle = saleItems.length > 0 
+              ? saleItems.map((i: any) => `${i.name} (x${i.quantity})`).join(', ')
+              : `Venta POS #${sale.id.slice(-6)}`;
+            
+            const totalUnits = saleItems.reduce((acc: number, i: any) => acc + (Number(i.quantity) || 1), 0);
+            const saleCurrency = sale.currency || 'CUP';
 
             return (
-              <div key={sale.id} onClick={() => setSelectedSale(sale)} style={{ cursor: 'pointer' }}>
-                <ReceiptTicketView
-                  note={formattedNotes}
-                  ticketId={sale.id.slice(-6)}
-                  totalCUP={sale.totalAmountCUP || (sale.currency === 'USD' ? undefined : sale.totalAmount)}
-                  totalUSD={sale.totalAmountUSD || (sale.currency === 'USD' ? sale.totalAmount : undefined)}
-                  currency={sale.currency}
-                  seller={sale.seller}
-                  timestamp={sale.createdAt || Date.now()}
-                />
+              <div
+                key={sale.id}
+                className="md-card"
+                onClick={() => setSelectedSale(sale)}
+                style={{
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  cursor: 'pointer',
+                  borderRadius: '16px',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                }}
+              >
+                {/* Left Side: Icon & Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  
+                  {/* Pink / Brand Ticket Icon */}
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--brand-primary-light, #FCE7F3)',
+                    color: 'var(--brand-primary, #EC4899)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Receipt size={20} />
+                  </div>
+
+                  {/* Concept & Metadata */}
+                  <div style={{ overflow: 'hidden', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <h4 style={{
+                        fontSize: '0.88rem',
+                        fontWeight: 800,
+                        color: 'var(--md-sys-color-on-surface)',
+                        margin: 0,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {itemsTitle}
+                      </h4>
+
+                      {/* Ticket Badge */}
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        padding: '1px 6px',
+                        borderRadius: '6px',
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        backgroundColor: 'var(--brand-primary-light, #FCE7F3)',
+                        color: 'var(--brand-primary, #EC4899)',
+                        border: '1px solid var(--brand-primary-border, #FBCFE8)',
+                        flexShrink: 0
+                      }}>
+                        🧾 Ticket #{sale.id.slice(-6)}
+                      </span>
+
+                      {/* Currency Badge */}
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '1px 6px',
+                        borderRadius: '6px',
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        backgroundColor: saleCurrency === 'USD' ? '#ECFEFF' : '#E6F4EA',
+                        color: saleCurrency === 'USD' ? '#0F766E' : '#137333',
+                        border: saleCurrency === 'USD' ? '1px solid #99F6E4' : '1px solid #A8DADC',
+                        flexShrink: 0
+                      }}>
+                        {saleCurrency}
+                      </span>
+                    </div>
+
+                    <div style={{
+                      fontSize: '0.74rem',
+                      color: 'var(--md-sys-color-on-surface-variant)',
+                      fontWeight: 600,
+                      marginTop: '3px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <span>👤 {sale.sellerName || (sale.sellerUsername ? `@${sale.sellerUsername}` : (sale as any).seller || 'Administrador')}</span>
+                      <span>•</span>
+                      <span>📅 {formatRecordDateTime(sale.timestamp || sale.createdAt, sale.date) || 'Reciente'}</span>
+                      <span>•</span>
+                      <span>📦 {totalUnits} {totalUnits === 1 ? 'unidad' : 'unidades'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Side: Amount and Arrow */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <span style={{
+                    fontSize: '1.05rem',
+                    fontWeight: 900,
+                    color: 'var(--md-sys-color-income)',
+                    fontVariantNumeric: 'tabular-nums'
+                  }}>
+                    +{formatCurrency(sale.totalAmount || 0, saleCurrency, true)}
+                  </span>
+                  <ChevronRight size={18} color="var(--md-sys-color-on-surface-variant)" />
+                </div>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Sale Detail Modal */}
-      {selectedSale && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'var(--md-sys-color-surface)',
-            zIndex: 2200,
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100dvh',
-            width: '100%',
-            maxWidth: '768px',
-            margin: '0 auto',
-            overflow: 'hidden'
-          }}
-          className="no-print"
-          onClick={() => setSelectedSale(null)}
-        >
+      {/* Sale Detail Modal (Standard Tier 1 Compact 520px with Receipt Breakdown) */}
+      {selectedSale && (() => {
+        const saleCurrency = selectedSale.currency || 'CUP';
+        const effectiveSeller = selectedSale.sellerName || (selectedSale.sellerUsername ? `@${selectedSale.sellerUsername}` : (selectedSale as any).seller || 'Administrador');
+        const formattedNotes = selectedSale.items
+          ? `[TICKET_DE_VENTA] Comprobante de Venta #${selectedSale.id.slice(-6)}\n` +
+            selectedSale.items.map((i: any) => `• ${i.quantity}x ${i.name} ($${i.unitPrice} c/u = $${i.subtotal || i.quantity * i.unitPrice})`).join('\n') +
+            `\n------------\nTotal: $${selectedSale.totalAmount} | Moneda: ${saleCurrency} | Vendedor: ${effectiveSeller}`
+          : selectedSale.notes;
+
+        return (
           <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              backgroundColor: 'var(--md-sys-color-surface-container)',
-              color: 'var(--md-sys-color-on-surface)',
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden'
-            }}
+            className="modal-backdrop-responsive no-print"
+            style={{ zIndex: 2500 }}
+            onClick={() => setSelectedSale(null)}
           >
-            {/* Header Bar */}
-            <div style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: 'var(--md-sys-color-surface-container)'
-            }}>
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                  <Receipt size={22} color="var(--md-sys-color-primary)" />
-                  <span>Detalle de Venta #{selectedSale.id.slice(-6)}</span>
-                </h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px', margin: '2px 0 0 0' }}>
-                  <Calendar size={13} /> {selectedSale.date}
-                </p>
+            <div
+              className="bottom-sheet-modal"
+              onClick={e => e.stopPropagation()}
+              style={{
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                color: 'var(--md-sys-color-on-surface)',
+                width: '100%',
+                maxWidth: '520px',
+                maxHeight: '92dvh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflowY: 'auto',
+                padding: '20px 24px 28px 24px',
+                gap: '16px'
+              }}
+            >
+              {/* Grab Handle (Only visible on Mobile) */}
+              <div className="mobile-only" style={{ justifyContent: 'center', marginBottom: '2px' }}>
+                <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
               </div>
-              <button
-                onClick={() => setSelectedSale(null)}
-                style={{
-                  background: 'var(--md-sys-color-surface-container-high)',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  borderRadius: '50%',
-                  color: 'var(--md-sys-color-on-surface)',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
 
-            {/* Scroll Body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Header Bar */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: '8px',
+                borderBottom: '1px solid var(--md-sys-color-outline-variant)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--brand-primary-light, #FCE7F3)',
+                    color: 'var(--brand-primary, #EC4899)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Receipt size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
+                      Detalles de la Venta
+                    </h3>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                      COMPROBANTE DE VENTA #{selectedSale.id.slice(-6)}
+                    </span>
+                  </div>
+                </div>
 
-            {/* Total Highlight */}
-            <div style={{
-              padding: '14px 16px',
-              borderRadius: '16px',
-              backgroundColor: 'var(--md-sys-color-income-container)',
-              border: '1px solid var(--md-sys-color-income)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-income)', textTransform: 'uppercase' }}>
-                  Total Cobrado en Caja
+                <button
+                  type="button"
+                  onClick={() => setSelectedSale(null)}
+                  style={{
+                    background: 'var(--md-sys-color-surface-container-high)',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    borderRadius: '50%',
+                    color: 'var(--md-sys-color-on-surface)',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Cerrar detalle"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Total Banner Card */}
+              <div style={{
+                backgroundColor: 'var(--md-sys-color-income-container)',
+                borderRadius: '16px',
+                padding: '16px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+              }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-income-container)', fontWeight: 800, letterSpacing: '0.05em' }}>
+                  TOTAL COBRADO EN CAJA
                 </span>
-                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                  {formatCurrency(selectedSale.totalAmount, currency, true)}
+                <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--md-sys-color-income)', fontVariantNumeric: 'tabular-nums' }}>
+                  +{formatCurrency(selectedSale.totalAmount || 0, saleCurrency, true)}
+                </span>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '2px' }}>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    color: 'var(--md-sys-color-income)'
+                  }}>
+                    VENTA POS
+                  </span>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    color: 'var(--md-sys-color-on-surface-variant)'
+                  }}>
+                    {saleCurrency}
+                  </span>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
-                  Ganancia Neta Tienda
-                </span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
-                  +${selectedSale.netProfit}
-                </span>
+
+              {/* Info Rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--md-sys-color-surface)'
+                }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                    Vendedor a Cargo:
+                  </span>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    👤 {selectedSale.seller || 'Administrador'}
+                  </span>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--md-sys-color-surface)'
+                }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                    Fecha y Hora:
+                  </span>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    📅 {formatRecordDateTime(selectedSale.timestamp || selectedSale.createdAt, selectedSale.date) || 'Reciente'}
+                  </span>
+                </div>
               </div>
+
+              {/* Ticket Breakdown Card (Exact format requested) */}
+              <ReceiptTicketView
+                note={formattedNotes}
+                ticketId={selectedSale.id.slice(-6)}
+                totalCUP={selectedSale.totalAmountCUP || (saleCurrency === 'USD' ? undefined : selectedSale.totalAmount)}
+                totalUSD={selectedSale.totalAmountUSD || (saleCurrency === 'USD' ? selectedSale.totalAmount : undefined)}
+                currency={saleCurrency}
+                seller={selectedSale.sellerName || (selectedSale.sellerUsername ? `@${selectedSale.sellerUsername}` : (selectedSale.seller || 'Administrador'))}
+                timestamp={selectedSale.timestamp || selectedSale.createdAt || Date.now()}
+              />
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setSelectedSale(null)}
+                className="md-btn md-btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  borderRadius: '14px',
+                  marginTop: '4px'
+                }}
+              >
+                Cerrar
+              </button>
             </div>
-
-            {/* Items List */}
-            <div>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '8px', color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Productos Vendidos ({selectedSale.items.length})
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {selectedSale.items.map((item: any, idx: number) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: '12px',
-                      backgroundColor: 'var(--md-sys-color-surface)',
-                      border: '1px solid var(--md-sys-color-outline-variant)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                        {item.name}
-                      </span>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
-                        Cant: {item.quantity} × ${item.unitPrice} | SKU: #{item.barcode || 'N/A'}
-                      </div>
-                      {item.supplierName && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-primary)', fontWeight: 700 }}>
-                          🤝 Consignación ({item.supplierName})
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                      ${item.subtotal || item.quantity * item.unitPrice}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Financial Distribution */}
-            <div style={{
-              padding: '12px 14px',
-              borderRadius: '14px',
-              backgroundColor: 'var(--md-sys-color-surface-container-high)',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-              fontSize: '0.8rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>Costo de Reposición Retenido:</span>
-                <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>${selectedSale.totalCost}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>Ganancia Neta Retenida en Tienda:</span>
-                <strong style={{ color: 'var(--md-sys-color-income)' }}>+${selectedSale.netProfit}</strong>
-              </div>
-            </div>
-
-            {/* Close button */}
-            <button
-              onClick={() => setSelectedSale(null)}
-              className="md-btn md-btn-primary"
-              style={{ padding: '12px', fontSize: '0.9rem', width: '100%', borderRadius: '14px' }}
-            >
-              Cerrar
-            </button>
-
-            </div>
-
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

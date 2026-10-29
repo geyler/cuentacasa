@@ -73,37 +73,37 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
 
   return (
     <div style={{
-      minHeight: '80vh',
+      minHeight: '78vh',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '24px 16px',
+      padding: '20px 12px',
       textAlign: 'center'
     }}>
-      <div style={{ maxWidth: '420px', width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div style={{ maxWidth: '768px', width: '100%', display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
         {/* PWA Install Call-to-Action Banner */}
         {!isInstalled && (
           <div style={{
-            backgroundColor: '#EFF6FF',
-            border: '1px solid #BFDBFE',
+            backgroundColor: 'var(--md-sys-color-primary-container)',
+            border: '1px solid var(--brand-primary-border, var(--md-sys-color-outline))',
             borderRadius: '18px',
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            boxShadow: '0 4px 14px rgba(59, 130, 246, 0.12)',
+            boxShadow: 'var(--md-shadow-elevation-1)',
             textAlign: 'left'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '36px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
               <div>
-                <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: '#1E40AF', margin: 0 }}>
+                <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-primary-container)', margin: 0 }}>
                   Instalar App Samy Store
                 </h4>
-                <p style={{ fontSize: '0.74rem', color: '#3B82F6', margin: '2px 0 0 0', fontWeight: 600 }}>
+                <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-primary)', margin: '2px 0 0 0', fontWeight: 600 }}>
                   Acceso directo 100% offline
                 </p>
               </div>
@@ -132,7 +132,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             src="/images/logo-loading.png"
             alt="Samy Store Logo"
             style={{
-              height: '110px',
+              height: '104px',
               width: 'auto',
               objectFit: 'contain',
               margin: '0 auto 4px auto',
@@ -147,10 +147,14 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
           </p>
         </div>
 
-        {/* 3 Main Action Buttons (Gasto, Ingreso, and Vender in White) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Main Action Buttons (Responsive 1-column on mobile, 2x2 grid on PC) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '12px'
+        }}>
 
-          {/* Big Gasto Button (Highlighted Red) */}
+          {/* Big Gasto Button (Semantic Expense Red) */}
           <button
             onClick={onOpenGasto}
             style={{
@@ -158,24 +162,24 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               padding: '16px',
               borderRadius: '20px',
               border: 'none',
-              backgroundColor: '#DC2626',
+              backgroundColor: 'var(--md-sys-color-expense)',
               color: '#FFFFFF',
-              fontSize: '1.15rem',
+              fontSize: '1.1rem',
               fontWeight: 900,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              boxShadow: '0 4px 16px rgba(220, 38, 38, 0.35)',
+              boxShadow: '0 4px 16px rgba(220, 38, 38, 0.28)',
               letterSpacing: '0.02em'
             }}
           >
-            <ArrowDownRight size={26} />
+            <ArrowDownRight size={25} />
             <span>REGISTRAR GASTO</span>
           </button>
 
-          {/* Big Ingreso Button (Highlighted Green) */}
+          {/* Big Ingreso Button (Semantic Income Green) */}
           <button
             onClick={onOpenIngreso}
             style={{
@@ -183,24 +187,24 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               padding: '16px',
               borderRadius: '20px',
               border: 'none',
-              backgroundColor: '#059669',
+              backgroundColor: 'var(--md-sys-color-income)',
               color: '#FFFFFF',
-              fontSize: '1.15rem',
+              fontSize: '1.1rem',
               fontWeight: 900,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              boxShadow: '0 4px 16px rgba(5, 150, 105, 0.35)',
+              boxShadow: '0 4px 16px rgba(5, 150, 105, 0.28)',
               letterSpacing: '0.02em'
             }}
           >
-            <ArrowUpRight size={26} />
+            <ArrowUpRight size={25} />
             <span>REGISTRAR INGRESO</span>
           </button>
 
-          {/* Vender / POS Button (Same size, WHITE background) */}
+          {/* Vender / POS Button (Theme Surface + Primary Accent) */}
           <button
             onClick={onOpenPOS}
             style={{
@@ -208,16 +212,16 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               padding: '16px',
               borderRadius: '20px',
               border: '2px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
-              fontSize: '1.1rem',
+              fontSize: '1.06rem',
               fontWeight: 900,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
+              boxShadow: 'var(--md-shadow-elevation-1)',
               letterSpacing: '0.01em'
             }}
           >
@@ -225,7 +229,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             <span>ESCANEAR Y VENDER</span>
           </button>
 
-          {/* Turnos & IPV Button (Identical style to Escanear y Vender) */}
+          {/* Turnos & IPV Button (Theme Surface + Secondary Accent) */}
           <button
             onClick={() => onOpenShiftModal && onOpenShiftModal()}
             style={{
@@ -233,20 +237,20 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               padding: '16px',
               borderRadius: '20px',
               border: '2px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
               color: 'var(--md-sys-color-on-surface)',
-              fontSize: '1.1rem',
+              fontSize: '1.06rem',
               fontWeight: 900,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
+              boxShadow: 'var(--md-shadow-elevation-1)',
               letterSpacing: '0.01em'
             }}
           >
-            <Clock size={24} color="#0284C7" />
+            <Clock size={24} color="var(--md-sys-color-secondary, var(--brand-secondary))" />
             <span>TURNOS E IPV</span>
           </button>
 

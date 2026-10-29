@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Receipt, Coins, DollarSign, ShoppingBag, Handshake, CheckCircle2 } from 'lucide-react';
+import { formatDateTime } from '@/lib/dateUtils';
 
 interface ReceiptTicketViewProps {
   note?: string;
@@ -57,8 +58,8 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
         const monedaMatch = line.match(/Moneda:\s*([A-Z]+)/i);
         if (monedaMatch) extractedMoneda = monedaMatch[1];
 
-        const vendedorMatch = line.match(/Vendedor:\s*([^\s\|]+)/i);
-        if (vendedorMatch) extractedVendedor = vendedorMatch[1];
+        const vendedorMatch = line.match(/Vendedor:\s*([^\|\n\r]+)/i);
+        if (vendedorMatch) extractedVendedor = vendedorMatch[1].trim();
 
         const proveedorMatch = line.match(/Proveedor:\s*([^\|]+)/i);
         if (proveedorMatch) extractedProveedor = proveedorMatch[1].trim();
@@ -130,7 +131,7 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
           {titleText}
         </h4>
         <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700 }}>
-          {subtitleText} {timestamp ? `• ${new Date(timestamp).toLocaleDateString('es-ES')}` : ''}
+          {subtitleText} {timestamp ? `• ${formatDateTime(timestamp)}` : ''}
         </span>
       </div>
 
@@ -167,14 +168,15 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
         <div>
           <span>{isPayout ? 'Total Liquidado: ' : isPurchase ? 'Inversión Total: ' : 'Total: '}</span>
           <strong style={{ color: isPurchase ? '#2563EB' : '#059669', fontSize: '0.92rem' }}>
-            {propTotalCUP ? `$${propTotalCUP.toLocaleString('es-ES')} CUP` : ''}
-            {propTotalUSD ? ` ${propTotalCUP ? '|' : ''} US$${propTotalUSD.toLocaleString('es-ES')} USD` : ''}
-            {!propTotalCUP && !propTotalUSD && (extractedTotal ? `$${extractedTotal}` : '')}
+            {propTotalCUP !== undefined ? `$${new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(propTotalCUP)} CUP` : ''}
+            {propTotalUSD !== undefined ? ` ${propTotalCUP !== undefined ? '|' : ''} US$${new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(propTotalUSD)} USD` : ''}
+            {propTotalCUP === undefined && propTotalUSD === undefined && (extractedTotal ? `$${extractedTotal}` : '')}
           </strong>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', color: '#64748B' }}>
-          {extractedMoneda && (
+          {/* Solo mostrar badge de moneda si el total NO especifica la moneda para evitar texto suelto */}
+          {!propTotalCUP && !propTotalUSD && extractedMoneda && !extractedTotal.toLowerCase().includes(extractedMoneda.toLowerCase()) && (
             <span style={{ backgroundColor: '#E2E8F0', padding: '1px 6px', borderRadius: '6px', fontSize: '0.7rem' }}>
               {extractedMoneda}
             </span>

@@ -57,12 +57,12 @@ export const StatCards: React.FC<StatCardsProps> = ({
     valCUP: number, 
     valUSD: number, 
     colorCUP: string = 'var(--md-sys-color-income)', 
-    colorUSD: string = '#0F766E',
+    colorUSD: string = 'var(--brand-secondary-dark, #115E59)',
     prefix: string = ''
   ) => {
     if (currencyMode === 'CUP') {
       return (
-        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: colorCUP, letterSpacing: '-0.02em', margin: '6px 0 2px 0', wordBreak: 'break-word' }}>
+        <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, color: colorCUP, letterSpacing: '-0.02em', margin: '6px 0 2px 0', wordBreak: 'break-word', fontVariantNumeric: 'tabular-nums' }}>
           {prefix}{formatCurrency(valCUP, 'CUP', showBalance)}
         </div>
       );
@@ -70,7 +70,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
 
     if (currencyMode === 'USD') {
       return (
-        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: colorUSD, letterSpacing: '-0.02em', margin: '6px 0 2px 0', wordBreak: 'break-word' }}>
+        <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, color: colorUSD, letterSpacing: '-0.02em', margin: '6px 0 2px 0', wordBreak: 'break-word', fontVariantNumeric: 'tabular-nums' }}>
           {prefix}{formatCurrency(valUSD, 'USD', showBalance)}
         </div>
       );
@@ -95,7 +95,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
           gap: '6px'
         }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colorCUP, textTransform: 'uppercase', flexShrink: 0 }}>CUP</span>
-          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: colorCUP, whiteSpace: 'nowrap', lineHeight: 1 }}>
+          <span className="tabular-nums" style={{ fontSize: '1.05rem', fontWeight: 900, color: colorCUP, whiteSpace: 'nowrap', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
             {prefix}{formatCurrency(valCUP, 'CUP', showBalance)}
           </span>
         </div>
@@ -103,15 +103,15 @@ export const StatCards: React.FC<StatCardsProps> = ({
         <div style={{
           padding: '5px 8px',
           borderRadius: '8px',
-          backgroundColor: '#ECFEFF',
-          border: '1px solid #99F6E4',
+          backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
+          border: '1px solid var(--brand-secondary-border, #99F6E4)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: '6px'
         }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colorUSD, textTransform: 'uppercase', flexShrink: 0 }}>USD</span>
-          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: colorUSD, whiteSpace: 'nowrap', lineHeight: 1 }}>
+          <span className="tabular-nums" style={{ fontSize: '1.05rem', fontWeight: 900, color: colorUSD, whiteSpace: 'nowrap', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
             {prefix}{formatCurrency(valUSD, 'USD', showBalance)}
           </span>
         </div>
@@ -153,7 +153,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
               <TrendingUp size={16} color="var(--md-sys-color-income)" />
             </div>
           </div>
-          {renderValueBlock(summary.totalIncome, summary.totalIncomeUSD || 0, 'var(--md-sys-color-income)', '#0F766E', '+ ')}
+          {renderValueBlock(summary.totalIncome, summary.totalIncomeUSD || 0, 'var(--md-sys-color-income)', 'var(--brand-secondary-dark, #115E59)', '+ ')}
           <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
             Pagos, ventas y salarios
           </div>
@@ -184,24 +184,24 @@ export const StatCards: React.FC<StatCardsProps> = ({
               <TrendingDown size={16} color="var(--md-sys-color-expense)" />
             </div>
           </div>
-          {renderValueBlock(summary.totalExpense, summary.totalExpenseUSD || 0, 'var(--md-sys-color-expense)', '#991B1B', '- ')}
+          {renderValueBlock(summary.totalExpense, summary.totalExpenseUSD || 0, 'var(--md-sys-color-expense)', 'var(--md-sys-color-on-expense-container)', '- ')}
           <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
             Gastos de hogar y compras
           </div>
         </div>
       </div>
 
-      {/* Row 2: Saldo Neto Casa & Fondo Tienda Side-by-Side */}
+      {/* Row 2: Saldo Neto Casa (Primary) & Fondo Tienda (Secondary) Side-by-Side */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: '10px'
       }}>
-        {/* Balance Card - Fondo de la Casa */}
+        {/* Balance Card - Fondo de la Casa (Primary Palette) */}
         <div className="md-card" style={{
           backgroundColor: 'var(--md-sys-color-primary-container)',
           color: 'var(--md-sys-color-on-primary-container)',
-          border: '1px solid var(--md-sys-color-outline)',
+          border: '1px solid var(--brand-primary-border, var(--md-sys-color-outline))',
           padding: '14px 12px',
           display: 'flex',
           flexDirection: 'column',
@@ -213,7 +213,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
               width: '28px',
               height: '28px',
               borderRadius: '50%',
-              backgroundColor: 'rgba(26, 115, 232, 0.12)',
+              backgroundColor: 'color-mix(in srgb, var(--brand-primary) 14%, transparent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -222,7 +222,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
               <Wallet size={16} color="var(--md-sys-color-primary)" />
             </div>
           </div>
-          {renderValueBlock(summary.netBalance, summary.netBalanceUSD || 0, 'var(--md-sys-color-on-primary-container)', '#0F766E')}
+          {renderValueBlock(summary.netBalance, summary.netBalanceUSD || 0, 'var(--md-sys-color-on-primary-container)', 'var(--brand-secondary-dark, #115E59)')}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-primary-container)', fontWeight: 700 }}>
               {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Saldo USD' : 'Saldo CUP')}
@@ -230,34 +230,34 @@ export const StatCards: React.FC<StatCardsProps> = ({
           </div>
         </div>
 
-        {/* Store Fund Card (Fondo del Negocio) */}
+        {/* Store Fund Card (Fondo del Negocio - Secondary Palette) */}
         <div className="md-card" style={{
-          backgroundColor: '#ECFDF5',
-          color: '#064E3B',
-          border: '1px solid #A7F3D0',
+          backgroundColor: 'var(--md-sys-color-secondary-container, var(--brand-secondary-light))',
+          color: 'var(--md-sys-color-on-secondary-container, var(--brand-on-secondary-container))',
+          border: '1px solid var(--brand-secondary-border, #99F6E4)',
           padding: '14px 12px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo del Negocio</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-secondary-container, var(--brand-on-secondary-container))' }}>🏬 Fondo del Negocio</span>
             <div style={{
               width: '28px',
               height: '28px',
               borderRadius: '50%',
-              backgroundColor: 'rgba(5, 150, 105, 0.18)',
+              backgroundColor: 'color-mix(in srgb, var(--brand-secondary) 16%, transparent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <Store size={16} color="#059669" />
+              <Store size={16} color="var(--md-sys-color-secondary, var(--brand-secondary))" />
             </div>
           </div>
-          {renderValueBlock(storeFund, storeFundUSD, '#047857', '#0F766E')}
+          {renderValueBlock(storeFund, storeFundUSD, 'var(--md-sys-color-on-secondary-container, var(--brand-secondary-dark))', 'var(--md-sys-color-on-secondary-container, var(--brand-secondary-dark))')}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: '#065F46', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-secondary-container, var(--brand-on-secondary-container))', fontWeight: 700 }}>
               {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Fondo USD' : 'Fondo CUP')}
             </span>
             {onOpenTransfer && (
@@ -265,9 +265,9 @@ export const StatCards: React.FC<StatCardsProps> = ({
                 type="button"
                 onClick={onOpenTransfer}
                 style={{
-                  backgroundColor: '#D1FAE5',
-                  border: '1px solid #6EE7B7',
-                  color: '#065F46',
+                  backgroundColor: 'var(--brand-secondary-light-hover, #CCFBF1)',
+                  border: '1px solid var(--brand-secondary-border, #99F6E4)',
+                  color: 'var(--brand-on-secondary-container, #0F766E)',
                   padding: '2px 8px',
                   borderRadius: '9999px',
                   fontSize: '0.68rem',
@@ -313,7 +313,7 @@ export const StatCards: React.FC<StatCardsProps> = ({
             <div style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
               🐷 Fondo de la Casa (Ahorro)
             </div>
-            {renderValueBlock(savingsFund, savingsFundUSD, 'var(--md-sys-color-on-surface)', '#0F766E')}
+            {renderValueBlock(savingsFund, savingsFundUSD, 'var(--md-sys-color-on-surface)', 'var(--brand-secondary-dark, #115E59)')}
           </div>
         </div>
 
@@ -336,10 +336,69 @@ export const StatCards: React.FC<StatCardsProps> = ({
               flexShrink: 0
             }}
           >
-            <ArrowRightLeft size={12} /> Transferir
+            <ArrowRightLeft size={12} /> Mover Fondos
           </button>
         )}
       </div>
+
+      {/* Prominent Quick Transfer Action Banner */}
+      {onOpenTransfer && (
+        <div style={{
+          padding: '14px 18px',
+          borderRadius: '16px',
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          border: '1.5px solid var(--md-sys-color-outline-variant)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              color: 'var(--md-sys-color-on-primary-container)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <ArrowRightLeft size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                Transferir Fondos entre Cuentas
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                Mover saldos entre Casa, Tienda / Negocio y Ahorro en CUP o USD
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenTransfer}
+            className="md-btn md-btn-primary"
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 12px color-mix(in srgb, var(--brand-primary) 30%, transparent)'
+            }}
+          >
+            <ArrowRightLeft size={16} />
+            <span>Transferir Dinero</span>
+          </button>
+        </div>
+      )}
 
     </div>
   );

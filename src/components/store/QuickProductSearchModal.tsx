@@ -117,39 +117,28 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
 
   return (
     <div
-      className="no-print"
+      className="modal-backdrop-responsive no-print"
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2500,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
+        zIndex: 2500
       }}
       onClick={onClose}
     >
       <div
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
           width: '100%',
+          maxWidth: '640px',
           maxHeight: '90dvh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
+          overflow: 'hidden'
         }}
       >
-        {/* Grab Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+        {/* Grab Handle (Only visible on Mobile) */}
+        <div className="mobile-only" style={{ justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
           <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
         </div>
 
@@ -194,7 +183,7 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
         {/* Auto-Focused Search Bar */}
         <div style={{ padding: '0 20px 14px 20px', borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
           <div style={{ position: 'relative', width: '100%' }}>
-            <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--md-sys-color-primary)' }} />
+            <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--md-sys-color-primary)', zIndex: 105, pointerEvents: 'none' }} />
             <input
               ref={searchInputRef}
               type="text"

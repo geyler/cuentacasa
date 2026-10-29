@@ -85,6 +85,38 @@ export interface StoreSaleItem {
   supplierName?: string;
 }
 
+export type PaymentMethodType = 'efectivo' | 'transferencia' | 'usd' | 'fiado' | 'mixto';
+
+export interface StoreSalePaymentBreakdown {
+  cashCUP: number;          // Pagado en Efectivo CUP
+  transferCUP: number;      // Pagado por Transferencia CUP (EnZona / Transfermóvil)
+  cashUSD: number;          // Pagado en Efectivo USD
+  debtCUP: number;          // Fiado / Adeudado por el cliente en CUP
+  debtUSD: number;          // Fiado / Adeudado por el cliente en USD
+  debtTypeCUP?: 'efectivo' | 'transferencia'; // Si el fiado CUP se abonará en efectivo o por transferencia
+  customerName?: string;     // Nombre del deudor (requerido si hay fiado)
+  customerPhone?: string;    // Teléfono opcional del deudor
+  transferRef?: string;      // Número o referencia de la transferencia
+  notes?: string;            // Notas adicionales del cobro
+}
+
+export interface CustomerDebtRecord {
+  id: string;
+  saleId: string;
+  customerName: string;
+  customerPhone?: string;
+  debtTypeCUP: 'efectivo' | 'transferencia';
+  amountCUP: number;         // Monto fiado en CUP
+  amountUSD: number;         // Monto fiado en USD
+  paidCUP: number;           // Monto abonado en CUP
+  paidUSD: number;           // Monto abonado en USD
+  status: 'pendiente' | 'parcial' | 'pagado';
+  date: string;
+  timestamp: number;
+  updatedAt: number;
+  notes?: string;
+}
+
 export interface StoreSaleRecord {
   id: string;
   date: string;
@@ -96,13 +128,15 @@ export interface StoreSaleRecord {
   totalCost: number;       // Total costo de adquisición
   netProfit: number;       // Ganancia neta (que va a CuentaCasa)
   currency?: CurrencyType;
+  paymentMethod?: PaymentMethodType;
+  paymentBreakdown?: StoreSalePaymentBreakdown;
   sellerId?: string;
   sellerUsername?: string;
   sellerName?: string;
 }
 
 export type ReportPeriod = 'hoy' | '7dias' | '15dias' | '28dias' | '90dias' | 'personalizado';
-export type AppTab = 'quick' | 'dashboard' | 'transactions' | 'reports' | 'store';
+export type AppTab = 'quick' | 'dashboard' | 'transactions' | 'reports' | 'store' | 'shifts' | 'valuation' | 'settings' | 'profile';
 
 export interface ReportFilter {
   period: ReportPeriod;
@@ -166,6 +200,7 @@ export interface StoreShiftRecord {
   initialCashFund: number;    // Dinero para vueltos entregado al inicio (CUP)
   totalCashSales: number;     // Ventas registradas en efectivo (CUP)
   totalDigitalSales: number;  // Ventas por transferencia/Zelle/QvaPay (CUP)
+  totalDebtSalesCUP?: number; // Ventas fiadas / a deber en CUP
   expectedCashInRegister: number; // Fondo Inicial + Ventas Efectivo (CUP)
   realCashInRegister?: number;   // Dinero físico entregado por el dependiente (CUP)
   cashDifference?: number;       // Faltante o Sobrante (CUP)
@@ -174,6 +209,7 @@ export interface StoreShiftRecord {
   initialCashFundUSD?: number;    // Dinero para vueltos entregado al inicio (USD)
   totalCashSalesUSD?: number;     // Ventas registradas en efectivo (USD)
   totalDigitalSalesUSD?: number;  // Ventas por transferencia (USD)
+  totalDebtSalesUSD?: number;     // Ventas fiadas / a deber en USD
   expectedCashInRegisterUSD?: number; // Fondo Inicial + Ventas Efectivo (USD)
   realCashInRegisterUSD?: number;   // Dinero físico entregado por el dependiente (USD)
   cashDifferenceUSD?: number;       // Faltante o Sobrante (USD)
@@ -198,10 +234,12 @@ export interface RawDatabase {
   deletedSupplierIds?: string[];
   deletedUserIds?: string[];
   deletedShiftIds?: string[];
+  deletedDebtIds?: string[];
   pendingReset?: boolean;
   pendingResetAt?: number;
   storeProducts?: StoreProduct[];
   storeSales?: StoreSaleRecord[];
+  customerDebts?: CustomerDebtRecord[];
   supplierAccounts?: SupplierAccount[];
   users?: AppUser[];
   shifts?: StoreShiftRecord[];
@@ -224,8 +262,33 @@ export interface RawDatabase {
     autoSyncElToque?: boolean;  // Sincronizar automáticamente la tasa con elTOQUE si hay conexión
     lastElToqueSync?: number;   // Timestamp de la última actualización exitosa con elTOQUE
     usdIndexedPricing?: boolean; // Indexar inventario a USD y recalcular CUP dinámicamente según la tasa
+    primaryColor?: string;      // Color principal del sistema y tienda (Default: '#1A73E8')
+    secondaryColor?: string;    // Color secundario del sistema y tienda (Default: armónico o '#0D9488')
+    storeLogoMode?: StoreLogoDisplayMode; // Modo de presentación del logo: 'both' | 'text_only' | 'logo_only' | 'wide_logo'
+    storeLogoSquare?: string;   // Logo cuadrado (URL o data URI base64)
+    storeLogoWide?: string;     // Logo rectangular apaisado (URL o data URI base64)
+    storeName?: string;         // Nombre corto de la tienda / sistema (default 'Samy Store')
+    storeSeoName?: string;      // Nombre largo SEO de la tienda
+    storeSeoDescription?: string; // Descripción meta para Google / SEO
+    heroBadgeText?: string;     // Texto pre-titular del Hero ("Tienda Online • Las Tunas, Cuba")
+    heroTitle?: string;         // Título principal del Hero
+    heroSubtitle?: string;      // Descripción o subtítulo del Hero
     updatedAt?: number;         // Timestamp del último cambio de configuración global
   };
+}
+
+export type StoreLogoDisplayMode = 'both' | 'text_only' | 'logo_only' | 'wide_logo';
+
+export interface StoreCustomizationSettings {
+  logoMode: StoreLogoDisplayMode;
+  logoSquareUrl?: string;
+  logoWideUrl?: string;
+  storeName: string;
+  storeSeoName: string;
+  storeSeoDescription: string;
+  heroBadgeText: string;
+  heroTitle: string;
+  heroSubtitle: string;
 }
 
 export interface QRSyncPayload {
@@ -238,6 +301,7 @@ export interface QRSyncPayload {
   products?: StoreProduct[];
   sales?: StoreSaleRecord[];
   shifts?: StoreShiftRecord[];
+  customerDebts?: CustomerDebtRecord[];
   suppliers?: SupplierAccount[];
   users?: AppUser[];
   transactions?: Transaction[];

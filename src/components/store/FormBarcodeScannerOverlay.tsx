@@ -161,7 +161,7 @@ export const FormBarcodeScannerOverlay: React.FC<FormBarcodeScannerOverlayProps>
           flexDirection: 'column',
           height: '100dvh',
           width: '100%',
-          maxWidth: '768px',
+          maxWidth: '900px',
           margin: '0 auto',
           overflow: 'hidden'
         }}

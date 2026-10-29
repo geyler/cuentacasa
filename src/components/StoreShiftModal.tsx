@@ -11,9 +11,12 @@ import {
   getAppUsers,
   getLoggedInUser,
   getStoreProducts,
+  getStoreSales,
+  getLocalISODate,
   getCurrencySettings
 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
+import { formatDate, formatDateTime } from '@/lib/dateUtils';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
@@ -41,19 +44,25 @@ interface StoreShiftModalProps {
   onClose: () => void;
   currency?: string;
   onOpenHistoryReport?: () => void;
+  onOpenValuationTab?: () => void;
+  embedded?: boolean;
 }
 
 export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
   isOpen,
   onClose,
   currency = '$',
-  onOpenHistoryReport
+  onOpenHistoryReport,
+  onOpenValuationTab,
+  embedded = false
 }) => {
-  useLockBodyScroll(isOpen, onClose);
+  useLockBodyScroll(isOpen && !embedded, onClose);
   const { showToast, confirmAction } = useActionFeedback();
 
   const currentUser = getLoggedInUser();
   const isOwnerOrAdmin = currentUser?.role === 'propietario' || currentUser?.role === 'administrador';
+  const currencySettings = getCurrencySettings();
+  const showUSD = currencySettings.currencyMode === 'USD' || currencySettings.currencyMode === 'BOTH';
 
   const [activeShift, setActiveShift] = useState<StoreShiftRecord | null>(null);
   const [shiftHistory, setShiftHistory] = useState<StoreShiftRecord[]>([]);
@@ -64,11 +73,13 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
   // Form States for Opening Shift
   const [selectedSellerId, setSelectedSellerId] = useState<string>('');
   const [initialCashFund, setInitialCashFund] = useState<string>('');
+  const [initialCashFundUSD, setInitialCashFundUSD] = useState<string>('');
   const [openingNotes, setOpeningNotes] = useState<string>('');
 
   // Form States for Closing Shift (Arqueo)
   const [isClosingMode, setIsClosingMode] = useState<boolean>(false);
   const [realCashInput, setRealCashInput] = useState<string>('');
+  const [realCashInputUSD, setRealCashInputUSD] = useState<string>('');
   const [realStockInputs, setRealStockInputs] = useState<Record<string, string>>({});
   const [closingNotes, setClosingNotes] = useState<string>('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -89,6 +100,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
 
     if (shift) {
       setRealCashInput(shift.expectedCashInRegister.toString());
+      setRealCashInputUSD((shift.expectedCashInRegisterUSD || 0).toString());
       const initialStockMap: Record<string, string> = {};
       shift.inventorySnapshots.forEach(snap => {
         initialStockMap[snap.productId] = snap.expectedFinalStock.toString();
@@ -116,11 +128,12 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
 
     try {
       const cash = parseFloat(initialCashFund) || 0;
-      const newShift = openStoreShift(selectedSellerId, cash, openingNotes);
+      const cashUSD = parseFloat(initialCashFundUSD) || 0;
+      const newShift = openStoreShift(selectedSellerId, cash, openingNotes, cashUSD);
       reloadData();
       showToast({
         title: '¡Turno Iniciado!',
-        message: `Turno asignado a ${newShift.sellerName} con fondo de caja de ${formatCurrency(cash, currency, true)}.`,
+        message: `Turno asignado a ${newShift.sellerName} con fondo de caja de ${formatCurrency(cash, 'CUP', true)}${cashUSD > 0 ? ` + ${formatCurrency(cashUSD, 'USD', true)}` : ''}.`,
         type: 'success'
       });
     } catch (err: any) {
@@ -153,12 +166,13 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
       onConfirm: () => {
         try {
           const cashReal = parseFloat(realCashInput) || 0;
+          const cashRealUSD = parseFloat(realCashInputUSD) || 0;
           const stockCounts: Record<string, number> = {};
           Object.keys(realStockInputs).forEach(pid => {
             stockCounts[pid] = parseFloat(realStockInputs[pid]) || 0;
           });
 
-          closeStoreShift(activeShift.id, cashReal, stockCounts, closingNotes);
+          closeStoreShift(activeShift.id, cashReal, stockCounts, closingNotes, cashRealUSD);
           reloadData();
           setIsClosingMode(false);
           onClose();
@@ -172,42 +186,27 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
 
   const isSellerOfShift = currentUser?.id === activeShift?.sellerId;
 
-  return (
+  const content = (
     <div
-      className="no-print"
+      className={embedded ? "md-card no-print" : "bottom-sheet-modal"}
+      onClick={e => e.stopPropagation()}
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2000,
+        backgroundColor: 'var(--md-sys-color-surface-container)',
+        color: 'var(--md-sys-color-on-surface)',
+        width: '100%',
+        maxWidth: '900px',
+        margin: '0 auto',
+        borderRadius: embedded ? '24px' : undefined,
+        border: embedded ? '1px solid var(--md-sys-color-outline-variant)' : undefined,
+        boxShadow: embedded ? 'var(--md-shadow-elevation-1)' : undefined,
+        maxHeight: embedded ? undefined : '92dvh',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
+        overflow: embedded ? 'visible' : 'hidden'
       }}
-      onClick={onClose}
     >
-
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          backgroundColor: 'var(--md-sys-color-surface-container)',
-          color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
-          width: '100%',
-          maxHeight: '92dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
-        }}
-      >
-        {/* Grab Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+        {/* Grab Handle (Only visible on Mobile) */}
+        <div className="mobile-only" style={{ justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
           <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
         </div>
 
@@ -252,7 +251,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
         </div>
 
         {/* Scroll Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ flex: embedded ? 'none' : 1, overflowY: embedded ? 'visible' : 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* Navigation Tabs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', backgroundColor: 'var(--md-sys-color-surface)', padding: '4px', borderRadius: '12px' }}>
@@ -291,8 +290,12 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
           <button
             type="button"
             onClick={() => {
-              setActiveTab('tasaciones');
-              setIsValuationBookModalOpen(true);
+              if (embedded && onOpenValuationTab) {
+                onOpenValuationTab();
+              } else {
+                setActiveTab('tasaciones');
+                setIsValuationBookModalOpen(true);
+              }
             }}
             style={{
               padding: '8px 2px',
@@ -329,15 +332,49 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
         {activeTab === 'current' && (
           <>
             {/* SCENARIO A: NO ACTIVE SHIFT */}
-            {!activeShift && (
+            {!activeShift && (() => {
+              const todayStr = getLocalISODate();
+              const sales = getStoreSales();
+              const todaySales = sales.filter(s => {
+                const sDate = s.date || (s.timestamp ? new Date(s.timestamp).toISOString().split('T')[0] : '');
+                return sDate === todayStr;
+              });
+              const todayCUP = todaySales.reduce((acc, s) => acc + (s.currency === 'MIXED' ? (s.totalAmountCUP || 0) : (s.currency === 'USD' ? 0 : (s.totalAmount || 0))), 0);
+              const todayUSD = todaySales.reduce((acc, s) => acc + (s.currency === 'MIXED' ? (s.totalAmountUSD || 0) : (s.currency === 'USD' ? (s.totalAmount || 0) : 0)), 0);
+
+              return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ padding: '16px', borderRadius: '16px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)', textAlign: 'center' }}>
                   <AlertCircle size={32} color="var(--md-sys-color-outline)" style={{ margin: '0 auto 8px auto' }} />
                   <h4 style={{ fontSize: '1rem', fontWeight: 900, margin: '0 0 4px 0' }}>No hay Turno Abierto</h4>
                   <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
-                    Al iniciar un turno se registrará el stock de mercancía actual y el dinero entregado para vueltos en caja.
+                    Al iniciar un turno formal se registrará el arqueo de stock y el fondo de caja asignado al vendedor.
                   </p>
                 </div>
+
+                {todaySales.length > 0 && (
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: '16px',
+                    backgroundColor: 'var(--md-sys-color-surface-container)',
+                    border: '1.5px solid var(--md-sys-color-outline-variant)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
+                        🛍️ Ventas Registradas Hoy ({todaySales.length})
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                        +{formatCurrency(todayCUP, 'CUP', true)} {todayUSD > 0 ? `+ US$${todayUSD}` : ''}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      Las ventas con escáner se guardan automáticamente con el perfil del vendedor en contabilidad aunque no haya turno formal activo.
+                    </div>
+                  </div>
+                )}
 
                 {isOwnerOrAdmin ? (
                   <form onSubmit={handleOpenShift} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -368,7 +405,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                     </div>
 
                     <AppInput
-                      label="Fondo de Caja Entregado (Efectivo para Vueltos)"
+                      label="Fondo de Caja CUP Entregado (Efectivo para Vueltos)"
                       fieldName="initialCashFund"
                       type="number"
                       focusedField={focusedField}
@@ -378,6 +415,20 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                       onBlur={() => setFocusedField(null)}
                       placeholder="Ej. 2000"
                     />
+
+                    {showUSD && (
+                      <AppInput
+                        label="Fondo de Caja USD Entregado (Efectivo USD para Vueltos)"
+                        fieldName="initialCashFundUSD"
+                        type="number"
+                        focusedField={focusedField}
+                        value={initialCashFundUSD}
+                        onChange={e => setInitialCashFundUSD(e.target.value)}
+                        onFocus={() => setFocusedField('initialCashFundUSD')}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder="Ej. 20"
+                      />
+                    )}
 
                     <AppInput
                       label="Observaciones o Notas de Entrega"
@@ -401,7 +452,8 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                   </p>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {/* SCENARIO B: ACTIVE SHIFT EXISTS */}
             {activeShift && !isClosingMode && (
@@ -548,18 +600,18 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                   </button>
                 </div>
 
-                {/* Cash Balance Count */}
+                {/* Cash Balance Count CUP */}
                 <div style={{ padding: '14px', borderRadius: '16px', backgroundColor: 'var(--md-sys-color-surface)', border: '1.5px solid var(--md-sys-color-primary)' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--md-sys-color-primary)', display: 'block', marginBottom: '6px' }}>
-                    1. Arqueo de Dinero en Caja
+                    1. Arqueo de Dinero en Caja (CUP)
                   </span>
 
                   <div style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '8px' }}>
-                    Efectivo Esperado según ventas: <strong>{formatCurrency(activeShift.expectedCashInRegister, currency, true)}</strong>
+                    Efectivo CUP Esperado según ventas: <strong>{formatCurrency(activeShift.expectedCashInRegister, 'CUP', true)}</strong>
                   </div>
 
                   <AppInput
-                    label="Efectivo Físico Entregado por Vendedor"
+                    label="Efectivo Físico CUP Entregado por Vendedor"
                     fieldName="realCashInput"
                     type="number"
                     focusedField={focusedField}
@@ -567,21 +619,58 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                     onChange={e => setRealCashInput(e.target.value)}
                     onFocus={() => setFocusedField('realCashInput')}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="Monto real contado..."
+                    placeholder="Monto real contado en CUP..."
                   />
 
                   {realCashInput !== '' && (
                     <div style={{ marginTop: '8px', fontSize: '0.82rem', fontWeight: 900, color: (parseFloat(realCashInput) - activeShift.expectedCashInRegister) >= 0 ? '#059669' : '#DC2626' }}>
                       {(parseFloat(realCashInput) - activeShift.expectedCashInRegister) === 0 ? (
-                        '✅ Cuadre de caja exacto'
+                        '✅ Cuadre de caja CUP exacto'
                       ) : (parseFloat(realCashInput) - activeShift.expectedCashInRegister) > 0 ? (
-                        `➕ Sobrante en caja: ${formatCurrency(parseFloat(realCashInput) - activeShift.expectedCashInRegister, currency, true)}`
+                        `➕ Sobrante en CUP: ${formatCurrency(parseFloat(realCashInput) - activeShift.expectedCashInRegister, 'CUP', true)}`
                       ) : (
-                        `⚠️ Faltante en caja: ${formatCurrency(parseFloat(realCashInput) - activeShift.expectedCashInRegister, currency, true)}`
+                        `⚠️ Faltante en CUP: ${formatCurrency(parseFloat(realCashInput) - activeShift.expectedCashInRegister, 'CUP', true)}`
                       )}
                     </div>
                   )}
                 </div>
+
+                {/* Cash Balance Count USD (if applicable) */}
+                {(showUSD || (activeShift.expectedCashInRegisterUSD || 0) > 0) && (
+                  <div style={{ padding: '14px', borderRadius: '16px', backgroundColor: 'var(--md-sys-color-surface)', border: '1.5px solid #059669' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#059669', display: 'block', marginBottom: '6px' }}>
+                      1.1 Arqueo de Dinero en Caja (USD)
+                    </span>
+
+                    <div style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '8px' }}>
+                      Efectivo USD Esperado según ventas: <strong>{formatCurrency(activeShift.expectedCashInRegisterUSD || 0, 'USD', true)}</strong>
+                    </div>
+
+                    <AppInput
+                      label="Efectivo Físico USD Entregado por Vendedor"
+                      fieldName="realCashInputUSD"
+                      type="number"
+                      focusedField={focusedField}
+                      value={realCashInputUSD}
+                      onChange={e => setRealCashInputUSD(e.target.value)}
+                      onFocus={() => setFocusedField('realCashInputUSD')}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Monto real contado en USD..."
+                    />
+
+                    {realCashInputUSD !== '' && (
+                      <div style={{ marginTop: '8px', fontSize: '0.82rem', fontWeight: 900, color: (parseFloat(realCashInputUSD) - (activeShift.expectedCashInRegisterUSD || 0)) >= 0 ? '#059669' : '#DC2626' }}>
+                        {(parseFloat(realCashInputUSD) - (activeShift.expectedCashInRegisterUSD || 0)) === 0 ? (
+                          '✅ Cuadre de caja USD exacto'
+                        ) : (parseFloat(realCashInputUSD) - (activeShift.expectedCashInRegisterUSD || 0)) > 0 ? (
+                          `➕ Sobrante en USD: ${formatCurrency(parseFloat(realCashInputUSD) - (activeShift.expectedCashInRegisterUSD || 0), 'USD', true)}`
+                        ) : (
+                          `⚠️ Faltante en USD: ${formatCurrency(parseFloat(realCashInputUSD) - (activeShift.expectedCashInRegisterUSD || 0), 'USD', true)}`
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Physical Stock Conteo */}
                 <div>
@@ -659,7 +748,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                     <div>
                       <div style={{ fontSize: '0.88rem', fontWeight: 900 }}>Vendedor: {s.sellerName} (@{s.sellerUsername})</div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                        Apertura: {new Date(s.openedAt).toLocaleString()}
+                        Apertura: {formatDateTime(s.openedAt)}
                       </div>
                     </div>
                     <span style={{ fontSize: '0.68rem', fontWeight: 900, padding: '2px 8px', borderRadius: '6px', backgroundColor: s.status === 'cerrado' ? '#E2E8F0' : '#DCFCE7', color: s.status === 'cerrado' ? '#475569' : '#15803D' }}>
@@ -669,20 +758,39 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', fontSize: '0.75rem', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '8px', borderRadius: '8px' }}>
                     <div>
-                      <div style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Efectivo Resp.</div>
-                      <div style={{ fontWeight: 800 }}>{formatCurrency(s.expectedCashInRegister, currency, true)}</div>
+                      <div style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Efectivo CUP Resp.</div>
+                      <div style={{ fontWeight: 800 }}>{formatCurrency(s.expectedCashInRegister, 'CUP', true)}</div>
                     </div>
                     <div>
-                      <div style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Entregado</div>
-                      <div style={{ fontWeight: 800 }}>{formatCurrency(s.realCashInRegister || 0, currency, true)}</div>
+                      <div style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Entregado CUP</div>
+                      <div style={{ fontWeight: 800 }}>{formatCurrency(s.realCashInRegister || 0, 'CUP', true)}</div>
                     </div>
                     <div>
-                      <div style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Diferencia</div>
+                      <div style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Diferencia CUP</div>
                       <div style={{ fontWeight: 900, color: (s.cashDifference || 0) >= 0 ? '#059669' : '#DC2626' }}>
-                        {formatCurrency(s.cashDifference || 0, currency, true)}
+                        {formatCurrency(s.cashDifference || 0, 'CUP', true)}
                       </div>
                     </div>
                   </div>
+
+                  {((s.expectedCashInRegisterUSD || 0) > 0 || (s.realCashInRegisterUSD || 0) > 0 || (s.cashDifferenceUSD !== undefined)) && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', fontSize: '0.75rem', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '8px', borderRadius: '8px' }}>
+                      <div>
+                        <div style={{ color: '#166534' }}>Efectivo USD Resp.</div>
+                        <div style={{ fontWeight: 800, color: '#14532D' }}>{formatCurrency(s.expectedCashInRegisterUSD || 0, 'USD', true)}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: '#166534' }}>Entregado USD</div>
+                        <div style={{ fontWeight: 800, color: '#14532D' }}>{formatCurrency(s.realCashInRegisterUSD || 0, 'USD', true)}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: '#166534' }}>Diferencia USD</div>
+                        <div style={{ fontWeight: 900, color: (s.cashDifferenceUSD || 0) >= 0 ? '#059669' : '#DC2626' }}>
+                          {formatCurrency(s.cashDifferenceUSD || 0, 'USD', true)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {s.notes && (
                     <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontStyle: 'italic' }}>
@@ -696,8 +804,41 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
         )}
 
         {/* TAB 3: IPV (INFORME DE PRODUCTOS Y VENTAS) DEL DÍA - ESTILO TICKET COMPACTO */}
-        {activeTab === 'ipv' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '480px', overflowY: 'auto' }}>
+        {activeTab === 'ipv' && (() => {
+          const todayStr = getLocalISODate();
+          const allSales = getStoreSales();
+          const todaySales = allSales.filter(s => {
+            const sDate = s.date || (s.timestamp ? new Date(s.timestamp).toISOString().split('T')[0] : '');
+            return sDate === todayStr;
+          });
+
+          // Desglose de vendedores que realizaron ventas hoy
+          const todaySellersMap: Record<string, { name: string; username: string; count: number; cup: number; usd: number }> = {};
+          todaySales.forEach(s => {
+            const sellerKey = s.sellerUsername || s.sellerId || 'admin';
+            if (!todaySellersMap[sellerKey]) {
+              todaySellersMap[sellerKey] = {
+                name: s.sellerName || 'Administrador',
+                username: s.sellerUsername || 'admin',
+                count: 0,
+                cup: 0,
+                usd: 0
+              };
+            }
+            todaySellersMap[sellerKey].count += 1;
+            if (s.currency === 'MIXED') {
+              todaySellersMap[sellerKey].cup += s.totalAmountCUP || 0;
+              todaySellersMap[sellerKey].usd += s.totalAmountUSD || 0;
+            } else if (s.currency === 'USD') {
+              todaySellersMap[sellerKey].usd += s.totalAmount || 0;
+            } else {
+              todaySellersMap[sellerKey].cup += s.totalAmount || 0;
+            }
+          });
+          const todaySellersList = Object.values(todaySellersMap);
+
+          return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: embedded ? 'none' : '480px', overflowY: embedded ? 'visible' : 'auto' }}>
             <div style={{
               backgroundColor: '#FFFFFF',
               color: '#0F172A',
@@ -719,7 +860,7 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                   === INFORME IPV (PRODUCTOS Y VENTAS) ===
                 </h3>
                 <p style={{ fontSize: '0.66rem', color: '#475569', margin: '4px 0 0 0', fontWeight: 700 }}>
-                  {new Date().toLocaleDateString('es-CU')} • {activeShift ? `Vendedor: ${activeShift.sellerName} (@${activeShift.sellerUsername})` : 'Arqueo General'}
+                  {formatDate(new Date())} • {activeShift ? `Turno Activo: ${activeShift.sellerName} (@${activeShift.sellerUsername})` : `Ventas Totales del Día (${todaySales.length} comprobantes)`}
                 </p>
                 <div className="no-print" style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <button
@@ -791,18 +932,61 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                     {(() => {
                       const storeProds = getStoreProducts();
                       const snapshots = activeShift?.inventorySnapshots || [];
-                      const currSettings = typeof window !== 'undefined' ? getCurrencySettings() : { currencyMode: 'CUP' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
-                      const rate = currSettings.exchangeRateUSD || 675;
+                      const todayStr = getLocalISODate();
+                      const allSales = getStoreSales();
+                      const todaySales = allSales.filter(s => {
+                        const sDate = s.date || (s.timestamp ? new Date(s.timestamp).toISOString().split('T')[0] : '');
+                        return sDate === todayStr;
+                      });
+
+                      const currSettings = typeof window !== 'undefined' ? getCurrencySettings() : { currencyMode: 'CUP' as const, exchangeRateUSD: 320, usdIndexedPricing: false };
+                      const rate = currSettings.exchangeRateUSD || 320;
                       const isBothMode = currSettings.currencyMode === 'BOTH';
 
+                      // Desglose de vendedores que realizaron ventas hoy
+                      const todaySellersMap: Record<string, { name: string; username: string; count: number; cup: number; usd: number }> = {};
+                      todaySales.forEach(s => {
+                        const sellerKey = s.sellerUsername || s.sellerId || 'admin';
+                        if (!todaySellersMap[sellerKey]) {
+                          todaySellersMap[sellerKey] = {
+                            name: s.sellerName || 'Administrador',
+                            username: s.sellerUsername || 'admin',
+                            count: 0,
+                            cup: 0,
+                            usd: 0
+                          };
+                        }
+                        todaySellersMap[sellerKey].count += 1;
+                        if (s.currency === 'MIXED') {
+                          todaySellersMap[sellerKey].cup += s.totalAmountCUP || 0;
+                          todaySellersMap[sellerKey].usd += s.totalAmountUSD || 0;
+                        } else if (s.currency === 'USD') {
+                          todaySellersMap[sellerKey].usd += s.totalAmount || 0;
+                        } else {
+                          todaySellersMap[sellerKey].cup += s.totalAmount || 0;
+                        }
+                      });
+                      const todaySellersList = Object.values(todaySellersMap);
+
                       const rows = storeProds.map(prod => {
-                        const snap = snapshots.find(s => s.productId === prod.id);
-                        const initialStock = snap ? snap.initialStock : prod.stock;
+                        const snap = snapshots.find(s => s.productId === prod.id || (prod.barcode && s.productId === prod.barcode));
+                        
+                        // Unidades vendidas en el turno activo (usuario del turno + otros perfiles)
+                        const soldFromShift = snap ? ((snap.soldByShiftUser || 0) + (snap.soldByOthers || 0)) : 0;
+                        
+                        // Unidades vendidas hoy según el historial de comprobantes
+                        const soldFromTodaySales = todaySales.reduce((acc, s) => {
+                          const it = s.items?.find((i: any) => i.productId === prod.id || i.barcode === prod.barcode);
+                          return acc + (it ? Number(it.quantity) : 0);
+                        }, 0);
+
+                        const sold = activeShift ? Math.max(soldFromShift, soldFromTodaySales) : soldFromTodaySales;
                         const addedStock = snap ? snap.addedStock : 0;
-                        const totalToRespond = initialStock + addedStock;
-                        const sold = snap ? snap.soldByShiftUser : 0;
                         const finalStock = snap ? snap.expectedFinalStock : prod.stock;
-                        const price = prod.price;
+                        const initialStock = snap ? snap.initialStock : (prod.stock + sold - addedStock);
+                        const totalToRespond = initialStock + addedStock;
+
+                        const price = prod.currency === 'USD' ? Math.round(prod.price * rate) : prod.price;
                         const priceUSD = prod.priceUSD || (prod.price / rate);
                         const totalImporteCUP = sold * price;
                         const totalImporteUSD = sold * priceUSD;
@@ -879,6 +1063,27 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
                 </table>
               </div>
 
+              {/* Desglose de Ventas por Perfil Hoy */}
+              {todaySellersList.length > 0 && (
+                <div style={{ marginTop: '14px', borderTop: '1px dashed #CBD5E1', paddingTop: '10px', fontSize: '0.66rem' }}>
+                  <div style={{ fontWeight: 900, marginBottom: '6px', color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    👤 Desglose de Ventas por Perfil (Hoy):
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {todaySellersList.map(s => (
+                      <div key={s.username} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '5px 8px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                        <span>
+                          <strong>{s.name}</strong> (@{s.username}) — {s.count} {s.count === 1 ? 'venta realizada' : 'ventas realizadas'}
+                        </span>
+                        <span style={{ fontWeight: 800, color: '#0F172A' }}>
+                          ${s.cup.toLocaleString()} CUP {s.usd > 0 ? `+ US$${s.usd.toFixed(2)}` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Firmas Bilaterales Ticket Style */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '20px', paddingTop: '12px', borderTop: '1.5px dashed #0F172A' }}>
                 <div style={{ textAlign: 'center' }}>
@@ -892,10 +1097,18 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         </div>
 
+      </div>
+  );
+
+  if (embedded) {
+    return (
+      <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}>
+        {content}
         {/* SUB-MODAL: LIBRO DE TASACIONES */}
         <ValuationBookModal
           isOpen={isValuationBookModalOpen}
@@ -904,8 +1117,25 @@ export const StoreShiftModal: React.FC<StoreShiftModalProps> = ({
             setActiveTab('current');
           }}
         />
-
       </div>
+    );
+  }
+
+  return (
+    <div
+      className="modal-backdrop-responsive no-print"
+      style={{ zIndex: 2000 }}
+      onClick={onClose}
+    >
+      {content}
+      {/* SUB-MODAL: LIBRO DE TASACIONES */}
+      <ValuationBookModal
+        isOpen={isValuationBookModalOpen}
+        onClose={() => {
+          setIsValuationBookModalOpen(false);
+          setActiveTab('current');
+        }}
+      />
     </div>
   );
 };

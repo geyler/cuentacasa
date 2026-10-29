@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { KeyRound, Loader2, User, LogOut, Lock, HelpCircle, RotateCcw, ArrowLeft } from 'lucide-react';
-import { authenticateUser, setLoggedInUser, getLoggedInUser, getUserPin, clearUserPin, performTotalCacheReset } from '@/lib/storage';
+import { KeyRound, Loader2, User, LogOut, Lock, HelpCircle, RotateCcw, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { authenticateUser, setLoggedInUser, getLoggedInUser, getUserPin, clearUserPin, performTotalCacheReset, getLocalISODate } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { AppUser } from '@/types';
 
@@ -78,18 +78,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
     let user = authenticateUser(username, password);
 
-    // If local authentication fails and device is online, attempt cloud sync fallback
     // If local authentication fails and device is online, attempt quick cloud sync fallback (max 2.5s)
     if (!user && typeof window !== 'undefined' && navigator.onLine) {
       try {
-        await syncDatabaseWithCloud(true);
         await Promise.race([
           syncDatabaseWithCloud(true),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Quick Timeout')), 2500))
         ]);
         user = authenticateUser(username, password);
       } catch (err) {
-        // Continue to error if cloud sync fails
         // Continue to error immediately if cloud sync times out or fails
       }
     }
@@ -109,11 +106,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   const handlePinSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const activeUsername = currentUser?.username || 'geyler';
+    const activeUsername = currentUser?.username || 'admin';
     const savedPin = getUserPin(activeUsername);
 
     if (savedPin && pin === savedPin) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalISODate();
       localStorage.setItem('cuentacasa_last_pin_unlock', today);
       setError('');
       onPinUnlockSuccess();
@@ -129,11 +126,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       setError('');
 
       if (newPin.length === 4) {
-        const activeUsername = currentUser?.username || 'geyler';
+        const activeUsername = currentUser?.username || 'admin';
         const savedPin = getUserPin(activeUsername);
         
         if (savedPin && newPin === savedPin) {
-          const today = new Date().toISOString().split('T')[0];
+          const today = getLocalISODate();
           localStorage.setItem('cuentacasa_last_pin_unlock', today);
           setError('');
           onPinUnlockSuccess();
@@ -211,12 +208,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <div style={{
             padding: '10px 14px',
             borderRadius: '14px',
-            backgroundColor: '#EFF6FF',
-            color: '#1E40AF',
+            backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+            color: 'var(--brand-on-primary-container, #1E40AF)',
             fontSize: '0.82rem',
             fontWeight: 800,
             marginBottom: '16px',
-            border: '1px solid #BFDBFE'
+            border: '1px solid var(--brand-primary-border, #BFDBFE)'
           }}>
             ℹ️ {infoMsg}
           </div>
@@ -272,7 +269,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       fontSize: '1.5rem',
                       fontWeight: 900,
                       color: 'var(--md-sys-color-primary)',
-                      boxShadow: isCurrent ? '0 0 0 4px rgba(26, 115, 232, 0.2)' : 'none',
+                      boxShadow: isCurrent ? '0 0 0 4px color-mix(in srgb, var(--brand-primary) 20%, transparent)' : 'none',
                       transition: 'all 0.18s ease'
                     }}
                   >
@@ -379,7 +376,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 fontSize: '0.98rem',
                 fontWeight: 800,
                 cursor: pin.length === 4 ? 'pointer' : 'not-allowed',
-                boxShadow: pin.length === 4 ? '0 4px 16px rgba(26, 115, 232, 0.35)' : 'none',
+                boxShadow: pin.length === 4 ? '0 4px 16px color-mix(in srgb, var(--brand-primary) 35%, transparent)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -468,7 +465,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     boxShadow: 'none'
                   }}
                 />
-                <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--md-sys-color-primary)' }} />
+                <User size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--md-sys-color-primary)', zIndex: 10, pointerEvents: 'none' }} />
               </div>
             </div>
 
@@ -486,7 +483,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   autoComplete="current-password"
                   style={{
                     width: '100%',
-                    padding: '14px 40px 14px 40px',
+                    padding: '14px 44px 14px 40px',
                     borderRadius: '14px',
                     border: '1.5px solid var(--md-sys-color-outline-variant)',
                     backgroundColor: '#FFFFFF',
@@ -496,7 +493,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     outline: 'none'
                   }}
                 />
-                <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--md-sys-color-primary)' }} />
+                <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--md-sys-color-primary)', zIndex: 10, pointerEvents: 'none' }} />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  tabIndex={-1}
+                  title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 10,
+                    background: 'none',
+                    border: 'none',
+                    padding: '6px',
+                    cursor: 'pointer',
+                    color: '#64748B',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '8px'
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
@@ -513,7 +534,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 fontSize: '0.98rem',
                 fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(26, 115, 232, 0.35)',
+                boxShadow: '0 4px 16px color-mix(in srgb, var(--brand-primary) 35%, transparent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

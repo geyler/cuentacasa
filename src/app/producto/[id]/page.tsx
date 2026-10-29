@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { INITIAL_SEED_PRODUCTS, formatPhotoUrl } from '@/lib/storage';
+import { getServerProductById } from '@/lib/db';
 import { StoreProduct } from '@/types';
 import { ProductDetailClient } from './ProductDetailClient';
 
@@ -14,14 +15,16 @@ export async function generateStaticParams() {
 
 export const dynamicParams = true;
 
-function getProductByIdOrBarcode(idOrBarcode: string): StoreProduct | undefined {
+async function getProductByIdOrBarcode(idOrBarcode: string): Promise<StoreProduct | undefined> {
   const clean = decodeURIComponent(idOrBarcode);
+  const fromDb = await getServerProductById(clean);
+  if (fromDb) return fromDb;
   return INITIAL_SEED_PRODUCTS.find(p => p.id === clean || p.barcode === clean.padStart(4, '0') || p.barcode === clean);
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { id } = await params;
-  const product = getProductByIdOrBarcode(id);
+  const product = await getProductByIdOrBarcode(id);
 
   if (!product) {
     return {
@@ -30,16 +33,21 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     };
   }
 
-  const roundedPrice = Math.round(product.price);
-  const title = `${product.name} - $${roundedPrice} CUP | Samy Store Cuba`;
-  const description = product.description || `Compra ${product.name} en Samy Store Cuba por $${roundedPrice} CUP. Envíos directos y pedidos por WhatsApp.`;
+  const currLabel = product.currency === 'USD' ? 'USD' : 'CUP';
+  const roundedPrice = product.currency === 'USD' ? Number(product.price.toFixed(2)) : Math.round(product.price);
+  const title = `${product.name} - $${roundedPrice} ${currLabel} | Samy Store Cuba`;
+  const description = product.description || `Compra ${product.name} en Samy Store Cuba por $${roundedPrice} ${currLabel}. Envíos directos y pedidos por WhatsApp.`;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: `/producto/${encodeURIComponent(id)}`
+    },
     openGraph: {
       title,
       description,
+      url: `/producto/${encodeURIComponent(id)}`,
       type: 'website',
       images: [
         {
@@ -61,7 +69,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductDetailPage({ params }: ProductPageProps) {
   const { id } = await params;
-  const product = getProductByIdOrBarcode(id);
+  const product = await getProductByIdOrBarcode(id);
 
   return <ProductDetailClient id={id} initialProduct={product} />;
 }

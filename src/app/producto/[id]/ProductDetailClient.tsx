@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
-import { getStoreProducts, INITIAL_SEED_PRODUCTS, formatPhotoUrl, DEFAULT_PRODUCT_IMAGE, getCurrencySettings, getStoreWhatsappNumber } from '@/lib/storage';
+import { getStoreProducts, INITIAL_SEED_PRODUCTS, formatPhotoUrl, DEFAULT_PRODUCT_IMAGE, getCurrencySettings, getStoreWhatsappNumber, getPrimaryThemeColor, getSecondaryThemeColor } from '@/lib/storage';
+import { applyBrandPaletteToDocument } from '@/lib/themePalette';
+import { syncPublicCatalog } from '@/lib/sync';
 import { formatCurrency, getProductDisplayPrice, getCurrencyBadgeStyle } from '@/lib/invoice';
 import Link from 'next/link';
 import { 
@@ -38,15 +40,27 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
   useEffect(() => {
     setMounted(true);
+    applyBrandPaletteToDocument(getPrimaryThemeColor(), getSecondaryThemeColor());
     const clean = decodeURIComponent(id);
-    const allLocal = getStoreProducts();
-    const found = allLocal.find(p => p.id === clean || p.barcode === clean.padStart(4, '0') || p.barcode === clean)
-      || INITIAL_SEED_PRODUCTS.find(p => p.id === clean || p.barcode === clean.padStart(4, '0') || p.barcode === clean);
+    const loadFromLocal = () => {
+      applyBrandPaletteToDocument(getPrimaryThemeColor(), getSecondaryThemeColor());
+      const allLocal = getStoreProducts();
+      const found = allLocal.find(p => p.id === clean || p.barcode === clean.padStart(4, '0') || p.barcode === clean)
+        || INITIAL_SEED_PRODUCTS.find(p => p.id === clean || p.barcode === clean.padStart(4, '0') || p.barcode === clean);
 
-    if (found) {
-      setProduct(found);
-      const related = allLocal.filter(p => p.published && p.id !== found.id && p.category === found.category).slice(0, 4);
-      setRelatedProducts(related.length > 0 ? related : allLocal.filter(p => p.published && p.id !== found.id).slice(0, 4));
+      if (found) {
+        setProduct(found);
+        const related = allLocal.filter(p => p.published && p.id !== found.id && p.category === found.category).slice(0, 4);
+        setRelatedProducts(related.length > 0 ? related : allLocal.filter(p => p.published && p.id !== found.id).slice(0, 4));
+      }
+      return found;
+    };
+
+    const existing = loadFromLocal();
+    if (!existing) {
+      syncPublicCatalog().then(res => {
+        if (res.success) loadFromLocal();
+      }).catch(() => {});
     }
 
     if (typeof window !== 'undefined') {
@@ -99,7 +113,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
   const currencySettings = typeof window !== 'undefined' 
     ? getCurrencySettings() 
-    : { currencyMode: 'CUP' as const, exchangeRateUSD: 675, usdIndexedPricing: false };
+    : { currencyMode: 'CUP' as const, exchangeRateUSD: 320, usdIndexedPricing: false };
     
   const disp = getProductDisplayPrice(
     product.price || 0,
@@ -129,7 +143,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
   whatsappMessage += `🔗 *Ver Producto:* ${productSeoLink}`;
 
   const whatsappUrl = cleanPhone 
-    ? `https://wa.me/+${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`
+    ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`
     : `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
 
   const formattedPhoto = formatPhotoUrl(product.photoUrl);
@@ -146,16 +160,16 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FAFAFA', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Header Bar (Full Width & Sticky) */}
+      {/* Header Bar (Full Width & Sticky, Unified Brand Darker) */}
       <header style={{
-        backgroundColor: '#FFFFFF',
-        color: '#0F172A',
-        borderBottom: '1px solid #F1F5F9',
+        backgroundColor: 'var(--brand-primary-darker, #0B1528)',
+        color: '#FFFFFF',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
         padding: '12px 0',
         position: 'sticky',
         top: 0,
         zIndex: 80,
-        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        boxShadow: '0 6px 24px rgba(15, 23, 42, 0.2)'
       }}>
         <div className="store-container" style={{
           display: 'flex',
@@ -168,7 +182,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              color: 'var(--md-sys-color-primary)',
+              color: 'var(--brand-primary-accent, #7DD3FC)',
               fontWeight: 800,
               fontSize: '0.92rem',
               textDecoration: 'none'
@@ -179,8 +193,19 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
           </Link>
 
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '36px', width: 'auto' }} />
-            <span className="font-logo-script" style={{ fontWeight: 900, fontSize: '1.5rem', color: '#0F172A' }}>
+            <div style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              backgroundColor: '#FFFFFF',
+              padding: '3px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
+            </div>
+            <span className="font-logo-script" style={{ fontWeight: 900, fontSize: '1.55rem', color: '#FFFFFF' }}>
               Samy Store
             </span>
           </Link>
@@ -192,9 +217,9 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              backgroundColor: 'var(--md-sys-color-surface-container-high)',
-              color: 'var(--md-sys-color-on-surface)',
-              border: 'none',
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              color: '#FFFFFF',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '9999px',
               padding: '8px 14px',
               fontSize: '0.8rem',
@@ -202,14 +227,14 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               cursor: 'pointer'
             }}
           >
-            {copiedLink ? <CheckCircle size={15} color="#059669" /> : <Share2 size={15} />}
+            {copiedLink ? <CheckCircle size={15} color="#34D399" /> : <Share2 size={15} />}
             <span className="desktop-only">{copiedLink ? '¡Enlace Copiado!' : 'Compartir'}</span>
           </button>
         </div>
       </header>
 
-      {/* Main Product Container (Full Responsive 2-Column on Desktop) */}
-      <main className="store-container" style={{ padding: '32px 16px 80px 16px', flex: 1 }}>
+      {/* Main Product Container (Unboxed on Mobile, Framed 2-Column on Desktop) */}
+      <main className="store-container" style={{ padding: '24px 16px 80px 16px', flex: 1 }}>
         
         {/* Breadcrumb Navigation */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', fontSize: '0.84rem', color: '#64748B', fontWeight: 600 }}>
@@ -220,18 +245,16 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
           <span style={{ color: '#0F172A', fontWeight: 800 }}>{product.name}</span>
         </nav>
 
-        {/* 2-Column Product Detail Layout on Desktop, 1-Column on Mobile */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '36px',
-          alignItems: 'start',
-          backgroundColor: '#FFFFFF',
-          padding: '32px',
-          borderRadius: '26px',
-          border: '1px solid #F1F5F9',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.04)'
-        }}>
+        {/* 2-Column Product Detail Layout on Desktop, 1-Column Loose on Mobile */}
+        <div
+          className="marketplace-section-box"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+            gap: '28px',
+            alignItems: 'start'
+          }}
+        >
           
           {/* Left Column: Product Photography Showcase */}
           <div>
@@ -260,7 +283,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                 position: 'absolute',
                 top: '16px',
                 left: '16px',
-                backgroundColor: (product.stock || 0) > 0 ? '#059669' : '#E11D48',
+                backgroundColor: (product.stock || 0) > 0 ? 'var(--brand-primary, #1A73E8)' : '#E11D48',
                 color: '#FFFFFF',
                 fontSize: '0.78rem',
                 fontWeight: 900,
@@ -276,9 +299,9 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                 position: 'absolute',
                 bottom: '16px',
                 left: '16px',
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                backgroundColor: 'rgba(15, 23, 42, 0.78)',
                 backdropFilter: 'blur(6px)',
-                color: '#FBBF24',
+                color: '#FFFFFF',
                 fontSize: '0.8rem',
                 fontWeight: 800,
                 padding: '4px 10px',
@@ -287,7 +310,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                 alignItems: 'center',
                 gap: '4px'
               }}>
-                <Star size={13} fill="#FBBF24" /> {seoMeta.ratingValue} • {seoMeta.reviewCount} valoraciones
+                <Star size={13} fill="var(--brand-primary-accent, #7DD3FC)" color="var(--brand-primary-accent, #7DD3FC)" /> {seoMeta.ratingValue} • {seoMeta.reviewCount} valoraciones
               </span>
             </div>
           </div>
@@ -335,7 +358,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                   Precio Unitario
                 </span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                  <span style={{ fontSize: '2.2rem', fontWeight: 900, color: '#059669', lineHeight: '1' }}>
+                  <span style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0F172A', lineHeight: '1' }}>
                     {formatCurrency(disp.amount || 0, disp.currency, true)}
                   </span>
                   {product.unit && product.unit !== 'u' && (
@@ -351,9 +374,9 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                 fontWeight: 900,
                 padding: '4px 12px',
                 borderRadius: '8px',
-                backgroundColor: badgeStyle.backgroundColor,
-                color: badgeStyle.color,
-                border: badgeStyle.border
+                backgroundColor: disp.currency === 'USD' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--brand-primary-light, #EFF6FF)',
+                color: disp.currency === 'USD' ? 'var(--brand-secondary-dark, #115E59)' : 'var(--brand-primary-dark, #1E3A8A)',
+                border: disp.currency === 'USD' ? '1px solid var(--brand-secondary-border, #99F6E4)' : '1px solid var(--brand-primary-border, #BFDBFE)'
               }}>
                 Moneda: {disp.currency === 'USD' ? 'USD' : 'CUP'}
               </span>
@@ -433,7 +456,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 700 }}>Subtotal</span>
-                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#059669' }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)' }}>
                   {subtotalFormatted}
                 </div>
               </div>
@@ -445,7 +468,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                backgroundColor: '#25D366',
+                backgroundColor: 'var(--brand-primary, #1A73E8)',
                 color: '#FFFFFF',
                 width: '100%',
                 padding: '16px 24px',
@@ -457,7 +480,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '10px',
-                boxShadow: '0 6px 24px rgba(37, 211, 102, 0.4)',
+                boxShadow: '0 6px 24px rgba(15, 23, 42, 0.2)',
                 transition: 'all 0.2s ease'
               }}
             >
@@ -474,26 +497,26 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
               paddingTop: '20px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Truck size={18} color="#059669" />
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'var(--brand-primary-light, #EFF6FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Truck size={18} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
                 </div>
                 <div>
                   <h5 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                    Envíos en Las Tunas
+                    Envíos a Domicilio
                   </h5>
-                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Entregas a domicilio rápidas</span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Entregas directas y seguras</span>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <ShieldCheck size={18} color="var(--md-sys-color-primary)" />
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'var(--brand-primary-light, #EFF6FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <ShieldCheck size={18} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
                 </div>
                 <div>
                   <h5 style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                    Garantía Total
+                    Garantía de Tienda
                   </h5>
-                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Calidad comprobada en tienda</span>
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Stock verificado y listo para entrega</span>
                 </div>
               </div>
             </div>
@@ -573,7 +596,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#059669' }}>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0F172A' }}>
                         {formatCurrency(relDisp.amount, relDisp.currency, true)}
                       </span>
                       <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '2px 8px', borderRadius: '6px' }}>
@@ -591,17 +614,20 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
       {/* Footer */}
       <footer style={{
-        backgroundColor: 'var(--md-sys-color-surface-container-low)',
-        color: 'var(--md-sys-color-on-surface)',
-        borderTop: '1px solid var(--md-sys-color-outline)',
+        backgroundColor: 'var(--brand-primary-darker, #0B1528)',
+        color: '#F8FAFC',
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
         padding: '28px 16px',
         textAlign: 'center',
         marginTop: 'auto'
       }}>
-        <div className="store-container">
-          <p style={{ fontSize: '0.84rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, fontWeight: 600 }}>
-            © {new Date().getFullYear()} Samy Store Las Tunas. Tienda Oficial. Desarrollado con tecnología de Cubasoft.
+        <div className="store-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <p style={{ fontSize: '0.82rem', color: '#94A3B8', margin: 0, fontWeight: 600 }}>
+            © {new Date().getFullYear()} <strong style={{ color: '#FFFFFF' }}>Samy Store Las Tunas</strong>.
           </p>
+          <Link href="/" style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--brand-primary-accent, #7DD3FC)', textDecoration: 'none' }}>
+            Explorar todo el catálogo →
+          </Link>
         </div>
       </footer>
 

@@ -16,12 +16,17 @@ import {
   getSavingsFund,
   getCalculatedStoreFund,
   getLoggedInUser,
-  setLoggedInUser
+  setLoggedInUser,
+  getLocalISODate,
+  getPrimaryThemeColor,
+  getSecondaryThemeColor
 } from '@/lib/storage';
+import { applyBrandPaletteToDocument } from '@/lib/themePalette';
 import { syncDatabaseWithCloud, getPendingSyncCount } from '@/lib/sync';
 import { calculateFinancialSummary, isTransactionEditable } from '@/lib/invoice';
 
 import { Header } from '@/components/Header';
+import { AdminSidebar } from '@/components/AdminSidebar';
 import { StatCards } from '@/components/StatCards';
 import { QuickEntryView } from '@/components/QuickEntryView';
 import { TransactionList } from '@/components/TransactionList';
@@ -31,6 +36,7 @@ import { TransferModal } from '@/components/TransferModal';
 import { ReportView } from '@/components/ReportView';
 import { StoreManagementView } from '@/components/StoreManagementView';
 import { StoreShiftModal } from '@/components/StoreShiftModal';
+import { ValuationBookModal } from '@/components/store/ValuationBookModal';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
 import { SettingsModal } from '@/components/SettingsModal';
 import { PendingSyncModal } from '@/components/PendingSyncModal';
@@ -91,6 +97,7 @@ function AccountingAppContent() {
     if (rawDb.settings.showBalance !== undefined) {
       setShowBalance(rawDb.settings.showBalance);
     }
+    applyBrandPaletteToDocument(getPrimaryThemeColor(), getSecondaryThemeColor());
   }, []);
 
   useEffect(() => {
@@ -109,7 +116,7 @@ function AccountingAppContent() {
       }
       const localPin = localStorage.getItem('cuentacasa_pin');
       const lastUnlock = localStorage.getItem('cuentacasa_last_pin_unlock');
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalISODate();
 
       if (localPin && localPin.length === 4) {
         setIsPinUnlocked(lastUnlock === today);
@@ -146,6 +153,7 @@ function AccountingAppContent() {
                 costPrice: cost,
                 unitPrice: prod.price,
                 subtotal: prod.price * qty,
+                currency: prod.currency || 'CUP',
                 supplierType: prod.supplierType || 'propia',
                 supplierName: prod.supplierName
               });
@@ -235,6 +243,7 @@ function AccountingAppContent() {
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.setAttribute('data-theme', savedTheme);
+      applyBrandPaletteToDocument(getPrimaryThemeColor(), getSecondaryThemeColor());
     }
 
     // Universal Input Spotlight Focus & Enter Key Field Navigation
@@ -282,6 +291,7 @@ function AccountingAppContent() {
 
     window.addEventListener('cuentacasa-db-changed', handleDbChanged);
     window.addEventListener('cuentacasa-currency-mode-changed', handleDbChanged);
+    window.addEventListener('cuentacasa-theme-color-changed', handleDbChanged);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -291,6 +301,7 @@ function AccountingAppContent() {
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('cuentacasa-db-changed', handleDbChanged);
       window.removeEventListener('cuentacasa-currency-mode-changed', handleDbChanged);
+      window.removeEventListener('cuentacasa-theme-color-changed', handleDbChanged);
     };
   }, [loadDatabase]);
 
@@ -337,7 +348,7 @@ function AccountingAppContent() {
 
     const localPin = localStorage.getItem('cuentacasa_pin');
     const lastUnlock = localStorage.getItem('cuentacasa_last_pin_unlock');
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalISODate();
 
     if (localPin && localPin.length === 4) {
       setIsPinUnlocked(lastUnlock === today);
@@ -375,6 +386,7 @@ function AccountingAppContent() {
     setTheme(newTheme);
     localStorage.setItem('cuentacasa_theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
+    applyBrandPaletteToDocument(getPrimaryThemeColor(), getSecondaryThemeColor());
     showToast({
       title: 'Tema Visual Cambiado',
       message: `Se ha activado el modo ${newTheme === 'dark' ? 'Oscuro' : 'Claro'}.`,
@@ -587,16 +599,16 @@ function AccountingAppContent() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '10px',
-          padding: '8px 16px',
+          padding: '8px 18px',
           borderRadius: '9999px',
-          backgroundColor: 'var(--md-sys-color-surface-container-high)',
-          border: '1px solid var(--md-sys-color-outline-variant)',
+          backgroundColor: 'var(--brand-primary-light, var(--md-sys-color-primary-container))',
+          border: '1.5px solid var(--brand-primary-border, var(--md-sys-color-primary))',
           fontSize: '0.82rem',
-          fontWeight: 700,
-          color: 'var(--md-sys-color-primary)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+          fontWeight: 800,
+          color: 'var(--brand-primary, var(--md-sys-color-primary))',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.06)'
         }}>
-          <Loader2 size={16} className="animate-spin" />
+          <Loader2 size={16} className="animate-spin" style={{ color: 'var(--brand-primary, var(--md-sys-color-primary))' }} />
           <span>Iniciando aplicación 100% offline...</span>
         </div>
       </div>
@@ -641,7 +653,7 @@ function AccountingAppContent() {
   const isAnyModalOpen = isTxModalOpen || isSettingsOpen || isPendingSyncModalOpen || isRawDbModalOpen || isScannerOpen || isTransferModalOpen || !!selectedTxForDetailModal || isNavMenuOpen;
 
   return (
-    <div className="mobile-system-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', backgroundColor: 'var(--md-sys-color-background)', position: 'relative' }}>
       
       {/* Top Background Sync Progress Banner */}
       {syncBanner.show && (
@@ -649,7 +661,11 @@ function AccountingAppContent() {
           position: 'fixed',
           top: 0, left: 0, right: 0,
           zIndex: 99999,
-          backgroundColor: syncBanner.status === 'success' ? '#00875A' : syncBanner.status === 'offline' ? '#D97706' : '#00639B',
+          backgroundColor: syncBanner.status === 'success'
+            ? 'var(--md-sys-color-income)'
+            : syncBanner.status === 'offline'
+              ? 'var(--md-sys-color-warning, #D97706)'
+              : 'var(--brand-primary)',
           color: '#FFFFFF',
           padding: '8px 16px',
           fontSize: '0.82rem',
@@ -666,14 +682,14 @@ function AccountingAppContent() {
         </div>
       )}
 
-      {/* Compact Header */}
+      {/* 1. Full-Width Top Header (Spans 100% across the top with single official logo) */}
       <Header
         activeTab={activeTab}
         setActiveTab={handleTabChange}
         showBalance={showBalance}
         toggleShowBalance={toggleShowBalance}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenSettings={() => handleTabChange('settings')}
+        onOpenProfile={() => handleTabChange('profile')}
         onOpenScanner={() => setIsScannerOpen(true)}
         isSyncing={isSyncing}
         pendingSyncCount={pendingCount}
@@ -682,14 +698,35 @@ function AccountingAppContent() {
         setIsMenuOpen={setIsNavMenuOpen}
       />
 
-      {/* Main Content Area */}
-      <main style={{
-        maxWidth: '768px',
-        width: '100%',
-        margin: '0 auto',
-        padding: '16px 16px 130px 16px',
-        flex: 1
-      }}>
+      {/* 2. Workspace Body: Desktop Sidebar (under Header) + Right Content Column */}
+      <div style={{ flex: 1, display: 'flex', width: '100%', position: 'relative' }}>
+        
+        {/* Desktop WordPress-style Sidebar (PC only >= 768px, underneath header) */}
+        <AdminSidebar
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          onOpenGasto={() => handleOpenAddTx('gasto')}
+          onOpenIngreso={() => handleOpenAddTx('ingreso')}
+          onOpenPOS={() => setIsScannerOpen(true)}
+          onOpenSettings={() => handleTabChange('settings')}
+          onOpenProfile={() => handleTabChange('profile')}
+          currentUser={getLoggedInUser()}
+          isSyncing={isSyncing}
+          pendingSyncCount={pendingCount}
+          onOpenPendingSync={() => setIsPendingSyncModalOpen(true)}
+          onToggleTheme={toggleTheme}
+          currentTheme={theme}
+        />
+
+        {/* Content Column (Centered: 768px for Inicio exception, 900px for all other tabs) */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--md-sys-color-background)' }}>
+          <main style={{
+            maxWidth: activeTab === 'quick' ? '768px' : '900px',
+            width: '100%',
+            margin: '0 auto',
+            padding: '16px clamp(12px, 3vw, 20px) 120px clamp(12px, 3vw, 20px)',
+            flex: 1
+          }}>
 
         {/* Tab 0: Quick Entry Home */}
         {activeTab === 'quick' && (
@@ -701,7 +738,7 @@ function AccountingAppContent() {
             onOpenPublicStore={() => { window.location.href = '/'; }}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
             onOpenPOS={() => setIsScannerOpen(true)}
-            onOpenShiftModal={() => setIsShiftModalOpen(true)}
+            onOpenShiftModal={() => handleTabChange('shifts')}
           />
         )}
 
@@ -766,6 +803,7 @@ function AccountingAppContent() {
             currency={db.settings.currency}
             onOpenScanner={() => setIsScannerOpen(true)}
             userRole={getLoggedInUser()?.role || 'propietario'}
+            onNavigateTab={handleTabChange}
           />
         )}
 
@@ -805,12 +843,68 @@ function AccountingAppContent() {
           />
         )}
 
-      </main>
+        {/* Tab 5: Turnos & Cierre IPV (Vista Completa Fluida en PC) */}
+        {activeTab === 'shifts' && (
+          <StoreShiftModal
+            isOpen={true}
+            embedded={true}
+            onClose={() => handleTabChange('quick')}
+            currency={db.settings.currency}
+            onOpenHistoryReport={() => handleTabChange('reports')}
+            onOpenValuationTab={() => handleTabChange('valuation')}
+          />
+        )}
 
-      {/* Floating Bottom Navigation Bar (Visible on PC & Mobile, Hidden when modal open) */}
+        {/* Tab 6: Tasaciones & Libro Oficial de Trazabilidad (Vista Completa Fluida en PC) */}
+        {activeTab === 'valuation' && (
+          <ValuationBookModal
+            isOpen={true}
+            embedded={true}
+            onClose={() => handleTabChange('store')}
+          />
+        )}
+
+        {/* Tab 7: Configuración & Ajustes del Sistema (Vista Completa Fluida en PC) */}
+        {activeTab === 'settings' && (
+          <SettingsModal
+            isOpen={true}
+            embedded={true}
+            onClose={() => handleTabChange('quick')}
+            isOnline={isOnline}
+            pendingSyncCount={pendingCount}
+            onSync={handleSync}
+            isSyncing={isSyncing}
+            theme={theme}
+            toggleTheme={toggleTheme}
+            showBalance={showBalance}
+            toggleShowBalance={toggleShowBalance}
+            onOpenRawDb={() => setIsRawDbModalOpen(true)}
+            onLogout={handleLogout}
+            onInstallPwa={handleInstallPwa}
+            canInstallPwa={!!deferredPrompt}
+            onOpenPendingSync={() => setIsPendingSyncModalOpen(true)}
+          />
+        )}
+
+        {/* Tab 8: Mi Perfil y Cuenta de Usuario (Vista Completa Fluida en PC) */}
+        {activeTab === 'profile' && (
+          <UserProfileModal
+            isOpen={true}
+            embedded={true}
+            onClose={() => handleTabChange('quick')}
+            onLogout={handleLogout}
+            currency={db.settings.currency}
+          />
+        )}
+
+      </main>
+        </div>
+      </div>
+
+      {/* Floating Bottom Navigation Bar (ONLY visible on Mobile < 768px, Hidden on Desktop and when modal open) */}
       {!isAnyModalOpen && getLoggedInUser()?.role === 'propietario' && (
         <div 
-          className="no-print"
+          className="mobile-flex no-print"
           style={{
             position: 'fixed',
             bottom: '16px',
@@ -823,7 +917,6 @@ function AccountingAppContent() {
             borderRadius: '9999px',
             padding: '6px 8px',
             boxShadow: 'var(--md-shadow-elevation-3)',
-            display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-around',
             zIndex: 90

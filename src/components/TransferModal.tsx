@@ -99,6 +99,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   };
 
   const availableSourceBalance = getAccountBalanceInCurrency(fromAccount, activeSourceCurrency);
+  const availableTargetBalance = getAccountBalanceInCurrency(toAccount, activeTargetCurrency);
   const srcSymbol = activeSourceCurrency === 'USD' ? 'US$' : '$';
   const tgtSymbol = activeTargetCurrency === 'USD' ? 'US$' : '$';
 
@@ -233,40 +234,29 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   return (
     <div
-      className="no-print"
+      className="modal-backdrop-responsive no-print"
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2200,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
+        zIndex: 2200
       }}
       onClick={onClose}
     >
       <form
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         onSubmit={isOwner ? handleExecuteTransfer : (e) => { e.preventDefault(); onClose(); }}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
           width: '100%',
+          maxWidth: '520px',
           maxHeight: '92dvh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
+          overflow: 'hidden'
         }}
       >
-        {/* Grab Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+        {/* Grab Handle (Only visible on Mobile) */}
+        <div className="mobile-only" style={{ justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
           <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
         </div>
 
@@ -782,7 +772,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </span>
         </div>
 
-        {/* Input Amount & Live Calculation Box */}
+        {/* Input Amount & Quick Chips */}
         <div>
           <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
             Monto a Debitar ({activeSourceCurrency}):
@@ -809,7 +799,100 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               textAlign: 'center'
             }}
           />
+
+          {/* Quick Amount Suggestion Chips */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+            {(activeSourceCurrency === 'USD' ? [10, 25, 50, 100] : [500, 1000, 5000, 10000]).map((chipVal) => (
+              <button
+                key={chipVal}
+                type="button"
+                onClick={() => setAmount(prev => (typeof prev === 'number' ? prev + chipVal : chipVal))}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                +{chipVal.toLocaleString('es-ES')}
+              </button>
+            ))}
+
+            {availableSourceBalance > 0 && (
+              <button
+                type="button"
+                onClick={() => setAmount(availableSourceBalance)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '9999px',
+                  border: '1px solid var(--md-sys-color-primary)',
+                  backgroundColor: 'var(--md-sys-color-primary-container)',
+                  color: 'var(--md-sys-color-on-primary-container)',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                Máx ({srcSymbol}{availableSourceBalance.toLocaleString('es-ES')})
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Live Balance Impact Preview */}
+        {numAmount > 0 && (
+          <div style={{
+            padding: '12px 14px',
+            borderRadius: '14px',
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              📊 Proyección de Saldos tras la Operación
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: isSavingsExpenseMode ? '1fr' : '1fr 1fr', gap: '8px' }}>
+              {/* Origen */}
+              <div style={{
+                padding: '8px 10px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                border: '1px solid var(--md-sys-color-outline-variant)'
+              }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                  Origen ({fromAccount})
+                </div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-expense)', marginTop: '2px' }}>
+                  {formatCurrency(availableSourceBalance, activeSourceCurrency, true)} ➔ {formatCurrency(Math.max(0, availableSourceBalance - numAmount), activeSourceCurrency, true)}
+                </div>
+              </div>
+
+              {/* Destino */}
+              {!isSavingsExpenseMode && (
+                <div style={{
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  border: '1px solid var(--md-sys-color-outline-variant)'
+                }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                    Destino ({toAccount})
+                  </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-income)', marginTop: '2px' }}>
+                    {formatCurrency(availableTargetBalance, activeTargetCurrency, true)} ➔ {formatCurrency(availableTargetBalance + calculatedTargetAmount, activeTargetCurrency, true)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Live Calculation Preview when converting */}
         {isCrossCurrencyMode && numAmount > 0 && !isSavingsExpenseMode && (

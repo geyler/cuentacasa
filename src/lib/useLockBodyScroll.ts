@@ -49,10 +49,14 @@ function setupGlobalModalListeners() {
  * Hook universal que bloquea el scroll de fondo y gestiona el botón "Atrás" del móvil
  * para que al pulsar Atrás simplemente cierre la modal activa en vez de navegar a otra página.
  */
-export function useLockBodyScroll(isOpen: boolean, onClose?: () => void) {
+export function useLockBodyScroll(isOpen: boolean, onClose?: () => void, manageHistory: boolean = true) {
   const modalIdRef = useRef<string>('');
   const onCloseRef = useRef<(() => void) | undefined>(onClose);
   onCloseRef.current = onClose;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     setupGlobalModalListeners();
@@ -66,8 +70,8 @@ export function useLockBodyScroll(isOpen: boolean, onClose?: () => void) {
       document.body.style.overflow = 'hidden';
       document.body.style.touchAction = 'none';
 
-      // 2. Registrar en la pila de modales para captura del botón Atrás
-      if (onCloseRef.current) {
+      // 2. Registrar en la pila de modales para captura del botón Atrás (si manageHistory está activo)
+      if (manageHistory && onCloseRef.current) {
         const id = 'modal_' + Math.random().toString(36).substring(2, 9);
         modalIdRef.current = id;
         modalStack.push({
@@ -130,5 +134,5 @@ export function useLockBodyScroll(isOpen: boolean, onClose?: () => void) {
         modalIdRef.current = '';
       }
     }
-  }, [isOpen]);
+  }, [isOpen, manageHistory]);
 }

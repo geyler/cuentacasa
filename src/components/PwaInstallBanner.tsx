@@ -41,7 +41,7 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onInstall, o
       transform: 'translateX(-50%)',
       width: 'calc(100% - 32px)',
       maxWidth: '440px',
-      backgroundColor: '#0F172A',
+      backgroundColor: 'var(--brand-primary-darker, #0B1528)',
       color: '#FFFFFF',
       padding: '12px 16px',
       borderRadius: '16px',
@@ -51,7 +51,7 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onInstall, o
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: '12px',
-      border: '1px solid rgba(255, 255, 255, 0.12)'
+      border: '1px solid rgba(255, 255, 255, 0.14)'
     }} className="pwa-banner no-print">
       
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -59,7 +59,7 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onInstall, o
           width: '36px',
           height: '36px',
           borderRadius: '10px',
-          backgroundColor: 'var(--md-sys-color-primary)',
+          backgroundColor: 'var(--brand-primary, #1A73E8)',
           color: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
@@ -81,7 +81,7 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onInstall, o
             padding: '7px 14px',
             borderRadius: '9999px',
             border: 'none',
-            backgroundColor: 'var(--md-sys-color-primary)',
+            backgroundColor: 'var(--brand-primary, #1A73E8)',
             color: '#FFFFFF',
             fontWeight: 800,
             fontSize: '0.78rem',

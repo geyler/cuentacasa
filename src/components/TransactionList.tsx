@@ -5,6 +5,7 @@ import { Transaction, TransactionType } from '@/types';
 import { formatCurrency, isTransactionEditable, getRemainingEditableTime } from '@/lib/invoice';
 import { getCurrencySettings } from '@/lib/storage';
 import { TransactionDetailModal } from '@/components/TransactionDetailModal';
+import { formatRecordDateTime } from '@/lib/dateUtils';
 import { 
   Search, 
   ArrowUpRight, 
@@ -285,6 +286,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             const isDeleting = deletingId === tx.id;
             const editable = isTransactionEditable(tx.createdAt);
             const remainingTime = getRemainingEditableTime(tx.createdAt);
+            const hasTicket = Boolean(
+              tx.notes?.includes('[TICKET_') ||
+              tx.concept.toLowerCase().includes('venta') ||
+              tx.category.toLowerCase().includes('venta')
+            );
 
             const scopeType = tx.accountSource || (
               (tx.category.toLowerCase().includes('tienda') || tx.category.toLowerCase().includes('proveedor') || tx.concept.toLowerCase().includes('venta pos')) ? 'tienda' : 'casa'
@@ -359,7 +365,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         {scopeLabel}
                       </span>
 
-                      {/* USD Badge */}
+                      {/* USD Badge (Unified with Secondary Brand Palette) */}
                       {tx.currency === 'USD' && (
                         <span style={{
                           display: 'inline-flex',
@@ -368,12 +374,31 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                           borderRadius: '6px',
                           fontSize: '0.65rem',
                           fontWeight: 800,
-                          backgroundColor: '#ECFEFF',
-                          color: '#0F766E',
-                          border: '1px solid #99F6E4',
+                          backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
+                          color: 'var(--brand-secondary-dark, #115E59)',
+                          border: '1px solid var(--brand-secondary-border, #99F6E4)',
                           flexShrink: 0
                         }}>
                           USD$
+                        </span>
+                      )}
+
+                      {/* Ticket POS Badge */}
+                      {hasTicket && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          backgroundColor: 'var(--brand-primary-light, #FCE7F3)',
+                          color: 'var(--brand-primary, #EC4899)',
+                          border: '1px solid var(--brand-primary-border, #FBCFE8)',
+                          flexShrink: 0
+                        }}>
+                          🧾 Ticket
                         </span>
                       )}
                     </div>
@@ -388,7 +413,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Calendar size={11} />
-                        <span>{tx.date}</span>
+                        <span>{formatRecordDateTime(tx.createdAt, tx.date)}</span>
                       </div>
 
                       {/* Category Pill */}
@@ -420,10 +445,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
                   
                   {/* Amount Badge */}
-                  <div style={{
+                  <div className="tabular-nums" style={{
                     textAlign: 'right',
                     fontSize: '0.95rem',
                     fontWeight: 800,
+                    fontVariantNumeric: 'tabular-nums',
                     color: isIncome ? 'var(--md-sys-color-income)' : 'var(--md-sys-color-expense)'
                   }}>
                     {isIncome ? '+' : '-'} {formatCurrency(tx.amount, tx.currency || currency, showBalance)}

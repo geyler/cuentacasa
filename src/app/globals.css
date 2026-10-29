@@ -111,11 +111,39 @@
 :root {
   --font-main: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   
+  /* Dynamic Brand Palette (Derived from Admin Primary Color, default #1A73E8) */
+  --brand-primary: #1A73E8;
+  --brand-primary-hover: #1557B0;
+  --brand-primary-dark: #1E3A8A;
+  --brand-primary-darker: #0B1528;
+  --brand-primary-subtle-dark: #162440;
+  --brand-primary-light: #EFF6FF;
+  --brand-primary-light-hover: #DBEAFE;
+  --brand-primary-border: #BFDBFE;
+  --brand-primary-accent: #7DD3FC;
+  --brand-on-primary-container: #1E40AF;
+
+  /* Dynamic Secondary Brand Palette (Harmonious Secondary / Admin Secondary Color, default #0D9488) */
+  --brand-secondary: #0D9488;
+  --brand-secondary-hover: #0F766E;
+  --brand-secondary-dark: #115E59;
+  --brand-secondary-darker: #042F2E;
+  --brand-secondary-light: #F0FDFA;
+  --brand-secondary-light-hover: #CCFBF1;
+  --brand-secondary-border: #99F6E4;
+  --brand-secondary-accent: #5EEAD4;
+  --brand-on-secondary-container: #0F766E;
+
   /* Material 3 / Google & Facebook Clean Unified Color System */
   --md-sys-color-primary: #1A73E8;
   --md-sys-color-on-primary: #FFFFFF;
   --md-sys-color-primary-container: #EFF6FF;
   --md-sys-color-on-primary-container: #1E40AF;
+
+  --md-sys-color-secondary: #0D9488;
+  --md-sys-color-on-secondary: #FFFFFF;
+  --md-sys-color-secondary-container: #F0FDFA;
+  --md-sys-color-on-secondary-container: #0F766E;
   
   --md-sys-color-income: #059669;
   --md-sys-color-income-container: #ECFDF5;
@@ -124,6 +152,10 @@
   --md-sys-color-expense: #DC2626;
   --md-sys-color-expense-container: #FEF2F2;
   --md-sys-color-on-expense-container: #991B1B;
+
+  --md-sys-color-warning: #D97706;
+  --md-sys-color-warning-container: #FFFBEB;
+  --md-sys-color-on-warning-container: #92400E;
 
   --md-sys-color-surface: #FFFFFF;
   --md-sys-color-on-surface: #0F172A;
@@ -146,11 +178,16 @@
 }
 
 [data-theme="dark"] {
-  /* Material 3 Dark Blue System */
+  /* Material 3 Dark Unified System */
   --md-sys-color-primary: #8AB4F8;
   --md-sys-color-on-primary: #0F172A;
   --md-sys-color-primary-container: #1E3A8A;
   --md-sys-color-on-primary-container: #DBEAFE;
+
+  --md-sys-color-secondary: #5EEAD4;
+  --md-sys-color-on-secondary: #042F2E;
+  --md-sys-color-secondary-container: #115E59;
+  --md-sys-color-on-secondary-container: #CCFBF1;
 
   --md-sys-color-income: #34D399;
   --md-sys-color-income-container: #064E3B;
@@ -159,6 +196,10 @@
   --md-sys-color-expense: #F87171;
   --md-sys-color-expense-container: #7F1D1D;
   --md-sys-color-on-expense-container: #FEE2E2;
+
+  --md-sys-color-warning: #FBBF24;
+  --md-sys-color-warning-container: #78350F;
+  --md-sys-color-on-warning-container: #FEF3C7;
 
   --md-sys-color-surface: #0F172A;
   --md-sys-color-on-surface: #F8FAFC;
@@ -182,7 +223,8 @@
 }
 
 html {
-  background-color: #FFFFFF;
+  background-color: var(--md-sys-color-surface, #FFFFFF);
+  color: var(--md-sys-color-on-surface, #0F172A);
 }
 
 body {
@@ -192,20 +234,91 @@ body {
   width: 100%;
   min-height: 100vh;
   position: relative;
-  background-color: #FFFFFF;
+  background-color: var(--md-sys-color-surface, #FFFFFF);
+  color: var(--md-sys-color-on-surface, #0F172A);
   margin: 0;
   padding: 0;
 }
 
-/* Contenedor del Sistema Interno (POS, Contabilidad, Turnos) que SIEMPRE se ve como móvil en PC */
+[data-theme="dark"] html,
+[data-theme="dark"] body {
+  background-color: var(--md-sys-color-surface) !important;
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+[data-theme="dark"] table,
+[data-theme="dark"] table th,
+[data-theme="dark"] table td {
+  color: var(--md-sys-color-on-surface);
+}
+
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+[data-theme="dark"] label {
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+[data-theme="dark"] .bottom-sheet-modal {
+  background-color: var(--md-sys-color-surface-container) !important;
+  color: var(--md-sys-color-on-surface) !important;
+}
+
+/* Contenedor del Sistema Interno (POS, Contabilidad, Turnos) adaptable Móvil y PC */
 .mobile-system-container {
-  max-width: 768px;
+  max-width: 100%;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
   min-height: 100vh;
   position: relative;
-  background-color: var(--md-sys-color-surface);
-  box-shadow: 0 0 35px rgba(0, 0, 0, 0.07);
+  background-color: var(--md-sys-color-background);
+}
+
+@media (min-width: 768px) {
+  .mobile-system-container {
+    max-width: 100%;
+    box-shadow: none;
+    border-left: none;
+    border-right: none;
+    background-color: var(--md-sys-color-background);
+  }
+}
+
+.admin-sidebar-container {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .admin-sidebar-container {
+    display: flex !important;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ERP / POS Responsive Grids for Desktop vs Mobile */
+.erp-desktop-split {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .erp-desktop-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .hero-grid-desktop {
+    grid-template-columns: 1.25fr 0.75fr !important;
+    gap: 40px !important;
+  }
 }
 
 /* Skeleton Loading Shimmer Effect */
@@ -401,12 +514,12 @@ body {
   }
 }
 
-/* Tarjeta de Producto con Micro-interacciones de Escritorio */
+/* Tarjeta de Producto con Micro-interacciones de Escritorio y Radio Concéntrico */
 .store-product-card {
   background: #FFFFFF;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid #F1F5F9;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
   overflow: hidden;
   display: flex;
@@ -418,12 +531,12 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .store-product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 14px 30px rgba(26, 115, 232, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
-    border-color: var(--md-sys-color-primary);
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px color-mix(in srgb, var(--brand-primary) 14%, transparent), 0 4px 12px rgba(15, 23, 42, 0.06);
+    border-color: var(--brand-primary);
   }
   .store-product-card:hover .store-product-img {
-    transform: scale(1.06);
+    transform: scale(1.05);
   }
 }
 
@@ -494,12 +607,107 @@ body {
     padding: 24px !important;
   }
   .product-modal-content {
-    max-width: 820px !important;
+    max-width: 900px !important;
     max-height: 90vh !important;
     border-radius: 26px !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25) !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28) !important;
     border: 1px solid rgba(255, 255, 255, 0.18) !important;
     overflow: hidden !important;
+  }
+}
+
+.product-modal-body-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .product-modal-body-grid {
+    grid-template-columns: minmax(300px, 420px) 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.marketplace-cat-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .marketplace-cat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  }
+}
+
+/* Responsive Layout: Categorías en tira horizontal con scroll-snap en móvil y cuadrícula en PC */
+.marketplace-cat-layout {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.marketplace-cat-layout > .marketplace-cat-card {
+  min-width: 148px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 768px) {
+  .marketplace-cat-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(162px, 1fr));
+    gap: 12px;
+    overflow-x: visible;
+    padding-bottom: 0;
+    scroll-snap-type: none;
+  }
+  .marketplace-cat-layout > .marketplace-cat-card {
+    min-width: 0;
+  }
+}
+
+/* Responsive Layout: Secciones sueltas en móvil vs. enmarcadas en PC */
+.marketplace-section-box {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.marketplace-featured-box {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+@media (min-width: 768px) {
+  .marketplace-section-box {
+    background-color: #FFFFFF;
+    border-radius: 24px;
+    border: 1px solid #E2E8F0;
+    padding: 22px 20px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.03);
+  }
+  .marketplace-featured-box {
+    background: linear-gradient(180deg, var(--brand-primary-light, #EFF6FF) 0%, #FFFFFF 100%);
+    border: 1px solid var(--brand-primary-border, #BFDBFE);
+    border-radius: 24px;
+    padding: 24px 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
   }
 }
 
@@ -516,9 +724,20 @@ body {
   }
 }
 
-/* Strict Bottom Sheet Modal Container (Straight bottom corners 0 0, rounded top 28px 28px) */
+@keyframes fadeInModalCenter {
+  from {
+    transform: scale(0.96) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Bottom Sheet on Mobile (< 768px) & Centered Dialog on PC (>= 768px) */
 .bottom-sheet-modal {
-  animation: slideUpModal 0.28s cubic-bezier(0.1, 0.9, 0.2, 1) !important;
+  animation: slideUpModal 0.26s cubic-bezier(0.16, 1, 0.3, 1);
   border-top-left-radius: 28px !important;
   border-top-right-radius: 28px !important;
   border-bottom-left-radius: 0px !important;
@@ -528,9 +747,189 @@ body {
   border-bottom: none !important;
   padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
   width: 100% !important;
-  max-width: 768px !important;
+  max-width: 900px;
   margin-left: auto !important;
   margin-right: auto !important;
+}
+
+@media (min-width: 768px) {
+  .bottom-sheet-modal {
+    border-radius: 24px !important;
+    margin: auto !important;
+    margin-bottom: auto !important;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant) !important;
+    max-width: 900px;
+    padding-bottom: 24px !important;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24) !important;
+    animation: fadeInModalCenter 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .modal-tier-compact {
+    max-width: 520px !important;
+  }
+  .modal-tier-medium {
+    max-width: 640px !important;
+  }
+  .modal-tier-large {
+    max-width: 900px !important;
+  }
+  .modal-drag-handle {
+    display: none !important;
+  }
+  .pos-modal-window {
+    width: 100% !important;
+    max-width: 900px !important;
+    height: 92dvh !important;
+    max-height: 92dvh !important;
+    border-radius: 24px !important;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28) !important;
+    border: 1px solid var(--md-sys-color-outline-variant) !important;
+    animation: fadeInModalCenter 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+}
+
+.pos-modal-window {
+  width: 100%;
+  height: 100dvh;
+}
+
+/* Responsive Modal Backdrop for PC Centering & Mobile Bottom Sheets */
+.modal-backdrop-responsive {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(4px);
+  z-index: 2500;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .modal-backdrop-responsive {
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 24px !important;
+  }
+}
+
+/* Responsive Action Feedback Dialog & Floating Toast System */
+.feedback-backdrop-responsive {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+}
+
+.feedback-dialog-responsive {
+  width: 100%;
+  max-height: 85dvh;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
+}
+
+@media (min-width: 768px) {
+  .feedback-backdrop-responsive {
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 24px !important;
+  }
+  .feedback-dialog-responsive {
+    max-width: 480px !important;
+    border-radius: 24px !important;
+    animation: popInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28) !important;
+    border: 1px solid var(--md-sys-color-outline-variant) !important;
+  }
+}
+
+/* Floating Toast System (Corner on PC, Floating Bottom Card on Mobile) */
+.feedback-toast-container {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+  z-index: 100005;
+  animation: slideUpToast 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.feedback-toast-card {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 18px;
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+@media (min-width: 768px) {
+  .feedback-toast-container {
+    bottom: 24px !important;
+    right: 24px !important;
+    left: auto !important;
+    width: 400px !important;
+    max-width: calc(100vw - 48px) !important;
+    animation: slideInToast 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    justify-content: flex-end !important;
+  }
+}
+
+@keyframes slideInToast {
+  from {
+    transform: translateX(115%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUpToast {
+  from {
+    transform: translateY(115%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes popInModal {
+  from {
+    transform: scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes toastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 
 
@@ -557,30 +956,24 @@ body {
   color: var(--md-sys-color-on-surface);
   font-size: 1.15rem;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   outline: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Input Spotlight Focus & Immersive Blur Styles */
-.input-spotlight-dimmed {
-  opacity: 0.3 !important;
-  filter: blur(3.5px) !important;
-  transition: opacity 0.25s ease, filter 0.25s ease !important;
-}
-
-.input-spotlight-active {
-  opacity: 1 !important;
-  filter: none !important;
-  z-index: 105 !important;
-  transition: opacity 0.25s ease, filter 0.25s ease !important;
-}
-
-input:focus, select:focus, textarea:focus, .input-spotlight:focus {
+/* Clean Input Focus & Outline Styles */
+input:focus, select:focus, textarea:focus {
   border-color: var(--md-sys-color-primary) !important;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.25), 0 8px 24px rgba(0,0,0,0.12) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 24%, transparent) !important;
+  outline: none !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.input-spotlight:focus {
+  border-color: var(--md-sys-color-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 24%, transparent), 0 8px 24px rgba(0,0,0,0.12) !important;
   position: relative !important;
   z-index: 100 !important;
-  transform: translateY(-2px);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -634,7 +1027,7 @@ input:focus, select:focus, textarea:focus, .input-spotlight:focus {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(26, 115, 232, 0.4) !important;
+  background: color-mix(in srgb, var(--brand-primary) 45%, transparent) !important;
 }
 
 * {

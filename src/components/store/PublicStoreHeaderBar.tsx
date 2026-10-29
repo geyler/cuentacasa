@@ -1,255 +1,1014 @@
 'use client';
 
-import React from 'react';
-import { ShoppingBag, Lock, Search, MessageCircle, MapPin, X } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  ShoppingBag,
+  Search,
+  MessageCircle,
+  X,
+  Layers,
+  CheckCircle2,
+  HelpCircle,
+  Truck,
+  Menu,
+  ChevronRight,
+  Sparkles,
+  LayoutDashboard,
+  LogIn,
+  User
+} from 'lucide-react';
 import { formatCurrency } from '@/lib/invoice';
+import { getCategoryVisualMeta } from '@/lib/seoHelper';
+import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+import { getStoreCustomizationSettings, StoreCustomizationSettings } from '@/lib/storage';
+
+export interface CategoryStatItem {
+  name: string;
+  count: number;
+  thumbnailUrl?: string;
+}
 
 interface PublicStoreHeaderBarProps {
   totalCartCount: number;
   totalCartPrice?: number;
+  cartDisplayCurrency?: 'CUP' | 'USD';
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   isUserLoggedIn: boolean;
   onResetFilters: () => void;
   searchTerm?: string;
   setSearchTerm?: (term: string) => void;
+  selectedCategory?: string;
+  onSelectCategory?: (cat: string) => void;
+  categories?: CategoryStatItem[];
+  onlyInStock?: boolean;
+  setOnlyInStock?: (val: boolean) => void;
+  displayCurrency?: 'CUP' | 'USD';
+  onToggleDisplayCurrency?: (curr: 'CUP' | 'USD') => void;
+  showCurrencySelector?: boolean;
+  exchangeRateUSD?: number;
   onWhatsAppClick?: () => void;
+  onFeaturedClick?: () => void;
+  onHowToBuyClick?: () => void;
 }
 
 export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
   totalCartCount,
   totalCartPrice = 0,
+  cartDisplayCurrency = 'CUP',
   isCartOpen,
   setIsCartOpen,
   isUserLoggedIn,
   onResetFilters,
   searchTerm = '',
   setSearchTerm,
-  onWhatsAppClick
+  selectedCategory = 'todas',
+  onSelectCategory,
+  categories = [],
+  onlyInStock = false,
+  setOnlyInStock,
+  displayCurrency = 'CUP',
+  onToggleDisplayCurrency,
+  showCurrencySelector = false,
+  exchangeRateUSD = 320,
+  onWhatsAppClick,
+  onFeaturedClick,
+  onHowToBuyClick
 }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCategoryBarVisible, setIsCategoryBarVisible] = useState(true);
+  const [customization, setCustomization] = useState(() => getStoreCustomizationSettings());
+
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail) {
+        setCustomization(e.detail);
+      } else {
+        setCustomization(getStoreCustomizationSettings());
+      }
+    };
+    window.addEventListener('cuentacasa-store-customization-changed', handler);
+    return () => window.removeEventListener('cuentacasa-store-customization-changed', handler);
+  }, []);
+
+  useLockBodyScroll(isMobileMenuOpen, () => setIsMobileMenuOpen(false));
+
+  React.useEffect(() => {
+    let lastScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    let ticking = false;
+    const SCROLL_THRESHOLD = 25; // Distancia mínima de desplazamiento para cambiar de dirección (evita pestañeo y rebotes)
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentY = window.scrollY;
+
+          // Cerca de la parte superior: mantener la barra siempre visible
+          if (currentY <= 60) {
+            setIsCategoryBarVisible(true);
+            lastScrollY = currentY;
+            ticking = false;
+            return;
+          }
+
+          const diff = currentY - lastScrollY;
+
+          // Solo alternar si el usuario se ha desplazado más del umbral con un gesto decisivo
+          if (diff > SCROLL_THRESHOLD && currentY > 100) {
+            // Scroll deliberado hacia abajo -> ocultar barra de categorías para ganar pantalla
+            setIsCategoryBarVisible(false);
+            lastScrollY = currentY;
+          } else if (diff < -SCROLL_THRESHOLD) {
+            // Scroll deliberado hacia arriba -> mostrar inmediatamente
+            setIsCategoryBarVisible(true);
+            lastScrollY = currentY;
+          }
+
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header style={{
-      backgroundColor: 'rgba(255, 255, 255, 0.96)',
-      backdropFilter: 'blur(16px)',
-      color: '#1E293B',
-      borderBottom: '1px solid #F1F5F9',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
-    }}>
-      <div className="store-container" style={{
-        paddingTop: '10px',
-        paddingBottom: '10px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '20px'
+    <>
+      <header style={{
+        backgroundColor: 'var(--brand-primary-darker, #0B1528)',
+        color: '#FFFFFF',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        boxShadow: '0 6px 24px rgba(15, 23, 42, 0.2)'
       }}>
-        {/* Left: Logo & Brand Name */}
-        <div 
-          onClick={onResetFilters}
-          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flexShrink: 0 }}
-        >
-          <img 
-            src="/images/logo-nav.png" 
-            alt="Samy Store" 
-            style={{ height: '46px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} 
-          />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 className="font-logo-script" style={{ fontSize: '1.95rem', fontWeight: 900, color: '#0F172A', lineHeight: '1', margin: 0 }}>
-                Samy Store
-              </h1>
-              <span className="desktop-only" style={{
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                color: 'var(--md-sys-color-primary)',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                letterSpacing: '0.02em'
-              }}>
-                OFICIAL
-              </span>
+        {/* NIVEL 1: Barra Principal */}
+        <div style={{
+          backgroundColor: 'var(--brand-primary-darker, #0B1528)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          <div className="store-container" style={{
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px'
+            }}>
+              {/* Izquierda: Botón Menú Móvil (☰) + Logo + Ubicación (Solo PC) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  className="mobile-flex"
+                  aria-label="Abrir menú de navegación"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    color: '#FFFFFF',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    padding: 0,
+                    flexShrink: 0
+                  }}
+                >
+                  <Menu size={20} />
+                </button>
+
+                <div
+                  onClick={onResetFilters}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                >
+                  {customization.logoMode === 'wide_logo' ? (
+                    <img
+                      src={customization.logoWideUrl || customization.logoSquareUrl || '/images/logo-nav.png'}
+                      alt={customization.storeName}
+                      style={{
+                        maxHeight: '38px',
+                        maxWidth: '220px',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {(customization.logoMode === 'both' || customization.logoMode === 'logo_only') && (
+                        <div style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '10px',
+                          backgroundColor: '#FFFFFF',
+                          padding: '3px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                          flexShrink: 0
+                        }}>
+                          <img
+                            src={customization.logoSquareUrl || '/images/logo-nav.png'}
+                            alt={customization.storeName}
+                            style={{ height: '100%', width: '100%', objectFit: 'contain' }}
+                          />
+                        </div>
+                      )}
+                      {(customization.logoMode === 'both' || customization.logoMode === 'text_only') && (
+                        <h1 className="font-logo-script" style={{ fontSize: '1.7rem', fontWeight: 900, color: '#FFFFFF', lineHeight: '1', margin: 0 }}>
+                          {customization.storeName}
+                        </h1>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Centro (Solo PC): Buscador Integrado con Selector de Categoría */}
+              {setSearchTerm && (
+                <div className="desktop-only" style={{ flex: 1, maxWidth: '640px', margin: '0 12px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: '9999px',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.18)'
+                  }}>
+                    {onSelectCategory && categories.length > 0 && (
+                      <select
+                        aria-label="Filtrar por categoría"
+                        value={selectedCategory}
+                        onChange={e => onSelectCategory(e.target.value)}
+                        style={{
+                          backgroundColor: '#F1F5F9',
+                          color: '#334155',
+                          border: 'none',
+                          borderRight: '1px solid #E2E8F0',
+                          padding: '11px 12px 11px 16px',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          outline: 'none',
+                          maxWidth: '150px',
+                          textTransform: 'capitalize'
+                        }}
+                      >
+                        <option value="todas">Todos ({categories.reduce((acc, c) => acc + c.count, 0)})</option>
+                        {categories.map(cat => (
+                          <option key={`hdr-sel-${cat.name}`} value={cat.name}>
+                            {cat.name} ({cat.count})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                      <input
+                        id="store-desktop-search-input"
+                        type="text"
+                        placeholder="Buscar productos, marcas y categorías en Samy Store..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 36px 10px 16px',
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          color: '#0F172A',
+                          fontSize: '0.9rem',
+                          fontWeight: 600,
+                          outline: 'none'
+                        }}
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          title="Limpiar búsqueda"
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            background: '#E2E8F0',
+                            border: 'none',
+                            color: '#475569',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '9999px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      aria-label="Buscar"
+                      style={{
+                        backgroundColor: 'var(--brand-primary, #1A73E8)',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '10px 18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontWeight: 900
+                      }}
+                    >
+                      <Search size={19} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Derecha: Moneda CUP/USD (solo si hay productos en doble moneda), WhatsApp (PC), Carrito y Admin (PC) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                {/* Selector Moneda CUP / USD */}
+                {showCurrencySelector && onToggleDisplayCurrency && (
+                  <div
+                    title={`Tasa activa: 1 USD = ${exchangeRateUSD} CUP`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      padding: '3px',
+                      borderRadius: '9999px',
+                      border: '1px solid rgba(255, 255, 255, 0.16)'
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onToggleDisplayCurrency('CUP')}
+                      style={{
+                        border: 'none',
+                        borderRadius: '9999px',
+                        padding: '4px 9px',
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        backgroundColor: displayCurrency === 'CUP' ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                        color: '#FFFFFF',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      CUP
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onToggleDisplayCurrency('USD')}
+                      style={{
+                        border: 'none',
+                        borderRadius: '9999px',
+                        padding: '4px 9px',
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        backgroundColor: displayCurrency === 'USD' ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                        color: '#FFFFFF',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      USD
+                    </button>
+                  </div>
+                )}
+
+                {/* Contacto Directo WhatsApp (Solo PC) */}
+                {onWhatsAppClick && (
+                  <button
+                    onClick={onWhatsAppClick}
+                    className="desktop-flex"
+                    title="Atención y pedidos por WhatsApp"
+                    style={{
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      borderRadius: '9999px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      color: '#FFFFFF',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <MessageCircle size={15} style={{ color: 'var(--brand-primary-accent, #7DD3FC)' }} />
+                    <span>WhatsApp</span>
+                  </button>
+                )}
+
+                {/* Botón de Carrito */}
+                <button
+                  onClick={() => setIsCartOpen(!isCartOpen)}
+                  title="Ver Carrito de Compras"
+                  style={{
+                    position: 'relative',
+                    padding: '8px 14px',
+                    borderRadius: '9999px',
+                    border: '1px solid rgba(255, 255, 255, 0.24)',
+                    backgroundColor: totalCartCount > 0
+                      ? 'var(--brand-primary, #1A73E8)'
+                      : 'rgba(255, 255, 255, 0.12)',
+                    color: '#FFFFFF',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <ShoppingBag size={18} strokeWidth={2.3} />
+                    {totalCartCount > 0 && (
+                      <span style={{
+                        position: 'absolute',
+                        top: '-7px',
+                        right: '-9px',
+                        backgroundColor: '#FFFFFF',
+                        color: 'var(--brand-primary-darker, #0B1528)',
+                        minWidth: '18px',
+                        height: '18px',
+                        padding: '0 4px',
+                        borderRadius: '9999px',
+                        fontSize: '0.68rem',
+                        fontWeight: 900,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+                      }}>
+                        {totalCartCount}
+                      </span>
+                    )}
+                  </div>
+
+                  {totalCartCount > 0 ? (
+                    <span className="desktop-only" style={{ fontSize: '0.84rem', fontWeight: 900, marginLeft: '4px' }}>
+                      {formatCurrency(totalCartPrice, cartDisplayCurrency, true)}{' '}
+                      <span style={{ fontSize: '0.68rem', opacity: 0.9 }}>{cartDisplayCurrency}</span>
+                    </span>
+                  ) : (
+                    <span className="desktop-only" style={{ fontSize: '0.82rem', fontWeight: 800 }}>
+                      Carrito
+                    </span>
+                  )}
+                </button>
+
+                {/* Acceso al Sistema ERP / Iniciar Sesión (Sin candado, claro y accesible) */}
+                <a
+                  href="/app"
+                  title={isUserLoggedIn ? 'Ir al Panel Administrativo' : 'Iniciar Sesión / Acceso'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '9999px',
+                    border: '1px solid rgba(255, 255, 255, 0.28)',
+                    backgroundColor: isUserLoggedIn ? 'var(--brand-primary, #1A73E8)' : 'rgba(255, 255, 255, 0.14)',
+                    color: '#FFFFFF',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    textDecoration: 'none',
+                    backdropFilter: 'blur(8px)',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.18s ease'
+                  }}
+                >
+                  {isUserLoggedIn ? <LayoutDashboard size={15} /> : <LogIn size={15} />}
+                  <span>{isUserLoggedIn ? 'Ir al Panel' : 'Acceder'}</span>
+                </a>
+              </div>
             </div>
-            <div className="desktop-flex" style={{ alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-              <MapPin size={11} color="#94A3B8" />
-              <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>
-                Las Tunas, Cuba • Tienda Online
-              </span>
-            </div>
+
+            {/* Buscador Integrado Móvil */}
+            {setSearchTerm && (
+              <div className="mobile-only" style={{ width: '100%' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '9999px',
+                  overflow: 'hidden',
+                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)'
+                }}>
+                  <Search size={17} style={{ marginLeft: '14px', flexShrink: 0, color: 'var(--brand-primary, #1A73E8)' }} />
+                  <input
+                    id="store-hero-search-input"
+                    type="text"
+                    placeholder="Buscar en Samy Store..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: '#0F172A',
+                      fontSize: '0.86rem',
+                      fontWeight: 700,
+                      outline: 'none'
+                    }}
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      style={{
+                        background: '#E2E8F0',
+                        border: 'none',
+                        color: '#475569',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '9999px',
+                        marginRight: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        flexShrink: 0
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Center (Desktop Only): Modern Search Bar estilo Qubazar */}
-        {setSearchTerm && (
-          <div className="desktop-only" style={{ flex: 1, maxWidth: '560px', margin: '0 16px' }}>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <Search 
-                size={19} 
-                style={{
-                  position: 'absolute',
-                  left: '16px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--md-sys-color-primary)'
-                }} 
-              />
-              <input
-                type="text"
-                placeholder="¿Qué estás buscando? Ej. Arroz, Aceite, Harina, Café..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '11px 40px 11px 46px',
-                  borderRadius: '9999px',
-                  border: '1.5px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface-container)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  fontSize: '0.92rem',
-                  fontWeight: 600,
-                  outline: 'none',
-                  transition: 'all 0.2s ease'
+        {/* NIVEL 2: Sub-barra de Categorías (Auto-ocultable dinámicamente al hacer scroll para ahorrar espacio) */}
+        <div style={{
+          backgroundColor: 'var(--brand-primary-subtle-dark, #162440)',
+          borderBottom: isCategoryBarVisible ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+          maxHeight: isCategoryBarVisible ? '50px' : '0px',
+          opacity: isCategoryBarVisible ? 1 : 0,
+          overflow: 'hidden',
+          transition: 'max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, border-bottom 0.2s ease',
+          pointerEvents: isCategoryBarVisible ? 'auto' : 'none'
+        }}>
+          <div
+            className="store-container no-scrollbar"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              overflowX: 'auto',
+              paddingTop: '6px',
+              paddingBottom: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onSelectCategory) onSelectCategory('todas');
+                  if (setSearchTerm) setSearchTerm('');
                 }}
-              />
-              {searchTerm && (
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '5px 12px',
+                  borderRadius: '9999px',
+                  border: selectedCategory === 'todas' ? '1px solid var(--brand-primary-accent, #7DD3FC)' : '1px solid rgba(255,255,255,0.12)',
+                  backgroundColor: selectedCategory === 'todas' ? 'var(--brand-primary, #1A73E8)' : 'rgba(255, 255, 255, 0.06)',
+                  color: '#FFFFFF',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <Layers size={13} />
+                <span>Todas</span>
+              </button>
+
+              {setOnlyInStock && (
                 <button
-                  onClick={() => setSearchTerm('')}
-                  title="Limpiar búsqueda"
+                  type="button"
+                  onClick={() => setOnlyInStock(!onlyInStock)}
+                  className="desktop-flex"
                   style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: '#F1F5F9',
-                    border: 'none',
-                    color: '#64748B',
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '9999px',
-                    display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    gap: '5px',
+                    padding: '5px 11px',
+                    borderRadius: '9999px',
+                    border: onlyInStock ? '1px solid var(--brand-primary-accent, #7DD3FC)' : '1px solid rgba(255,255,255,0.12)',
+                    backgroundColor: onlyInStock ? 'var(--brand-primary, #1A73E8)' : 'rgba(255, 255, 255, 0.06)',
+                    color: '#FFFFFF',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
                     cursor: 'pointer'
                   }}
                 >
-                  <X size={14} />
+                  <CheckCircle2 size={13} />
+                  <span>En Stock</span>
+                </button>
+              )}
+
+              {categories.map(cat => {
+                const isSelected = selectedCategory === cat.name;
+                return (
+                  <button
+                    key={`subnav-cat-${cat.name}`}
+                    type="button"
+                    onClick={() => {
+                      if (onSelectCategory) onSelectCategory(cat.name);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 12px',
+                      borderRadius: '9999px',
+                      border: isSelected ? '1px solid var(--brand-primary-accent, #7DD3FC)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      backgroundColor: isSelected ? 'var(--brand-primary, #1A73E8)' : 'rgba(255, 255, 255, 0.05)',
+                      color: '#FFFFFF',
+                      fontSize: '0.75rem',
+                      fontWeight: isSelected ? 800 : 700,
+                      cursor: 'pointer',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    <span>{cat.name}</span>
+                    <span style={{
+                      fontSize: '0.65rem',
+                      opacity: 0.8,
+                      backgroundColor: 'rgba(255,255,255,0.14)',
+                      padding: '0 5px',
+                      borderRadius: '9999px'
+                    }}>
+                      {cat.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Enlaces Rápidos Derecha (Solo PC) */}
+            <div className="desktop-flex" style={{ alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.74rem', color: '#CBD5E1', fontWeight: 700 }}>
+                <Truck size={13} style={{ color: 'var(--brand-primary-accent, #7DD3FC)' }} />
+                Envíos a Domicilio
+              </span>
+              {onHowToBuyClick && (
+                <button
+                  type="button"
+                  onClick={onHowToBuyClick}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--brand-primary-accent, #7DD3FC)',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <HelpCircle size={13} />
+                  <span>¿Cómo comprar?</span>
                 </button>
               )}
             </div>
           </div>
-        )}
+        </div>
+      </header>
 
-        {/* Right Actions: WhatsApp Contact, Cart Button, Login */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-          
-          {/* Desktop WhatsApp Direct Contact */}
-          {onWhatsAppClick && (
-            <button
-              onClick={onWhatsAppClick}
-              className="desktop-flex"
-              title="Contactar o hacer pedidos por WhatsApp"
-              style={{
-                alignItems: 'center',
-                gap: '8px',
-                padding: '9px 16px',
-                borderRadius: '9999px',
-                backgroundColor: '#ECFDF5',
-                border: '1px solid #A7F3D0',
-                color: '#065F46',
-                fontWeight: 800,
-                fontSize: '0.84rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <MessageCircle size={16} color="#059669" />
-              <span>WhatsApp Pedidos</span>
-            </button>
-          )}
-
-          {/* Cart Button with Counter and Subtotal on PC */}
-          <button
-            onClick={() => setIsCartOpen(!isCartOpen)}
-            title="Ver Carrito de Compras"
+      {/* MENÚ LATERAL MÓVIL (DRAWER ☰) — Oculta opciones secundarias en pantallas pequeñas */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 2700,
+            display: 'flex'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
             style={{
-              position: 'relative',
-              padding: totalCartCount > 0 ? '8px 16px' : '9px 14px',
-              borderRadius: '9999px',
-              border: 'none',
-              background: 'var(--md-sys-color-primary)',
-              color: '#FFFFFF',
-              fontWeight: 800,
-              cursor: 'pointer',
+              width: '84%',
+              maxWidth: '320px',
+              height: '100%',
+              backgroundColor: '#FFFFFF',
+              color: '#0F172A',
               display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px rgba(26, 115, 232, 0.35)',
-              transition: 'all 0.2s ease'
+              flexDirection: 'column',
+              boxShadow: '12px 0 36px rgba(0, 0, 0, 0.28)',
+              overflowY: 'auto'
             }}
           >
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <ShoppingBag size={20} />
-              {totalCartCount > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-8px',
-                  right: '-10px',
-                  backgroundColor: '#DC2626',
+            {/* Cabecera del Menú Lateral */}
+            <div style={{
+              backgroundColor: 'var(--brand-primary-darker, #0B1528)',
+              color: '#FFFFFF',
+              padding: '18px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {customization.logoMode === 'wide_logo' ? (
+                  <img
+                    src={customization.logoWideUrl || customization.logoSquareUrl || '/images/logo-nav.png'}
+                    alt={customization.storeName}
+                    style={{ maxHeight: '34px', maxWidth: '180px', objectFit: 'contain' }}
+                  />
+                ) : (
+                  <>
+                    {(customization.logoMode === 'both' || customization.logoMode === 'logo_only') && (
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        backgroundColor: '#FFFFFF',
+                        padding: '3px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <img src={customization.logoSquareUrl || '/images/logo-nav.png'} alt={customization.storeName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      </div>
+                    )}
+                    {(customization.logoMode === 'both' || customization.logoMode === 'text_only') && (
+                      <div className="font-logo-script" style={{ fontSize: '1.5rem', fontWeight: 900, lineHeight: 1 }}>
+                        {customization.storeName}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  border: 'none',
                   color: '#FFFFFF',
-                  minWidth: '20px',
-                  height: '20px',
-                  padding: '0 4px',
-                  borderRadius: '9999px',
-                  fontSize: '0.72rem',
-                  fontWeight: 900,
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
-                }}>
-                  {totalCartCount}
-                </span>
-              )}
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {totalCartCount > 0 ? (
-              <span className="desktop-only" style={{ fontSize: '0.85rem', fontWeight: 900, marginLeft: '4px' }}>
-                {formatCurrency(totalCartPrice, '$', true)} <span style={{ fontSize: '0.7rem', opacity: 0.9 }}>CUP</span>
-              </span>
-            ) : (
-              <span className="desktop-only" style={{ fontSize: '0.85rem', fontWeight: 800 }}>
-                Carrito
-              </span>
-            )}
-          </button>
+            {/* Contenido del Menú Móvil */}
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', flex: 1 }}>
+              {/* Filtros Rápidos */}
+              <div>
+                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+                  Exploración Rápida
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onResetFilters();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid #E2E8F0',
+                      backgroundColor: selectedCategory === 'todas' ? 'var(--brand-primary-light, #EFF6FF)' : '#F8FAFC',
+                      color: '#0F172A',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Layers size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
+                      Todo el Catálogo
+                    </span>
+                    <ChevronRight size={15} color="#94A3B8" />
+                  </button>
 
-          {/* Dashboard Access Link (Only if Logged In) */}
-          {isUserLoggedIn && (
-            <a
-              href="/app"
-              title="Ir al Sistema Contable"
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '9999px',
-                border: '1px solid #E2E8F0',
-                backgroundColor: '#F8FAFC',
-                color: '#475569',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textDecoration: 'none',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
-              }}
-            >
-              <Lock size={18} />
-            </a>
-          )}
+                  {onFeaturedClick && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        onFeaturedClick();
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        border: '1px solid #E2E8F0',
+                        backgroundColor: '#F8FAFC',
+                        color: '#0F172A',
+                        fontWeight: 800,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
+                        Productos Destacados
+                      </span>
+                      <ChevronRight size={15} color="#94A3B8" />
+                    </button>
+                  )}
+
+                  {setOnlyInStock && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOnlyInStock(!onlyInStock);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        border: onlyInStock ? '1.5px solid var(--brand-primary, #1A73E8)' : '1px solid #E2E8F0',
+                        backgroundColor: onlyInStock ? 'var(--brand-primary-light, #EFF6FF)' : '#F8FAFC',
+                        color: '#0F172A',
+                        fontWeight: 800,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CheckCircle2 size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
+                        Solo Disponibles en Stock
+                      </span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--brand-primary, #1A73E8)' }}>
+                        {onlyInStock ? 'ACTIVO' : 'FILTRAR'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Categorías del Inventario */}
+              {categories.length > 0 && (
+                <div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+                    Categorías ({categories.length})
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {categories.map(cat => {
+                      const meta = getCategoryVisualMeta(cat.name);
+                      const isSel = selectedCategory === cat.name;
+                      return (
+                        <button
+                          key={`mob-drawer-cat-${cat.name}`}
+                          type="button"
+                          onClick={() => {
+                            if (onSelectCategory) onSelectCategory(cat.name);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '9px 12px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            backgroundColor: isSel ? 'var(--brand-primary-light, #EFF6FF)' : 'transparent',
+                            color: isSel ? 'var(--brand-primary, #1A73E8)' : '#334155',
+                            fontWeight: isSel ? 900 : 700,
+                            fontSize: '0.84rem',
+                            cursor: 'pointer',
+                            textTransform: 'capitalize'
+                          }}
+                        >
+                          <span>{meta.emoji} {cat.name}</span>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            backgroundColor: '#F1F5F9',
+                            color: '#475569',
+                            padding: '2px 7px',
+                            borderRadius: '9999px',
+                            fontWeight: 800
+                          }}>
+                            {cat.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Ayuda y Administración */}
+              <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {onHowToBuyClick && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      onHowToBuyClick();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
+                      color: '#0F172A',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <HelpCircle size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
+                    <span>¿Cómo comprar en Samy Store?</span>
+                  </button>
+                )}
+
+                {onWhatsAppClick && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      onWhatsAppClick();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--brand-primary-border, #BFDBFE)',
+                      backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                      color: 'var(--brand-primary-dark, #1E3A8A)',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <MessageCircle size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
+                    <span>Atención por WhatsApp</span>
+                  </button>
+                )}
+
+                <a
+                  href="/app"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0',
+                    backgroundColor: '#FFFFFF',
+                    color: '#475569',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    textDecoration: 'none'
+                  }}
+                >
+                  {isUserLoggedIn ? <LayoutDashboard size={16} /> : <LogIn size={16} />}
+                  <span>{isUserLoggedIn ? 'Ir al Panel de Administración' : 'Acceder / Iniciar Sesión'}</span>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </header>
+      )}
+    </>
   );
 };

@@ -37,42 +37,31 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
 
   const adminPhone = getStoreWhatsappNumber() || '5351234567';
   const cleanPhone = adminPhone.replace(/\D/g, '');
-  const formattedWaUrl = cleanPhone.length === 8 ? `https://wa.me/+53${cleanPhone}` : `https://wa.me/+${cleanPhone}`;
+  const formattedWaUrl = cleanPhone.length === 8 ? `https://wa.me/53${cleanPhone}` : `https://wa.me/${cleanPhone}`;
 
   return (
     <div
+      className="modal-backdrop-responsive no-print"
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2000,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
+        zIndex: 2000
       }}
-      className="no-print"
       onClick={onClose}
     >
       <div
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
+          maxWidth: '520px',
           maxHeight: '92dvh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
+          overflow: 'hidden'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+        <div className="mobile-only" style={{ justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
           <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
         </div>
         {/* Modal Header Bar */}
@@ -107,8 +96,9 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
                 <span style={{
                   fontSize: '0.68rem',
                   fontWeight: 900,
-                  backgroundColor: '#DCFCE7',
-                  color: '#15803D',
+                  backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                  color: 'var(--brand-primary-dark, #1E3A8A)',
+                  border: '1px solid var(--brand-primary-border, #BFDBFE)',
                   padding: '2px 8px',
                   borderRadius: '9999px',
                   display: 'inline-flex',
@@ -263,7 +253,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
               </div>
 
               <div style={{ padding: '12px', borderRadius: '14px', border: '1px solid var(--md-sys-color-outline-variant)', backgroundColor: 'var(--md-sys-color-surface)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#059669', fontWeight: 900, fontSize: '0.88rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--brand-primary, #1A73E8)', fontWeight: 900, fontSize: '0.88rem' }}>
                   <Lock size={18} /> Control de Turnos & Arqueo
                 </div>
                 <p style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, lineHeight: '1.35' }}>
@@ -272,7 +262,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
               </div>
 
               <div style={{ padding: '12px', borderRadius: '14px', border: '1px solid var(--md-sys-color-outline-variant)', backgroundColor: 'var(--md-sys-color-surface)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#25D366', fontWeight: 900, fontSize: '0.88rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--brand-primary, #1A73E8)', fontWeight: 900, fontSize: '0.88rem' }}>
                   <MessageCircle size={18} /> Catálogo WhatsApp & SEO Local
                 </div>
                 <p style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, lineHeight: '1.35' }}>
@@ -281,7 +271,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
               </div>
 
               <div style={{ padding: '12px', borderRadius: '14px', border: '1px solid var(--md-sys-color-outline-variant)', backgroundColor: 'var(--md-sys-color-surface)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: '#3B82F6', fontWeight: 900, fontSize: '0.88rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', color: 'var(--brand-primary, #1A73E8)', fontWeight: 900, fontSize: '0.88rem' }}>
                   <ArrowRightLeft size={18} /> Doble Contabilidad Separada
                 </div>
                 <p style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, lineHeight: '1.35' }}>
@@ -396,7 +386,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
                   rel="noopener noreferrer"
                   className="md-btn"
                   style={{
-                    backgroundColor: '#25D366',
+                    backgroundColor: 'var(--brand-primary, #1A73E8)',
                     color: '#FFFFFF',
                     padding: '14px 16px',
                     fontSize: '0.92rem',
@@ -466,7 +456,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
             className="md-btn"
             style={{
               flex: 1,
-              backgroundColor: '#25D366',
+              backgroundColor: 'var(--brand-primary-darker, #0B1528)',
               color: '#FFFFFF',
               padding: '14px',
               fontSize: '0.88rem',

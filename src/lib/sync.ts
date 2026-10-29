@@ -1,5 +1,7 @@
 import { getRawDatabase, saveRawDatabase } from './storage';
-import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, AppUser, StoreShiftRecord, RawDatabase } from '@/types';
+import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, AppUser, StoreShiftRecord, CustomerDebtRecord, RawDatabase } from '@/types';
+import { applyBrandPaletteToDocument, normalizeHexColor } from './themePalette';
+import { formatRecordDateTime } from './dateUtils';
 
 export interface SyncStatus {
   isOnline: boolean;
@@ -9,7 +11,7 @@ export interface SyncStatus {
 
 export interface PendingSyncDetailItem {
   id: string;
-  type: 'transaction' | 'delete_transaction' | 'product_delete' | 'supplier_delete' | 'user_delete' | 'user_update' | 'product_update' | 'sale' | 'shift' | 'supplier_update' | 'settings_update' | 'reset_db';
+  type: 'transaction' | 'delete_transaction' | 'product_delete' | 'supplier_delete' | 'user_delete' | 'user_update' | 'product_update' | 'sale' | 'shift' | 'supplier_update' | 'debt_update' | 'debt_delete' | 'settings_update' | 'reset_db';
   title: string;
   subtitle: string;
   badgeText: string;
@@ -45,7 +47,7 @@ export function getPendingSyncDetails(): {
       id: t.id,
       type: 'transaction',
       title: `${isIngreso ? 'Ingreso' : 'Gasto'}: ${t.concept}`,
-      subtitle: `$${t.amount.toLocaleString()} • ${t.date} (${t.accountSource || 'casa'})`,
+      subtitle: `$${t.amount.toLocaleString()} • ${formatRecordDateTime(t.createdAt, t.date)} (${t.accountSource || 'casa'})`,
       badgeText: isIngreso ? 'Ingreso Pendiente' : 'Gasto Pendiente',
       badgeColor: isIngreso ? '#047857' : '#B91C1C',
       date: t.date
@@ -94,11 +96,12 @@ export function getPendingSyncDetails(): {
   // 5. Unsynced / modified suppliers
   const unsyncedSuppliers = (db.supplierAccounts || []).filter(sup => (sup.updatedAt || 0) > lastSyncTime);
   unsyncedSuppliers.forEach(sup => {
+    const usdPart = sup.pendingPayoutUSD ? ` (+ $${sup.pendingPayoutUSD} USD)` : '';
     items.push({
       id: sup.id,
       type: 'supplier_update',
       title: `Proveedor: ${sup.name}`,
-      subtitle: `Pendiente pago: $${sup.pendingPayout} CUP | Total pagado: $${sup.totalPaid} CUP`,
+      subtitle: `Pendiente pago: $${sup.pendingPayout} CUP${usdPart} | Total pagado: $${sup.totalPaid} CUP`,
       badgeText: 'Proveedor',
       badgeColor: '#B45309'
     });
@@ -114,6 +117,19 @@ export function getPendingSyncDetails(): {
       subtitle: `@${u.username} (${u.role}) • Pendiente de sincronizar`,
       badgeText: 'Usuario',
       badgeColor: '#475569'
+    });
+  });
+
+  // 6.5 Unsynced / modified customer debts (fiados)
+  const unsyncedDebts = (db.customerDebts || []).filter(d => (d.updatedAt || d.timestamp || 0) > lastSyncTime);
+  unsyncedDebts.forEach(d => {
+    items.push({
+      id: d.id,
+      type: 'debt_update',
+      title: `Fiado: ${d.customerName}`,
+      subtitle: `Pendiente: $${Math.max(0, d.amountCUP - (d.paidCUP || 0))} CUP • Estado: ${d.status.toUpperCase()}`,
+      badgeText: 'Fiado',
+      badgeColor: '#D97706'
     });
   });
 
@@ -174,6 +190,18 @@ export function getPendingSyncDetails(): {
       subtitle: `ID: ${id} • Pendiente de borrar en servidor`,
       badgeText: 'Borrado Usuario',
       badgeColor: '#9333EA'
+    });
+  });
+
+  // 12. Deleted customer debts pending cloud removal
+  (db.deletedDebtIds || []).forEach(id => {
+    items.push({
+      id,
+      type: 'debt_delete',
+      title: `Eliminar Fiado`,
+      subtitle: `ID: ${id} • Pendiente de borrar en servidor`,
+      badgeText: 'Borrado Fiado',
+      badgeColor: '#EF4444'
     });
   });
 
@@ -251,8 +279,12 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         deletedSupplierIds: db.deletedSupplierIds || [],
         users: db.users || [],
         deletedUserIds: db.deletedUserIds || [],
+        customerDebts: db.customerDebts || [],
+        deletedDebtIds: db.deletedDebtIds || [],
         storeFund: db.storeFund !== undefined ? db.storeFund : 0,
+        storeFundUSD: db.storeFundUSD !== undefined ? db.storeFundUSD : 0,
         savingsFund: db.savingsFund !== undefined ? db.savingsFund : 0,
+        savingsFundUSD: db.savingsFundUSD !== undefined ? db.savingsFundUSD : 0,
         settings: db.settings || {}
       }),
       signal: controller.signal
@@ -268,12 +300,16 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
     if (data.success && Array.isArray(data.transactions)) {
       lastSyncFailedTime = 0; // Reset failure timestamp on success
 
-      // 1. Safety snapshot of local DB prior to applying remote state
+      // 1. Lightweight safety snapshot of local DB prior to applying remote state (without duplicating heavy Base64 photos)
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
+          const lightDb = {
+            ...db,
+            storeProducts: (db.storeProducts || []).map(p => ({ ...p, photoUrl: undefined }))
+          };
           window.localStorage.setItem('cuentacasa_offline_safety_snapshot', JSON.stringify({
             timestamp: Date.now(),
-            previousDb: db
+            previousDb: lightDb
           }));
         }
       } catch (e) {}
@@ -282,6 +318,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       const serverDeletedProductIds: string[] = Array.isArray(data.deletedProductIds) ? data.deletedProductIds : [];
       const serverDeletedSupplierIds: string[] = Array.isArray(data.deletedSupplierIds) ? data.deletedSupplierIds : [];
       const serverDeletedUserIds: string[] = Array.isArray(data.deletedUserIds) ? data.deletedUserIds : [];
+      const serverDeletedDebtIds: string[] = Array.isArray(data.deletedDebtIds) ? data.deletedDebtIds : [];
 
       const rawMergedTxs: Transaction[] = data.transactions.map((t: Transaction) => ({
         ...t,
@@ -308,11 +345,16 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         ? data.users
         : (db.users || []);
 
+      const rawMergedDebts: CustomerDebtRecord[] = Array.isArray(data.customerDebts)
+        ? data.customerDebts
+        : (db.customerDebts || []);
+
       // Filter out any tombstone deleted items
       const mergedTransactions = rawMergedTxs.filter(t => !serverDeletedIds.includes(t.id));
       const mergedProducts = rawMergedProducts.filter(p => !serverDeletedProductIds.includes(p.id));
       const mergedSuppliers = rawMergedSuppliers.filter(s => !serverDeletedSupplierIds.includes(s.id));
       const mergedUsers = rawMergedUsers.filter(u => !serverDeletedUserIds.includes(u.id));
+      const mergedDebts = rawMergedDebts.filter(d => !serverDeletedDebtIds.includes(d.id));
 
       // Safeguard: Retain any local unsynced transactions not yet in server list
       const returnedTxIds = new Set(mergedTransactions.map(t => t.id));
@@ -332,8 +374,11 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         shifts: mergedShifts,
         supplierAccounts: mergedSuppliers,
         users: mergedUsers,
+        customerDebts: mergedDebts,
         storeFund: data.storeFund !== undefined ? data.storeFund : (db.storeFund || 0),
+        storeFundUSD: data.storeFundUSD !== undefined ? data.storeFundUSD : (db.storeFundUSD || 0),
         savingsFund: data.savingsFund !== undefined ? data.savingsFund : (db.savingsFund || 0),
+        savingsFundUSD: data.savingsFundUSD !== undefined ? data.savingsFundUSD : (db.savingsFundUSD || 0),
         settings: {
           ...(db.settings || {}),
           ...(data.settings || {}),
@@ -346,10 +391,17 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         deletedProductIds: [],
         deletedSupplierIds: [],
         deletedUserIds: [],
+        deletedDebtIds: [],
         lastSync: new Date().toISOString()
       };
 
       saveRawDatabase(updatedDb);
+      if (updatedDb.settings?.primaryColor && typeof window !== 'undefined') {
+        const norm = normalizeHexColor(updatedDb.settings.primaryColor);
+        localStorage.setItem('cuentacasa_theme_color', norm);
+        applyBrandPaletteToDocument(norm);
+        window.dispatchEvent(new CustomEvent('cuentacasa-theme-color-changed', { detail: { primaryColor: norm } }));
+      }
 
       return {
         success: true,
@@ -374,6 +426,66 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
         : '📶 Operando en modo offline. Los cambios permanecen guardados en este dispositivo.'
     };
   }
+}
+
+/**
+ * Read-only public catalog sync for anonymous storefront visitors.
+ * If the device is authenticated as store staff, delegates to full syncDatabaseWithCloud.
+ * Otherwise performs GET /api/sync?public=1 so private financial/user data is never downloaded or overwritten.
+ */
+export async function syncPublicCatalog(force: boolean = false): Promise<{ success: boolean; productCount: number }> {
+  if (typeof window !== 'undefined') {
+    const isAuthed = window.localStorage.getItem('cuentacasa_auth') === 'true';
+    if (isAuthed) {
+      const res = await syncDatabaseWithCloud(force);
+      return { success: res.success, productCount: res.productCount || 0 };
+    }
+    if (!navigator.onLine && !force) {
+      return { success: false, productCount: 0 };
+    }
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  try {
+    const res = await fetch('/api/sync?public=1', {
+      method: 'GET',
+      headers: { 'Cache-Control': 'no-cache' },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    if (data.success && Array.isArray(data.storeProducts)) {
+      const db = getRawDatabase();
+      const deletedProductIds: string[] = Array.isArray(data.deletedProductIds) ? data.deletedProductIds : [];
+      const publicProducts: StoreProduct[] = data.storeProducts.filter((p: StoreProduct) => !deletedProductIds.includes(p.id));
+
+      const updatedDb: RawDatabase = {
+        ...db,
+        storeProducts: publicProducts,
+        settings: {
+          ...(db.settings || {}),
+          ...(data.settings || {}),
+          currencyMode: data.settings?.currencyMode || db.settings?.currencyMode || 'BOTH',
+          exchangeRateUSD: data.settings?.exchangeRateUSD || db.settings?.exchangeRateUSD || 320
+        },
+        lastSync: new Date().toISOString()
+      };
+      saveRawDatabase(updatedDb);
+      if (updatedDb.settings?.primaryColor && typeof window !== 'undefined') {
+        const norm = normalizeHexColor(updatedDb.settings.primaryColor);
+        localStorage.setItem('cuentacasa_theme_color', norm);
+        applyBrandPaletteToDocument(norm);
+        window.dispatchEvent(new CustomEvent('cuentacasa-theme-color-changed', { detail: { primaryColor: norm } }));
+      }
+      return { success: true, productCount: publicProducts.length };
+    }
+  } catch (e) {
+    clearTimeout(timeoutId);
+  }
+  return { success: false, productCount: 0 };
 }
 
 

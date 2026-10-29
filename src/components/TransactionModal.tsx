@@ -5,7 +5,7 @@ import { Transaction, TransactionType } from '@/types';
 import { X, CheckCircle2, Check, Keyboard, ArrowRight, Loader2 } from 'lucide-react';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
-import { getCurrencySettings } from '@/lib/storage';
+import { getCurrencySettings, getLocalISODate } from '@/lib/storage';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -109,7 +109,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     setIsSaving(true);
 
     // Auto-generate date in background (ISO YYYY-MM-DD)
-    const currentDate = new Date().toISOString().split('T')[0];
+    const currentDate = getLocalISODate();
 
     setTimeout(() => {
       const { currencyMode } = getCurrencySettings();
@@ -129,22 +129,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     }, 250);
   };
 
-  const isFocused = focusedField !== null;
-
   return (
     <div
-      className="no-print"
+      className="modal-backdrop-responsive no-print"
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2000,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
+        zIndex: 2000
       }}
       onClick={() => {
         if (document.activeElement instanceof HTMLElement) {
@@ -155,6 +144,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       }}
     >
       <div 
+        className="bottom-sheet-modal"
         onClick={e => {
           e.stopPropagation();
           const target = e.target as HTMLElement;
@@ -168,22 +158,19 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
           width: '100%',
+          maxWidth: '520px',
           maxHeight: '92dvh',
           display: 'flex',
           flexDirection: 'column',
           overflowY: 'auto',
-          padding: '16px 20px 24px 20px',
+          padding: '20px 24px 28px 24px',
           gap: '16px',
-          position: 'relative',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
+          position: 'relative'
         }}
       >
-        {/* Grab Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        {/* Grab Handle (Only visible on Mobile) */}
+        <div className="mobile-only" style={{ justifyContent: 'center', marginBottom: '2px' }}>
           <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
         </div>
 
@@ -210,9 +197,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          opacity: isFocused ? 0.6 : 1,
-          transition: 'opacity 0.2s ease'
+          alignItems: 'center'
         }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
             {editingTransaction ? 'Editar' : 'Registrar'} {type === 'ingreso' ? 'Ingreso' : 'Gasto'}
@@ -239,9 +224,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           gap: '6px',
           backgroundColor: 'var(--md-sys-color-surface-container-high)',
           padding: '4px',
-          borderRadius: '14px',
-          opacity: isFocused ? 0.6 : 1,
-          transition: 'opacity 0.2s ease'
+          borderRadius: '14px'
         }}>
           <button
             type="button"
@@ -290,9 +273,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               gap: '6px',
               backgroundColor: 'var(--md-sys-color-surface-container-high)',
               padding: '4px',
-              borderRadius: '14px',
-              opacity: isFocused ? 0.6 : 1,
-              transition: 'opacity 0.2s ease'
+              borderRadius: '14px'
             }}>
               <button
                 type="button"
@@ -408,9 +389,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           {/* Full Width Single Action Button */}
           <div style={{
-            marginTop: '6px',
-            opacity: isFocused ? 0.6 : 1,
-            transition: 'opacity 0.2s ease'
+            marginTop: '6px'
           }}>
             <button
               type="submit"

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { StoreProduct, StoreSaleItem, CurrencyType } from '@/types';
+import { StoreProduct, StoreSaleItem, CurrencyType, PaymentMethodType, StoreSalePaymentBreakdown } from '@/types';
 import { 
   getStoreProductByBarcode, 
   getStoreProducts, 
@@ -9,7 +9,9 @@ import {
   mergeSyncQRPayload,
   getCurrencySettings,
   saveCurrencySettings,
-  getLoggedInUser
+  getLoggedInUser,
+  getActiveShift,
+  getLocalISODate
 } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency, calculateMultiCurrencyTotals } from '@/lib/invoice';
@@ -18,15 +20,26 @@ import {
   Scan, 
   X, 
   Plus, 
-  Minus,
+  Minus, 
   Check, 
   Keyboard, 
   Camera, 
+  CameraOff,
+  ShoppingCart,
+  Barcode,
+  CheckCircle2,
   ShoppingBag, 
-  Trash2,
-  Receipt,
-  Volume2,
-  PackageSearch
+  Trash2, 
+  Receipt, 
+  Volume2, 
+  PackageSearch, 
+  Banknote, 
+  SendHorizontal, 
+  CreditCard, 
+  DollarSign, 
+  Split, 
+  UserCheck, 
+  AlertCircle 
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
@@ -88,6 +101,28 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
   const [liveExchangeRate, setLiveExchangeRate] = useState<number>(320);
   const [selectedPaymentCurrency, setSelectedPaymentCurrency] = useState<'AUTO' | 'CUP' | 'USD' | 'MIXED'>('MIXED');
+  const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+
+  // Checkout Modal & Payment Methods State
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutMethod, setCheckoutMethod] = useState<PaymentMethodType>('efectivo');
+
+  // Inputs para cobro simple
+  const [receivedCashCUP, setReceivedCashCUP] = useState<string>('');
+  const [transferRef, setTransferRef] = useState<string>('');
+  const [receivedCashUSD, setReceivedCashUSD] = useState<string>('');
+  const [debtCustomerName, setDebtCustomerName] = useState<string>('');
+  const [debtCustomerPhone, setDebtCustomerPhone] = useState<string>('');
+  const [debtTypeCUP, setDebtTypeCUP] = useState<'efectivo' | 'transferencia'>('efectivo');
+  const [debtNotes, setDebtNotes] = useState<string>('');
+
+  // Inputs para cobro mixto / split payment
+  const [splitCashCUP, setSplitCashCUP] = useState<string>('');
+  const [splitTransferCUP, setSplitTransferCUP] = useState<string>('');
+  const [splitCashUSD, setSplitCashUSD] = useState<string>('');
+  const [splitDebtCUP, setSplitDebtCUP] = useState<string>('');
+  const [splitDebtUSD, setSplitDebtUSD] = useState<string>('');
+  const [splitCustomerName, setSplitCustomerName] = useState<string>('');
 
   // Cooldown tracker to prevent duplicate scans in 1.8 seconds
   const lastScanTimeRef = useRef<number>(0);
@@ -101,6 +136,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       if (initialTicketItems && initialTicketItems.length > 0) {
         setTicketItems(initialTicketItems);
       }
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      setIsCameraActive(isMobile);
     }
   }, [isOpen, initialTicketItems]);
 
@@ -196,7 +233,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           return;
         }
 
-        if (parsed.type === 'SAMY_STORE_SYNC_V1') {
+        if (parsed.type === 'SAMY_STORE_SYNC_V1' || parsed.type === 'SAMY_SYNC_V2') {
           const result = mergeSyncQRPayload(rawStr);
           showToast({
             title: '¡Sincronización Exitosa!',
@@ -351,11 +388,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setTicketItems(prev => prev.filter(item => item.productId !== productId));
   };
 
-  // Initialize Html5Qrcode Scanner Engine
+  // Initialize Html5Qrcode Scanner Engine (Only if camera is active)
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !isCameraActive) {
       stopScannerEngine();
-      setTicketItems([]);
+      if (!isOpen) {
+        setTicketItems([]);
+      }
       return;
     }
 
@@ -426,7 +465,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       clearTimeout(timer);
       stopScannerEngine();
     };
-  }, [isOpen]);
+  }, [isOpen, isCameraActive]);
 
   const stopScannerEngine = async () => {
     if (html5QrcodeRef.current) {
@@ -459,98 +498,237 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const uniqueItemsCount = ticketItems.length;
   const totalUnitsCount = ticketItems.reduce((sum, item) => sum + item.quantity, 0);
   const multiTotals = calculateMultiCurrencyTotals(ticketItems, liveExchangeRate);
-  const totalInvoiceCost = ticketItems.reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
 
-  const handleConfirmSale = () => {
+  const totalCostCUP = ticketItems
+    .filter(item => (item.currency || 'CUP') !== 'USD')
+    .reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
+  const totalCostUSD = ticketItems
+    .filter(item => item.currency === 'USD')
+    .reduce((sum, item) => sum + (item.costPrice * item.quantity), 0);
+  const equivalentCostCUP = totalCostCUP + (totalCostUSD * liveExchangeRate);
+  const equivalentCostUSD = totalCostUSD + (totalCostCUP / (liveExchangeRate || 320));
+
+  const handleOpenCheckout = () => {
     if (ticketItems.length === 0) {
       showToast({
         title: 'Ticket Vacío',
-        message: 'Agrega al menos un producto al ticket antes de confirmar la venta.',
+        message: 'Agrega al menos un producto al ticket antes de cobrar.',
         type: 'warning'
       });
       return;
     }
 
+    if (multiTotals.isMixed) {
+      setCheckoutMethod('mixto');
+      setSplitCashCUP(multiTotals.totalCUP > 0 ? multiTotals.totalCUP.toString() : '');
+      setSplitCashUSD(multiTotals.totalUSD > 0 ? multiTotals.totalUSD.toString() : '');
+      setSplitTransferCUP('');
+      setSplitDebtCUP('');
+      setSplitDebtUSD('');
+    } else if (multiTotals.hasUSD) {
+      setCheckoutMethod('usd');
+      setReceivedCashUSD(multiTotals.totalUSD.toString());
+      setReceivedCashCUP('');
+    } else {
+      setCheckoutMethod('efectivo');
+      setReceivedCashCUP(multiTotals.totalCUP.toString());
+      setReceivedCashUSD('');
+    }
+
+    setTransferRef('');
+    setDebtCustomerName('');
+    setDebtCustomerPhone('');
+    setDebtTypeCUP('efectivo');
+    setDebtNotes('');
+    setSplitCustomerName('');
+    setIsCheckoutOpen(true);
+  };
+
+  const handleExecuteCheckout = () => {
     let finalSaleCurrency: CurrencyType = 'CUP';
     let finalTotalAmount = multiTotals.equivalentCUP;
-    let netProfit = multiTotals.equivalentCUP - totalInvoiceCost;
+    let finalTotalCost = Math.round(equivalentCostCUP * 100) / 100;
+    let netProfit = Math.round((multiTotals.equivalentCUP - finalTotalCost) * 100) / 100;
     let totalAmountCUP: number | undefined = undefined;
     let totalAmountUSD: number | undefined = undefined;
 
-    if (multiTotals.isMixed) {
-      if (selectedPaymentCurrency === 'USD') {
+    let breakdown: StoreSalePaymentBreakdown = {
+      cashCUP: 0,
+      transferCUP: 0,
+      cashUSD: 0,
+      debtCUP: 0,
+      debtUSD: 0
+    };
+
+    if (checkoutMethod === 'efectivo') {
+      const recCUP = parseFloat(receivedCashCUP) || multiTotals.equivalentCUP;
+      if (recCUP < multiTotals.equivalentCUP) {
+        showToast({ title: 'Monto Insuficiente', message: `El total a cobrar es $${multiTotals.equivalentCUP} CUP. Ingresaste $${recCUP} CUP.`, type: 'warning' });
+        return;
+      }
+      finalSaleCurrency = 'CUP';
+      finalTotalAmount = multiTotals.equivalentCUP;
+      totalAmountCUP = multiTotals.equivalentCUP;
+      breakdown.cashCUP = multiTotals.equivalentCUP;
+    } else if (checkoutMethod === 'transferencia') {
+      finalSaleCurrency = 'CUP';
+      finalTotalAmount = multiTotals.equivalentCUP;
+      totalAmountCUP = multiTotals.equivalentCUP;
+      breakdown.transferCUP = multiTotals.equivalentCUP;
+      breakdown.transferRef = transferRef.trim() || undefined;
+    } else if (checkoutMethod === 'usd') {
+      const targetUSD = Math.round((multiTotals.equivalentCUP / liveExchangeRate) * 100) / 100;
+      const recUSD = parseFloat(receivedCashUSD) || targetUSD;
+      if (recUSD < targetUSD) {
+        showToast({ title: 'Monto Insuficiente', message: `El total a cobrar es US$${targetUSD.toFixed(2)} USD. Ingresaste US$${recUSD} USD.`, type: 'warning' });
+        return;
+      }
+      finalSaleCurrency = 'USD';
+      finalTotalAmount = targetUSD;
+      finalTotalCost = Math.round(equivalentCostUSD * 100) / 100;
+      netProfit = Math.round((targetUSD - finalTotalCost) * 100) / 100;
+      totalAmountUSD = targetUSD;
+      breakdown.cashUSD = targetUSD;
+    } else if (checkoutMethod === 'fiado') {
+      if (!debtCustomerName.trim()) {
+        showToast({ title: 'Cliente Requerido', message: 'Debes indicar el nombre del cliente que adeuda la compra.', type: 'warning' });
+        return;
+      }
+      if (multiTotals.hasUSD && !multiTotals.hasCUP) {
         finalSaleCurrency = 'USD';
-        finalTotalAmount = multiTotals.equivalentUSD;
-        netProfit = multiTotals.equivalentUSD - (totalInvoiceCost / liveExchangeRate);
-      } else if (selectedPaymentCurrency === 'CUP') {
+        finalTotalAmount = multiTotals.totalUSD;
+        finalTotalCost = Math.round(totalCostUSD * 100) / 100;
+        netProfit = Math.round((finalTotalAmount - finalTotalCost) * 100) / 100;
+        totalAmountUSD = multiTotals.totalUSD;
+        breakdown.debtUSD = multiTotals.totalUSD;
+      } else {
         finalSaleCurrency = 'CUP';
         finalTotalAmount = multiTotals.equivalentCUP;
-        netProfit = multiTotals.equivalentCUP - totalInvoiceCost;
-      } else {
-        // MIXED: Separado CUP + USD
-        finalSaleCurrency = 'MIXED';
-        finalTotalAmount = multiTotals.equivalentCUP; // Para referencia de total equivalente
-        totalAmountCUP = multiTotals.totalCUP;
-        totalAmountUSD = multiTotals.totalUSD;
-        netProfit = (multiTotals.totalCUP + (multiTotals.totalUSD * liveExchangeRate)) - totalInvoiceCost;
+        totalAmountCUP = multiTotals.equivalentCUP;
+        breakdown.debtCUP = multiTotals.equivalentCUP;
       }
-    } else {
-      finalSaleCurrency = multiTotals.hasUSD ? 'USD' : 'CUP';
-      finalTotalAmount = multiTotals.hasUSD ? multiTotals.totalUSD : multiTotals.totalCUP;
-      netProfit = finalTotalAmount - totalInvoiceCost;
+      breakdown.customerName = debtCustomerName.trim();
+      breakdown.customerPhone = debtCustomerPhone.trim() || undefined;
+      breakdown.debtTypeCUP = debtTypeCUP;
+      breakdown.notes = debtNotes.trim() || undefined;
+    } else if (checkoutMethod === 'mixto') {
+      const cCUP = Math.max(0, parseFloat(splitCashCUP) || 0);
+      const tCUP = Math.max(0, parseFloat(splitTransferCUP) || 0);
+      const cUSD = Math.max(0, parseFloat(splitCashUSD) || 0);
+      const dCUP = Math.max(0, parseFloat(splitDebtCUP) || 0);
+      const dUSD = Math.max(0, parseFloat(splitDebtUSD) || 0);
+
+      const totalCoveredInCUP = cCUP + tCUP + dCUP + ((cUSD + dUSD) * liveExchangeRate);
+      const diff = multiTotals.equivalentCUP - totalCoveredInCUP;
+
+      if (diff > 1) {
+        showToast({
+          title: 'Cobro Incompleto',
+          message: `Faltan $${Math.round(diff)} CUP por cubrir en el desglose combinado.`,
+          type: 'warning'
+        });
+        return;
+      }
+
+      if ((dCUP > 0 || dUSD > 0) && !splitCustomerName.trim()) {
+        showToast({
+          title: 'Nombre de Cliente Requerido',
+          message: 'Hay un monto asignado a Fiado/Deuda. Indica el nombre del cliente para registrar la cuenta por cobrar.',
+          type: 'warning'
+        });
+        return;
+      }
+
+      finalSaleCurrency = (cUSD > 0 || dUSD > 0) && (cCUP > 0 || tCUP > 0 || dCUP > 0) ? 'MIXED' : (cUSD > 0 || dUSD > 0 ? 'USD' : 'CUP');
+      finalTotalAmount = multiTotals.equivalentCUP;
+      totalAmountCUP = cCUP + tCUP + dCUP;
+      totalAmountUSD = cUSD + dUSD;
+
+      breakdown = {
+        cashCUP: cCUP,
+        transferCUP: tCUP,
+        cashUSD: cUSD,
+        debtCUP: dCUP,
+        debtUSD: dUSD,
+        customerName: (dCUP > 0 || dUSD > 0) ? splitCustomerName.trim() : undefined,
+        transferRef: transferRef.trim() || undefined
+      };
     }
 
-    confirmAction({
-      title: '¿Confirmar y Registrar Venta?',
-      message: multiTotals.isMixed && selectedPaymentCurrency === 'MIXED'
-        ? `Se registrará la venta cobrando $${multiTotals.totalCUP.toLocaleString('es-ES')} CUP y US$${multiTotals.totalUSD.toLocaleString('es-ES')} USD.`
-        : `Se registrará la venta de ${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'} por un total de ${formatCurrency(finalTotalAmount, finalSaleCurrency, true)}.`,
-      variant: 'primary',
-      confirmText: 'Confirmar y Cobrar',
-      onConfirm: () => {
-        const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalISODate();
+    const loggedUser = getLoggedInUser();
+    const activeShift = getActiveShift();
 
-        const loggedUser = getLoggedInUser();
+    const sellerId = loggedUser?.id || activeShift?.sellerId || 'usr-admin';
+    const sellerUsername = loggedUser?.username || activeShift?.sellerUsername || 'admin';
+    const sellerName = loggedUser?.name || activeShift?.sellerName || (loggedUser?.username ? `@${loggedUser.username}` : 'Administrador');
 
-        registerStoreSale({
-          date: todayStr,
-          items: ticketItems,
-          totalAmount: finalTotalAmount,
-          totalAmountCUP: totalAmountCUP,
-          totalAmountUSD: totalAmountUSD,
-          totalCost: totalInvoiceCost,
-          netProfit: Math.max(0, netProfit),
-          currency: finalSaleCurrency,
-          sellerId: loggedUser?.id,
-          sellerUsername: loggedUser?.username,
-          sellerName: loggedUser?.name || loggedUser?.username || 'General'
-        });
+    registerStoreSale({
+      date: todayStr,
+      items: ticketItems,
+      totalAmount: finalTotalAmount,
+      totalAmountCUP: totalAmountCUP,
+      totalAmountUSD: totalAmountUSD,
+      totalCost: finalTotalCost,
+      netProfit: Math.max(0, netProfit),
+      currency: finalSaleCurrency,
+      paymentMethod: checkoutMethod,
+      paymentBreakdown: breakdown,
+      sellerId,
+      sellerUsername,
+      sellerName
+    });
 
-        // Trigger automatic sync with Hostinger DB
-        syncDatabaseWithCloud(true).catch(err => console.warn('Sale sync warning:', err));
-
-        const saleTotalText = multiTotals.isMixed && selectedPaymentCurrency === 'MIXED'
-          ? `$${multiTotals.totalCUP.toLocaleString('es-ES')} CUP + $${multiTotals.totalUSD.toLocaleString('es-ES')} USD`
-          : formatCurrency(finalTotalAmount, finalSaleCurrency, true);
-          
-        const itemsListStr = ticketItems.map(i => `${i.name} (x${i.quantity} ${i.currency || 'CUP'})`).join(', ');
-
-        setTicketItems([]);
-        if (onSaleCompleted) onSaleCompleted();
-        onClose();
-
-        showActionResult({
-          title: '¡Venta Registrada con Éxito!',
-          message: `Cobro total: ${saleTotalText} (${totalUnitsCount} ${totalUnitsCount === 1 ? 'artículo' : 'artículos'})`,
-          type: 'success',
-          details: (
-            <div>
-              <strong>Detalle de artículos:</strong>
-              <div style={{ marginTop: '4px', opacity: 0.9 }}>{itemsListStr}</div>
-            </div>
-          )
+    // Si se cobró en USD o Mixto, actualizar y persistir la tasa de cambio en la configuración
+    if (checkoutMethod === 'usd' || checkoutMethod === 'mixto') {
+      const currentSettings = getCurrencySettings();
+      if (currentSettings.exchangeRateUSD !== liveExchangeRate) {
+        saveCurrencySettings({
+          ...currentSettings,
+          exchangeRateUSD: liveExchangeRate
         });
       }
+    }
+
+    // Trigger automatic sync with Hostinger DB
+    syncDatabaseWithCloud(true).catch(err => console.warn('Sale sync warning:', err));
+
+    let methodDesc = '';
+    if (checkoutMethod === 'efectivo') methodDesc = '💵 Efectivo en Caja';
+    else if (checkoutMethod === 'transferencia') methodDesc = '📲 Transferencia Bancaria';
+    else if (checkoutMethod === 'usd') methodDesc = '💵 Efectivo en Dólares';
+    else if (checkoutMethod === 'fiado') methodDesc = `📝 Fiado a ${breakdown.customerName}`;
+    else if (checkoutMethod === 'mixto') methodDesc = '🔀 Pago Combinado / Split';
+
+    const saleTotalText = finalSaleCurrency === 'MIXED'
+      ? `$${totalAmountCUP} CUP + US$${totalAmountUSD} USD`
+      : formatCurrency(finalTotalAmount, finalSaleCurrency, true);
+
+    const itemsListStr = ticketItems.map(i => `${i.name} (x${i.quantity})`).join(', ');
+
+    setTicketItems([]);
+    setIsCheckoutOpen(false);
+    if (onSaleCompleted) onSaleCompleted();
+    onClose();
+
+    showActionResult({
+      title: '¡Venta Cobrada y Registrada!',
+      message: `Total: ${saleTotalText} • Método: ${methodDesc}`,
+      type: 'success',
+      details: (
+        <div>
+          <div><strong>Artículos:</strong> {itemsListStr}</div>
+          {checkoutMethod === 'mixto' && (
+            <div style={{ marginTop: '4px', fontSize: '0.8rem', opacity: 0.9 }}>
+              Desglose: {breakdown.cashCUP > 0 ? `$${breakdown.cashCUP} Efvo ` : ''}
+              {breakdown.transferCUP > 0 ? `$${breakdown.transferCUP} Transf ` : ''}
+              {breakdown.cashUSD > 0 ? `US$${breakdown.cashUSD} USD ` : ''}
+              {breakdown.debtCUP > 0 ? `Fiado $${breakdown.debtCUP} CUP ` : ''}
+              {breakdown.debtUSD > 0 ? `Fiado US$${breakdown.debtUSD} USD ` : ''}
+            </div>
+          )}
+        </div>
+      )
     });
   };
 
@@ -580,108 +758,225 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.95)',
-      backdropFilter: 'blur(10px)',
-      zIndex: 2500,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100dvh',
-      width: '100vw',
-      overflow: 'hidden'
-    }} className="no-print">
-
-      {/* FIXED TOP HEADER */}
-      <div style={{
-        padding: '10px 16px',
+    <div 
+      className="no-print"
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.70)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 2500,
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#000000',
-        color: '#FFFFFF',
-        borderBottom: '1px solid rgba(255,255,255,0.12)',
-        flexShrink: 0
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Scan size={18} color="#FF0033" />
-          <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>Escáner de Códigos de Barras</span>
-        </div>
-
-        <button
-          onClick={onClose}
-          style={{ background: 'none', border: 'none', color: '#FFF', cursor: 'pointer', padding: '4px' }}
-        >
-          <X size={22} />
-        </button>
-      </div>
-
-      {/* FIXED CAMERA VIEWFINDER BOX - STABLE SIZE (NON-SQUISHING) */}
-      <div style={{
-        width: '100%',
-        height: '180px',
-        minHeight: '180px',
-        maxHeight: '180px',
-        backgroundColor: '#050505',
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
         justifyContent: 'center',
-        borderBottom: '2px solid var(--md-sys-color-primary)',
-        flexShrink: 0
-      }}>
-        
-        {/* Html5Qrcode Reader Element */}
-        <div id={scannerContainerId} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
-
-        {/* Target Box Overlay */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '240px',
-          height: '110px',
-          border: showSuccessBadge ? '2px solid #00FF88' : '2px solid rgba(255, 255, 255, 0.4)',
-          borderRadius: '14px',
-          boxShadow: showSuccessBadge ? '0 0 24px rgba(0, 255, 136, 0.8)' : '0 0 0 9999px rgba(0, 0, 0, 0.55)',
-          pointerEvents: 'none',
-          overflow: 'hidden',
+        alignItems: 'center',
+        padding: '0'
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: '900px',
+          height: '100dvh',
+          maxHeight: '100dvh',
           display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          color: 'var(--md-sys-color-on-surface)',
+          overflow: 'hidden'
+        }}
+        className="pos-modal-window"
+      >
+
+        {/* POS HEADER */}
+        <div style={{
+          padding: '12px 18px',
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          justifyContent: 'center'
+          backgroundColor: 'var(--md-sys-color-surface)',
+          color: 'var(--md-sys-color-on-surface)',
+          borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+          flexShrink: 0
         }}>
-          {!showSuccessBadge && <div className="scanner-laser-line" />}
-          <div style={{ position: 'absolute', top: '6px', left: '6px', width: '14px', height: '14px', borderTop: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '3px 0 0 0' }} />
-          <div style={{ position: 'absolute', top: '6px', right: '6px', width: '14px', height: '14px', borderTop: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 3px 0 0' }} />
-          <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '14px', height: '14px', borderBottom: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '0 0 0 3px' }} />
-          <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '14px', height: '14px', borderBottom: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 0 3px 0' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--md-sys-color-primary-container)',
+              color: 'var(--md-sys-color-on-primary-container)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Scan size={20} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.96rem', fontWeight: 900, margin: 0, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap' }}>
+                Caja Registradora
+              </h3>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setIsCameraActive(prev => !prev)}
+              className="md-btn md-btn-secondary"
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.78rem',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              {isCameraActive ? <CameraOff size={15} /> : <Camera size={15} />}
+              <span>{isCameraActive ? 'Ocultar Cámara' : 'Usar Cámara'}</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              style={{
+                background: 'var(--md-sys-color-surface-container-high)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                borderRadius: '50%',
+                color: 'var(--md-sys-color-on-surface)',
+                cursor: 'pointer',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Cerrar POS"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Success Beep Badge */}
-        {showSuccessBadge && (
+        {/* HARDWARE BARCODE GUN / KEYBOARD ACTIVE BANNER (WHEN CAMERA IS OFF) */}
+        {!isCameraActive && (
           <div style={{
-            position: 'absolute',
-            top: '10px',
-            backgroundColor: '#00875A',
-            color: '#FFFFFF',
-            padding: '6px 14px',
-            borderRadius: '9999px',
-            fontSize: '0.8rem',
-            fontWeight: 800,
+            padding: '10px 18px',
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            borderBottom: '1px solid var(--md-sys-color-outline-variant)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 4px 16px rgba(0, 135, 90, 0.6)',
-            zIndex: 10
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            flexShrink: 0
           }}>
-            <Volume2 size={16} />
-            <span>{successMessage}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: '#10B981',
+                boxShadow: '0 0 8px #10B981'
+              }} />
+              <div>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                  Terminal POS Activo • Pistola Escáner & Búsqueda
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, display: 'block' }}>
+                  Pasa el lector láser sobre los códigos de barras o escribe para cobrar a toda velocidad
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsCameraActive(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--md-sys-color-primary)',
+                fontSize: '0.76rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Camera size={14} />
+              <span>¿Escanear con cámara web?</span>
+            </button>
           </div>
         )}
-      </div>
+
+        {/* CAMERA VIEWFINDER BOX (ONLY VISIBLE IF CAMERA IS ACTIVE) */}
+        {isCameraActive && (
+          <div style={{
+            width: '100%',
+            height: '180px',
+            minHeight: '180px',
+            maxHeight: '180px',
+            backgroundColor: '#050505',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderBottom: '2px solid var(--md-sys-color-primary)',
+            flexShrink: 0
+          }}>
+            {/* Html5Qrcode Reader Element */}
+            <div id={scannerContainerId} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
+
+            {/* Target Box Overlay */}
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '240px',
+              height: '110px',
+              border: showSuccessBadge ? '2px solid #00FF88' : '2px solid rgba(255, 255, 255, 0.4)',
+              borderRadius: '14px',
+              boxShadow: showSuccessBadge ? '0 0 24px rgba(0, 255, 136, 0.8)' : '0 0 0 9999px rgba(0, 0, 0, 0.55)',
+              pointerEvents: 'none',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {!showSuccessBadge && <div className="scanner-laser-line" />}
+              <div style={{ position: 'absolute', top: '6px', left: '6px', width: '14px', height: '14px', borderTop: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '3px 0 0 0' }} />
+              <div style={{ position: 'absolute', top: '6px', right: '6px', width: '14px', height: '14px', borderTop: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 3px 0 0' }} />
+              <div style={{ position: 'absolute', bottom: '6px', left: '6px', width: '14px', height: '14px', borderBottom: '3px solid #FF0033', borderLeft: '3px solid #FF0033', borderRadius: '0 0 0 3px' }} />
+              <div style={{ position: 'absolute', bottom: '6px', right: '6px', width: '14px', height: '14px', borderBottom: '3px solid #FF0033', borderRight: '3px solid #FF0033', borderRadius: '0 0 3px 0' }} />
+            </div>
+
+            {/* Success Beep Badge */}
+            {showSuccessBadge && (
+              <div style={{
+                position: 'absolute',
+                top: '10px',
+                backgroundColor: '#00875A',
+                color: '#FFFFFF',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 16px rgba(0, 135, 90, 0.6)',
+                zIndex: 10
+              }}>
+                <Volume2 size={16} />
+                <span>{successMessage}</span>
+              </div>
+            )}
+          </div>
+        )}
 
       {/* FIXED TOOLBAR BAR: SEARCH BY NAME, INPUT AND SUMAR BUTTON */}
       <div style={{
@@ -790,9 +1085,43 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
         {/* Ticket Items List */}
         {ticketItems.length === 0 ? (
-          <div className="md-card" style={{ padding: '24px 14px', textAlign: 'center', opacity: 0.7, margin: 'auto 0' }}>
-            <ShoppingBag size={30} style={{ color: 'var(--md-sys-color-outline)', marginBottom: '6px' }} />
-            <p style={{ fontSize: '0.78rem', fontWeight: 700 }}>Centra el código de barras bajo la línea láser o ingresa el código manual para agregar al ticket.</p>
+          <div style={{
+            padding: '36px 16px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            margin: 'auto 0'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '20px',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--md-sys-color-primary)'
+            }}>
+              <ShoppingCart size={30} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 4px 0' }}>Ticket de Venta Vacío</h4>
+              <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', maxWidth: '340px', margin: '0 auto', lineHeight: '1.4' }}>
+                Pasa la pistola lectora sobre los productos o haz clic en "Nombre" para buscar en el catálogo.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsQuickSearchOpen(true)}
+              className="md-btn md-btn-secondary"
+              style={{ padding: '8px 16px', fontSize: '0.82rem', borderRadius: '12px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <PackageSearch size={16} />
+              <span>Buscar en Catálogo</span>
+            </button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -938,177 +1267,58 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }}>
         {/* Factura / Ticket Summary Box */}
         {ticketItems.length > 0 && (
-          multiTotals.isMixed ? (
-            <div style={{
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: '2px solid #0EA5E9',
-              borderRadius: '14px',
-              padding: '10px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0EA5E9' }}>
-                  ⚠️ TICKET DUAL (CUP + USD)
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    Tasa: 1 USD =
-                  </span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={liveExchangeRate}
-                    onChange={e => handleExchangeRateChange(parseFloat(e.target.value) || 1)}
-                    className="input-spotlight"
-                    style={{
-                      width: '64px',
-                      padding: '2px 4px',
-                      borderRadius: '6px',
-                      border: '1.5px solid #0EA5E9',
-                      backgroundColor: '#F0F9FF',
-                      color: '#0369A1',
-                      fontSize: '0.76rem',
-                      fontWeight: 900,
-                      textAlign: 'center'
-                    }}
-                  />
-                  <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#0369A1' }}>CUP</span>
-                </div>
-              </div>
+          <div style={{
+            backgroundColor: 'var(--md-sys-color-income-container)',
+            color: 'var(--md-sys-color-on-income-container)',
+            padding: '10px 14px',
+            borderRadius: '14px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            border: '1px solid rgba(0, 135, 90, 0.2)'
+          }}>
+            <div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, display: 'block', letterSpacing: '0.04em' }}>TOTAL COBRADO</span>
+              <span style={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 700, display: 'block' }}>
+                {totalUnitsCount} {totalUnitsCount === 1 ? 'artículo en ticket' : 'artículos en ticket'}
+              </span>
+            </div>
 
-              <div style={{ display: 'flex', gap: '8px', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800 }}>
-                <span style={{ color: '#047857' }}>• CUP: ${multiTotals.totalCUP.toLocaleString('es-ES')}</span>
-                <span style={{ opacity: 0.4 }}>|</span>
-                <span style={{ color: '#0F766E' }}>• USD: ${multiTotals.totalUSD.toLocaleString('es-ES')}</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                  ¿Cómo va a pagar el cliente?
-                </span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.1fr', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPaymentCurrency('CUP')}
-                    style={{
-                      padding: '6px 4px',
-                      borderRadius: '8px',
-                      border: selectedPaymentCurrency === 'CUP' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: selectedPaymentCurrency === 'CUP' ? '#ECFDF5' : 'var(--md-sys-color-surface)',
-                      color: selectedPaymentCurrency === 'CUP' ? '#047857' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: 800,
-                      fontSize: '0.7rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    En CUP<br/>
-                    <strong>${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP</strong>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPaymentCurrency('USD')}
-                    style={{
-                      padding: '6px 4px',
-                      borderRadius: '8px',
-                      border: selectedPaymentCurrency === 'USD' ? '2px solid #0D9488' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: selectedPaymentCurrency === 'USD' ? '#CCFBF1' : 'var(--md-sys-color-surface)',
-                      color: selectedPaymentCurrency === 'USD' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: 800,
-                      fontSize: '0.7rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    En USD<br/>
-                    <strong>${multiTotals.equivalentUSD.toLocaleString('es-ES')} USD</strong>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPaymentCurrency('MIXED')}
-                    style={{
-                      padding: '6px 4px',
-                      borderRadius: '8px',
-                      border: selectedPaymentCurrency === 'MIXED' ? '2px solid #7C3AED' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: selectedPaymentCurrency === 'MIXED' ? '#F3E8FF' : 'var(--md-sys-color-surface)',
-                      color: selectedPaymentCurrency === 'MIXED' ? '#6D28D9' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: 800,
-                      fontSize: '0.7rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Separado<br/>
-                    <strong>${multiTotals.totalCUP} CUP + ${multiTotals.totalUSD} USD</strong>
-                  </button>
-                </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{
+                fontSize: '1.45rem',
+                fontWeight: 900,
+                color: 'var(--md-sys-color-income)',
+                fontVariantNumeric: 'tabular-nums'
+              }}>
+                {multiTotals.hasUSD && !multiTotals.hasCUP
+                  ? formatCurrency(multiTotals.totalUSD, 'USD', true)
+                  : formatCurrency(multiTotals.equivalentCUP, 'CUP', true)}
               </div>
             </div>
-          ) : (
-            <div style={{
-              backgroundColor: 'var(--md-sys-color-income-container)',
-              color: 'var(--md-sys-color-on-income-container)',
-              padding: '8px 12px',
-              borderRadius: '12px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, display: 'block' }}>TOTAL COBRADO</span>
-                <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700, display: 'block' }}>
-                  {totalUnitsCount} {totalUnitsCount === 1 ? 'artículo' : 'artículos'}
-                </span>
-              </div>
-
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
-                  {multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true)}
-                </div>
-                <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px' }}>
-                  <span>Equiv: {multiTotals.hasUSD ? formatCurrency(multiTotals.equivalentCUP, 'CUP', true) : formatCurrency(multiTotals.equivalentUSD, 'USD', true)}</span>
-                  <span>(Tasa:</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={liveExchangeRate}
-                    onChange={e => handleExchangeRateChange(parseFloat(e.target.value) || 1)}
-                    className="input-spotlight"
-                    style={{
-                      width: '52px',
-                      padding: '1px 2px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: 'var(--md-sys-color-surface)',
-                      fontSize: '0.68rem',
-                      fontWeight: 800,
-                      textAlign: 'center'
-                    }}
-                  />
-                  <span>)</span>
-                </div>
-              </div>
-            </div>
-          )
+          </div>
         )}
 
         {/* Submit Actions */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
-            onClick={handleConfirmSale}
+            onClick={handleOpenCheckout}
             disabled={ticketItems.length === 0}
             className="md-btn md-btn-primary"
             style={{
               flex: 1,
-              padding: '10px',
-              fontSize: '0.88rem',
-              fontWeight: 800,
+              padding: '12px 14px',
+              fontSize: '0.92rem',
+              fontWeight: 900,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
               opacity: ticketItems.length === 0 ? 0.5 : 1
             }}
           >
-            <Check size={18} />
-            <span>Confirmar Venta</span>
+            <Banknote size={19} />
+            <span>Cobrar (${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP)</span>
           </button>
 
           <button
@@ -1121,12 +1331,834 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         </div>
       </div>
 
+      </div>
+
       <QuickProductSearchModal
         isOpen={isQuickSearchOpen}
         onClose={() => setIsQuickSearchOpen(false)}
         onAddProductsToTicket={handleAddProductsFromSearch}
         currency={currency}
       />
+
+      {/* MODAL DE COBRO PROFESIONAL (EFECTIVO, TRANSFERENCIA, DÓLARES, FIADO Y MIXTO) */}
+      {isCheckoutOpen && (
+        <div
+          className="modal-backdrop-responsive"
+          onClick={() => setIsCheckoutOpen(false)}
+          style={{ zIndex: 3000 }}
+        >
+          <div
+            className="bottom-sheet-modal"
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: '520px',
+              maxHeight: '94dvh',
+              backgroundColor: 'var(--md-sys-color-surface-container)',
+              padding: '20px 24px 28px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              overflowY: 'auto'
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: 'var(--md-sys-color-on-surface)' }}>
+                  Caja & Cobro de Venta
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                  {totalUnitsCount} {totalUnitsCount === 1 ? 'artículo en ticket' : 'artículos en ticket'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCheckoutOpen(false)}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: 'var(--md-sys-color-on-surface-variant)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '50%'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Total Requerido Banner */}
+            <div style={{
+              backgroundColor: 'var(--md-sys-color-surface)',
+              borderRadius: '16px',
+              border: '2px solid var(--brand-primary, #1A73E8)',
+              padding: '12px 16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '8px'
+            }}>
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase' }}>
+                  Total a Cobrar
+                </span>
+                <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)' }}>
+                  ${multiTotals.equivalentCUP.toLocaleString('es-ES')} <span style={{ fontSize: '0.85rem' }}>CUP</span>
+                </div>
+              </div>
+
+              {(multiTotals.hasUSD || multiTotals.isMixed) && (
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    Desglose Original
+                  </span>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--brand-secondary-dark, #115E59)' }}>
+                    ${multiTotals.totalCUP.toLocaleString('es-ES')} CUP + US${multiTotals.totalUSD.toLocaleString('es-ES')} USD
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                    Tasa: 1 USD = {liveExchangeRate} CUP
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Métodos de Cobro Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase' }}>
+                Selecciona la Forma de Pago
+              </span>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))',
+                gap: '6px'
+              }}>
+                {[
+                  { id: 'efectivo', label: 'Efectivo CUP', icon: <Banknote size={15} /> },
+                  { id: 'transferencia', label: 'Transferencia', icon: <SendHorizontal size={15} /> },
+                  { id: 'usd', label: 'Dólares USD', icon: <DollarSign size={15} /> },
+                  { id: 'fiado', label: 'Fiado / Deuda', icon: <CreditCard size={15} /> },
+                  { id: 'mixto', label: 'Combinado', icon: <Split size={15} /> },
+                ].map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setCheckoutMethod(m.id as PaymentMethodType)}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: '12px',
+                      border: checkoutMethod === m.id ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: checkoutMethod === m.id ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
+                      color: checkoutMethod === m.id ? 'var(--brand-primary-dark, #1E3A8A)' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: checkoutMethod === m.id ? 900 : 700,
+                      fontSize: '0.74rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {m.icon}
+                    <span>{m.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* VISTA 1: EFECTIVO CUP */}
+            {checkoutMethod === 'efectivo' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    Monto Entregado por el Cliente en Efectivo ($ CUP)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="Monto entregado"
+                    value={receivedCashCUP}
+                    onChange={e => setReceivedCashCUP(e.target.value)}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1.5px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      fontSize: '1.1rem',
+                      fontWeight: 900
+                    }}
+                  />
+                </div>
+
+                {/* Botones de billetes rápidos */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setReceivedCashCUP(multiTotals.equivalentCUP.toString())}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Exacto (${multiTotals.equivalentCUP})
+                  </button>
+                  {[500, 1000, 2000, 5000].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setReceivedCashCUP(amt.toString())}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ${amt}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Cálculo de Vuelto */}
+                {parseFloat(receivedCashCUP) >= multiTotals.equivalentCUP && (
+                  <div style={{
+                    backgroundColor: '#DCFCE7',
+                    color: '#166534',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.9rem'
+                  }}>
+                    <span>Vuelto / Cambio a Devolver:</span>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 900 }}>
+                      ${(parseFloat(receivedCashCUP) - multiTotals.equivalentCUP).toLocaleString('es-ES')} CUP
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* VISTA 2: TRANSFERENCIA BANCARIA */}
+            {checkoutMethod === 'transferencia' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{
+                  backgroundColor: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  color: '#1E40AF'
+                }}>
+                  <SendHorizontal size={24} />
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                    El cliente transfiere exactamente <strong>${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP</strong> por Transfermóvil o EnZona.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    Referencia / Teléfono de Confirmación (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. #548923 o +53 52000000"
+                    value={transferRef}
+                    onChange={e => setTransferRef(e.target.value)}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* VISTA 3: DÓLARES USD */}
+            {checkoutMethod === 'usd' && (() => {
+              const targetUSD = Math.round((multiTotals.equivalentCUP / liveExchangeRate) * 100) / 100;
+              const recUSD = parseFloat(receivedCashUSD) || 0;
+              const vueltoUSD = Math.max(0, recUSD - targetUSD);
+              const vueltoCUP = Math.round(vueltoUSD * liveExchangeRate);
+
+              return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* WIDGET PROMINENTE DE TASA DE CAMBIO */}
+                <div style={{
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  border: '1.5px solid #0D9488',
+                  borderRadius: '14px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0F766E' }}>
+                      💵 Tasa de Cambio (elTOQUE / Mercado)
+                    </span>
+                    <span style={{ fontSize: '0.66rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                      Actualiza al instante
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>1 USD =</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={liveExchangeRate}
+                      onChange={e => handleExchangeRateChange(parseFloat(e.target.value) || 1)}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        border: '2px solid #0D9488',
+                        backgroundColor: 'var(--md-sys-color-surface-container)',
+                        color: '#0F766E',
+                        fontSize: '1.2rem',
+                        fontWeight: 900,
+                        textAlign: 'center'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>CUP</span>
+                  </div>
+
+                  {/* Cálculo en Dólares a la Tasa */}
+                  <div style={{
+                    backgroundColor: '#F0FDFA',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    border: '1px solid #CCFBF1'
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '0.66rem', color: '#0F766E', fontWeight: 700, display: 'block' }}>
+                        TOTAL A COBRAR EN USD:
+                      </span>
+                      <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0F766E' }}>
+                        US$ {targetUSD.toFixed(2)} USD
+                      </span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '0.66rem', color: '#64748B', display: 'block' }}>
+                        Cuenta en CUP:
+                      </span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#334155' }}>
+                        ${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Monto entregado por el cliente */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    Monto Entregado por el Cliente en Dólares (US$ USD)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="Monto en USD"
+                    value={receivedCashUSD}
+                    onChange={e => setReceivedCashUSD(e.target.value)}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1.5px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      fontSize: '1.1rem',
+                      fontWeight: 900
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setReceivedCashUSD(targetUSD.toFixed(2))}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid #0D9488',
+                      backgroundColor: '#F0FDFA',
+                      color: '#0F766E',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Exacto (US${targetUSD.toFixed(2)})
+                  </button>
+                  {[5, 10, 20, 50, 100].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setReceivedCashUSD(amt.toString())}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      US${amt}
+                    </button>
+                  ))}
+                </div>
+
+                {recUSD >= targetUSD && (
+                  <div style={{
+                    backgroundColor: '#CCFBF1',
+                    color: '#0F766E',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.88rem'
+                  }}>
+                    <div>
+                      <span>Vuelto a Devolver:</span>
+                      {vueltoCUP > 0 && (
+                        <span style={{ display: 'block', fontSize: '0.7rem', color: '#115E59', fontWeight: 700 }}>
+                          O en CUP: ${vueltoCUP.toLocaleString('es-ES')} CUP
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 900 }}>
+                      US${vueltoUSD.toFixed(2)} USD
+                    </span>
+                  </div>
+                )}
+              </div>
+              );
+            })()}
+
+            {/* VISTA 4: FIADO / A DEBER */}
+            {checkoutMethod === 'fiado' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  color: '#991B1B',
+                  fontSize: '0.82rem',
+                  fontWeight: 600
+                }}>
+                  ⚠️ Esta venta se registrará a crédito y se creará una cuenta por cobrar en el módulo de Fiados.
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    Nombre del Cliente / Deudor *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Juan Pérez (Vecino)"
+                    value={debtCustomerName}
+                    onChange={e => setDebtCustomerName(e.target.value)}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1.5px solid var(--brand-primary, #1A73E8)',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      fontSize: '0.95rem',
+                      fontWeight: 700
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                      Teléfono (Opcional)
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="+53 5xxxxxxx"
+                      value={debtCustomerPhone}
+                      onChange={e => setDebtCustomerPhone(e.target.value)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        fontSize: '0.88rem'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                      ¿Cómo abonará a futuro?
+                    </label>
+                    <select
+                      value={debtTypeCUP}
+                      onChange={e => setDebtTypeCUP(e.target.value as any)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        color: 'var(--md-sys-color-on-surface)',
+                        fontSize: '0.85rem',
+                        fontWeight: 700
+                      }}
+                    >
+                      <option value="efectivo">💵 En Efectivo</option>
+                      <option value="transferencia">📲 Por Transferencia</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    Observaciones / Notas (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Prometió pagar el próximo viernes al cobrar"
+                    value={debtNotes}
+                    onChange={e => setDebtNotes(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      fontSize: '0.84rem'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* VISTA 5: COBRO MIXTO / COMBINADO (SPLIT PAYMENT) */}
+            {checkoutMethod === 'mixto' && (() => {
+              const cCUP = Math.max(0, parseFloat(splitCashCUP) || 0);
+              const tCUP = Math.max(0, parseFloat(splitTransferCUP) || 0);
+              const cUSD = Math.max(0, parseFloat(splitCashUSD) || 0);
+              const dCUP = Math.max(0, parseFloat(splitDebtCUP) || 0);
+              const dUSD = Math.max(0, parseFloat(splitDebtUSD) || 0);
+
+              const totalCoveredInCUP = cCUP + tCUP + dCUP + ((cUSD + dUSD) * liveExchangeRate);
+              const diff = multiTotals.equivalentCUP - totalCoveredInCUP;
+              const hasDebt = dCUP > 0 || dUSD > 0;
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                    Distribuye el cobro entre efectivo, transferencias bancarias, dólares y fiado:
+                  </span>
+
+                  {/* WIDGET DE TASA DE CAMBIO PARA EL COBRO COMBINADO */}
+                  <div style={{
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    border: '1.5px solid #0D9488',
+                    borderRadius: '12px',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F766E' }}>
+                        💵 Tasa para conversión de USD:
+                      </span>
+                      <span style={{ fontSize: '0.66rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Afecta el monto en dólares del cobro mixto
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>1 USD =</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={liveExchangeRate}
+                        onChange={e => handleExchangeRateChange(parseFloat(e.target.value) || 1)}
+                        style={{
+                          width: '70px',
+                          padding: '4px 6px',
+                          borderRadius: '6px',
+                          border: '2px solid #0D9488',
+                          backgroundColor: 'var(--md-sys-color-surface-container)',
+                          color: '#0F766E',
+                          fontWeight: 900,
+                          fontSize: '0.95rem',
+                          textAlign: 'center'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>CUP</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#047857' }}>
+                        💵 Efectivo CUP
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={splitCashCUP}
+                        onChange={e => setSplitCashCUP(e.target.value)}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #10B981',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          fontWeight: 800,
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1D4ED8' }}>
+                        📲 Transferencia CUP
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={splitTransferCUP}
+                        onChange={e => setSplitTransferCUP(e.target.value)}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #3B82F6',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          fontWeight: 800,
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0F766E' }}>
+                        💵 Efectivo USD (US$)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={splitCashUSD}
+                        onChange={e => setSplitCashUSD(e.target.value)}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #14B8A6',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          fontWeight: 800,
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 800, color: '#DC2626' }}>
+                        📝 Fiado / A Deber CUP
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={splitDebtCUP}
+                        onChange={e => setSplitDebtCUP(e.target.value)}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #EF4444',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          fontWeight: 800,
+                          fontSize: '0.9rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Campo de Cliente si hay monto en Fiado */}
+                  {hasDebt && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#DC2626' }}>
+                        Nombre del Cliente Deudor (Requerido por haber fiado) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej. Carlos Martínez"
+                        value={splitCustomerName}
+                        onChange={e => setSplitCustomerName(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1.5px solid #EF4444',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          fontWeight: 700,
+                          fontSize: '0.88rem'
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Estado del balance combinado */}
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    backgroundColor: diff > 1 ? '#FEF2F2' : '#F0FDF4',
+                    border: diff > 1 ? '1px solid #FECACA' : '1px solid #BBF7D0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Cubierto: ${Math.round(totalCoveredInCUP).toLocaleString('es-ES')} de ${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP
+                      </span>
+                      <span style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 900,
+                        color: diff > 1 ? '#DC2626' : '#16A34A'
+                      }}>
+                        {diff > 1
+                          ? `Faltan $${Math.round(diff).toLocaleString('es-ES')} CUP`
+                          : diff < -1
+                            ? `Vuelto: $${Math.abs(Math.round(diff)).toLocaleString('es-ES')} CUP`
+                            : '✓ Total Cubierto Exacto'}
+                      </span>
+                    </div>
+
+                    {/* Botones de autocompletar si falta */}
+                    {diff > 1 && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setSplitTransferCUP((tCUP + diff).toString())}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #3B82F6',
+                            backgroundColor: '#EFF6FF',
+                            color: '#1D4ED8',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + Asignar resto a Transferencia
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSplitDebtCUP((dCUP + diff).toString())}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #EF4444',
+                            backgroundColor: '#FEF2F2',
+                            color: '#DC2626',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + Asignar resto a Fiado
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSplitCashCUP((cCUP + diff).toString())}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #10B981',
+                            backgroundColor: '#ECFDF5',
+                            color: '#047857',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + Asignar resto a Efectivo
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Botones de Acción Final */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setIsCheckoutOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '9999px',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--md-sys-color-on-surface)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Volver al Ticket
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteCheckout}
+                style={{
+                  flex: 1.5,
+                  padding: '12px',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  backgroundColor: 'var(--brand-primary, #1A73E8)',
+                  color: '#FFFFFF',
+                  fontWeight: 900,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 14px rgba(26, 115, 232, 0.3)'
+                }}
+              >
+                <Check size={18} />
+                <span>Confirmar Cobro</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -36,16 +36,11 @@ export const AppInput = forwardRef<HTMLInputElement, AppInputProps>(({
   const isSelfFocused = focusedField !== undefined && fieldName !== undefined 
     ? focusedField === fieldName 
     : false;
-  
-  const isAnyFieldFocused = focusedField !== undefined && focusedField !== null;
-  const isOtherFieldFocused = !disableBlur && isAnyFieldFocused && !isSelfFocused;
 
   return (
     <div style={{
-      opacity: isOtherFieldFocused ? 0.85 : 1,
-      filter: isOtherFieldFocused ? 'blur(1px)' : 'none',
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-      width: '100%'
+      width: '100%',
+      position: 'relative'
     }}>
       {/* Label / Active Spotlight Header */}
       {label && (

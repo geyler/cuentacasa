@@ -6,6 +6,7 @@ import { formatCurrency, isTransactionEditable, getRemainingEditableTime } from 
 import { X, Calendar, Clock, Tag, DollarSign, Edit3, Trash2, ShieldCheck, AlertCircle, Store, Home, Info, Receipt } from 'lucide-react';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { ReceiptTicketView } from '@/components/common/ReceiptTicketView';
+import { formatRecordDateTime } from '@/lib/dateUtils';
 
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
@@ -29,52 +30,34 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const editable = isTransactionEditable(transaction.createdAt);
   const remainingTime = getRemainingEditableTime(transaction.createdAt);
 
-  const formattedDate = new Date(transaction.createdAt || transaction.date).toLocaleString('es-ES', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  const formattedDate = formatRecordDateTime(transaction.createdAt, transaction.date);
 
   const isStoreRelated = transaction.category.includes('Tienda') || (transaction.notes && transaction.notes.includes('Tienda'));
 
   return (
     <div
-      className="no-print"
+      className="modal-backdrop-responsive no-print"
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2000,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
+        zIndex: 2000
       }}
       onClick={onClose}
     >
       <div 
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
+          maxWidth: '520px',
           maxHeight: '90dvh',
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
+          overflow: 'hidden'
         }}
       >
-        {/* Grab Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+        {/* Grab Handle (Only visible on Mobile) */}
+        <div className="mobile-only" style={{ justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
           <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
         </div>
 
@@ -217,22 +200,37 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         </div>
 
           {/* Explicit Notes / Explanation or Ticket Detail */}
-          {transaction.notes?.includes('[TICKET_') ? (
-            <ReceiptTicketView note={transaction.notes} timestamp={transaction.createdAt} />
-          ) : (
-            <div style={{
-              backgroundColor: 'var(--md-sys-color-surface-container-high)',
-              borderRadius: '16px',
-              padding: '14px 16px'
-            }}>
-              <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
-                EXPLICACIÓN / MOTIVO DE ORIGEN
-              </span>
-              <p style={{ fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface)', lineHeight: '1.5', margin: 0 }}>
-                {transaction.notes || `Movimiento de ${transaction.type} registrado en la categoría "${transaction.category}" el ${transaction.date}.`}
-              </p>
-            </div>
-          )}
+          {(() => {
+            const isTicketSale = Boolean(
+              transaction.notes?.includes('[TICKET_') ||
+              transaction.concept?.toLowerCase().includes('tienda: venta') ||
+              transaction.concept?.toLowerCase().includes('venta pos') ||
+              transaction.category?.toLowerCase().includes('ventas')
+            );
+
+            if (isTicketSale) {
+              const ticketNoteToRender = transaction.notes?.includes('[TICKET_')
+                ? transaction.notes
+                : `[TICKET_DE_VENTA] Comprobante de Venta #${transaction.id.slice(-6)}\n• 1x ${transaction.concept.replace(/^tienda:\s*venta\s*(?:de:?)?\s*/i, '')} ($${transaction.amount} c/u = $${transaction.amount})\n------------\nTotal: $${transaction.amount} | Moneda: ${transaction.currency || 'CUP'} | Vendedor: Administrador`;
+
+              return <ReceiptTicketView note={ticketNoteToRender} timestamp={transaction.createdAt} />;
+            }
+
+            return (
+              <div style={{
+                backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                borderRadius: '16px',
+                padding: '14px 16px'
+              }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
+                  EXPLICACIÓN / MOTIVO DE ORIGEN
+                </span>
+                <p style={{ fontSize: '0.88rem', color: 'var(--md-sys-color-on-surface)', lineHeight: '1.5', margin: 0 }}>
+                  {transaction.notes || `Movimiento de ${transaction.type} registrado en la categoría "${transaction.category}" el ${transaction.date}.`}
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Editable status timer banner */}
           <div style={{

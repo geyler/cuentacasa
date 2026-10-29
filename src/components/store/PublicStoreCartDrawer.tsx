@@ -69,22 +69,20 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
 
     const encoded = encodeURIComponent(text);
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
-    const waUrl = cleanPhone ? `https://wa.me/+${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
     window.open(waUrl, '_blank');
   };
 
   return (
     <>
       <div
+        className="modal-backdrop-responsive"
         style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.70)',
           backdropFilter: 'blur(8px)',
           zIndex: 2600,
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
           padding: '0'
         }}
         onClick={onClose}
@@ -94,9 +92,8 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
           onClick={e => e.stopPropagation()}
           style={{
             width: '100%',
-            maxWidth: '768px',
+            maxWidth: '520px',
             backgroundColor: 'var(--md-sys-color-surface)',
-            borderRadius: '24px 24px 0 0',
             padding: '20px',
             boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
             display: 'flex',
@@ -106,8 +103,8 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
             overflowY: 'auto'
           }}
         >
-          {/* Top Drag Handle */}
-          <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
+          {/* Top Drag Handle (Mobile only) */}
+          <div className="mobile-only" style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
 
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -116,8 +113,8 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                color: 'var(--md-sys-color-primary)',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -196,7 +193,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
 
                     <div style={{ overflow: 'hidden' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-primary)', padding: '1px 5px', borderRadius: '4px' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, backgroundColor: 'var(--brand-primary-light, #EFF6FF)', color: 'var(--brand-primary-dark, #1E3A8A)', padding: '1px 5px', borderRadius: '4px' }}>
                           #{item.product.barcode}
                         </span>
                         <span style={{
@@ -204,9 +201,9 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                           fontWeight: 900,
                           padding: '1px 5px',
                           borderRadius: '4px',
-                          backgroundColor: (item.product.currency === 'USD') ? '#ECFEFF' : '#F1F5F9',
-                          color: (item.product.currency === 'USD') ? '#0F766E' : '#475569',
-                          border: (item.product.currency === 'USD') ? '1px solid #99F6E4' : '1px solid #CBD5E1'
+                          backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                          color: 'var(--brand-primary-dark, #1E3A8A)',
+                          border: '1px solid var(--brand-primary-border, #BFDBFE)'
                         }}>
                           {item.product.currency === 'USD' ? 'USD' : 'CUP'}
                         </span>
@@ -249,10 +246,10 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '65px' }}>
-                      <span style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)' }}>
                         {formatCurrency(item.product.price * item.quantity, item.product.currency || 'CUP', true)}
                       </span>
-                      <span style={{ fontSize: '0.62rem', fontWeight: 900, color: item.product.currency === 'USD' ? '#0F766E' : '#64748B' }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 900, color: 'var(--brand-primary, #1A73E8)' }}>
                         {item.product.currency === 'USD' ? 'USD' : 'CUP'}
                       </span>
                     </div>
@@ -278,15 +275,15 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                     💳 Cobro en 2 Cuentas Separadas:
                   </span>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#00875A', backgroundColor: '#E6F4EA', padding: '3px 8px', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)', backgroundColor: 'var(--brand-primary-light, #EFF6FF)', padding: '3px 8px', borderRadius: '8px', border: '1px solid var(--brand-primary-border, #BFDBFE)' }}>
                       CUP: ${multiTotals.totalCUP.toLocaleString('es-ES')} CUP
                     </span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0F766E', backgroundColor: '#ECFEFF', padding: '3px 8px', borderRadius: '8px', border: '1px solid #99F6E4' }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)', backgroundColor: 'var(--brand-primary-light, #EFF6FF)', padding: '3px 8px', borderRadius: '8px', border: '1px solid var(--brand-primary-border, #BFDBFE)' }}>
                       USD: US$ {multiTotals.totalUSD.toLocaleString('es-ES')} USD
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, marginTop: '2px' }}>
-                    Total Equivalente: ${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP (Tasa 1 USD = ${exchangeRateUSD} CUP)
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface)', fontWeight: 800, marginTop: '2px' }}>
+                    Total Estimado: ${multiTotals.equivalentCUP.toLocaleString('es-ES')} CUP
                   </span>
                 </div>
               ) : (
@@ -295,7 +292,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                     Total a Pagar:
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)' }}>
                       {multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true)}
                     </span>
                     <span style={{
@@ -303,9 +300,9 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                       fontWeight: 900,
                       padding: '2px 8px',
                       borderRadius: '6px',
-                      backgroundColor: multiTotals.hasUSD ? '#ECFEFF' : '#F1F5F9',
-                      color: multiTotals.hasUSD ? '#0F766E' : '#475569',
-                      border: multiTotals.hasUSD ? '1px solid #99F6E4' : '1px solid #CBD5E1'
+                      backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                      color: 'var(--brand-primary-dark, #1E3A8A)',
+                      border: '1px solid var(--brand-primary-border, #BFDBFE)'
                     }}>
                       {multiTotals.hasUSD ? 'USD' : 'CUP'}
                     </span>
@@ -317,7 +314,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                 <button
                   onClick={handleSendWhatsAppOrder}
                   style={{
-                    backgroundColor: '#25D366',
+                    backgroundColor: 'var(--brand-primary, #1A73E8)',
                     color: '#FFFFFF',
                     padding: '12px 14px',
                     borderRadius: '9999px',
@@ -328,18 +325,17 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)'
+                    gap: '6px'
                   }}
                 >
                   <MessageCircle size={18} />
-                  <span>WhatsApp</span>
+                  <span>Encargar por WhatsApp</span>
                 </button>
 
                 <button
                   onClick={() => setIsCartQROpen(true)}
                   style={{
-                    backgroundColor: 'var(--md-sys-color-primary)',
+                    backgroundColor: 'var(--brand-primary-darker, #0B1528)',
                     color: '#FFFFFF',
                     padding: '12px 14px',
                     borderRadius: '9999px',
@@ -350,12 +346,11 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 16px rgba(26, 115, 232, 0.4)'
+                    gap: '6px'
                   }}
                 >
                   <QrCode size={18} />
-                  <span>⚡ QR Vendedor</span>
+                  <span>QR Vendedor</span>
                 </button>
               </div>
             </div>

@@ -7,11 +7,13 @@ import {
   getCurrencySettings, 
   getStoreProductByBarcode, 
   parseBarcodeDates,
-  saveStoreProduct
+  saveStoreProduct,
+  getRawDatabase,
+  DEFAULT_PRODUCT_IMAGE
 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { AppInput } from '@/components/common/AppInput';
-import { Package, X, Camera, Check, Image as ImageIcon, AlertTriangle, PlusCircle, Edit3 } from 'lucide-react';
+import { Package, X, Camera, Check, Image as ImageIcon, AlertTriangle, PlusCircle, Edit3, Sparkles, DollarSign, Wallet } from 'lucide-react';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 
@@ -21,7 +23,7 @@ interface ProductFormModalProps {
   suppliers: SupplierAccount[];
   existingCategories: string[];
   onClose: () => void;
-  onSaveProduct: (productData: any) => void;
+  onSaveProduct: (productData: any) => boolean | void;
   onScanBarcodeClick: () => void;
   currency?: string;
   scannedBarcode?: string | null;
@@ -79,6 +81,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [addStockQty, setAddStockQty] = useState<number | ''>(1);
   const [addStockCost, setAddStockCost] = useState<number | ''>('');
   const [addStockExpDate, setAddStockExpDate] = useState('');
+
+  // Form Mode: 'simple' (Fast publishing direct to store with business fund) vs 'advanced' (Full options)
+  const [formMode, setFormMode] = useState<'simple' | 'advanced'>('simple');
 
   // Refs for focusing
   const productFormRef = useRef<HTMLFormElement | null>(null);
@@ -144,6 +149,19 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setDescription(editingProduct.description || '');
       setMfgDate(editingProduct.mfgDate || '');
       setExpDate(editingProduct.expDate || '');
+
+      // Open in advanced mode if it has specialized settings
+      if (
+        editingProduct.supplierType === 'proveedor' ||
+        editingProduct.isExternal ||
+        editingProduct.mfgDate ||
+        editingProduct.expDate ||
+        editingProduct.published === false
+      ) {
+        setFormMode('advanced');
+      } else {
+        setFormMode('simple');
+      }
     } else {
       setName('');
       setBarcode('');
@@ -156,6 +174,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setCostPrice('');
       setPrice('');
       setProductCurrency('CUP');
+      setStock('');
+      setPhotoUrl('');
+      setPublished(true);
+      setFundingSource('negocio');
+      setSupplierType('propia');
+      setSupplierName('');
+      setIsAddingNewSupplier(false);
       setIsExternal(false);
       setExternalType('whatsapp');
       setExternalValue('');
@@ -163,8 +188,29 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setMfgDate('');
       setExpDate('');
       setExistingProductAlert(null);
+      setFormMode('simple');
     }
   }, [editingProduct, isOpen]);
+
+  const handleGenerateSku = () => {
+    const randomDigits = Math.floor(100000 + Math.random() * 900000);
+    const genSku = `SKU-${randomDigits}`;
+    setBarcode(genSku);
+    showToast({
+      title: 'SKU Generado',
+      message: `Código asignado: ${genSku}`,
+      type: 'success'
+    });
+  };
+
+  const handleUseDefaultPhoto = () => {
+    setPhotoUrl(DEFAULT_PRODUCT_IMAGE);
+    showToast({
+      title: 'Foto por Defecto',
+      message: 'Se asignó la imagen oficial de catálogo.',
+      type: 'info'
+    });
+  };
 
   if (!isOpen) return null;
 
@@ -226,16 +272,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       expDate: addStockExpDate.trim() || existingProductAlert.expDate
     };
 
-    saveStoreProduct(updatedProductPayload);
-    showToast({
-      title: '¡Stock Actualizado Exitosamente!',
-      message: `Se agregaron +${addedQty} ${existingProductAlert.unit || 'u'} a "${existingProductAlert.name}". Nuevo stock: ${newStock} ${existingProductAlert.unit || 'u'}.`,
-      type: 'success'
-    });
-
-    setExistingProductAlert(null);
-    onSaveProduct(updatedProductPayload);
-    onClose();
+    try {
+      const savedOk = onSaveProduct(updatedProductPayload);
+      if (savedOk === false) return;
+      setExistingProductAlert(null);
+      onClose();
+    } catch (err: any) {
+      showToast({
+        title: 'Error al Añadir Stock',
+        message: err?.message || 'No se pudo actualizar el stock del producto.',
+        type: 'error'
+      });
+    }
   };
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -273,6 +321,19 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     e.preventDefault();
     if (!name.trim() || price === '' || Number(price) <= 0) return;
 
+    const resolvedSupplierName = fundingSource === 'proveedor'
+      ? (supplierName.trim() || (!isAddingNewSupplier && suppliers.length > 0 ? suppliers[0].name : ''))
+      : '';
+
+    if (fundingSource === 'proveedor' && !resolvedSupplierName) {
+      showToast({
+        title: 'Proveedor Requerido',
+        message: 'Debes seleccionar o escribir el nombre del proveedor para mercancía en consignación.',
+        type: 'error'
+      });
+      return;
+    }
+
     let finalExternalUrl: string | undefined = undefined;
     if (isExternal && externalValue.trim()) {
       if (externalType === 'whatsapp') {
@@ -300,7 +361,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       published,
       fundingSource: fundingSource === 'proveedor' ? 'negocio' : fundingSource,
       supplierType: fundingSource === 'proveedor' ? 'proveedor' : 'propia',
-      supplierName: fundingSource === 'proveedor' ? supplierName.trim() : undefined,
+      supplierName: fundingSource === 'proveedor' ? resolvedSupplierName : undefined,
       isExternal,
       externalUrl: finalExternalUrl,
       description: description.trim() || undefined,
@@ -308,9 +369,20 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       expDate: expDate.trim() || undefined
     };
 
-    onSaveProduct(productPayload);
+    const savedOk = onSaveProduct(productPayload);
+    if (savedOk === false) return;
     onClose();
   };
+
+  const rawDb = getRawDatabase();
+  const storeFundCUP = rawDb.storeFund || 0;
+  const storeFundUSD = rawDb.storeFundUSD || 0;
+  const currentStoreFund = productCurrency === 'USD' ? storeFundUSD : storeFundCUP;
+
+  const numStock = Number(stock) || 0;
+  const numCost = Number(costPrice) || 0;
+  const totalInvestment = numStock * numCost;
+  const hasSufficientFund = currentStoreFund >= totalInvestment;
 
   return (
     <div 
@@ -335,7 +407,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           flexDirection: 'column',
           height: '100%',
           width: '100%',
-          maxWidth: '768px',
+          maxWidth: '900px',
           margin: '0 auto',
           backgroundColor: 'var(--md-sys-color-surface-container)',
           boxShadow: 'var(--md-shadow-elevation-2)'
@@ -389,60 +461,203 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           gap: '18px'
         }}>
 
-          {/* Funding Source Selector */}
-          <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
-              Origen del Financiamiento:
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setFundingSource('negocio');
-                  setSupplierType('propia');
-                }}
-                style={{
-                  padding: '12px 8px',
-                  borderRadius: '14px',
-                  border: fundingSource === 'negocio' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  backgroundColor: fundingSource === 'negocio' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface)',
-                  color: fundingSource === 'negocio' ? '#FFF' : 'var(--md-sys-color-on-surface)',
-                  transition: 'all 0.2s ease',
-                  boxShadow: fundingSource === 'negocio' ? 'var(--md-shadow-elevation-1)' : 'none'
-                }}
-              >
-                🏦 Fondo Negocio
-              </button>
+          {/* Form Mode Segmented Switcher */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '6px',
+            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            padding: '4px',
+            borderRadius: '14px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setFormMode('simple')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: formMode === 'simple' ? '1px solid var(--md-sys-color-primary)' : 'none',
+                backgroundColor: formMode === 'simple' ? 'var(--md-sys-color-primary)' : 'transparent',
+                color: formMode === 'simple' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>⚡ Modo Rápido (Simple)</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setFundingSource('proveedor');
-                  setSupplierType('proveedor');
-                }}
-                style={{
-                  padding: '12px 8px',
-                  borderRadius: '14px',
-                  border: fundingSource === 'proveedor' ? '2px solid var(--md-sys-color-expense)' : '1px solid var(--md-sys-color-outline-variant)',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  backgroundColor: fundingSource === 'proveedor' ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-surface)',
-                  color: fundingSource === 'proveedor' ? '#FFF' : 'var(--md-sys-color-on-surface)',
-                  transition: 'all 0.2s ease',
-                  boxShadow: fundingSource === 'proveedor' ? 'var(--md-shadow-elevation-1)' : 'none'
-                }}
-              >
-                🤝 Consignación (Proveedor)
-              </button>
+            <button
+              type="button"
+              onClick={() => setFormMode('advanced')}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: formMode === 'advanced' ? '1px solid var(--md-sys-color-primary)' : 'none',
+                backgroundColor: formMode === 'advanced' ? 'var(--md-sys-color-primary)' : 'transparent',
+                color: formMode === 'advanced' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>⚙️ Modo Completo (Avanzado)</span>
+            </button>
+          </div>
+
+          {/* Centered Photo Upload Card */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            borderRadius: '20px',
+            backgroundColor: 'var(--md-sys-color-surface)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            gap: '12px'
+          }}>
+            {photoUrl ? (
+              <div style={{ position: 'relative', width: '100px', height: '100px' }}>
+                <img 
+                  src={photoUrl} 
+                  alt="Preview" 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover', 
+                    borderRadius: '16px',
+                    boxShadow: 'var(--md-shadow-elevation-1)',
+                    border: '2px solid var(--md-sys-color-primary)'
+                  }} 
+                />
+                <button
+                  type="button"
+                  onClick={() => setPhotoUrl('')}
+                  title="Eliminar fotografía"
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    backgroundColor: 'var(--md-sys-color-expense)',
+                    color: '#FFF',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '16px',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-on-primary-container)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <ImageIcon size={30} />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <label className="md-btn md-btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '12px' }}>
+                <Camera size={16} />
+                <span>{isUploadingPhoto ? 'Optimizando...' : photoUrl ? 'Cambiar Imagen' : 'Subir Imagen'}</span>
+                <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: 'none' }} />
+              </label>
+
+              {!photoUrl && (
+                <button
+                  type="button"
+                  onClick={handleUseDefaultPhoto}
+                  className="md-btn md-btn-secondary"
+                  style={{ padding: '8px 14px', fontSize: '0.8rem', borderRadius: '12px' }}
+                >
+                  <ImageIcon size={15} />
+                  <span>Foto por Defecto</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Supplier Selector Dropdown */}
-          {fundingSource === 'proveedor' && (
+          {/* Funding Source Selector (Only in Advanced Mode) */}
+          {formMode === 'advanced' && (
+            <div>
+              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+                Origen del Financiamiento:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFundingSource('negocio');
+                    setSupplierType('propia');
+                  }}
+                  style={{
+                    padding: '12px 8px',
+                    borderRadius: '14px',
+                    border: fundingSource === 'negocio' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    backgroundColor: fundingSource === 'negocio' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface)',
+                    color: fundingSource === 'negocio' ? '#FFF' : 'var(--md-sys-color-on-surface)',
+                    transition: 'all 0.2s ease',
+                    boxShadow: fundingSource === 'negocio' ? 'var(--md-shadow-elevation-1)' : 'none'
+                  }}
+                >
+                  🏦 Fondo Negocio
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFundingSource('proveedor');
+                    setSupplierType('proveedor');
+                    if (!supplierName && suppliers.length > 0) {
+                      setSupplierName(suppliers[0].name);
+                    }
+                  }}
+                  style={{
+                    padding: '12px 8px',
+                    borderRadius: '14px',
+                    border: fundingSource === 'proveedor' ? '2px solid var(--md-sys-color-expense)' : '1px solid var(--md-sys-color-outline-variant)',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    backgroundColor: fundingSource === 'proveedor' ? 'var(--md-sys-color-expense)' : 'var(--md-sys-color-surface)',
+                    color: fundingSource === 'proveedor' ? '#FFF' : 'var(--md-sys-color-on-surface)',
+                    transition: 'all 0.2s ease',
+                    boxShadow: fundingSource === 'proveedor' ? 'var(--md-shadow-elevation-1)' : 'none'
+                  }}
+                >
+                  🤝 Consignación (Proveedor)
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Supplier Selector Dropdown (Only in Advanced Mode) */}
+          {formMode === 'advanced' && fundingSource === 'proveedor' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
                 Seleccionar Proveedor (Consignación) *
@@ -450,7 +665,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
               {suppliers.length > 0 && !isAddingNewSupplier ? (
                 <select
-                  value={supplierName}
+                  value={supplierName || suppliers[0]?.name || ''}
                   onChange={e => {
                     if (e.target.value === '__NEW__') {
                       setIsAddingNewSupplier(true);
@@ -551,7 +766,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 onClick={onScanBarcodeClick}
                 className="md-btn md-btn-secondary"
                 style={{
-                  padding: '10px 14px',
+                  padding: '10px 12px',
                   fontSize: '0.82rem',
                   borderColor: 'var(--md-sys-color-primary)',
                   color: 'var(--md-sys-color-primary)',
@@ -560,7 +775,25 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 }}
               >
                 <Camera size={16} />
-                <span>Escanear Código</span>
+                <span>Escanear</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGenerateSku}
+                className="md-btn md-btn-secondary"
+                style={{
+                  padding: '10px 12px',
+                  fontSize: '0.82rem',
+                  borderColor: 'var(--md-sys-color-outline-variant)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
+                }}
+                title="Generar SKU único automático"
+              >
+                <Sparkles size={16} color="var(--md-sys-color-primary)" />
+                <span>Generar SKU</span>
               </button>
             </div>
           </div>
@@ -847,280 +1080,296 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             required
           />
 
-          {/* External Link / Affiliate Checkbox & Input */}
-          <div style={{
-            padding: '12px 14px',
-            borderRadius: '14px',
-            backgroundColor: 'var(--md-sys-color-surface)',
-            border: isExternal ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-          }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-              <input
-                type="checkbox"
-                checked={isExternal}
-                onChange={e => setIsExternal(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: 'var(--md-sys-color-primary)' }}
-              />
-              <span>🔗 Producto de Enlace Externo / WhatsApp Directo</span>
-            </label>
+          {/* Live Investment Calculation & Store Fund Availability Box */}
+          {numStock > 0 && (
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: '16px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: totalInvestment > currentStoreFund 
+                ? '1.5px solid #FCA5A5' 
+                : '1.5px solid var(--md-sys-color-outline-variant)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                  💰 Presupuesto de Entrada al Inventario
+                </span>
+                <span style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  backgroundColor: hasSufficientFund ? '#DCFCE7' : '#FEE2E2',
+                  color: hasSufficientFund ? '#166534' : '#991B1B'
+                }}>
+                  {hasSufficientFund ? 'Fondos en Caja Suficientes' : 'Supera Fondos en Caja'}
+                </span>
+              </div>
 
-            {isExternal && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setExternalType('whatsapp')}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: externalType === 'whatsapp' ? '2px solid #25D366' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: externalType === 'whatsapp' ? 'rgba(37, 211, 102, 0.12)' : 'transparent',
-                      color: externalType === 'whatsapp' ? '#25D366' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: 800,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    💬 Número WhatsApp
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setExternalType('link')}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: externalType === 'link' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: externalType === 'link' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-                      color: externalType === 'link' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: 800,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🌐 Enlace Web Externo
-                  </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)'
+                }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
+                    Costo Total de Adquisición:
+                  </span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                    {formatCurrency(totalInvestment, productCurrency, true)}
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
+                    {numCost > 0 ? `${numStock} ${unit} × ${formatCurrency(numCost, productCurrency, true)}` : 'Sin costo asignado'}
+                  </span>
                 </div>
 
-                {externalType === 'whatsapp' ? (
-                  <div>
-                    <AppInput
-                      disableBlur
-                      hideAceptar
-                      label="Número de WhatsApp (Las Tunas) *"
-                      placeholder="Ej: 53999999 (Sin +53 ni código de país)"
-                      value={externalValue}
-                      onChange={e => setExternalValue(e.target.value)}
-                      required={isExternal}
-                    />
-                    <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
-                      💡 Escribe los 8 dígitos locales (ej: 53999999). El sistema lo convertirá a wa.me/+53...
-                    </p>
-                  </div>
-                ) : (
-                  <AppInput
-                    disableBlur
-                    hideAceptar
-                    label="URL o Enlace Web Directo *"
-                    placeholder="https://tienda-externa.com/producto..."
-                    value={externalValue}
-                    onChange={e => setExternalValue(e.target.value)}
-                    required={isExternal}
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--md-sys-color-surface-container-high)'
+                }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>
+                    Disponible en Caja Negocio:
+                  </span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
+                    {formatCurrency(currentStoreFund, productCurrency, true)}
+                  </span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '2px' }}>
+                    Fondo {productCurrency} en Tienda
+                  </span>
+                </div>
+              </div>
+
+              {totalInvestment > currentStoreFund && (
+                <div style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  color: '#B91C1C',
+                  backgroundColor: '#FEF2F2',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                  <span>El costo total ({formatCurrency(totalInvestment, productCurrency, true)}) supera el fondo disponible en la caja del negocio ({formatCurrency(currentStoreFund, productCurrency, true)}).</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Advanced Mode Only Fields */}
+          {formMode === 'advanced' && (
+            <>
+              {/* External Link / Affiliate Checkbox & Input */}
+              <div style={{
+                padding: '12px 14px',
+                borderRadius: '14px',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                border: isExternal ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                  <input
+                    type="checkbox"
+                    checked={isExternal}
+                    onChange={e => setIsExternal(e.target.checked)}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--md-sys-color-primary)' }}
                   />
+                  <span>🔗 Producto de Enlace Externo / WhatsApp Directo</span>
+                </label>
+
+                {isExternal && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setExternalType('whatsapp')}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: externalType === 'whatsapp' ? '2px solid #25D366' : '1px solid var(--md-sys-color-outline-variant)',
+                          backgroundColor: externalType === 'whatsapp' ? 'rgba(37, 211, 102, 0.12)' : 'transparent',
+                          color: externalType === 'whatsapp' ? '#25D366' : 'var(--md-sys-color-on-surface)',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        💬 Número WhatsApp
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setExternalType('link')}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          border: externalType === 'link' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                          backgroundColor: externalType === 'link' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                          color: externalType === 'link' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🌐 Enlace Web Externo
+                      </button>
+                    </div>
+
+                    {externalType === 'whatsapp' ? (
+                      <div>
+                        <AppInput
+                          disableBlur
+                          hideAceptar
+                          label="Número de WhatsApp (Las Tunas) *"
+                          placeholder="Ej: 53999999 (Sin +53 ni código de país)"
+                          value={externalValue}
+                          onChange={e => setExternalValue(e.target.value)}
+                          required={isExternal}
+                        />
+                        <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
+                          💡 Escribe los 8 dígitos locales (ej: 53999999). El sistema lo convertirá a wa.me/53...
+                        </p>
+                      </div>
+                    ) : (
+                      <AppInput
+                        disableBlur
+                        hideAceptar
+                        label="URL o Enlace Web Directo *"
+                        placeholder="https://tienda-externa.com/producto..."
+                        value={externalValue}
+                        onChange={e => setExternalValue(e.target.value)}
+                        required={isExternal}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Detailed Description Field */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Descripción Detallada (SEO Local & Información del Cliente)
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Escribe detalles del producto, especificaciones, ingredientes o disponibilidad en Las Tunas para mejorar el SEO..."
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              className="input-spotlight"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '12px',
-                border: '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                color: 'var(--md-sys-color-on-surface)',
-                fontSize: '0.88rem',
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                outline: 'none',
-                resize: 'vertical'
-              }}
-            />
-          </div>
-
-          {/* Libro de Tasaciones: Manufacturing & Expiration Dates */}
-          <div style={{
-            padding: '14px',
-            borderRadius: '16px',
-            backgroundColor: 'var(--md-sys-color-surface)',
-            border: '1px dashed var(--md-sys-color-primary)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.1rem' }}>📜</span>
-              <div>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                  Fechas para Libro de Tasaciones (Opcional)
-                </h4>
-                <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
-                  Requerido para control sanitario e inspección de autoridades. No visible en tienda pública.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
-                  F. Fabricación / Creación
+              {/* Detailed Description Field */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Descripción Detallada (SEO Local & Información del Cliente)
                 </label>
-                <input
-                  type="date"
-                  value={mfgDate}
-                  onChange={e => setMfgDate(e.target.value)}
+                <textarea
+                  rows={3}
+                  placeholder="Escribe detalles del producto, especificaciones, ingredientes o disponibilidad en Las Tunas para mejorar el SEO..."
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  className="input-spotlight"
                   style={{
                     width: '100%',
-                    padding: '10px',
-                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '12px',
                     border: '1px solid var(--md-sys-color-outline-variant)',
-                    backgroundColor: 'var(--md-sys-color-surface-container)',
+                    backgroundColor: 'var(--md-sys-color-surface)',
                     color: 'var(--md-sys-color-on-surface)',
-                    fontSize: '0.82rem',
-                    fontWeight: 700
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    resize: 'vertical'
                   }}
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
-                  F. Vencimiento / Caducidad
-                </label>
-                <input
-                  type="date"
-                  value={expDate}
-                  onChange={e => setExpDate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--md-sys-color-outline-variant)',
-                    backgroundColor: 'var(--md-sys-color-surface-container)',
-                    color: 'var(--md-sys-color-on-surface)',
-                    fontSize: '0.82rem',
-                    fontWeight: 700
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Centered Photo Upload Card */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '14px',
-            borderRadius: '20px',
-            backgroundColor: 'var(--md-sys-color-surface)',
-            border: '1px solid var(--md-sys-color-outline-variant)',
-            gap: '10px'
-          }}>
-            {photoUrl ? (
-              <div style={{ position: 'relative', width: '90px', height: '90px' }}>
-                <img 
-                  src={photoUrl} 
-                  alt="Preview" 
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    objectFit: 'cover', 
-                    borderRadius: '16px',
-                    boxShadow: 'var(--md-shadow-elevation-1)',
-                    border: '2px solid var(--md-sys-color-primary)'
-                  }} 
-                />
-                <button
-                  type="button"
-                  onClick={() => setPhotoUrl('')}
-                  style={{
-                    position: 'absolute',
-                    top: '-6px',
-                    right: '-6px',
-                    backgroundColor: 'var(--md-sys-color-expense)',
-                    color: '#FFF',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '24px',
-                    height: '24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                  }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
+              {/* Libro de Tasaciones: Manufacturing & Expiration Dates */}
               <div style={{
-                width: '64px',
-                height: '64px',
+                padding: '14px',
                 borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                color: 'var(--md-sys-color-on-primary-container)',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                border: '1px dashed var(--md-sys-color-primary)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.1rem' }}>📜</span>
+                  <div>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                      Fechas para Libro de Tasaciones (Opcional)
+                    </h4>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
+                      Requerido para control sanitario e inspección de autoridades. No visible en tienda pública.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
+                      F. Fabricación / Creación
+                    </label>
+                    <input
+                      type="date"
+                      value={mfgDate}
+                      onChange={e => setMfgDate(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: 'var(--md-sys-color-surface-container)',
+                        color: 'var(--md-sys-color-on-surface)',
+                        fontSize: '0.82rem',
+                        fontWeight: 700
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
+                      F. Vencimiento / Caducidad
+                    </label>
+                    <input
+                      type="date"
+                      value={expDate}
+                      onChange={e => setExpDate(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: 'var(--md-sys-color-surface-container)',
+                        color: 'var(--md-sys-color-on-surface)',
+                        fontSize: '0.82rem',
+                        fontWeight: 700
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Published Toggle Checkbox */}
+              <label style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: '14px',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 700
               }}>
-                <ImageIcon size={28} />
-              </div>
-            )}
-
-            <label className="md-btn md-btn-secondary" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '12px' }}>
-              <Camera size={16} />
-              <span>{isUploadingPhoto ? 'Optimizando...' : photoUrl ? 'Cambiar Imagen' : 'Añadir Fotografía'}</span>
-              <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: 'none' }} />
-            </label>
-          </div>
-
-          {/* Published Toggle Checkbox */}
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 14px',
-            borderRadius: '14px',
-            backgroundColor: 'var(--md-sys-color-surface)',
-            border: '1px solid var(--md-sys-color-outline-variant)',
-            cursor: 'pointer',
-            fontSize: '0.85rem',
-            fontWeight: 700
-          }}>
-            <input
-              type="checkbox"
-              checked={published}
-              onChange={e => setPublished(e.target.checked)}
-              style={{ width: '20px', height: '20px', accentColor: 'var(--md-sys-color-primary)', cursor: 'pointer' }}
-            />
-            <span>Publicar en la tienda pública (Visible para venta)</span>
-          </label>
+                <input
+                  type="checkbox"
+                  checked={published}
+                  onChange={e => setPublished(e.target.checked)}
+                  style={{ width: '20px', height: '20px', accentColor: 'var(--md-sys-color-primary)', cursor: 'pointer' }}
+                />
+                <span>Publicar en la tienda pública (Visible para venta)</span>
+              </label>
+            </>
+          )}
 
         </div>
 
@@ -1164,7 +1413,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             }}
           >
             <Check size={18} />
-            <span>{editingProduct ? 'Guardar Cambios' : 'Guardar Producto'}</span>
+            <span>{editingProduct ? 'Guardar Cambios' : (formMode === 'simple' ? '⚡ Publicar en Tienda Online' : 'Guardar Producto')}</span>
           </button>
         </div>
 
@@ -1182,7 +1431,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             flexDirection: 'column',
             height: '100dvh',
             width: '100%',
-            maxWidth: '768px',
+            maxWidth: '900px',
             margin: '0 auto',
             overflow: 'hidden'
           }}

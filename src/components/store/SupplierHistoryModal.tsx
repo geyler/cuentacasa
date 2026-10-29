@@ -5,6 +5,7 @@ import { SupplierAccount, StoreProduct } from '@/types';
 import { getStoreSales, getRawDatabase } from '@/lib/storage';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { ReceiptTicketView } from '@/components/common/ReceiptTicketView';
+import { formatRecordDateTime } from '@/lib/dateUtils';
 import { X, Package, Receipt, DollarSign, Calendar, ArrowDownRight, Tag } from 'lucide-react';
 
 interface SupplierHistoryModalProps {
@@ -42,48 +43,41 @@ export const SupplierHistoryModal: React.FC<SupplierHistoryModalProps> = ({
   });
 
   // Payout transactions made to this supplier
+  const supplierNameLower = supplier.name.toLowerCase();
   const payoutTransactions = (rawDb.transactions || []).filter(
-    t => t.category === 'Tienda' && t.concept.toLowerCase().includes(`pago a proveedor: ${supplier.name.toLowerCase()}`)
+    t => (
+      t.category === 'Pago Proveedor Consignación' ||
+      t.category === 'Tienda' ||
+      (t.concept && t.concept.toLowerCase().includes('liquidaci')) ||
+      (t.concept && t.concept.toLowerCase().includes('pago a proveedor'))
+    ) && (
+      (t.concept && t.concept.toLowerCase().includes(supplierNameLower)) ||
+      (t.notes && t.notes.toLowerCase().includes(supplierNameLower))
+    ) && t.type === 'gasto'
   );
 
   return (
     <div
-      className="no-print"
+      className="modal-backdrop-responsive no-print"
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2600,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
+        zIndex: 2600
       }}
       onClick={onClose}
     >
       <div
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
           width: '100%',
+          maxWidth: '640px',
           maxHeight: '90dvh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
+          overflow: 'hidden'
         }}
       >
-        {/* Grab Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
-          <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
-        </div>
-
         {/* Header Bar */}
         <div style={{
           padding: '12px 20px 14px 20px',
@@ -129,20 +123,30 @@ export const SupplierHistoryModal: React.FC<SupplierHistoryModalProps> = ({
         }}>
           <div style={{ padding: '8px', borderRadius: '12px', backgroundColor: '#F0F9FF', textAlign: 'center' }}>
             <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0369A1' }}>Stock Cargado</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0284C7' }}>
-              {supplierProducts.reduce((acc, p) => acc + (p.stock || 0), 0)} u
+            <div className="tabular-nums" style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0284C7' }}>
+              {new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(supplierProducts.reduce((acc, p) => acc + (p.stock || 0), 0))} u
             </div>
           </div>
           <div style={{ padding: '8px', borderRadius: '12px', backgroundColor: '#FEF3C7', textAlign: 'center' }}>
             <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#B45309' }}>Pendiente Pagar</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#D97706' }}>
-              ${supplier.pendingPayout?.toLocaleString('es-ES') || 0}
+            <div className="tabular-nums" style={{ fontSize: '1rem', fontWeight: 900, color: '#D97706' }}>
+              ${new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(supplier.pendingPayout || 0)} CUP
+              {(supplier.pendingPayoutUSD || 0) > 0 && (
+                <span style={{ fontSize: '0.72rem', display: 'block', color: '#B45309', fontWeight: 800 }}>
+                  + US$ {new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(supplier.pendingPayoutUSD || 0)} USD
+                </span>
+              )}
             </div>
           </div>
           <div style={{ padding: '8px', borderRadius: '12px', backgroundColor: '#DCFCE7', textAlign: 'center' }}>
             <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#15803D' }}>Total Pagado</span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#16A34A' }}>
-              ${supplier.totalPaid?.toLocaleString('es-ES') || 0}
+            <div className="tabular-nums" style={{ fontSize: '1rem', fontWeight: 900, color: '#16A34A' }}>
+              ${new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(supplier.totalPaid || 0)} CUP
+              {(supplier.totalPaidUSD || 0) > 0 && (
+                <span style={{ fontSize: '0.72rem', display: 'block', color: '#15803D', fontWeight: 800 }}>
+                  + US$ {new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(supplier.totalPaidUSD || 0)} USD
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -274,9 +278,10 @@ export const SupplierHistoryModal: React.FC<SupplierHistoryModalProps> = ({
               </p>
             ) : (
               supplierSales.map(({ sale, item }, idx) => {
+                const effectiveSeller = sale.sellerName || (sale.sellerUsername ? `@${sale.sellerUsername}` : (sale as any).seller || 'Administrador');
                 const noteText = `[TICKET_DE_VENTA] Comprobante de Venta #${sale.id.slice(-6)}\n` +
                   `• ${item.quantity}x ${item.name} ($${item.unitPrice} c/u = $${item.subtotal || item.quantity * item.unitPrice})\n` +
-                  `------------\nTotal: $${sale.totalAmount} | Moneda: ${sale.currency || 'CUP'} | Vendedor: ${sale.seller || 'General'}`;
+                  `------------\nTotal: $${sale.totalAmount} | Moneda: ${sale.currency || 'CUP'} | Vendedor: ${effectiveSeller}`;
 
                 return (
                   <ReceiptTicketView
@@ -285,8 +290,8 @@ export const SupplierHistoryModal: React.FC<SupplierHistoryModalProps> = ({
                     ticketId={sale.id.slice(-6)}
                     totalCUP={item.subtotal || item.quantity * item.unitPrice}
                     currency={sale.currency}
-                    seller={sale.seller}
-                    timestamp={sale.createdAt || Date.now()}
+                    seller={effectiveSeller}
+                    timestamp={sale.timestamp || sale.createdAt || Date.now()}
                   />
                 );
               })
@@ -332,12 +337,12 @@ export const SupplierHistoryModal: React.FC<SupplierHistoryModalProps> = ({
                       </h4>
                       <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
                         <Calendar size={11} style={{ display: 'inline', marginRight: '4px' }} />
-                        {tx.date}
+                        {formatRecordDateTime(tx.createdAt, tx.date)}
                       </span>
                     </div>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 900, color: '#16A34A' }}>
-                    -${tx.amount.toLocaleString('es-ES')} {tx.currency || 'CUP'}
+                  <div className="tabular-nums" style={{ fontSize: '1rem', fontWeight: 900, color: '#16A34A' }}>
+                    -${new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(tx.amount)} {tx.currency || 'CUP'}
                   </div>
                 </div>
               ))

@@ -93,36 +93,23 @@ export const RawDbModal: React.FC<RawDbModalProps> = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.55)',
-      backdropFilter: 'blur(4px)',
-      zIndex: 2500,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'flex-end',
-      maxWidth: '768px',
-      margin: '0 auto'
-    }} className="no-print" onClick={onClose}>
+    <div className="modal-backdrop-responsive no-print" style={{ zIndex: 2500 }} onClick={onClose}>
       
       <div 
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
+          maxWidth: '640px',
           maxHeight: '92dvh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
+          overflow: 'hidden'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+        <div className="mobile-only" style={{ justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
           <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
         </div>
         {/* Header Bar */}

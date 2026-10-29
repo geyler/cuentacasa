@@ -21,7 +21,7 @@ import {
   CloudUpload
 } from 'lucide-react';
 
-import { getLoggedInUser } from '@/lib/storage';
+import { getLoggedInUser, getStoreCustomizationSettings } from '@/lib/storage';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface HeaderProps {
@@ -57,6 +57,20 @@ export const Header: React.FC<HeaderProps> = ({
   const isMenuOpen = externalMenuOpen !== undefined ? externalMenuOpen : internalMenuOpen;
   const setIsMenuOpen = setExternalMenuOpen || setInternalMenuOpen;
 
+  const [customization, setCustomization] = useState(() => getStoreCustomizationSettings());
+
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail) {
+        setCustomization(e.detail);
+      } else {
+        setCustomization(getStoreCustomizationSettings());
+      }
+    };
+    window.addEventListener('cuentacasa-store-customization-changed', handler);
+    return () => window.removeEventListener('cuentacasa-store-customization-changed', handler);
+  }, []);
+
   useLockBodyScroll(isMenuOpen, () => setIsMenuOpen(false));
 
   const currentUser = getLoggedInUser();
@@ -73,19 +87,20 @@ export const Header: React.FC<HeaderProps> = ({
       borderBottom: '1px solid var(--md-sys-color-surface-variant)',
       position: 'sticky',
       top: 0,
-      zIndex: 80,
-      boxShadow: 'var(--md-shadow-elevation-1)'
+      zIndex: 100,
+      boxShadow: 'var(--md-shadow-elevation-1)',
+      width: '100%'
     }} className="no-print">
 
-      {/* Clean Single Bar */}
+      {/* Clean Full-Width Single Bar (Responsive Mobile & PC) */}
       <div style={{
-        maxWidth: '768px',
-        margin: '0 auto',
-        padding: '8px 16px',
+        width: '100%',
+        padding: '8px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '56px'
+        height: '60px',
+        gap: '12px'
       }}>
 
         {/* Brand logo & Title */}
@@ -97,29 +112,50 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            cursor: 'pointer',
-            padding: 0
+            cursor: isOwner ? 'pointer' : 'default',
+            padding: 0,
+            flexShrink: 0
           }}
         >
-          <img
-            src="/images/logo-nav.png"
-            alt="Samy Store"
-            style={{
-              height: '46px',
-              width: 'auto',
-              objectFit: 'contain',
-              flexShrink: 0
-            }}
-          />
-          <h1 className="font-logo-script" style={{
-            fontSize: '1.75rem',
-            fontWeight: 900,
-            letterSpacing: '-0.01em',
-            color: 'var(--md-sys-color-on-surface)',
-            lineHeight: 1
-          }}>
-            Samy Store
-          </h1>
+          {customization.logoMode === 'wide_logo' ? (
+            <img
+              src={customization.logoWideUrl || customization.logoSquareUrl || '/images/logo-nav.png'}
+              alt={customization.storeName}
+              style={{
+                height: '40px',
+                maxWidth: '220px',
+                width: 'auto',
+                objectFit: 'contain',
+                flexShrink: 0
+              }}
+            />
+          ) : (
+            <>
+              {(customization.logoMode === 'both' || customization.logoMode === 'logo_only') && (
+                <img
+                  src={customization.logoSquareUrl || '/images/logo-nav.png'}
+                  alt={customization.storeName}
+                  style={{
+                    height: '42px',
+                    width: 'auto',
+                    objectFit: 'contain',
+                    flexShrink: 0
+                  }}
+                />
+              )}
+              {(customization.logoMode === 'both' || customization.logoMode === 'text_only') && (
+                <h1 className="font-logo-script" style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 900,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--md-sys-color-on-surface)',
+                  lineHeight: 1
+                }}>
+                  {customization.storeName}
+                </h1>
+              )}
+            </>
+          )}
         </button>
 
         {/* Right Utility Actions */}
@@ -223,7 +259,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '768px',
+              maxWidth: '900px',
               maxHeight: '85vh',
               backgroundColor: 'var(--md-sys-color-surface-container)',
               borderRadius: '28px 28px 0 0',
@@ -434,7 +470,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Footer status */}
             <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center' }}>
-              Samy Store v1.7.0 • PWA Offline
+              Samy Store v1.7.5 • PWA Offline
             </div>
           </div>
         </div>

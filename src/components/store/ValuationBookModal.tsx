@@ -4,20 +4,23 @@ import React, { useState, useMemo } from 'react';
 import { StoreProduct } from '@/types';
 import { getStoreProducts, saveStoreProduct } from '@/lib/storage';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+import { formatDate } from '@/lib/dateUtils';
 import { X, Search, FileText, Printer, AlertTriangle, CheckCircle, Clock, Calendar, Edit3 } from 'lucide-react';
 
 interface ValuationBookModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEditProduct?: (product: StoreProduct) => void;
+  embedded?: boolean;
 }
 
 export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
   isOpen,
   onClose,
-  onEditProduct
+  onEditProduct,
+  embedded = false
 }) => {
-  useLockBodyScroll(isOpen, onClose);
+  useLockBodyScroll(isOpen && !embedded, onClose);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'expired' | 'warning' | 'valid' | 'nodate'>('all');
@@ -43,11 +46,11 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return { key: 'expired', label: `🔴 VENCIDO (${Math.abs(diffDays)}d)`, color: '#DC2626', bg: '#FEE2E2', daysLeft: diffDays };
+      return { key: 'expired', label: `🔴 VENCIDO (${Math.abs(diffDays)}d)`, color: 'var(--md-sys-color-expense)', bg: 'var(--md-sys-color-expense-container)', daysLeft: diffDays };
     } else if (diffDays <= 30) {
-      return { key: 'warning', label: `🟡 PRÓXIMO (${diffDays}d)`, color: '#D97706', bg: '#FEF3C7', daysLeft: diffDays };
+      return { key: 'warning', label: `🟡 PRÓXIMO (${diffDays}d)`, color: 'var(--md-sys-color-warning)', bg: 'var(--md-sys-color-warning-container)', daysLeft: diffDays };
     } else {
-      return { key: 'valid', label: `🟢 VIGENTE (${diffDays}d)`, color: '#059669', bg: '#D1FAE5', daysLeft: diffDays };
+      return { key: 'valid', label: `🟢 VIGENTE (${diffDays}d)`, color: 'var(--md-sys-color-income)', bg: 'var(--md-sys-color-income-container)', daysLeft: diffDays };
     }
   };
 
@@ -99,55 +102,45 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
     setEditingDateProduct(null);
   };
 
-  const formatDate = (dateStr?: string) => {
+  const formatDateStr = (dateStr?: string) => {
     if (!dateStr) return 'N/R';
-    const [y, m, d] = dateStr.split('-');
-    return `${d}/${m}/${y}`;
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      return `${d}/${m}/${y.slice(-2)}`;
+    }
+    return dateStr;
   };
 
-  return (
+  const content = (
     <div 
-      className="no-print"
+      className={embedded ? "md-card no-print" : "bottom-sheet-modal"}
+      onClick={e => e.stopPropagation()}
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2500,
+        backgroundColor: 'var(--md-sys-color-surface-container)',
+        color: 'var(--md-sys-color-on-surface)',
+        width: '100%',
+        maxWidth: '900px',
+        margin: '0 auto',
+        borderRadius: embedded ? '24px' : undefined,
+        border: embedded ? '1px solid var(--md-sys-color-outline-variant)' : undefined,
+        boxShadow: embedded ? 'var(--md-shadow-elevation-1)' : undefined,
+        maxHeight: embedded ? undefined : '92dvh',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
-      }} 
-      onClick={onClose}
+        overflow: embedded ? 'visible' : 'hidden'
+      }}
     >
-      <div 
-        onClick={e => e.stopPropagation()}
-        style={{
-          backgroundColor: 'var(--md-sys-color-surface-container)',
-          color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
-          width: '100%',
-          maxHeight: '92dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
-        }}
-      >
-        {/* Grab Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
-          <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
-        </div>
+      {/* Grab Handle (Only visible on Mobile) */}
+      <div className="mobile-only" style={{ justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
+        <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
+      </div>
 
-        {/* Printable Only Official Header */}
-        <div className="printable-only" style={{ display: 'none', padding: '20px', borderBottom: '2px solid #000' }}>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase' }}>LIBRO OFICIAL DE TASACIONES Y VENCIMIENTOS</h1>
-          <p style={{ fontSize: '0.85rem' }}>Establecimiento: Samy Store | Fecha de Registro: {new Date().toLocaleDateString('es-ES')}</p>
-        </div>
+      {/* Printable Only Official Header */}
+      <div className="printable-only" style={{ display: 'none', padding: '20px', borderBottom: '2px solid #000' }}>
+        <h1 style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase' }}>LIBRO OFICIAL DE TASACIONES Y VENCIMIENTOS</h1>
+        <p style={{ fontSize: '0.85rem' }}>Establecimiento: Samy Store | Fecha de Registro: {formatDate(new Date())}</p>
+      </div>
 
         {/* Modal Top Bar Header */}
         <div className="no-print" style={{ 
@@ -208,7 +201,7 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
         </div>
 
         {/* Content Container */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ flex: embedded ? 'none' : 1, overflowY: embedded ? 'visible' : 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           
           {/* Status Metrics Cards Grid */}
           <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
@@ -217,14 +210,14 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
               style={{
                 padding: '10px 8px',
                 borderRadius: '14px',
-                backgroundColor: filterStatus === 'expired' ? '#FEE2E2' : 'var(--md-sys-color-surface-container)',
-                border: filterStatus === 'expired' ? '2px solid #DC2626' : '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: filterStatus === 'expired' ? 'var(--md-sys-color-expense-container)' : 'var(--md-sys-color-surface-container)',
+                border: filterStatus === 'expired' ? '2px solid var(--md-sys-color-expense)' : '1px solid var(--md-sys-color-outline-variant)',
                 cursor: 'pointer',
                 textAlign: 'center'
               }}
             >
-              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#DC2626' }}>{metrics.expired}</div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#991B1B' }}>Vencidos</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-expense)' }}>{metrics.expired}</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-on-expense-container)' }}>Vencidos</div>
             </div>
 
             <div 
@@ -232,14 +225,14 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
               style={{
                 padding: '10px 8px',
                 borderRadius: '14px',
-                backgroundColor: filterStatus === 'warning' ? '#FEF3C7' : 'var(--md-sys-color-surface-container)',
-                border: filterStatus === 'warning' ? '2px solid #D97706' : '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: filterStatus === 'warning' ? 'var(--md-sys-color-warning-container)' : 'var(--md-sys-color-surface-container)',
+                border: filterStatus === 'warning' ? '2px solid var(--md-sys-color-warning)' : '1px solid var(--md-sys-color-outline-variant)',
                 cursor: 'pointer',
                 textAlign: 'center'
               }}
             >
-              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#D97706' }}>{metrics.warning}</div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#92400E' }}>Próximos (30d)</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-warning)' }}>{metrics.warning}</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-on-warning-container)' }}>Próximos (30d)</div>
             </div>
 
             <div 
@@ -247,14 +240,14 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
               style={{
                 padding: '10px 8px',
                 borderRadius: '14px',
-                backgroundColor: filterStatus === 'valid' ? '#D1FAE5' : 'var(--md-sys-color-surface-container)',
-                border: filterStatus === 'valid' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: filterStatus === 'valid' ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-surface-container)',
+                border: filterStatus === 'valid' ? '2px solid var(--md-sys-color-income)' : '1px solid var(--md-sys-color-outline-variant)',
                 cursor: 'pointer',
                 textAlign: 'center'
               }}
             >
-              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#059669' }}>{metrics.valid}</div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#065F46' }}>Vigentes</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>{metrics.valid}</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-on-income-container)' }}>Vigentes</div>
             </div>
 
             <div 
@@ -334,10 +327,10 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
                           {product.stock} {product.unit || 'u'}
                         </td>
                         <td style={{ padding: '10px 12px', fontWeight: 700, color: product.mfgDate ? 'inherit' : 'var(--md-sys-color-on-surface-variant)' }}>
-                          {formatDate(product.mfgDate)}
+                          {formatDateStr(product.mfgDate)}
                         </td>
                         <td style={{ padding: '10px 12px', fontWeight: 700, color: product.expDate ? 'inherit' : 'var(--md-sys-color-on-surface-variant)' }}>
-                          {formatDate(product.expDate)}
+                          {formatDateStr(product.expDate)}
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{
@@ -399,25 +392,25 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
         </div>
 
       </div>
+  );
 
-      {/* Quick Edit Dates Overlay Sub-Modal */}
-      {editingDateProduct && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'var(--md-sys-color-surface)',
-            zIndex: 2600,
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100dvh',
-            width: '100%',
-            maxWidth: '768px',
-            margin: '0 auto',
-            overflow: 'hidden'
-          }}
-          onClick={() => setEditingDateProduct(null)}
-        >
+  const editDateOverlay = editingDateProduct && (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'var(--md-sys-color-surface)',
+        zIndex: 2600,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100dvh',
+        width: '100%',
+        maxWidth: '900px',
+        margin: '0 auto',
+        overflow: 'hidden'
+      }}
+      onClick={() => setEditingDateProduct(null)}
+    >
           <form
             onSubmit={handleSaveQuickDate}
             onClick={e => e.stopPropagation()}
@@ -518,7 +511,27 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
             </div>
           </form>
         </div>
-      )}
+  );
+
+  if (embedded) {
+    return (
+      <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}>
+        {content}
+        {editDateOverlay}
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="modal-backdrop-responsive no-print"
+      style={{
+        zIndex: 2500
+      }} 
+      onClick={onClose}
+    >
+      {content}
+      {editDateOverlay}
     </div>
   );
 };

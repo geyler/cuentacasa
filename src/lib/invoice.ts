@@ -144,17 +144,18 @@ export function getPeriodLabel(filter: ReportFilter): string {
   }
 }
 
-// Format currency with privacy masking support
+// Format currency with privacy masking support and consistent thousands grouping
 export function formatCurrency(amount: number, currency: string = '$', showBalance: boolean = true): string {
   if (!showBalance) {
     return `••••••`;
   }
   const isUSD = currency === 'USD' || currency === 'US$' || currency === 'USD$';
   const val = Number(amount) || 0;
-  const formatted = val.toLocaleString('es-ES', { 
+  const formatted = new Intl.NumberFormat('es-ES', {
+    useGrouping: 'always',
     minimumFractionDigits: val % 1 !== 0 ? 2 : 0, 
     maximumFractionDigits: 2 
-  });
+  }).format(val);
   
   if (isUSD) {
     return `US$ ${formatted}`;
@@ -168,12 +169,12 @@ export function getProductDisplayPrice(
   productPrice: number,
   productCurrency: 'CUP' | 'USD' | string | undefined,
   currencyMode: 'CUP' | 'USD' | 'BOTH',
-  exchangeRateUSD: number = 675,
+  exchangeRateUSD: number = 320,
   priceUSD?: number,
   usdIndexedPricing?: boolean
 ): { amount: number; currency: 'CUP' | 'USD' } {
   const pCurr = productCurrency === 'USD' ? 'USD' : 'CUP';
-  const rate = exchangeRateUSD || 675;
+  const rate = exchangeRateUSD || 320;
 
   // 1. Product is registered in USD: USD price is fixed, CUP recalculates dynamically with current rate
   if (pCurr === 'USD') {
@@ -205,23 +206,23 @@ export function getProductDisplayPrice(
   return { amount: productPrice, currency: pCurr };
 }
 
-// Visual styling badge helper for USD distinction
+// Visual styling badge helper for USD distinction (Unified with Secondary Brand Palette)
 export function getCurrencyBadgeStyle(currency?: string) {
   const isUSD = currency === 'USD' || currency === 'US$' || currency === 'USD$';
   if (isUSD) {
     return {
       isUSD: true,
-      backgroundColor: '#ECFEFF', // Subtle teal / cyan background
-      color: '#0F766E',           // Dark teal text
-      border: '1px solid #99F6E4',
+      backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
+      color: 'var(--brand-secondary-dark, #115E59)',
+      border: '1px solid var(--brand-secondary-border, #99F6E4)',
       badgeText: 'USD$'
     };
   }
   return {
     isUSD: false,
-    backgroundColor: 'var(--md-sys-color-surface-container-high)',
-    color: 'var(--md-sys-color-on-surface-variant)',
-    border: '1px solid var(--md-sys-color-outline-variant)',
+    backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+    color: 'var(--brand-primary-dark, #1E3A8A)',
+    border: '1px solid var(--brand-primary-border, #BFDBFE)',
     badgeText: 'CUP$'
   };
 }

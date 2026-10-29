@@ -1,41 +1,50 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { StoreProduct } from '@/types';
-import { getStoreProducts, getStoreWhatsappNumber, formatPhotoUrl, getCurrencySettings } from '@/lib/storage';
-import { syncDatabaseWithCloud } from '@/lib/sync';
-import { formatCurrency, getProductDisplayPrice, getCurrencyBadgeStyle } from '@/lib/invoice';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { StoreProduct, CurrencyMode } from '@/types';
+import {
+  getStoreProducts,
+  getStoreWhatsappNumber,
+  formatPhotoUrl,
+  DEFAULT_CATEGORY_IMAGE,
+  DEFAULT_PRODUCT_IMAGE,
+  getCurrencySettings,
+  getPrimaryThemeColor,
+  getSecondaryThemeColor
+} from '@/lib/storage';
+import { applyBrandPaletteToDocument } from '@/lib/themePalette';
+import { syncPublicCatalog } from '@/lib/sync';
+import { formatCurrency, getProductDisplayPrice } from '@/lib/invoice';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { CubasoftInfoModal } from '@/components/CubasoftInfoModal';
 import { PwaInstallBanner } from '@/components/PwaInstallBanner';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
-import { STORE_SEO_CONFIG, getCategorySeoDescription, getProductSeoMeta } from '@/lib/seoHelper';
+import {
+  STORE_SEO_CONFIG,
+  getCategorySeoDescription,
+  getProductSeoMeta,
+  getCategoryVisualMeta
+} from '@/lib/seoHelper';
 
-import { 
+import {
   PublicStoreHeaderBar,
+  CategoryStatItem,
   PublicStoreHeroBanner,
+  PublicProductCard,
+  PublicStoreFooter,
   PublicAddToCartSheet,
   PublicStoreCartDrawer
 } from '@/components/store';
 
-import { 
-  ShoppingBag, 
-  Search, 
-  Tag, 
-  Plus, 
-  Lock, 
-  MessageCircle, 
-  Sparkles, 
-  ExternalLink,
-  Globe,
-  Star,
-  Zap,
+import {
+  ShoppingBag,
+  MessageCircle,
+  Sparkles,
   Layers,
-  Truck,
-  ShieldCheck,
-  MapPin,
-  X
+  ArrowRight,
+  SlidersHorizontal,
+  CheckCircle2,
+  RotateCcw
 } from 'lucide-react';
 
 interface CartItem {
@@ -43,15 +52,25 @@ interface CartItem {
   quantity: number;
 }
 
+type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'rating' | 'name';
+
 export const PublicStoreLanding: React.FC = () => {
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
+  const [sortBy, setSortBy] = useState<SortOption>('featured');
+  const [onlyInStock, setOnlyInStock] = useState<boolean>(false);
+  const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('BOTH');
+  const [displayCurrency, setDisplayCurrency] = useState<'CUP' | 'USD'>('CUP');
+  const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(320);
+  const [usdIndexedPricing, setUsdIndexedPricing] = useState<boolean>(false);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [selectedProductForModal, setSelectedProductForModal] = useState<StoreProduct | null>(null);
   const [isCubasoftModalOpen, setIsCubasoftModalOpen] = useState(false);
+  const [helpModalSection, setHelpModalSection] = useState<'como-comprar' | 'envios' | 'pagos' | 'faq' | null>(null);
 
   // PWA Install prompt state
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
@@ -67,6 +86,8 @@ export const PublicStoreLanding: React.FC = () => {
     totalPrice: number;
   } | null>(null);
 
+  const { showActionResult } = useActionFeedback();
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
@@ -81,8 +102,6 @@ export const PublicStoreLanding: React.FC = () => {
       return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
     }
   }, []);
-
-  const { showActionResult } = useActionFeedback();
 
   const handleInstallPwa = async () => {
     if (deferredInstallPrompt) {
@@ -102,23 +121,26 @@ export const PublicStoreLanding: React.FC = () => {
   };
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    if (typeof document !== 'undefined') {
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }
-  }, [selectedCategory]);
-
-  useEffect(() => {
     const filterPublished = (list: StoreProduct[]) => list.filter(p => p.published);
+
+    const syncLocalSettings = () => {
+      const settings = getCurrencySettings();
+      setCurrencyMode(settings.currencyMode || 'BOTH');
+      setDisplayCurrency(settings.currencyMode === 'USD' ? 'USD' : 'CUP');
+      setExchangeRateUSD(settings.exchangeRateUSD);
+      setUsdIndexedPricing(Boolean(settings.usdIndexedPricing));
+      applyBrandPaletteToDocument(getPrimaryThemeColor(), getSecondaryThemeColor());
+    };
 
     const all = getStoreProducts();
     setProducts(filterPublished(all));
+    syncLocalSettings();
 
-    syncDatabaseWithCloud(false).then(res => {
+    syncPublicCatalog(false).then(res => {
       if (res.success) {
         const syncedAll = getStoreProducts();
         setProducts(filterPublished(syncedAll));
+        syncLocalSettings();
       }
     }).catch(err => {
       console.warn('Silent cloud sync warning on landing:', err);
@@ -126,10 +148,11 @@ export const PublicStoreLanding: React.FC = () => {
 
     const refreshLanding = () => {
       setProducts(filterPublished(getStoreProducts()));
+      syncLocalSettings();
     };
 
     const handleOnline = () => {
-      syncDatabaseWithCloud(false).then(res => {
+      syncPublicCatalog(false).then(res => {
         if (res.success) {
           refreshLanding();
         }
@@ -139,11 +162,13 @@ export const PublicStoreLanding: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('cuentacasa-db-changed', refreshLanding);
     window.addEventListener('cuentacasa-currency-mode-changed', refreshLanding);
+    window.addEventListener('cuentacasa-theme-color-changed', refreshLanding);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('cuentacasa-db-changed', refreshLanding);
       window.removeEventListener('cuentacasa-currency-mode-changed', refreshLanding);
+      window.removeEventListener('cuentacasa-theme-color-changed', refreshLanding);
     };
   }, []);
 
@@ -176,29 +201,121 @@ export const PublicStoreLanding: React.FC = () => {
     }
   }, []);
 
+  // Estadísticas dinámicas de categorías ordenadas por cantidad de productos
+  const categoryStats: CategoryStatItem[] = useMemo(() => {
+    const map = new Map<string, { count: number; thumbnailUrl?: string }>();
+    for (const p of products) {
+      const catName = (p.category || 'General').trim();
+      const existing = map.get(catName);
+      if (!existing) {
+        map.set(catName, {
+          count: 1,
+          thumbnailUrl: p.photoUrl ? p.photoUrl : undefined
+        });
+      } else {
+        existing.count += 1;
+        if (!existing.thumbnailUrl && p.photoUrl) {
+          existing.thumbnailUrl = p.photoUrl;
+        }
+      }
+    }
+    return Array.from(map.entries())
+      .map(([name, info]) => ({
+        name,
+        count: info.count,
+        thumbnailUrl: info.thumbnailUrl
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [products]);
+
+  // Productos filtrados y ordenados
+  const filteredProducts = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    const list = products.filter(p => {
+      const matchesSearch = !q
+        || p.name.toLowerCase().includes(q)
+        || (p.category && p.category.toLowerCase().includes(q))
+        || (p.barcode && p.barcode.toLowerCase().includes(q));
+      const matchesCat = selectedCategory === 'todas' || p.category === selectedCategory;
+      const matchesStock = !onlyInStock || p.isExternal || p.stock > 0;
+      return matchesSearch && matchesCat && matchesStock;
+    });
+
+    const getNormalizedPrice = (prod: StoreProduct) => {
+      return getProductDisplayPrice(
+        prod.price,
+        prod.currency,
+        displayCurrency,
+        exchangeRateUSD,
+        prod.priceUSD,
+        usdIndexedPricing
+      ).amount;
+    };
+
+    const getRating = (prod: StoreProduct) => {
+      return prod.ratingScore || getProductSeoMeta(prod.barcode, prod.price).ratingValue;
+    };
+
+    const sorted = [...list];
+    if (sortBy === 'price-asc') {
+      sorted.sort((a, b) => getNormalizedPrice(a) - getNormalizedPrice(b));
+    } else if (sortBy === 'price-desc') {
+      sorted.sort((a, b) => getNormalizedPrice(b) - getNormalizedPrice(a));
+    } else if (sortBy === 'rating') {
+      sorted.sort((a, b) => getRating(b) - getRating(a));
+    } else if (sortBy === 'name') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    }
+    return sorted;
+  }, [products, searchTerm, selectedCategory, onlyInStock, sortBy, displayCurrency, exchangeRateUSD, usdIndexedPricing]);
+
+  // Productos destacados (Top valorados / en stock)
+  const featuredProducts = useMemo(() => {
+    return [...products]
+      .filter(p => p.isExternal || p.stock > 0)
+      .sort((a, b) => {
+        const rA = a.ratingScore || getProductSeoMeta(a.barcode, a.price).ratingValue;
+        const rB = b.ratingScore || getProductSeoMeta(b.barcode, b.price).ratingValue;
+        return rB - rA;
+      })
+      .slice(0, 5);
+  }, [products]);
+
+  const previousUrlRef = useRef<string>('');
+
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [selectedCategory]);
-
-  const categories = Array.from(new Set(products.map(p => p.category)));
-
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = selectedCategory === 'todas' || p.category === selectedCategory;
-    return matchesSearch && matchesCat;
-  });
+    const handlePopState = () => {
+      // Si el usuario navegó con "Atrás" en el navegador/móvil y ya no está en /producto/
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/producto/')) {
+        setSelectedProductForModal(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleOpenProductModal = (product: StoreProduct) => {
     setSelectedProductForModal(product);
     if (typeof window !== 'undefined') {
-      window.history.pushState({ productId: product.id }, '', `/producto/${product.id}`);
+      previousUrlRef.current = window.location.pathname + window.location.search;
+      window.history.pushState({ modalProductId: product.id }, '', `/producto/${product.id}`);
     }
   };
 
   const handleCloseProductModal = () => {
     setSelectedProductForModal(null);
     if (typeof window !== 'undefined') {
-      window.history.pushState(null, '', '/');
+      if (window.location.pathname.startsWith('/producto/')) {
+        // Restaurar de forma limpia la URL de la tienda / catálogo
+        window.history.replaceState(null, '', previousUrlRef.current || '/');
+      }
+    }
+  };
+
+  const handleSelectProductInModal = (prod: StoreProduct) => {
+    setSelectedProductForModal(prod);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({ modalProductId: prod.id }, '', `/producto/${prod.id}`);
     }
   };
 
@@ -213,7 +330,15 @@ export const PublicStoreLanding: React.FC = () => {
 
     const qty = addQty;
     const prod = productToAddToCart;
-    const subtotal = prod.price * qty;
+    const disp = getProductDisplayPrice(
+      prod.price,
+      prod.currency,
+      displayCurrency,
+      exchangeRateUSD,
+      prod.priceUSD,
+      usdIndexedPricing
+    );
+    const subtotal = disp.amount * qty;
 
     setCart(prev => {
       const existing = prev.find(item => item.product.id === prod.id);
@@ -234,13 +359,17 @@ export const PublicStoreLanding: React.FC = () => {
   };
 
   const updateQuantity = (productId: string, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.product.id === productId) {
-        const newQty = item.quantity + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : item;
-      }
-      return item;
-    }));
+    setCart(prev =>
+      prev
+        .map(item => {
+          if (item.product.id === productId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter((item): item is CartItem => item !== null)
+    );
   };
 
   const removeFromCart = (productId: string) => {
@@ -248,7 +377,17 @@ export const PublicStoreLanding: React.FC = () => {
   };
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const totalCartPrice = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const totalCartPrice = cart.reduce((sum, item) => {
+    const disp = getProductDisplayPrice(
+      item.product.price,
+      item.product.currency,
+      displayCurrency,
+      exchangeRateUSD,
+      item.product.priceUSD,
+      usdIndexedPricing
+    );
+    return sum + (disp.amount * item.quantity);
+  }, 0);
 
   const handleSendWhatsAppOrder = () => {
     if (cart.length === 0) return;
@@ -259,14 +398,22 @@ export const PublicStoreLanding: React.FC = () => {
 
     let text = `🛒 *PEDIDO SAMY STORE*\n----------------------------------\n`;
     cart.forEach((item, index) => {
-      text += `${index + 1}. *${item.product.name}*\n   Cant: ${item.quantity}u | Subtotal: $${item.product.price * item.quantity} CUP\n`;
+      const disp = getProductDisplayPrice(
+        item.product.price,
+        item.product.currency,
+        displayCurrency,
+        exchangeRateUSD,
+        item.product.priceUSD,
+        usdIndexedPricing
+      );
+      text += `${index + 1}. *${item.product.name}*\n   Cant: ${item.quantity}${item.product.unit || 'u'} | Subtotal: $${disp.amount * item.quantity} ${disp.currency}\n`;
     });
-    text += `----------------------------------\n💰 *TOTAL A PAGAR: $${totalCartPrice} CUP*\n\n`;
+    text += `----------------------------------\n💰 *TOTAL A PAGAR: $${totalCartPrice} ${displayCurrency}*\n\n`;
     text += `🔗 *Ver pedido en Samy Store:*\n${cartLink}`;
 
     const encoded = encodeURIComponent(text);
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
-    const waUrl = cleanPhone ? `https://wa.me/+${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
     window.open(waUrl, '_blank');
   };
 
@@ -274,818 +421,639 @@ export const PublicStoreLanding: React.FC = () => {
     const targetPhone = getStoreWhatsappNumber();
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
     const text = encodeURIComponent('¡Hola Samy Store! Quisiera consultar sobre los productos disponibles y entregas en Las Tunas.');
-    const waUrl = cleanPhone ? `https://wa.me/+${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
     window.open(waUrl, '_blank');
   };
 
+  const handleResetAllFilters = () => {
+    setSelectedCategory('todas');
+    setSearchTerm('');
+    setOnlyInStock(false);
+    setSortBy('featured');
+  };
+
+  const isHomeBrowseMode = selectedCategory === 'todas' && !searchTerm.trim() && !onlyInStock && sortBy === 'featured';
+
+  // Solo mostrar el selector de moneda cuando existan productos públicos en doble moneda / USD y la tienda esté en modo BOTH
+  const hasDualCurrencyProducts = useMemo(() => {
+    if (currencyMode !== 'BOTH') return false;
+    if (products.length === 0) return false;
+    const hasUSDProduct = products.some(
+      p => p.currency === 'USD' || (typeof p.priceUSD === 'number' && p.priceUSD > 0)
+    );
+    return hasUSDProduct || usdIndexedPricing;
+  }, [currencyMode, products, usdIndexedPricing]);
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* 1. Header Bar (Web PC & Móvil) */}
+    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column' }}>
+      {/* 1. Header Marketplace de 2 Niveles con Menú Móvil Lateral */}
       <PublicStoreHeaderBar
         totalCartCount={totalCartCount}
         totalCartPrice={totalCartPrice}
+        cartDisplayCurrency={displayCurrency}
         isCartOpen={isCartOpen}
         setIsCartOpen={setIsCartOpen}
         isUserLoggedIn={isUserLoggedIn}
-        onResetFilters={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
+        onResetFilters={handleResetAllFilters}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        selectedCategory={selectedCategory}
+        onSelectCategory={cat => setSelectedCategory(cat)}
+        categories={categoryStats}
+        onlyInStock={onlyInStock}
+        setOnlyInStock={setOnlyInStock}
+        displayCurrency={displayCurrency}
+        onToggleDisplayCurrency={curr => setDisplayCurrency(curr)}
+        showCurrencySelector={hasDualCurrencyProducts}
+        exchangeRateUSD={exchangeRateUSD}
         onWhatsAppClick={handleDirectWhatsAppContact}
-      />
-
-      {/* 2. Full-Width Hero Section (Estilo Qubazar / Cubasoft) */}
-      <PublicStoreHeroBanner
-        onSearchClick={() => {
-          const searchEl = document.getElementById('store-hero-search-input');
-          if (searchEl) {
-            searchEl.focus();
-            searchEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          } else {
-            window.scrollTo({ top: 300, behavior: 'smooth' });
-          }
-        }}
         onFeaturedClick={() => {
-          const featEl = document.getElementById('featured-products-section');
+          const featEl = document.getElementById('featured-products-section') || document.getElementById('marketplace-catalog-anchor');
           if (featEl) {
             featEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
           } else {
-            setSelectedCategory('todas');
-            setSearchTerm('');
+            handleResetAllFilters();
           }
         }}
-        onSelectCategory={(cat) => setSelectedCategory(cat)}
+        onHowToBuyClick={() => setHelpModalSection('como-comprar')}
       />
 
-      {/* 3. Mobile Search Bar (Visible sólo en móviles, en PC está en el header) */}
-      <div className="mobile-only" style={{ width: 'calc(100% - 32px)', margin: '14px auto 0 auto', position: 'relative' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
-          <Search 
-            size={22} 
-            style={{
-              position: 'absolute',
-              left: '20px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--md-sys-color-primary)'
-            }} 
-          />
-          <input
-            id="store-hero-search-input"
-            type="text"
-            placeholder="¿Qué estás buscando? Ej. Arroz, Café, Pan..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '14px 44px 14px 50px',
-              borderRadius: '9999px',
-              border: '1.5px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: '#FFFFFF',
-              color: '#0F172A',
-              fontSize: '0.96rem',
-              fontWeight: 700,
-              outline: 'none',
-              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
-              transition: 'all 0.2s ease'
-            }}
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              style={{
-                position: 'absolute',
-                right: '14px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: '#F1F5F9',
-                border: 'none',
-                color: '#64748B',
-                width: '26px',
-                height: '26px',
-                borderRadius: '9999px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 900
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      </div>
+      {/* 2. Hero Ampliado y Limpio (Sin producto destacado flotante) */}
+      <PublicStoreHeroBanner
+        products={products}
+        categories={categoryStats}
+        displayCurrency={displayCurrency}
+        exchangeRateUSD={exchangeRateUSD}
+        usdIndexedPricing={usdIndexedPricing}
+        onSearchClick={() => {
+          const searchEl = document.getElementById('store-desktop-search-input') || document.getElementById('store-hero-search-input');
+          if (searchEl) {
+            searchEl.focus();
+            searchEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }}
+        onFeaturedClick={() => {
+          const featEl = document.getElementById('marketplace-catalog-anchor');
+          if (featEl) {
+            featEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }}
+        onSelectCategory={cat => setSelectedCategory(cat)}
+        onOpenProduct={handleOpenProductModal}
+        onQuickAddToCart={handleOpenAddToCartSheet}
+        onWhatsAppClick={handleDirectWhatsAppContact}
+      />
 
-      {/* 4. PWA Install CTA Banner */}
+      {/* 3. Banner de Instalación PWA */}
       {!isInstalled && (
-        <div className="store-container" style={{ marginTop: '12px' }}>
-          <PwaInstallBanner 
-            onInstall={handleInstallPwa} 
-            onDismiss={() => setIsInstalled(true)} 
+        <div className="store-container" style={{ marginTop: '14px' }}>
+          <PwaInstallBanner
+            onInstall={handleInstallPwa}
+            onDismiss={() => setIsInstalled(true)}
           />
         </div>
       )}
 
-      {/* 5. Main Products Content Grid (Ancho completo responsivo en PC) */}
-      <main className="store-container" style={{ padding: '28px 16px 140px 16px', flex: 1 }}>
-        
-        {/* Categories Carousel / Cards FIRST */}
-        {categories.length > 0 && (
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <Layers size={18} color="var(--md-sys-color-primary)" />
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                Categorías de Productos
-              </h3>
+      {/* 4. Contenido Principal del Marketplace */}
+      <main className="store-container" style={{ padding: '22px 16px 120px 16px', flex: 1 }}>
+        {/* HUB DE CATEGORÍAS: En Móvil tira horizontal deslizable; en PC cuadrícula */}
+        {categoryStats.length > 0 && (
+          <section style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={18} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
+                <h3 style={{ fontSize: '1.08rem', fontWeight: 900, color: '#0F172A', margin: 0 }}>
+                  Categorías
+                </h3>
+              </div>
+              {selectedCategory !== 'todas' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('todas')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--brand-primary, #1A73E8)',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <RotateCcw size={13} /> Ver todas ({products.length})
+                </button>
+              )}
             </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-              gap: '10px'
-            }}>
+            <div className="marketplace-cat-layout no-scrollbar">
+              {/* Tarjeta "Todo el Catálogo" */}
               <div
-                onClick={() => { setSelectedCategory('todas'); setSearchTerm(''); }}
+                className="marketplace-cat-card"
+                onClick={() => setSelectedCategory('todas')}
                 style={{
-                  padding: '12px 14px',
+                  padding: '10px 12px',
                   borderRadius: '16px',
-                  backgroundColor: selectedCategory === 'todas' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
-                  border: selectedCategory === 'todas' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  backgroundColor: selectedCategory === 'todas' ? 'var(--brand-primary-light, #EFF6FF)' : '#FFFFFF',
+                  border: selectedCategory === 'todas'
+                    ? '2px solid var(--brand-primary, #1A73E8)'
+                    : '1px solid #E2E8F0',
+                  boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
-                  transition: 'all 0.15s ease'
+                  gap: '10px'
                 }}
               >
                 <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '12px',
-                  backgroundColor: selectedCategory === 'todas' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-                  color: selectedCategory === 'todas' ? '#FFFFFF' : 'var(--md-sys-color-primary)',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '11px',
+                  backgroundColor: selectedCategory === 'todas'
+                    ? 'var(--brand-primary, #1A73E8)'
+                    : 'var(--brand-primary-light, #EFF6FF)',
+                  color: selectedCategory === 'todas'
+                    ? '#FFFFFF'
+                    : 'var(--brand-primary, #1A73E8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.25rem',
+                  flexShrink: 0
+                }}>
+                  🛍️
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <h4 style={{ fontSize: '0.84rem', fontWeight: 900, color: '#0F172A', margin: 0, lineHeight: 1.2 }}>
+                    Todas
+                  </h4>
+                  <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 700 }}>
+                    {products.length} {products.length === 1 ? 'ítem' : 'ítems'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tarjetas por Categoría Real */}
+              {categoryStats.map(cat => {
+                const meta = getCategoryVisualMeta(cat.name);
+                const isSelected = selectedCategory === cat.name;
+                const thumb = cat.thumbnailUrl ? formatPhotoUrl(cat.thumbnailUrl) : '';
+
+                return (
+                  <div
+                    key={`cat-hub-${cat.name}`}
+                    className="marketplace-cat-card"
+                    onClick={() => setSelectedCategory(cat.name)}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '16px',
+                      backgroundColor: isSelected ? 'var(--brand-primary-light, #EFF6FF)' : '#FFFFFF',
+                      border: isSelected
+                        ? '2px solid var(--brand-primary, #1A73E8)'
+                        : '1px solid #E2E8F0',
+                      boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}
+                  >
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '11px',
+                      backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                      border: '1px solid var(--brand-primary-border, #BFDBFE)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.25rem',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}>
+                      <img
+                        src={thumb || DEFAULT_CATEGORY_IMAGE}
+                        alt={cat.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={e => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = DEFAULT_CATEGORY_IMAGE;
+                        }}
+                      />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <h4 style={{
+                        fontSize: '0.84rem',
+                        fontWeight: 900,
+                        color: '#0F172A',
+                        margin: 0,
+                        lineHeight: 1.2,
+                        textTransform: 'capitalize',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {cat.name}
+                      </h4>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--brand-primary, #1A73E8)', fontWeight: 800 }}>
+                        {cat.count} {cat.count === 1 ? 'ítem' : 'ítems'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* SECCIÓN DE DESTACADOS (En PC dentro de contenedor estilizado; en Móvil suelta a ancho completo) */}
+        {featuredProducts.length > 0 && isHomeBrowseMode && (
+          <section
+            id="featured-products-section"
+            className="marketplace-featured-box"
+            style={{ marginBottom: '32px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--brand-primary, #1A73E8)',
+                  color: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0
                 }}>
-                  <Tag size={19} />
+                  <Sparkles size={18} />
                 </div>
-                <div style={{ overflow: 'hidden' }}>
-                  <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                    Todas
-                  </h4>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                    {products.length} prods
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0F172A', margin: 0 }}>
+                    Más Vendidos y Destacados
+                  </h3>
+                  <span className="desktop-only" style={{ fontSize: '0.76rem', color: '#475569', fontWeight: 600 }}>
+                    Los productos preferidos por nuestros clientes en Las Tunas
                   </span>
                 </div>
               </div>
 
-              {categories.map(cat => {
-                const catCount = products.filter(p => p.category === cat).length;
-                const isSelected = selectedCategory === cat;
-
-                return (
-                  <div
-                    key={`cat-btn-${cat}`}
-                    onClick={() => { setSelectedCategory(cat); setSearchTerm(''); }}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '16px',
-                      backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
-                      border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '12px',
-                      backgroundColor: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-                      color: isSelected ? '#FFFFFF' : 'var(--md-sys-color-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <Tag size={19} />
-                    </div>
-                    <div style={{ overflow: 'hidden' }}>
-                      <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {cat}
-                      </h4>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                        {catCount} {catCount === 1 ? 'prod' : 'prods'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Featured Products SECOND */}
-        {products.length > 0 && selectedCategory === 'todas' && !searchTerm && (
-          <div id="featured-products-section" style={{ marginBottom: '36px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-              <Sparkles size={20} color="#EF4444" />
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                🔥 Productos Destacados & Más Vendidos
-              </h3>
+              <span className="desktop-only" style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary-dark, #1E3A8A)',
+                border: '1px solid var(--brand-primary-border, #BFDBFE)',
+                padding: '4px 12px',
+                borderRadius: '9999px'
+              }}>
+                Selección Destacada
+              </span>
             </div>
 
-            <div className="store-product-grid" style={{ marginBottom: '16px' }}>
-              {products.slice(0, 4).map(product => {
+            <div className="store-product-grid">
+              {featuredProducts.map(product => {
                 const inCart = cart.find(item => item.product.id === product.id);
-                const cardSeo = getProductSeoMeta(product.barcode, product.price);
-                const formattedImage = formatPhotoUrl(product.photoUrl);
-
                 return (
-                  <div
-                    key={`feat-${product.id}`}
-                    className="store-product-card"
-                    onClick={() => handleOpenProductModal(product)}
-                    style={{
-                      padding: '14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                      position: 'relative'
-                    }}
-                  >
-                    <div>
-                      <div style={{
-                        width: '100%',
-                        aspectRatio: '1/1',
-                        borderRadius: '14px',
-                        overflow: 'hidden',
-                        marginBottom: '8px',
-                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                        position: 'relative'
-                      }}>
-                        <img 
-                          className="store-product-img"
-                          src={formattedImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
-                          alt={product.name} 
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23F8FAFC"/><rect x="120" y="120" width="160" height="160" rx="24" fill="%23E2E8F0"/><path d="M160 220L190 190L220 220L240 200L260 220" stroke="%2394A3B8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="175" cy="165" r="15" fill="%2394A3B8"/><text x="50%" y="78%" fill="%2364748B" font-size="18" font-family="sans-serif" font-weight="bold" text-anchor="middle">Samy Store</text></svg>`;
-                          }}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                        />
-
-                        <span style={{
-                          position: 'absolute',
-                          top: '6px',
-                          right: '6px',
-                          backgroundColor: '#EF4444',
-                          color: '#FFFFFF',
-                          fontSize: '0.62rem',
-                          fontWeight: 900,
-                          padding: '2px 7px',
-                          borderRadius: '6px',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
-                        }}>
-                          🔥 DESTACADO
-                        </span>
-
-                        <span style={{
-                          position: 'absolute',
-                          bottom: '6px',
-                          left: '6px',
-                          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                          backdropFilter: 'blur(4px)',
-                          color: '#FBBF24',
-                          fontSize: '0.65rem',
-                          fontWeight: 800,
-                          padding: '2px 6px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '2px'
-                        }}>
-                          <Star size={10} fill="#FBBF24" /> {cardSeo.ratingValue}
-                        </span>
-                      </div>
-
-                      <h3 style={{ 
-                        fontSize: '0.88rem', 
-                        fontWeight: 800, 
-                        color: 'var(--md-sys-color-on-surface)',
-                        lineHeight: '1.25',
-                        marginBottom: '4px',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}>
-                        {product.name}
-                      </h3>
-                    </div>
-
-                    <div style={{
-                      paddingTop: '8px',
-                      borderTop: '1px solid var(--md-sys-color-surface-variant)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      {(() => {
-                        const { currencyMode, exchangeRateUSD, usdIndexedPricing } = getCurrencySettings();
-                        const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD, product.priceUSD, usdIndexedPricing);
-                        const badgeStyle = getCurrencyBadgeStyle(disp.currency);
-                        return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                              {formatCurrency(disp.amount, disp.currency, true)}
-                            </span>
-                            <span style={{
-                              fontSize: '0.65rem',
-                              fontWeight: 900,
-                              padding: '1px 5px',
-                              borderRadius: '4px',
-                              backgroundColor: badgeStyle.backgroundColor,
-                              color: badgeStyle.color,
-                              border: badgeStyle.border
-                            }}>
-                              {disp.currency === 'USD' ? 'USD' : 'CUP'}
-                            </span>
-                          </div>
-                        );
-                      })()}
-
-                      {!inCart ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenAddToCartSheet(product);
-                          }}
-                          disabled={product.stock <= 0}
-                          style={{
-                            padding: '6px 10px',
-                            fontSize: '0.75rem',
-                            borderRadius: '9999px',
-                            backgroundColor: 'var(--md-sys-color-primary)',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            fontWeight: 800,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Plus size={14} />
-                        </button>
-                      ) : (
-                        <span style={{
-                          backgroundColor: 'var(--md-sys-color-primary-container)',
-                          color: 'var(--md-sys-color-primary)',
-                          padding: '3px 10px',
-                          borderRadius: '9999px',
-                          fontSize: '0.75rem',
-                          fontWeight: 800
-                        }}>
-                          {inCart.quantity}u
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <PublicProductCard
+                    key={`feat-card-${product.id}`}
+                    product={product}
+                    cartQuantity={inCart?.quantity || 0}
+                    isFeatured={true}
+                    displayCurrency={displayCurrency}
+                    exchangeRateUSD={exchangeRateUSD}
+                    usdIndexedPricing={usdIndexedPricing}
+                    showDualCurrency={hasDualCurrencyProducts}
+                    onOpenDetail={handleOpenProductModal}
+                    onAddToCart={handleOpenAddToCartSheet}
+                    onUpdateCartQty={updateQuantity}
+                    onSelectCategory={cat => setSelectedCategory(cat)}
+                  />
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
 
-
-        {/* Category SEO Description Banner */}
-        {selectedCategory !== 'todas' && (
-          <div style={{
-            marginBottom: '20px',
-            padding: '12px 16px',
-            borderRadius: '14px',
-            backgroundColor: 'var(--md-sys-color-primary-container)',
-            color: 'var(--md-sys-color-on-primary-container)',
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            border: '1px solid var(--md-sys-color-outline-variant)'
-          }}>
-            <Sparkles size={16} color="var(--md-sys-color-primary)" />
-            <span>{getCategorySeoDescription(selectedCategory)}</span>
-          </div>
-        )}
-
-        {/* Products Grid */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-            {selectedCategory === 'todas' ? 'Todos los Productos' : `Categoría: ${selectedCategory}`} ({filteredProducts.length})
-          </h3>
-        </div>
-
-        {filteredProducts.length === 0 ? (
-          <div className="md-card" style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '420px', margin: '40px auto', borderRadius: '24px' }}>
-            <ShoppingBag size={48} style={{ color: '#94A3B8', marginBottom: '14px' }} />
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1E293B' }}>No se encontraron productos</h3>
-            <p style={{ fontSize: '0.88rem', color: '#64748B', marginTop: '6px' }}>
-              Intenta cambiar la categoría o limpiar tu búsqueda.
-            </p>
-          </div>
-        ) : (
-          <div className="store-product-grid">
-            {filteredProducts.map(product => {
-              const inCart = cart.find(item => item.product.id === product.id);
-              const cardSeo = getProductSeoMeta(product.barcode, product.price);
-              const formattedImage = formatPhotoUrl(product.photoUrl);
+        {/* VITRINAS POR CATEGORÍA (En PC enmarcadas; en Móvil sueltas para dar máximo espacio a los productos) */}
+        {isHomeBrowseMode && categoryStats.length > 1 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', marginBottom: '36px' }}>
+            {categoryStats.slice(0, 4).map(cat => {
+              const catProducts = products.filter(p => p.category === cat.name).slice(0, 5);
+              if (catProducts.length === 0) return null;
+              const meta = getCategoryVisualMeta(cat.name);
 
               return (
-                <div
-                  key={product.id}
-                  className="store-product-card"
-                  onClick={() => handleOpenProductModal(product)}
-                  style={{
-                    padding: '14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                    position: 'relative'
-                  }}
+                <section
+                  key={`shelf-dept-${cat.name}`}
+                  className="marketplace-section-box"
                 >
-                  <div>
-                    <div style={{
-                      width: '100%',
-                      aspectRatio: '1/1',
-                      borderRadius: '14px',
-                      overflow: 'hidden',
-                      marginBottom: '8px',
-                      backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                      position: 'relative'
-                    }}>
-                      <img 
-                        className="store-product-img"
-                        src={formattedImage || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`} 
-                        alt={product.name} 
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23F8FAFC"/><rect x="120" y="120" width="160" height="160" rx="24" fill="%23E2E8F0"/><path d="M160 220L190 190L220 220L240 200L260 220" stroke="%2394A3B8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="175" cy="165" r="15" fill="%2394A3B8"/><text x="50%" y="78%" fill="%2364748B" font-size="18" font-family="sans-serif" font-weight="bold" text-anchor="middle">Samy Store</text></svg>`;
-                        }}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                      />
-
-                      {!product.isExternal && product.stock <= 0 && (
-                        <div style={{
-                          position: 'absolute',
-                          top: 0, left: 0, right: 0, bottom: 0,
-                          backgroundColor: 'rgba(255, 255, 255, 0.55)',
-                          backdropFilter: 'blur(2px)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <span style={{
-                            backgroundColor: 'var(--md-sys-color-expense)',
-                            color: '#FFFFFF',
-                            fontSize: '0.65rem',
-                            fontWeight: 900,
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            transform: 'rotate(-8deg)'
-                          }}>
-                            AGOTADO
-                          </span>
-                        </div>
-                      )}
-
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                       <span style={{
-                        position: 'absolute',
-                        bottom: '6px',
-                        left: '6px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                        backdropFilter: 'blur(4px)',
-                        color: '#FBBF24',
-                        fontSize: '0.65rem',
-                        fontWeight: 800,
-                        padding: '2px 6px',
-                        borderRadius: '6px',
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '9px',
+                        backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                        border: '1px solid var(--brand-primary-border, #BFDBFE)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '2px'
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        flexShrink: 0
                       }}>
-                        <Star size={10} fill="#FBBF24" /> {cardSeo.ratingValue}
+                        <img
+                          src={cat.thumbnailUrl ? formatPhotoUrl(cat.thumbnailUrl) : DEFAULT_CATEGORY_IMAGE}
+                          alt={cat.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_CATEGORY_IMAGE; }}
+                        />
                       </span>
-                    </div>
-
-                    <h3 style={{ 
-                      fontSize: '0.88rem', 
-                      fontWeight: 800, 
-                      color: 'var(--md-sys-color-on-surface)',
-                      lineHeight: '1.25',
-                      marginBottom: '4px',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}>
-                      {product.name}
-                    </h3>
-                  </div>
-
-                  <div style={{
-                    paddingTop: '8px',
-                    borderTop: '1px solid var(--md-sys-color-surface-variant)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    {(() => {
-                      const { currencyMode, exchangeRateUSD, usdIndexedPricing } = getCurrencySettings();
-                      const disp = getProductDisplayPrice(product.price, product.currency, currencyMode, exchangeRateUSD, product.priceUSD, usdIndexedPricing);
-                      const badgeStyle = getCurrencyBadgeStyle(disp.currency);
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                            {formatCurrency(disp.amount, disp.currency, true)}
-                            {product.unit && product.unit !== 'u' && (
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', marginLeft: '3px' }}>
-                                / {product.unit}
-                              </span>
-                            )}
-                          </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0F172A', margin: 0, textTransform: 'capitalize' }}>
+                            {cat.name}
+                          </h3>
                           <span style={{
-                            fontSize: '0.65rem',
-                            fontWeight: 900,
-                            padding: '1px 5px',
-                            borderRadius: '4px',
-                            backgroundColor: badgeStyle.backgroundColor,
-                            color: badgeStyle.color,
-                            border: badgeStyle.border
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                            color: 'var(--brand-primary-dark, #1E3A8A)',
+                            padding: '2px 7px',
+                            borderRadius: '9999px'
                           }}>
-                            {disp.currency === 'USD' ? 'USD' : 'CUP'}
+                            {cat.count}
                           </span>
                         </div>
-                      );
-                    })()}
+                        <span className="desktop-only" style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>
+                          {getCategorySeoDescription(cat.name)}
+                        </span>
+                      </div>
+                    </div>
 
-                    {product.isExternal ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (product.externalUrl) {
-                            window.open(product.externalUrl, '_blank');
-                          } else {
-                            handleOpenProductModal(product);
-                          }
-                        }}
-                        style={{
-                          padding: '6px 10px',
-                          fontSize: '0.75rem',
-                          borderRadius: '9999px',
-                          backgroundColor: '#059669',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          fontWeight: 800,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <ExternalLink size={14} />
-                      </button>
-                    ) : !inCart ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenAddToCartSheet(product);
-                        }}
-                        disabled={product.stock <= 0}
-                        style={{
-                          padding: '6px 10px',
-                          fontSize: '0.75rem',
-                          borderRadius: '9999px',
-                          backgroundColor: 'var(--md-sys-color-primary)',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          opacity: product.stock <= 0 ? 0.5 : 1
-                        }}
-                      >
-                        <Plus size={14} />
-                      </button>
-                    ) : (
-                      <span style={{
-                        backgroundColor: 'var(--md-sys-color-primary-container)',
-                        color: 'var(--md-sys-color-primary)',
-                        padding: '3px 10px',
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat.name);
+                        const anchor = document.getElementById('marketplace-catalog-anchor');
+                        if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      style={{
+                        backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                        color: 'var(--brand-primary-dark, #1E3A8A)',
+                        border: '1px solid var(--brand-primary-border, #BFDBFE)',
                         borderRadius: '9999px',
-                        fontSize: '0.75rem',
-                        fontWeight: 800
-                      }}>
-                        {inCart.quantity}u
-                      </span>
-                    )}
+                        padding: '6px 12px',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span>Ver todos</span>
+                      <ArrowRight size={13} />
+                    </button>
                   </div>
-                </div>
+
+                  <div className="store-product-grid">
+                    {catProducts.map(product => {
+                      const inCart = cart.find(item => item.product.id === product.id);
+                      return (
+                        <PublicProductCard
+                          key={`shelf-${cat.name}-${product.id}`}
+                          product={product}
+                          cartQuantity={inCart?.quantity || 0}
+                          displayCurrency={displayCurrency}
+                          exchangeRateUSD={exchangeRateUSD}
+                          usdIndexedPricing={usdIndexedPricing}
+                          onOpenDetail={handleOpenProductModal}
+                          onAddToCart={handleOpenAddToCartSheet}
+                          onUpdateCartQty={updateQuantity}
+                          onSelectCategory={c => setSelectedCategory(c)}
+                        />
+                      );
+                    })}
+                  </div>
+                </section>
               );
             })}
           </div>
         )}
 
+        {/* EXPLORADOR COMPLETO DEL CATÁLOGO */}
+        <div id="marketplace-catalog-anchor" style={{ scrollMarginTop: '120px' }}>
+          {/* Banner de Categoría Seleccionada (Solo PC muestra texto largo; Móvil muestra chip limpio) */}
+          {selectedCategory !== 'todas' && (
+            <div style={{
+              marginBottom: '14px',
+              padding: '12px 16px',
+              borderRadius: '14px',
+              backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+              color: 'var(--brand-primary-dark, #1E3A8A)',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '8px',
+              border: '1px solid var(--brand-primary-border, #BFDBFE)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
+                <span className="desktop-only">{getCategorySeoDescription(selectedCategory)}</span>
+                <span className="mobile-only" style={{ textTransform: 'capitalize', fontWeight: 800 }}>
+                  Filtrando por: {selectedCategory}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('todas')}
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: 'var(--brand-primary, #1A73E8)',
+                  border: '1px solid var(--brand-primary-border, #BFDBFE)',
+                  borderRadius: '9999px',
+                  padding: '4px 10px',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                Ver todo ✕
+              </button>
+            </div>
+          )}
+
+          {/* Barra de Herramientas de Ordenamiento y Filtros */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '16px',
+            border: '1px solid #E2E8F0',
+            padding: '10px 14px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 900, color: '#0F172A', margin: 0, textTransform: 'capitalize' }}>
+                {selectedCategory === 'todas' ? 'Todos los Productos' : selectedCategory}
+              </h3>
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary-dark, #1E3A8A)',
+                padding: '2px 8px',
+                borderRadius: '9999px'
+              }}>
+                {filteredProducts.length}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Toggle Solo en Stock (En PC visible aquí; en Móvil está en el Menú Lateral ☰) */}
+              <button
+                type="button"
+                onClick={() => setOnlyInStock(!onlyInStock)}
+                className="desktop-flex"
+                style={{
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '9999px',
+                  border: onlyInStock ? '1.5px solid var(--brand-primary, #1A73E8)' : '1px solid #CBD5E1',
+                  backgroundColor: onlyInStock ? 'var(--brand-primary-light, #EFF6FF)' : '#F8FAFC',
+                  color: onlyInStock ? 'var(--brand-primary-dark, #1E3A8A)' : '#475569',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <CheckCircle2 size={13} />
+                <span>Solo disponibles</span>
+              </button>
+
+              {/* Selector de Ordenamiento */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <SlidersHorizontal size={13} color="#64748B" />
+                <span className="desktop-only" style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 700 }}>Ordenar:</span>
+                <select
+                  aria-label="Ordenar productos"
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as SortOption)}
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    color: '#0F172A',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '9999px',
+                    padding: '6px 10px',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="featured">Relevancia</option>
+                  <option value="price-asc">Menor precio</option>
+                  <option value="price-desc">Mayor precio</option>
+                  <option value="rating">Mejor valorados</option>
+                  <option value="name">Nombre (A-Z)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid de Productos */}
+          {filteredProducts.length === 0 ? (
+            <div className="md-card" style={{ textAlign: 'center', padding: '48px 20px', maxWidth: '440px', margin: '28px auto', borderRadius: '22px', backgroundColor: '#FFFFFF' }}>
+              <ShoppingBag size={44} style={{ color: '#94A3B8', marginBottom: '12px' }} />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>
+                No se encontraron productos
+              </h3>
+              <p style={{ fontSize: '0.84rem', color: '#64748B', marginTop: '6px', marginBottom: '16px' }}>
+                Prueba con otra categoría o limpia tu búsqueda.
+              </p>
+              <button
+                type="button"
+                onClick={handleResetAllFilters}
+                style={{
+                  backgroundColor: 'var(--brand-primary, #1A73E8)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '9999px',
+                  padding: '10px 20px',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <RotateCcw size={14} />
+                <span>Ver Todo el Catálogo</span>
+              </button>
+            </div>
+          ) : (
+            <div className="store-product-grid">
+              {filteredProducts.map(product => {
+                const inCart = cart.find(item => item.product.id === product.id);
+                return (
+                  <PublicProductCard
+                    key={product.id}
+                    product={product}
+                    cartQuantity={inCart?.quantity || 0}
+                    displayCurrency={displayCurrency}
+                    exchangeRateUSD={exchangeRateUSD}
+                    usdIndexedPricing={usdIndexedPricing}
+                    showDualCurrency={hasDualCurrencyProducts}
+                    onOpenDetail={handleOpenProductModal}
+                    onAddToCart={handleOpenAddToCartSheet}
+                    onUpdateCartQty={updateQuantity}
+                    onSelectCategory={cat => setSelectedCategory(cat)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Modal de Vista Rápida / Detalle en 2 Columnas */}
         <ProductDetailModal
           product={selectedProductForModal}
           onClose={handleCloseProductModal}
           onAddToCart={handleOpenAddToCartSheet}
+          onSelectProduct={handleSelectProductInModal}
           allProducts={products}
-          currency="$"
+          currency={displayCurrency}
           isAdmin={false}
         />
-
-        {/* Value Proposition & Benefits Section (Estilo Qubazar / Cubasoft) */}
-        <section style={{
-          marginTop: '50px',
-          marginBottom: '20px',
-          borderRadius: '26px',
-          backgroundColor: 'var(--md-sys-color-surface-container-low)',
-          border: '1px solid var(--md-sys-color-outline)',
-          padding: '36px 24px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Experiencia Samy Store
-            </span>
-            <h3 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', marginTop: '4px', letterSpacing: '-0.02em' }}>
-              ¿Por qué Comprar en Samy Store?
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface-variant)', maxWidth: '620px', margin: '6px auto 0 auto', fontWeight: 500 }}>
-              El mercado online más rápido y conveniente de Las Tunas. Compras fáciles, seguras y directas a tu WhatsApp.
-            </p>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '20px'
-          }}>
-            {/* Benefit 1 */}
-            <div style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '18px',
-              padding: '20px',
-              border: '1px solid var(--md-sys-color-outline)',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
-              display: 'flex',
-              gap: '14px',
-              alignItems: 'flex-start'
-            }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                backgroundColor: '#ECFDF5',
-                color: '#059669',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Truck size={22} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
-                  Envíos Rápidos en Las Tunas
-                </h4>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.45', margin: 0 }}>
-                  Entregas ágiles y directas a tu puerta en toda la ciudad. Recibe tus compras sin demoras.
-                </p>
-              </div>
-            </div>
-
-            {/* Benefit 2 */}
-            <div style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '18px',
-              padding: '20px',
-              border: '1px solid var(--md-sys-color-outline)',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
-              display: 'flex',
-              gap: '14px',
-              alignItems: 'flex-start'
-            }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                backgroundColor: '#EFF6FF',
-                color: '#2563EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <MessageCircle size={22} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
-                  Pedidos por WhatsApp
-                </h4>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.45', margin: 0 }}>
-                  Elige tus artículos y encarga con un solo clic, sin contraseñas ni registros obligatorios.
-                </p>
-              </div>
-            </div>
-
-            {/* Benefit 3 */}
-            <div style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '18px',
-              padding: '20px',
-              border: '1px solid var(--md-sys-color-outline)',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
-              display: 'flex',
-              gap: '14px',
-              alignItems: 'flex-start'
-            }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                backgroundColor: '#FEF3C7',
-                color: '#D97706',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Sparkles size={22} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
-                  Precios en CUP y USD
-                </h4>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.45', margin: 0 }}>
-                  Claridad total en importes con conversión dinámica a tasa actualizada de mercado.
-                </p>
-              </div>
-            </div>
-
-            {/* Benefit 4 */}
-            <div style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '18px',
-              padding: '20px',
-              border: '1px solid var(--md-sys-color-outline)',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
-              display: 'flex',
-              gap: '14px',
-              alignItems: 'flex-start'
-            }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                backgroundColor: '#EFF6FF',
-                color: 'var(--md-sys-color-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <ShieldCheck size={22} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
-                  Garantía & Calidad
-                </h4>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.45', margin: 0 }}>
-                  Artículos revisados con stock disponible en tienda y atención personalizada garantizada.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
       </main>
 
-      {/* 6. Floating Bottom Cart Bar (Responsive Container) */}
+      {/* 5. Barra Flotante Inferior de Carrito Activo */}
       {totalCartCount > 0 && !isCartOpen && (
         <div style={{
           position: 'fixed',
           bottom: 0, left: 0, right: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.96)',
-          backdropFilter: 'blur(16px)',
-          color: '#0F172A',
-          borderTop: '1px solid #F1F5F9',
-          padding: '12px 18px',
-          boxShadow: '0 -6px 24px rgba(0,0,0,0.08)',
+          backgroundColor: 'var(--brand-primary-darker, #0B1528)',
+          color: '#FFFFFF',
+          borderTop: '1px solid rgba(255, 255, 255, 0.14)',
+          padding: '12px 16px',
+          boxShadow: '0 -8px 28px rgba(0, 0, 0, 0.25)',
           zIndex: 90
         }}>
           <div className="store-container" style={{
@@ -1094,43 +1062,64 @@ export const PublicStoreLanding: React.FC = () => {
             justifyContent: 'space-between',
             gap: '12px'
           }}>
-            <div 
+            <div
               onClick={() => setIsCartOpen(true)}
               style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
             >
-              <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.75rem', color: '#CBD5E1', fontWeight: 700 }}>
                 Carrito ({totalCartCount} {totalCartCount === 1 ? 'ítem' : 'ítems'})
               </span>
-              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669' }}>
-                {formatCurrency(totalCartPrice, '$', true)} <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-primary)', fontWeight: 800 }}>CUP</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#FFFFFF' }}>
+                {formatCurrency(totalCartPrice, displayCurrency, true)}{' '}
+                <span style={{ fontSize: '0.74rem', color: 'var(--brand-primary-accent, #7DD3FC)', fontWeight: 800 }}>{displayCurrency}</span>
               </span>
             </div>
 
-            <button
-              onClick={handleSendWhatsAppOrder}
-              style={{
-                backgroundColor: '#25D366',
-                color: '#FFFFFF',
-                padding: '12px 24px',
-                fontSize: '0.95rem',
-                fontWeight: 800,
-                borderRadius: '9999px',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)'
-              }}
-            >
-              <MessageCircle size={20} />
-              <span>Encargar por WhatsApp</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setIsCartOpen(true)}
+                className="desktop-flex"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                  color: '#FFFFFF',
+                  padding: '10px 16px',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  borderRadius: '9999px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  cursor: 'pointer'
+                }}
+              >
+                Ver Carrito
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSendWhatsAppOrder}
+                style={{
+                  backgroundColor: 'var(--brand-primary, #1A73E8)',
+                  color: '#FFFFFF',
+                  padding: '10px 20px',
+                  fontSize: '0.88rem',
+                  fontWeight: 900,
+                  borderRadius: '9999px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <MessageCircle size={18} />
+                <span>Encargar por WhatsApp</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 7. Add To Cart Quantity Sheet */}
+      {/* 6. Sheet de Selección de Cantidad al Agregar */}
       <PublicAddToCartSheet
         productToAddToCart={productToAddToCart}
         addQty={addQty}
@@ -1147,7 +1136,7 @@ export const PublicStoreLanding: React.FC = () => {
         totalCartPrice={totalCartPrice}
       />
 
-      {/* 8. Full Cart Drawer Modal */}
+      {/* 7. Drawer Completo del Carrito */}
       <PublicStoreCartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
@@ -1159,203 +1148,43 @@ export const PublicStoreLanding: React.FC = () => {
         totalCartPrice={totalCartPrice}
       />
 
-      {/* 9. Full Web Desktop & Mobile Footer (Estilo Qubazar / Cubasoft) */}
-      <footer style={{
-        backgroundColor: 'var(--md-sys-color-surface-container-low)',
-        color: 'var(--md-sys-color-on-surface)',
-        borderTop: '1px solid var(--md-sys-color-outline)',
-        marginTop: 'auto'
+      {/* 8. Footer Profesional Responsivo (con espacio extra para evitar solapamiento de la barra de carrito con el mismo color del fondo del footer) */}
+      <div style={{
+        backgroundColor: 'var(--brand-primary-darker, #0B1528)',
+        paddingBottom: (totalCartCount > 0 && !isCartOpen) ? '96px' : '0'
       }}>
-        <div className="store-container" style={{ padding: '48px 16px 28px 16px' }}>
-          
-          {/* Top Multi-Column Grid on Desktop */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '36px',
-            marginBottom: '36px'
-          }}>
-            {/* Col 1: Brand & Bio */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '40px', width: 'auto' }} />
-                <span className="font-logo-script" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                  Samy Store
-                </span>
-              </div>
-              <p style={{ fontSize: '0.86rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.6', margin: 0, fontWeight: 500 }}>
-                Tu mercado digital y tienda física de preferencia en Las Tunas, Cuba. Insumos seleccionados, electrodomésticos, aseo y variedad con pedidos rápidos vía WhatsApp y entregas a domicilio.
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--md-sys-color-primary)' }}>
-                <MapPin size={14} />
-                <span>Las Tunas, Cuba • Envíos Locales</span>
-              </div>
-            </div>
+        <PublicStoreFooter
+          categories={categoryStats}
+          totalProducts={products.length}
+          totalCartCount={totalCartCount}
+          exchangeRateUSD={exchangeRateUSD}
+          isInstalled={isInstalled}
+          onSelectCategory={cat => setSelectedCategory(cat)}
+          onResetFilters={handleResetAllFilters}
+          onFeaturedClick={() => {
+            handleResetAllFilters();
+            setTimeout(() => {
+              const el = document.getElementById('featured-products-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+          }}
+          onInStockClick={() => setOnlyInStock(true)}
+          onOpenCart={() => setIsCartOpen(true)}
+          onInstallPwa={handleInstallPwa}
+          onDirectWhatsApp={handleDirectWhatsAppContact}
+          onOpenCubasoftModal={() => setIsCubasoftModalOpen(true)}
+          helpModalSection={helpModalSection}
+          setHelpModalSection={setHelpModalSection}
+        />
+      </div>
 
-            {/* Col 2: Categorías Rápidas */}
-            <div>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Categorías Populares
-              </h4>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {categories.slice(0, 6).map(cat => (
-                  <li key={`footer-cat-${cat}`}>
-                    <button
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        window.scrollTo({ top: 400, behavior: 'smooth' });
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        color: 'var(--md-sys-color-on-surface-variant)',
-                        fontSize: '0.86rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        textTransform: 'capitalize',
-                        textAlign: 'left',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <span style={{ color: 'var(--md-sys-color-primary)' }}>•</span> {cat}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Col 3: Atención y Envíos */}
-            <div>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Atención al Cliente
-              </h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.5', margin: '0 0 12px 0', fontWeight: 500 }}>
-                Horario de Pedidos: Lunes a Domingo de 8:00 AM a 8:00 PM. Entregas directas a domicilio.
-              </p>
-              <button
-                onClick={handleDirectWhatsAppContact}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: '#25D366',
-                  color: '#FFFFFF',
-                  padding: '10px 18px',
-                  borderRadius: '9999px',
-                  border: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(37, 211, 102, 0.3)'
-                }}
-              >
-                <MessageCircle size={16} />
-                <span>Contactar por WhatsApp</span>
-              </button>
-            </div>
-
-            {/* Col 4: Cubasoft ERP & Tecnología */}
-            <div>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Tecnología & Gestión
-              </h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.5', margin: '0 0 10px 0', fontWeight: 500 }}>
-                Plataforma PWA impulsada por el ecosistema de <strong>Cubasoft ERP</strong>.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsCubasoftModalOpen(true);
-                  }}
-                  style={{
-                    color: 'var(--md-sys-color-primary)',
-                    textDecoration: 'none',
-                    fontWeight: 800,
-                    fontSize: '0.84rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <Zap size={14} /> Conoce Cubasoft ERP
-                </a>
-                <a
-                  href="https://cubasoft.net"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    color: 'var(--md-sys-color-on-surface-variant)',
-                    textDecoration: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.84rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <Globe size={14} /> Desarrollado por Cubasoft.net
-                </a>
-                <div style={{ marginTop: '6px' }}>
-                  <Link
-                    href="/app"
-                    style={{
-                      color: 'var(--md-sys-color-primary)',
-                      textDecoration: 'none',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '6px 14px',
-                      borderRadius: '9999px',
-                      backgroundColor: 'var(--md-sys-color-primary-container)',
-                      border: '1px solid var(--md-sys-color-outline-variant)'
-                    }}
-                  >
-                    <Lock size={13} />
-                    <span>Acceso al Sistema</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Copyright Bar */}
-          <div style={{
-            borderTop: '1px solid var(--md-sys-color-outline)',
-            paddingTop: '20px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            fontSize: '0.8rem',
-            color: 'var(--md-sys-color-on-surface-variant)',
-            fontWeight: 600
-          }}>
-            <span>
-              © {new Date().getFullYear()} Samy Store. Todos los derechos reservados.
-            </span>
-            <span>
-              Las Tunas, Cuba • Desarrollado con tecnología de <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>Cubasoft</strong>
-            </span>
-          </div>
-
-        </div>
-      </footer>
-
-      {/* Cubasoft Info / Sales Modal */}
-      <CubasoftInfoModal 
-        isOpen={isCubasoftModalOpen} 
-        onClose={() => setIsCubasoftModalOpen(false)} 
+      {/* 9. Modal Corporativo Cubasoft ERP */}
+      <CubasoftInfoModal
+        isOpen={isCubasoftModalOpen}
+        onClose={() => setIsCubasoftModalOpen(false)}
       />
 
-      {/* Home Page Schema JSON-LD */}
+      {/* 10. Home Page Schema JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -1367,7 +1196,7 @@ export const PublicStoreLanding: React.FC = () => {
             "url": typeof window !== 'undefined' ? window.location.origin : 'https://cubasoft.net',
             "telephone": STORE_SEO_CONFIG.contactWhatsapp,
             "priceRange": "$$$",
-            "currenciesAccepted": "CUP",
+            "currenciesAccepted": "CUP, USD",
             "address": {
               "@type": "PostalAddress",
               "addressLocality": "Las Tunas",
@@ -1384,7 +1213,6 @@ export const PublicStoreLanding: React.FC = () => {
           })
         }}
       />
-
     </div>
   );
 };

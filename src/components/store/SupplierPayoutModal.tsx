@@ -56,43 +56,27 @@ export const SupplierPayoutModal: React.FC<SupplierPayoutModalProps> = ({
 
   return (
     <div
-      className="no-print"
+      className="modal-backdrop-responsive no-print"
       style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 2000,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        maxWidth: '768px',
-        margin: '0 auto'
+        zIndex: 2000
       }}
       onClick={onClose}
     >
       <form
+        className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         onSubmit={handleSubmit}
         style={{
           backgroundColor: 'var(--md-sys-color-surface-container)',
           color: 'var(--md-sys-color-on-surface)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
           width: '100%',
+          maxWidth: '520px',
           maxHeight: '90dvh',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.25)'
+          overflow: 'hidden'
         }}
       >
-        {/* Grab Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
-          <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)' }} />
-        </div>
-
         {/* Header Bar */}
         <div style={{
           padding: '12px 20px 14px 20px',
@@ -124,7 +108,7 @@ export const SupplierPayoutModal: React.FC<SupplierPayoutModalProps> = ({
         </div>
 
         {/* Scroll Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
           {/* Resumen Deudas Retenidas */}
           <div style={{
@@ -133,16 +117,20 @@ export const SupplierPayoutModal: React.FC<SupplierPayoutModalProps> = ({
             gap: '8px',
             backgroundColor: 'var(--md-sys-color-surface)',
             padding: '12px',
-            borderRadius: '12px',
+            borderRadius: '14px',
             border: '1px solid var(--md-sys-color-outline-variant)'
           }}>
             <div>
               <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', fontWeight: 700 }}>Pendiente CUP ($)</span>
-              <strong style={{ fontSize: '1rem', color: 'var(--md-sys-color-expense)' }}>${supplier.pendingPayout.toLocaleString('es-ES')}</strong>
+              <strong className="tabular-nums" style={{ fontSize: '1.05rem', color: 'var(--md-sys-color-expense)', fontWeight: 900 }}>
+                ${new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(supplier.pendingPayout)} CUP
+              </strong>
             </div>
             <div>
               <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', fontWeight: 700 }}>Pendiente USD (US$)</span>
-              <strong style={{ fontSize: '1rem', color: '#0F766E' }}>US$${(supplier.pendingPayoutUSD || 0).toLocaleString('es-ES')}</strong>
+              <strong className="tabular-nums" style={{ fontSize: '1.05rem', color: '#0F766E', fontWeight: 900 }}>
+                US$ {new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(supplier.pendingPayoutUSD || 0)} USD
+              </strong>
             </div>
           </div>
 
@@ -239,9 +227,45 @@ export const SupplierPayoutModal: React.FC<SupplierPayoutModalProps> = ({
           </div>
 
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-              Monto a Entregar ({isUSD ? 'US$' : '$'}):
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                Monto a Entregar ({isUSD ? 'US$' : '$'}):
+              </label>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPayoutAmount(pendingMax)}
+                  style={{
+                    padding: '2px 8px',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    borderRadius: '6px',
+                    border: '1px solid var(--md-sys-color-primary-container)',
+                    backgroundColor: 'var(--md-sys-color-primary-container)',
+                    color: 'var(--md-sys-color-on-primary-container)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Todo (100%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayoutAmount(Math.round(pendingMax / 2))}
+                  style={{
+                    padding: '2px 8px',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    borderRadius: '6px',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    color: 'var(--md-sys-color-on-surface-variant)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  50%
+                </button>
+              </div>
+            </div>
             <input
               type="number"
               inputMode="decimal"
@@ -259,16 +283,21 @@ export const SupplierPayoutModal: React.FC<SupplierPayoutModalProps> = ({
                 border: '2px solid var(--md-sys-color-primary)',
                 backgroundColor: 'var(--md-sys-color-surface)',
                 fontWeight: 800,
-                fontSize: '1.1rem',
+                fontSize: '1.2rem',
                 textAlign: 'center'
               }}
             />
+            {Number(payoutAmount) > 0 && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginTop: '4px', textAlign: 'center' }}>
+                Restante tras liquidar: <strong>{isUSD ? `US$ ${new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(Math.max(0, pendingMax - Number(payoutAmount)))} USD` : `$${new Intl.NumberFormat('es-ES', { useGrouping: 'always' }).format(Math.max(0, pendingMax - Number(payoutAmount)))} CUP`}</strong>
+              </span>
+            )}
           </div>
 
           <button
             type="submit"
             className="md-btn md-btn-primary"
-            style={{ width: '100%', padding: '14px', marginTop: 'auto' }}
+            style={{ width: '100%', padding: '14px', marginTop: 'auto', fontWeight: 800, fontSize: '0.9rem' }}
           >
             Registrar Liquidación Entregada ({isUSD ? 'USD' : 'CUP'})
           </button>

@@ -52,15 +52,13 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
       {/* STEPPER QUANTITY SELECTOR MODAL */}
       {productToAddToCart && (
         <div
+          className="modal-backdrop-responsive"
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.70)',
             backdropFilter: 'blur(8px)',
-            zIndex: 2500,
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center'
+            zIndex: 2500
           }}
           onClick={onClose}
         >
@@ -69,9 +67,8 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '768px',
+              maxWidth: '520px',
               backgroundColor: 'var(--md-sys-color-surface-container)',
-              borderRadius: '28px 28px 0 0',
               padding: '20px 24px 28px 24px',
               boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
               display: 'flex',
@@ -80,7 +77,7 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
               position: 'relative'
             }}
           >
-            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
+            <div className="mobile-only" style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', margin: '0 auto 4px auto' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
@@ -126,14 +123,14 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', backgroundColor: 'var(--md-sys-color-primary-container)', padding: '2px 6px', borderRadius: '4px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--brand-primary-dark, #1E3A8A)', backgroundColor: 'var(--brand-primary-light, #EFF6FF)', padding: '2px 6px', borderRadius: '4px' }}>
                   #{productToAddToCart.barcode}
                 </span>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {productToAddToCart.name}
                 </h4>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-income)' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--brand-primary, #1A73E8)' }}>
                     {formatCurrency(productToAddToCart.price, productToAddToCart.currency || 'CUP', true)} c/u
                   </span>
                   <span style={{
@@ -141,9 +138,9 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
                     fontWeight: 900,
                     padding: '1px 6px',
                     borderRadius: '4px',
-                    backgroundColor: (productToAddToCart.currency === 'USD') ? '#ECFEFF' : '#F1F5F9',
-                    color: (productToAddToCart.currency === 'USD') ? '#0F766E' : '#475569',
-                    border: (productToAddToCart.currency === 'USD') ? '1px solid #99F6E4' : '1px solid #CBD5E1'
+                    backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                    color: 'var(--brand-primary-dark, #1E3A8A)',
+                    border: '1px solid var(--brand-primary-border, #BFDBFE)'
                   }}>
                     {productToAddToCart.currency === 'USD' ? 'USD' : 'CUP'}
                   </span>
@@ -197,9 +194,9 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
                     height: '44px',
                     borderRadius: '50%',
                     border: 'none',
-                    backgroundColor: 'var(--md-sys-color-primary)',
+                    backgroundColor: 'var(--brand-primary, #1A73E8)',
                     color: '#FFFFFF',
-                    boxShadow: '0 4px 12px rgba(26, 115, 232, 0.4)',
+                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
                     fontSize: '1.2rem',
                     fontWeight: 900,
                     cursor: 'pointer',
@@ -217,7 +214,7 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
                 <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>Subtotal:</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--md-sys-color-income)' }}>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)' }}>
                     {formatCurrency(productToAddToCart.price * addQty, productToAddToCart.currency || 'CUP', true)}
                   </span>
                   <span style={{
@@ -225,9 +222,9 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
                     fontWeight: 900,
                     padding: '2px 8px',
                     borderRadius: '6px',
-                    backgroundColor: (productToAddToCart.currency === 'USD') ? '#ECFEFF' : '#F1F5F9',
-                    color: (productToAddToCart.currency === 'USD') ? '#0F766E' : '#475569',
-                    border: (productToAddToCart.currency === 'USD') ? '1px solid #99F6E4' : '1px solid #CBD5E1'
+                    backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                    color: 'var(--brand-primary-dark, #1E3A8A)',
+                    border: '1px solid var(--brand-primary-border, #BFDBFE)'
                   }}>
                     {productToAddToCart.currency === 'USD' ? 'USD' : 'CUP'}
                   </span>
@@ -243,14 +240,14 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
                   fontWeight: 800,
                   borderRadius: '9999px',
                   border: 'none',
-                  backgroundColor: 'var(--md-sys-color-primary)',
+                  backgroundColor: 'var(--brand-primary, #1A73E8)',
                   color: '#FFFFFF',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 4px 16px rgba(26, 115, 232, 0.4)'
+                  boxShadow: '0 4px 16px rgba(15, 23, 42, 0.2)'
                 }}
               >
                 <ShoppingBag size={20} />
@@ -264,15 +261,13 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
       {/* ADDED SUCCESS CONFIRMATION MODAL */}
       {addedSuccessModal?.show && (
         <div
+          className="modal-backdrop-responsive"
           style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.70)',
             backdropFilter: 'blur(8px)',
-            zIndex: 2700,
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center'
+            zIndex: 2700
           }}
           onClick={onCloseSuccessModal}
         >
@@ -281,9 +276,8 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '768px',
+              maxWidth: '520px',
               backgroundColor: 'var(--md-sys-color-surface-container)',
-              borderRadius: '28px 28px 0 0',
               padding: '24px',
               boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
               display: 'flex',
@@ -294,7 +288,7 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
               position: 'relative'
             }}
           >
-            <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', marginBottom: '4px' }} />
+            <div className="mobile-only" style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--md-sys-color-outline-variant)', marginBottom: '4px' }} />
 
             <button
               onClick={onCloseSuccessModal}
@@ -317,13 +311,13 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              backgroundColor: '#E6F4EA',
-              color: '#00875A',
+              backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+              color: 'var(--brand-primary, #1A73E8)',
+              border: '1px solid var(--brand-primary-border, #BFDBFE)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginTop: '6px',
-              boxShadow: '0 4px 14px rgba(0, 135, 90, 0.2)'
+              marginTop: '6px'
             }}>
               <CheckCircle2 size={38} />
             </div>
@@ -347,10 +341,9 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
                   fontWeight: 800,
                   borderRadius: '9999px',
                   border: 'none',
-                  backgroundColor: 'var(--md-sys-color-primary)',
+                  backgroundColor: 'var(--brand-primary, #1A73E8)',
                   color: '#FFFFFF',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 16px rgba(26, 115, 232, 0.35)'
+                  cursor: 'pointer'
                 }}
               >
                 <span>Seguir Navegando</span>
@@ -375,7 +368,7 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
                 }}
               >
                 <ShoppingBag size={18} />
-                <span>Ver Carrito ({totalCartCount} artículos • ${totalCartPrice} CUP)</span>
+                <span>Ver Carrito ({totalCartCount} {totalCartCount === 1 ? 'artículo' : 'artículos'})</span>
               </button>
             </div>
           </div>
