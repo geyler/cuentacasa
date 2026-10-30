@@ -30,6 +30,10 @@ import {
   ChevronRight, 
   Sparkles, 
   ArrowRightLeft, 
+  ArrowLeft,
+  Home,
+  Store,
+  PiggyBank,
   Palette,
   ExternalLink,
   Smartphone,
@@ -76,7 +80,12 @@ import {
   saveSecondaryThemeColor,
   getStoreCustomizationSettings,
   saveStoreCustomizationSettings,
-  DEFAULT_STORE_CUSTOMIZATION
+  DEFAULT_STORE_CUSTOMIZATION,
+  getCasaAvailableBalance,
+  getCalculatedStoreFund,
+  getCalculatedStoreFundUSD,
+  getSavingsFund,
+  getSavingsFundUSD
 } from '@/lib/storage';
 import {
   THEME_COLOR_PRESETS,
@@ -90,6 +99,8 @@ import {
 } from '@/lib/themePalette';
 import { AppUser, CurrencyMode, StoreCustomizationSettings, StoreLogoDisplayMode } from '@/types';
 import { UserManagementModal } from '@/components/UserManagementModal';
+import { TransferModal } from '@/components/TransferModal';
+import { formatCurrency } from '@/lib/invoice';
 import { getPendingSyncCount, syncDatabaseWithCloud } from '@/lib/sync';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
@@ -112,7 +123,16 @@ interface SettingsModalProps {
   embedded?: boolean;
 }
 
-type SettingsTab = 'general' | 'customizer' | 'appearance' | 'store' | 'security' | 'users' | 'data';
+export type SettingsSubView =
+  | null
+  | 'accounts'
+  | 'currency'
+  | 'exchange'
+  | 'whatsapp'
+  | 'users'
+  | 'customizer'
+  | 'appearance'
+  | 'security';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
@@ -139,9 +159,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const isOwner = currentUser?.role === 'propietario';
   const isAdminOrOwner = currentUser?.role === 'propietario' || currentUser?.role === 'administrador';
 
-  // Active settings tab
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
+  // Sub-Navigation State (Hierarchical Settings)
+  const [activeSubView, setActiveSubView] = useState<SettingsSubView>(null);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   // Form states
   const [hasPin, setHasPin] = useState<boolean>(false);
@@ -186,6 +206,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setActiveSubView(null);
       const activeUsername = currentUser?.username || 'geyler';
       const userPin = getUserPin(activeUsername);
       setHasPin(!!userPin);
@@ -593,16 +614,121 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const formattedWhatsapp = formatCubanPhone(whatsappPhone).display;
 
-  // Settings Tabs Configuration
-  const SETTINGS_TABS: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
-    { id: 'general', label: 'General & Divisas', icon: <Coins size={17} /> },
-    { id: 'customizer', label: 'Personalizar Tienda', icon: <Sliders size={17} /> },
-    { id: 'appearance', label: 'Marca & Apariencia', icon: <Palette size={17} /> },
-    { id: 'store', label: 'Tienda & WhatsApp', icon: <MessageCircle size={17} /> },
-    { id: 'security', label: 'Seguridad & Acceso', icon: <ShieldCheck size={17} /> },
-    { id: 'users', label: 'Usuarios & Roles', icon: <Users size={17} /> },
-    { id: 'data', label: 'Base de Datos', icon: <Database size={17} /> },
-  ];
+  // Balances for Cuentas y Saldos view
+  const casaCUP = getCasaAvailableBalance('CUP');
+  const casaUSD = getCasaAvailableBalance('USD');
+  const storeCUP = getCalculatedStoreFund();
+  const storeUSD = getCalculatedStoreFundUSD();
+  const savingsCUP = getSavingsFund();
+  const savingsUSD = getSavingsFundUSD();
+
+  const getSubViewTitle = (view: SettingsSubView): string => {
+    switch (view) {
+      case 'accounts': return 'Cuentas y Saldos';
+      case 'currency': return 'Ajustes de Monedas';
+      case 'exchange': return 'Tasa de Cambio';
+      case 'whatsapp': return 'WhatsApp de Pedidos';
+      case 'users': return 'Gestión de Usuarios y Roles';
+      case 'customizer': return 'Personalizar Tienda';
+      case 'appearance': return 'Marca & Apariencia';
+      case 'security': return 'Seguridad y Datos';
+      default: return 'Ajustes del Sistema';
+    }
+  };
+
+  // Styling presets for Hierarchical Settings Menu (concentric, accessible, responsive)
+  const menuItemCardStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    padding: '14px 16px',
+    borderRadius: '16px',
+    backgroundColor: 'var(--md-sys-color-surface)',
+    border: '1px solid var(--md-sys-color-outline-variant)',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    boxShadow: 'var(--md-shadow-elevation-1)'
+  };
+
+  const menuIconBoxStyle: React.CSSProperties = {
+    width: '42px',
+    height: '42px',
+    borderRadius: '14px',
+    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    color: '#2563EB',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0
+  };
+
+  const menuBadgeStyle = (variant: 'neutral' | 'success' | 'warning' = 'neutral'): React.CSSProperties => {
+    let bg = 'var(--md-sys-color-surface-container-high)';
+    let color = 'var(--md-sys-color-on-surface-variant)';
+    if (variant === 'warning') {
+      bg = 'rgba(217, 119, 6, 0.15)';
+      color = '#D97706';
+    } else if (variant === 'success') {
+      bg = 'rgba(16, 185, 129, 0.15)';
+      color = '#059669';
+    }
+    return {
+      fontSize: '0.72rem',
+      fontWeight: 800,
+      padding: '2px 8px',
+      borderRadius: '9999px',
+      backgroundColor: bg,
+      color: color,
+      display: 'inline-flex',
+      alignItems: 'center'
+    };
+  };
+
+  const quickBtnStyle: React.CSSProperties = {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '14px 16px',
+    borderRadius: '16px',
+    backgroundColor: 'var(--md-sys-color-surface)',
+    border: '1px solid var(--md-sys-color-outline-variant)',
+    color: 'var(--md-sys-color-on-surface)',
+    fontSize: '0.88rem',
+    fontWeight: 800,
+    cursor: 'pointer',
+    boxShadow: 'var(--md-shadow-elevation-1)'
+  };
+
+  const cloudCardStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    padding: '12px 18px',
+    borderRadius: '16px',
+    backgroundColor: 'var(--md-sys-color-surface)',
+    border: '1px solid var(--md-sys-color-outline-variant)',
+    boxShadow: 'var(--md-shadow-elevation-1)'
+  };
+
+  const logoutBtnStyle: React.CSSProperties = {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '14px',
+    borderRadius: '16px',
+    backgroundColor: 'var(--md-sys-color-surface-container-high)',
+    border: '1px solid var(--md-sys-color-outline-variant)',
+    color: 'var(--md-sys-color-error, #DC2626)',
+    fontSize: '0.92rem',
+    fontWeight: 900,
+    cursor: 'pointer'
+  };
 
   // Core settings content
   const content = (
@@ -614,56 +740,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       flexDirection: 'column',
       gap: '20px'
     }}>
-      {/* Top Header Card */}
-      <div style={{
-        backgroundColor: 'var(--md-sys-color-surface-container)',
-        borderRadius: '24px',
-        border: '1px solid var(--md-sys-color-outline-variant)',
-        padding: '20px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '14px',
-        boxShadow: 'var(--md-shadow-elevation-1)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '14px',
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <Settings size={22} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '1.28rem', fontWeight: 900, margin: 0, lineHeight: 1.2 }}>
-                Configuración del Sistema
-              </h2>
-              <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0', fontWeight: 600 }}>
-                Samy Store • @{currentUser?.username || 'admin'} ({currentUser?.role || 'propietario'})
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '9999px',
-              backgroundColor: isOnline ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-warning-container)',
-              color: isOnline ? 'var(--md-sys-color-on-income-container)' : 'var(--md-sys-color-on-warning-container)',
-              fontSize: '0.74rem',
-              fontWeight: 800
-            }}>
-              {isOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
-              <span>{isOnline ? 'Online / MySQL' : 'Modo Offline'}</span>
+      {/* ========================================================= */}
+      {/* 1. ROOT VIEW: LISTA JERÁRQUICA DE OPCIONES (activeSubView === null) */}
+      {/* ========================================================= */}
+      {activeSubView === null && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Header Card con Identidad y Cierre */}
+          <div style={{
+            backgroundColor: 'var(--md-sys-color-surface-container)',
+            borderRadius: '24px',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            padding: '18px 22px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: 'var(--md-shadow-elevation-1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '16px',
+                backgroundColor: 'var(--md-sys-color-primary-container)',
+                color: 'var(--md-sys-color-on-primary-container)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Settings size={24} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, lineHeight: 1.2 }}>
+                  Ajustes del Sistema
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '3px 0 0 0', fontWeight: 600 }}>
+                  Samy Store • @{currentUser?.username || 'geyler'} ({currentUser?.role || 'propietario'})
+                </p>
+              </div>
             </div>
 
             {!embedded && (
@@ -676,57 +791,506 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   borderRadius: '50%',
                   color: 'var(--md-sys-color-on-surface)',
                   cursor: 'pointer',
-                  padding: '8px',
+                  padding: '10px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  transition: 'transform 0.15s ease'
                 }}
+                aria-label="Cerrar ajustes"
               >
                 <X size={18} />
               </button>
             )}
           </div>
-        </div>
 
-        {/* Lista de Secciones de Configuración (Accesible, Responsive y sin scroll horizontal oculto) */}
+          {/* GRUPO 1: CUENTAS Y FINANZAS */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              color: 'var(--md-sys-color-on-surface-variant)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              paddingLeft: '4px'
+            }}>
+              CUENTAS Y FINANZAS
+            </span>
+
+            {/* Cuentas y Saldos */}
+            <div
+              onClick={() => setActiveSubView('accounts')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <Wallet size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Cuentas y Saldos
+                    </span>
+                    <span style={menuBadgeStyle('neutral')}>3 Cuentas</span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Saldos de Casa, Negocio, Ahorro y transferencias
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+
+            {/* Ajustes de Monedas */}
+            <div
+              onClick={() => setActiveSubView('currency')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <Coins size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Ajustes de Monedas
+                    </span>
+                    <span style={menuBadgeStyle('neutral')}>
+                      {currencyMode === 'CUP' ? 'CUP' : currencyMode === 'USD' ? 'USD' : 'CUP + USD'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    Modo activo: {currencyMode === 'CUP' ? 'Solo CUP ($)' : currencyMode === 'USD' ? 'Solo USD (US$)' : 'Ambas Divisas (CUP + USD)'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+
+            {/* Tasa de Cambio */}
+            <div
+              onClick={() => setActiveSubView('exchange')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <TrendingUp size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Tasa de Cambio
+                    </span>
+                    <span style={menuBadgeStyle('neutral')}>${exchangeRateUSD}</span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    1 USD = ${exchangeRateUSD} CUP • Mercado informal
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+          </div>
+
+          {/* GRUPO 2: OPERACIÓN Y TIENDA */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              color: 'var(--md-sys-color-on-surface-variant)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              paddingLeft: '4px'
+            }}>
+              OPERACIÓN Y TIENDA
+            </span>
+
+            {/* WhatsApp de Pedidos */}
+            <div
+              onClick={() => setActiveSubView('whatsapp')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <MessageCircle size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      WhatsApp de Pedidos
+                    </span>
+                    <span style={menuBadgeStyle(whatsappPhone ? 'success' : 'warning')}>
+                      {whatsappPhone ? 'Activo' : 'Pendiente'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    {formattedWhatsapp || 'Sin número configurado'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+
+            {/* Gestión de Usuarios */}
+            <div
+              onClick={() => setActiveSubView('users')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <Users size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Gestión de Usuarios
+                    </span>
+                    <span style={menuBadgeStyle('neutral')}>{usersList.length} usuarios</span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    {usersList.length} usuarios con roles y permisos
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+
+            {/* Personalizar Tienda */}
+            <div
+              onClick={() => setActiveSubView('customizer')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <Sliders size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Personalizar Tienda
+                    </span>
+                    <span style={menuBadgeStyle('neutral')}>Identidad & Hero</span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    Logos, portadas, títulos y SEO
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+
+            {/* Marca & Apariencia */}
+            <div
+              onClick={() => setActiveSubView('appearance')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <Palette size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Marca & Apariencia
+                    </span>
+                    <span style={menuBadgeStyle('neutral')}>Colores</span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    Color primario, secundario y estilos visuales
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+          </div>
+
+          {/* GRUPO 3: SEGURIDAD Y DATOS */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              color: 'var(--md-sys-color-on-surface-variant)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              paddingLeft: '4px'
+            }}>
+              SEGURIDAD Y DATOS
+            </span>
+
+            {/* Seguridad y Datos */}
+            <div
+              onClick={() => setActiveSubView('security')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <ShieldCheck size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                    Seguridad y Datos
+                  </span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    PIN de acceso, gestión de caché y reinicio
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+          </div>
+
+          {/* ACCIONES RÁPIDAS: PRIVACIDAD Y MODO OSCURO */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={toggleShowBalance}
+              style={quickBtnStyle}
+            >
+              {showBalance ? <EyeOff size={18} /> : <Eye size={18} />}
+              <span>{showBalance ? 'Ocultar Cifras' : 'Mostrar Cifras'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              style={quickBtnStyle}
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}</span>
+            </button>
+          </div>
+
+          {/* TARJETA DE ESTADO EN LA NUBE */}
+          <div style={cloudCardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Wifi size={18} color={isOnline ? '#16A34A' : '#D97706'} />
+              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--md-sys-color-on-surface)' }}>
+                {isOnline ? 'Conectado a la Nube' : 'Modo Offline'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={onSync}
+              disabled={isSyncing}
+              className="md-btn md-btn-secondary"
+              style={{
+                padding: '8px 16px',
+                borderRadius: '12px',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+              <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+            </button>
+          </div>
+
+          {/* BOTÓN DE CERRAR SESIÓN */}
+          <button
+            type="button"
+            onClick={onLogout}
+            style={logoutBtnStyle}
+          >
+            <LogOut size={18} />
+            <span>Cerrar Sesión</span>
+          </button>
+
+          {/* FOOTER WATERMARK */}
+          <p style={{
+            textAlign: 'center',
+            fontSize: '0.74rem',
+            color: 'var(--md-sys-color-on-surface-variant)',
+            opacity: 0.7,
+            margin: '4px 0 0 0',
+            fontWeight: 600
+          }}>
+            Samy Store v1.8.0 • Cubasoft ERP Systems
+          </p>
+
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 2. SUB-NAVEGACIÓN: ENCABEZADO CON BOTÓN 'VOLVER A AJUSTES' */}
+      {/* ========================================================= */}
+      {activeSubView !== null && (
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: '8px'
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          backgroundColor: 'var(--md-sys-color-surface-container)',
+          borderRadius: '20px',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          padding: '12px 18px',
+          boxShadow: 'var(--md-shadow-elevation-1)'
         }}>
-          {SETTINGS_TABS.map(tab => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  border: isActive ? '1.5px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: isActive ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                  color: isActive ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+          <button
+            type="button"
+            onClick={() => setActiveSubView(null)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              color: 'var(--md-sys-color-primary)',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            <ArrowLeft size={18} />
+            <span>Volver a Ajustes</span>
+          </button>
 
-      {/* TAB 1: GENERAL & DIVISAS */}
-      {activeTab === 'general' && (
+          <h3 style={{ fontSize: '1.08rem', fontWeight: 900, margin: 0, textAlign: 'center', flex: 1, color: 'var(--md-sys-color-on-surface)' }}>
+            {getSubViewTitle(activeSubView)}
+          </h3>
+
+          {!embedded && (
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'var(--md-sys-color-surface-container-high)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                borderRadius: '50%',
+                color: 'var(--md-sys-color-on-surface)',
+                cursor: 'pointer',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              aria-label="Cerrar ajustes"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* SUB-VIEW: CUENTAS Y SALDOS */}
+      {activeSubView === 'accounts' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="md-card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Wallet size={22} color="var(--md-sys-color-primary)" />
+                <div>
+                  <h3 style={{ fontSize: '1.08rem', fontWeight: 900, margin: 0 }}>Cuentas y Fondos del Negocio</h3>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0' }}>
+                    Saldos disponibles en tiempo real y transferencias entre cuentas
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsTransferModalOpen(true)}
+                className="md-btn md-btn-primary"
+                style={{ padding: '10px 18px', borderRadius: '14px', fontSize: '0.86rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                <ArrowRightLeft size={16} />
+                <span>Transferir entre Cuentas</span>
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+              {/* Fondo de la Casa */}
+              <div style={{
+                padding: '16px',
+                borderRadius: '16px',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Home size={18} color="#2563EB" />
+                  <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>Fondo de la Casa</span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
+                  Gastos del hogar, caja personal y utilidades retiradas.
+                </p>
+                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
+                    ${formatCurrency(casaCUP, '$', showBalance)} CUP
+                  </span>
+                  <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#16A34A' }}>
+                    US$ {formatCurrency(casaUSD, 'US$', showBalance)} USD
+                  </span>
+                </div>
+              </div>
+
+              {/* Fondo del Negocio / Tienda */}
+              <div style={{
+                padding: '16px',
+                borderRadius: '16px',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Store size={18} color="#059669" />
+                  <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>Fondo del Negocio (Tienda)</span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
+                  Reposición de mercancía, compras a proveedores e inventario.
+                </p>
+                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
+                    ${formatCurrency(storeCUP, '$', showBalance)} CUP
+                  </span>
+                  <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#16A34A' }}>
+                    US$ {formatCurrency(storeUSD, 'US$', showBalance)} USD
+                  </span>
+                </div>
+              </div>
+
+              {/* Fondo de Ahorro */}
+              <div style={{
+                padding: '16px',
+                borderRadius: '16px',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <PiggyBank size={18} color="#D97706" />
+                  <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>Fondo de Ahorro</span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
+                  Reserva financiera de emergencia e inversiones futuras.
+                </p>
+                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
+                    ${formatCurrency(savingsCUP, '$', showBalance)} CUP
+                  </span>
+                  <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#16A34A' }}>
+                    US$ {formatCurrency(savingsUSD, 'US$', showBalance)} USD
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-VIEW: AJUSTES DE MONEDAS */}
+      {activeSubView === 'currency' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
           {/* Currency Mode Selection */}
@@ -807,7 +1371,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      )}
 
+      {/* SUB-VIEW: TASA DE CAMBIO */}
+      {activeSubView === 'exchange' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
           {/* Exchange Rate elTOQUE */}
           <div className="md-card" style={{ padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
@@ -880,31 +1450,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Privacy Cifras Toggle */}
-          <div className="md-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-            <div>
-              <h4 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>Privacidad de Balances y Cifras</h4>
-              <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0' }}>
-                Permite enmascarar u ocultar los saldos totales en pantalla cuando haya clientes cerca.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={toggleShowBalance}
-              className="md-btn md-btn-secondary"
-              style={{ padding: '10px 16px', fontSize: '0.85rem', borderRadius: '12px' }}
-            >
-              {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
-              <span>{showBalance ? 'Ocultar Cifras (••••)' : 'Mostrar Cifras'}</span>
-            </button>
-          </div>
-
         </div>
       )}
 
-      {/* TAB: PERSONALIZADOR DE TIENDA PÚBLICA E IDENTIDAD (Estilo WordPress Customizer) */}
-      {activeTab === 'customizer' && (
+      {/* SUB-VIEW: PERSONALIZADOR DE TIENDA PÚBLICA E IDENTIDAD (Estilo WordPress Customizer) */}
+      {activeSubView === 'customizer' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Hidden inputs para subir archivos locales */}
@@ -1578,8 +2128,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
-      {/* TAB 2: MARCA & APARIENCIA */}
-      {activeTab === 'appearance' && (
+      {/* SUB-VIEW: MARCA & APARIENCIA */}
+      {activeSubView === 'appearance' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
           {/* Theme Mode Card */}
@@ -1695,8 +2245,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
-      {/* TAB 3: TIENDA & WHATSAPP */}
-      {activeTab === 'store' && (
+      {/* SUB-VIEW: WHATSAPP DE PEDIDOS & ENLACE DE TIENDA */}
+      {activeSubView === 'whatsapp' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
           {/* Store Info & Direct Link */}
@@ -1810,8 +2360,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
-      {/* TAB 4: SEGURIDAD & USUARIOS */}
-      {activeTab === 'security' && (
+      {/* SUB-VIEW: GESTIÓN DE USUARIOS Y ROLES (Primera Clase) */}
+      {activeSubView === 'users' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <UserManagementModal
+            isOpen={true}
+            embedded={true}
+            onClose={() => setActiveSubView(null)}
+          />
+        </div>
+      )}
+
+      {/* SUB-VIEW: SEGURIDAD Y DATOS */}
+      {activeSubView === 'security' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
           {/* PIN Management Card */}
@@ -1930,7 +2491,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => setActiveTab('users')}
+                onClick={() => setActiveSubView('users')}
                 className="md-btn md-btn-primary"
                 style={{ padding: '10px 18px', fontSize: '0.85rem', borderRadius: '12px' }}
               >
@@ -1940,54 +2501,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Logout Action */}
-          <div className="md-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <h4 style={{ fontSize: '0.96rem', fontWeight: 800, margin: 0 }}>Cerrar Sesión Activa</h4>
-              <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0' }}>
-                Cierra la sesión de @{currentUser?.username || 'usuario'} en este terminal.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onLogout}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                color: 'var(--md-sys-color-on-surface)',
-                fontWeight: 800,
-                fontSize: '0.85rem',
-                cursor: 'pointer'
-              }}
-            >
-              <LogOut size={16} />
-              <span>Cerrar Sesión</span>
-            </button>
-          </div>
-
-        </div>
-      )}
-
-      {/* TAB 6: GESTIÓN DE USUARIOS Y ROLES (Primera Clase) */}
-      {activeTab === 'users' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <UserManagementModal
-            isOpen={true}
-            embedded={true}
-            onClose={() => setActiveTab('security')}
-          />
-        </div>
-      )}
-
-      {/* TAB 5: DATOS & ALMACENAMIENTO */}
-      {activeTab === 'data' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
           {/* Database Connection Status Card */}
           <div className="md-card" style={{ padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
@@ -2146,21 +2659,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
-      {/* Footer Branding */}
-      <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center', marginTop: '10px' }}>
-        Samy Store ERP v2.0 • Diseñado bajo Estándares Internacionales SaaS
-      </div>
+      {/* Botón inferior de retorno al menú principal para cualquier subview */}
+      {activeSubView !== null && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', marginBottom: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setActiveSubView(null)}
+            className="md-btn md-btn-secondary"
+            style={{
+              padding: '10px 22px',
+              borderRadius: '14px',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Volver a Ajustes</span>
+          </button>
+        </div>
+      )}
 
-      {/* SUB-MODAL 1: USER MANAGEMENT MODAL */}
-      <UserManagementModal
-        isOpen={isUserManagementOpen}
-        onClose={() => {
-          setIsUserManagementOpen(false);
-          setUsersList(getAppUsers());
-        }}
-      />
+      {/* SUB-MODAL 0: UNIVERSAL TRANSFER MODAL */}
+      {isTransferModalOpen && (
+        <TransferModal
+          isOpen={isTransferModalOpen}
+          onClose={() => setIsTransferModalOpen(false)}
+          onSuccess={() => {
+            setIsTransferModalOpen(false);
+            showToast({
+              title: 'Transferencia Exitosa',
+              message: 'Los saldos entre cuentas han sido transferidos correctamente.',
+              type: 'success'
+            });
+          }}
+        />
+      )}
 
-      {/* SUB-MODAL 2: MASTER PASSWORD RESET MODAL (CENTERED RESPONSIVE) */}
+      {/* SUB-MODAL 1: MASTER PASSWORD RESET MODAL (CENTERED RESPONSIVE) */}
       {isMasterPassModalOpen && (
         <div 
           className="modal-backdrop-responsive no-print"
