@@ -6,7 +6,19 @@ import path from 'path';
 import { RowDataPacket } from 'mysql2';
 
 // Storage file fallback for local development when MySQL env vars are absent
-const STORAGE_FILE = path.join(process.cwd(), '.next', 'cuentacasa_cloud_db.json');
+let currentRequestInstance = 'cuentacasa';
+
+function getStorageFile(instanceId?: string): string {
+  const safe = (instanceId || currentRequestInstance || 'cuentacasa').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+  const scopedPath = path.join(process.cwd(), '.next', `${safe}_cloud_db.json`);
+  if (!fs.existsSync(scopedPath)) {
+    const legacyPath = path.join(process.cwd(), '.next', 'cuentacasa_cloud_db.json');
+    if (fs.existsSync(legacyPath) && (safe === 'cuentacasa' || safe === 'default')) {
+      return legacyPath;
+    }
+  }
+  return scopedPath;
+}
 
 interface FileCloudData {
   transactions: Transaction[];
@@ -29,10 +41,11 @@ interface FileCloudData {
   lastResetAt?: number;
 }
 
-function loadFileData(): FileCloudData {
+function loadFileData(instanceId?: string): FileCloudData {
+  const targetFile = getStorageFile(instanceId);
   try {
-    if (fs.existsSync(STORAGE_FILE)) {
-      const data = fs.readFileSync(STORAGE_FILE, 'utf-8');
+    if (fs.existsSync(targetFile)) {
+      const data = fs.readFileSync(targetFile, 'utf-8');
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed)) {
         return {
@@ -102,13 +115,14 @@ function loadFileData(): FileCloudData {
   };
 }
 
-function saveFileData(cloudData: FileCloudData) {
+function saveFileData(cloudData: FileCloudData, instanceId?: string) {
   try {
-    const dir = path.dirname(STORAGE_FILE);
+    const targetFile = getStorageFile(instanceId);
+    const dir = path.dirname(targetFile);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(STORAGE_FILE, JSON.stringify(cloudData, null, 2), 'utf-8');
+    fs.writeFileSync(targetFile, JSON.stringify(cloudData, null, 2), 'utf-8');
   } catch (e) {
     // Ignored in read-only serverless filesystems
   }
@@ -648,6 +662,7 @@ async function checkMySQLConnection(): Promise<boolean> {
 
 export async function GET(req: NextRequest) {
   try {
+    currentRequestInstance = req.headers.get('x-app-instance') || req.nextUrl.searchParams.get('instance') || 'cuentacasa';
     const useMySQL = await checkMySQLConnection();
     const isPublicRequest = req.nextUrl.searchParams.get('public') === '1';
 
@@ -774,13 +789,25 @@ export async function GET(req: NextRequest) {
 
       const publicSettings = {
         currency: currentSettings?.currency || '$',
-        appName: currentSettings?.appName || 'Samy Store',
-        storeWhatsappNumber: currentSettings?.storeWhatsappNumber,
+        appName: currentSettings?.appName || currentSettings?.storeName || 'Samy Store',
+        storeName: currentSettings?.storeName || currentSettings?.appName || 'Samy Store',
+        storeWhatsappNumber: currentSettings?.storeWhatsappNumber || '',
         currencyMode: currentSettings?.currencyMode || 'BOTH',
         exchangeRateUSD: currentSettings?.exchangeRateUSD || 320,
         exchangeRateTrend: currentSettings?.exchangeRateTrend || 'stable',
         usdIndexedPricing: currentSettings?.usdIndexedPricing ?? false,
         primaryColor: currentSettings?.primaryColor || '#1A73E8',
+        secondaryColor: currentSettings?.secondaryColor || '#10B981',
+        storeLogoMode: currentSettings?.storeLogoMode || 'both',
+        storeLogoSquare: currentSettings?.storeLogoSquare || '',
+        storeLogoWide: currentSettings?.storeLogoWide || '',
+        storeLogoFontId: currentSettings?.storeLogoFontId || 'dancing-script',
+        storeLogoFontFamily: currentSettings?.storeLogoFontFamily || "'Dancing Script', 'Pacifico', cursive, sans-serif",
+        storeSeoName: currentSettings?.storeSeoName || currentSettings?.storeName || currentSettings?.appName || 'Samy Store',
+        storeSeoDescription: currentSettings?.storeSeoDescription || '',
+        heroBadgeText: currentSettings?.heroBadgeText || 'Nueva Colección 2026',
+        heroTitle: currentSettings?.heroTitle || 'Estilo que Define tu Presencia',
+        heroSubtitle: currentSettings?.heroSubtitle || 'Descubre prendas y accesorios exclusivos seleccionados para ti.',
         updatedAt: currentSettings?.updatedAt
       };
 
@@ -865,6 +892,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    currentRequestInstance = req.headers.get('x-app-instance') || req.nextUrl.searchParams.get('instance') || 'cuentacasa';
     const useMySQL = await checkMySQLConnection();
     const body = await req.json();
     const now = Date.now();

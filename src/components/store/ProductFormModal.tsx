@@ -9,11 +9,13 @@ import {
   parseBarcodeDates,
   saveStoreProduct,
   getRawDatabase,
+  getStoreModulesConfig,
+  StoreModulesConfig,
   DEFAULT_PRODUCT_IMAGE
 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { AppInput } from '@/components/common/AppInput';
-import { Package, X, Camera, Check, Image as ImageIcon, AlertTriangle, PlusCircle, Edit3, Sparkles, DollarSign, Wallet } from 'lucide-react';
+import { Package, X, Camera, Check, Image as ImageIcon, AlertTriangle, PlusCircle, Edit3, Sparkles, DollarSign, Wallet, ChevronDown } from 'lucide-react';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 
@@ -51,7 +53,15 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [newCategoryInput, setNewCategoryInput] = useState('');
   const [costPrice, setCostPrice] = useState<number | ''>('');
   const [price, setPrice] = useState<number | ''>('');
+  const [priceUSD, setPriceUSD] = useState<number | ''>('');
+  const [costPriceUSD, setCostPriceUSD] = useState<number | ''>('');
   const [productCurrency, setProductCurrency] = useState<'CUP' | 'USD'>('CUP');
+
+  // Bulk-to-Unit USD Lot Calculator State
+  const [isBulkCalculatorOpen, setIsBulkCalculatorOpen] = useState(false);
+  const [bulkTotalUnits, setBulkTotalUnits] = useState<number | ''>('');
+  const [bulkTotalCostUSD, setBulkTotalCostUSD] = useState<number | ''>('');
+  const [bulkTargetPriceUSD, setBulkTargetPriceUSD] = useState<number | ''>('');
   const [stock, setStock] = useState<number | ''>('');
   const [unit, setUnit] = useState('u');
   const [isAddingNewUnit, setIsAddingNewUnit] = useState(false);
@@ -72,6 +82,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [externalValue, setExternalValue] = useState('');
   const [description, setDescription] = useState('');
 
+  // Active Modules config
+  const [storeModules, setStoreModules] = useState<StoreModulesConfig>(() => getStoreModulesConfig());
+
+  useEffect(() => {
+    const handleModulesChanged = (e: any) => {
+      if (e?.detail) setStoreModules(e.detail);
+      else setStoreModules(getStoreModulesConfig());
+    };
+    window.addEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+    return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+  }, []);
+
   // Valuation Book Dates (Fabricación & Vencimiento)
   const [mfgDate, setMfgDate] = useState('');
   const [expDate, setExpDate] = useState('');
@@ -89,11 +111,19 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const productFormRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      setStoreModules(getStoreModulesConfig());
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (scannedBarcode && isOpen) {
       setBarcode(scannedBarcode);
       const parsedDates = parseBarcodeDates(scannedBarcode);
-      if (parsedDates.expDate) setExpDate(parsedDates.expDate);
-      if (parsedDates.mfgDate) setMfgDate(parsedDates.mfgDate);
+      if (storeModules.enableFoodTraceability) {
+        if (parsedDates.expDate) setExpDate(parsedDates.expDate);
+        if (parsedDates.mfgDate) setMfgDate(parsedDates.mfgDate);
+      }
 
       const existingProduct = getStoreProductByBarcode(scannedBarcode);
       if (existingProduct && !editingProduct) {
@@ -103,7 +133,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         setAddStockExpDate(existingProduct.expDate || '');
       }
     }
-  }, [scannedBarcode, isOpen, editingProduct]);
+  }, [scannedBarcode, isOpen, editingProduct, storeModules.enableFoodTraceability]);
 
   useEffect(() => {
     if (editingProduct) {
@@ -112,6 +142,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setCategory(editingProduct.category || '');
       setCostPrice(editingProduct.costPrice || '');
       setPrice(editingProduct.price);
+      setPriceUSD(editingProduct.priceUSD !== undefined ? editingProduct.priceUSD : '');
+      setCostPriceUSD(editingProduct.costPriceUSD !== undefined ? editingProduct.costPriceUSD : '');
       setProductCurrency(editingProduct.currency === 'USD' ? 'USD' : 'CUP');
       setStock(editingProduct.stock);
       setUnit(editingProduct.unit || 'u');
@@ -173,8 +205,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setNewUnitInput('');
       setCostPrice('');
       setPrice('');
+      setPriceUSD('');
+      setCostPriceUSD('');
       setProductCurrency('CUP');
       setStock('');
+      setIsBulkCalculatorOpen(false);
+      setBulkTotalUnits('');
+      setBulkTotalCostUSD('');
+      setBulkTargetPriceUSD('');
       setPhotoUrl('');
       setPublished(true);
       setFundingSource('negocio');
@@ -239,6 +277,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setCategory(p.category || '');
     setCostPrice(p.costPrice || '');
     setPrice(p.price);
+    setPriceUSD(p.priceUSD !== undefined ? p.priceUSD : '');
+    setCostPriceUSD(p.costPriceUSD !== undefined ? p.costPriceUSD : '');
     setProductCurrency(p.currency === 'USD' ? 'USD' : 'CUP');
     setStock(p.stock);
     setUnit(p.unit || 'u');
@@ -321,11 +361,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     e.preventDefault();
     if (!name.trim() || price === '' || Number(price) <= 0) return;
 
-    const resolvedSupplierName = fundingSource === 'proveedor'
+    const resolvedSupplierName = (storeModules.enableSuppliers && fundingSource === 'proveedor')
       ? (supplierName.trim() || (!isAddingNewSupplier && suppliers.length > 0 ? suppliers[0].name : ''))
       : '';
 
-    if (fundingSource === 'proveedor' && !resolvedSupplierName) {
+    if (storeModules.enableSuppliers && fundingSource === 'proveedor' && !resolvedSupplierName) {
       showToast({
         title: 'Proveedor Requerido',
         message: 'Debes seleccionar o escribir el nombre del proveedor para mercancía en consignación.',
@@ -335,7 +375,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
 
     let finalExternalUrl: string | undefined = undefined;
-    if (isExternal && externalValue.trim()) {
+    if (storeModules.enableExternalProducts && isExternal && externalValue.trim()) {
       if (externalType === 'whatsapp') {
         const cleanDigits = externalValue.trim().replace(/[^0-9]/g, '');
         const fullNumber = cleanDigits.startsWith('53') ? cleanDigits : `53${cleanDigits}`;
@@ -355,18 +395,20 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       unit: unit.trim() || 'u',
       costPrice: calculatedCost,
       price: Number(price),
+      priceUSD: priceUSD !== '' ? Number(priceUSD) : (productCurrency === 'USD' ? Number(price) : undefined),
+      costPriceUSD: costPriceUSD !== '' ? Number(costPriceUSD) : (productCurrency === 'USD' ? calculatedCost : undefined),
       currency: productCurrency,
       stock: Number(stock) || 0,
       photoUrl: photoUrl || undefined,
       published,
-      fundingSource: fundingSource === 'proveedor' ? 'negocio' : fundingSource,
-      supplierType: fundingSource === 'proveedor' ? 'proveedor' : 'propia',
-      supplierName: fundingSource === 'proveedor' ? resolvedSupplierName : undefined,
-      isExternal,
-      externalUrl: finalExternalUrl,
+      fundingSource: storeModules.enableSuppliers && fundingSource === 'proveedor' ? 'negocio' : (storeModules.enableSuppliers ? fundingSource : 'negocio'),
+      supplierType: storeModules.enableSuppliers && fundingSource === 'proveedor' ? 'proveedor' : 'propia',
+      supplierName: storeModules.enableSuppliers && fundingSource === 'proveedor' ? resolvedSupplierName : undefined,
+      isExternal: storeModules.enableExternalProducts ? isExternal : false,
+      externalUrl: storeModules.enableExternalProducts ? finalExternalUrl : undefined,
       description: description.trim() || undefined,
-      mfgDate: mfgDate.trim() || undefined,
-      expDate: expDate.trim() || undefined
+      mfgDate: storeModules.enableFoodTraceability ? (mfgDate.trim() || undefined) : undefined,
+      expDate: storeModules.enableFoodTraceability ? (expDate.trim() || undefined) : undefined
     };
 
     const savedOk = onSaveProduct(productPayload);
@@ -599,8 +641,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
-          {/* Funding Source Selector (Only in Advanced Mode) */}
-          {formMode === 'advanced' && (
+          {/* Funding Source Selector (Only in Advanced Mode and when Suppliers are enabled) */}
+          {formMode === 'advanced' && storeModules.enableSuppliers && (
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
                 Origen del Financiamiento:
@@ -656,8 +698,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           )}
 
-          {/* Supplier Selector Dropdown (Only in Advanced Mode) */}
-          {formMode === 'advanced' && fundingSource === 'proveedor' && (
+          {/* Supplier Selector Dropdown (Only in Advanced Mode and when Suppliers are enabled) */}
+          {formMode === 'advanced' && storeModules.enableSuppliers && fundingSource === 'proveedor' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
                 Seleccionar Proveedor (Consignación) *
@@ -1009,6 +1051,209 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
+          {/* Botón Acordeón de Calculadora de Lotes y Rollos en USD */}
+          <div style={{
+            borderRadius: '16px',
+            border: isBulkCalculatorOpen ? '1.5px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+            backgroundColor: isBulkCalculatorOpen ? 'var(--md-sys-color-surface-container-high)' : 'var(--md-sys-color-surface)',
+            overflow: 'hidden',
+            transition: 'all 0.2s ease'
+          }}>
+            <button
+              type="button"
+              onClick={() => setIsBulkCalculatorOpen(prev => !prev)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '1.2rem' }}>🧮</span>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    Calculadora de Lotes / Rollos en USD
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    Compra al por mayor en USD y desglose automático a precio unitario y CUP
+                  </div>
+                </div>
+              </div>
+              <ChevronDown
+                size={18}
+                color="var(--md-sys-color-primary)"
+                style={{
+                  transform: isBulkCalculatorOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s ease'
+                }}
+              />
+            </button>
+
+            {isBulkCalculatorOpen && (
+              <div style={{
+                padding: '14px 16px 16px 16px',
+                borderTop: '1px solid var(--md-sys-color-outline-variant)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                backgroundColor: 'var(--md-sys-color-surface)'
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '4px' }}>
+                      Cantidad Lote / Rollo ({unit || 'u'}) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ej. 100"
+                      value={bulkTotalUnits}
+                      onChange={e => setBulkTotalUnits(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      className="md-input"
+                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.85rem', fontWeight: 700, borderRadius: '10px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '4px' }}>
+                      Costo Total Lote (US$) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ej. 600"
+                      value={bulkTotalCostUSD}
+                      onChange={e => setBulkTotalCostUSD(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      className="md-input"
+                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.85rem', fontWeight: 700, borderRadius: '10px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '4px' }}>
+                      Venta Unitaria en USD (US$) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ej. 8.00"
+                      value={bulkTargetPriceUSD}
+                      onChange={e => setBulkTargetPriceUSD(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                      className="md-input"
+                      style={{ width: '100%', padding: '9px 12px', fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-income)', borderRadius: '10px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Tarjeta de Resultados Calculados en Tiempo Real */}
+                {Number(bulkTotalUnits) > 0 && Number(bulkTotalCostUSD) > 0 && (
+                  <div style={{
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    fontSize: '0.78rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Costo Unitario en USD:</span>
+                      <strong style={{ fontSize: '0.88rem' }}>
+                        US$ {(Number(bulkTotalCostUSD) / Number(bulkTotalUnits)).toFixed(2)} / {unit || 'u'}
+                      </strong>
+                    </div>
+
+                    {Number(bulkTargetPriceUSD) > 0 && (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Ganancia Unitaria en USD:</span>
+                          <strong style={{ color: 'var(--md-sys-color-income)', fontSize: '0.88rem' }}>
+                            +US$ {(Number(bulkTargetPriceUSD) - (Number(bulkTotalCostUSD) / Number(bulkTotalUnits))).toFixed(2)} ({Math.round(((Number(bulkTargetPriceUSD) - (Number(bulkTotalCostUSD) / Number(bulkTotalUnits))) / Number(bulkTargetPriceUSD)) * 100)}% margen)
+                          </strong>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Ganancia Total del Lote:</span>
+                          <strong style={{ color: 'var(--md-sys-color-income)' }}>
+                            +US$ {((Number(bulkTargetPriceUSD) - (Number(bulkTotalCostUSD) / Number(bulkTotalUnits))) * Number(bulkTotalUnits)).toFixed(2)} USD
+                          </strong>
+                        </div>
+
+                        <div style={{
+                          marginTop: '4px',
+                          paddingTop: '8px',
+                          borderTop: '1px dashed var(--md-sys-color-outline-variant)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <div>
+                            <div style={{ fontWeight: 800, color: 'var(--brand-primary, #1A73E8)' }}>
+                              Equivalente en CUP (@ Tasa ${getCurrencySettings().exchangeRateUSD || 320}):
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                              Costo: ${Math.round((Number(bulkTotalCostUSD) / Number(bulkTotalUnits)) * (getCurrencySettings().exchangeRateUSD || 320)).toLocaleString('es-ES')} CUP
+                            </div>
+                          </div>
+                          <strong style={{ fontSize: '0.96rem', color: 'var(--md-sys-color-income)' }}>
+                            ${Math.round(Number(bulkTargetPriceUSD) * (getCurrencySettings().exchangeRateUSD || 320)).toLocaleString('es-ES')} CUP
+                          </strong>
+                        </div>
+                      </>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const unitsVal = Number(bulkTotalUnits);
+                        const costUSDVal = Math.round((Number(bulkTotalCostUSD) / unitsVal) * 100) / 100;
+                        const targetUSDVal = Number(bulkTargetPriceUSD);
+                        const rateVal = getCurrencySettings().exchangeRateUSD || 320;
+
+                        setStock(unitsVal);
+                        setCostPriceUSD(costUSDVal);
+                        if (targetUSDVal > 0) setPriceUSD(targetUSDVal);
+
+                        if (productCurrency === 'USD') {
+                          setCostPrice(costUSDVal);
+                          if (targetUSDVal > 0) setPrice(targetUSDVal);
+                        } else {
+                          setCostPrice(Math.round(costUSDVal * rateVal));
+                          if (targetUSDVal > 0) setPrice(Math.round(targetUSDVal * rateVal));
+                        }
+
+                        showToast({
+                          title: '¡Cálculo Aplicado al Producto!',
+                          message: `Stock: ${unitsVal}${unit} • Costo: US$${costUSDVal} • Venta: ${targetUSDVal > 0 ? (productCurrency === 'USD' ? `US$${targetUSDVal}` : `$${Math.round(targetUSDVal * rateVal)} CUP`) : 'Falta precio'}`,
+                          type: 'success'
+                        });
+                      }}
+                      className="md-btn md-btn-primary"
+                      style={{
+                        padding: '9px 16px',
+                        borderRadius: '10px',
+                        fontSize: '0.8rem',
+                        fontWeight: 900,
+                        marginTop: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Sparkles size={15} />
+                      <span>Aplicar este Cálculo al Formulario</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Cost Price vs Selling Price Grid */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -1165,93 +1410,95 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {/* Advanced Mode Only Fields */}
           {formMode === 'advanced' && (
             <>
-              {/* External Link / Affiliate Checkbox & Input */}
-              <div style={{
-                padding: '12px 14px',
-                borderRadius: '14px',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                border: isExternal ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                  <input
-                    type="checkbox"
-                    checked={isExternal}
-                    onChange={e => setIsExternal(e.target.checked)}
-                    style={{ width: '18px', height: '18px', accentColor: 'var(--md-sys-color-primary)' }}
-                  />
-                  <span>🔗 Producto de Enlace Externo / WhatsApp Directo</span>
-                </label>
+              {/* External Link / Affiliate Checkbox & Input (Only if enabled in modules) */}
+              {storeModules.enableExternalProducts && (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  border: isExternal ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                    <input
+                      type="checkbox"
+                      checked={isExternal}
+                      onChange={e => setIsExternal(e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--md-sys-color-primary)' }}
+                    />
+                    <span>🔗 Producto de Enlace Externo / WhatsApp Directo</span>
+                  </label>
 
-                {isExternal && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setExternalType('whatsapp')}
-                        style={{
-                          padding: '8px 10px',
-                          borderRadius: '10px',
-                          border: externalType === 'whatsapp' ? '2px solid #25D366' : '1px solid var(--md-sys-color-outline-variant)',
-                          backgroundColor: externalType === 'whatsapp' ? 'rgba(37, 211, 102, 0.12)' : 'transparent',
-                          color: externalType === 'whatsapp' ? '#25D366' : 'var(--md-sys-color-on-surface)',
-                          fontWeight: 800,
-                          fontSize: '0.78rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        💬 Número WhatsApp
-                      </button>
+                  {isExternal && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setExternalType('whatsapp')}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: '10px',
+                            border: externalType === 'whatsapp' ? '2px solid #25D366' : '1px solid var(--md-sys-color-outline-variant)',
+                            backgroundColor: externalType === 'whatsapp' ? 'rgba(37, 211, 102, 0.12)' : 'transparent',
+                            color: externalType === 'whatsapp' ? '#25D366' : 'var(--md-sys-color-on-surface)',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          💬 Número WhatsApp
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setExternalType('link')}
-                        style={{
-                          padding: '8px 10px',
-                          borderRadius: '10px',
-                          border: externalType === 'link' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                          backgroundColor: externalType === 'link' ? 'var(--md-sys-color-primary-container)' : 'transparent',
-                          color: externalType === 'link' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                          fontWeight: 800,
-                          fontSize: '0.78rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        🌐 Enlace Web Externo
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => setExternalType('link')}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: '10px',
+                            border: externalType === 'link' ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                            backgroundColor: externalType === 'link' ? 'var(--md-sys-color-primary-container)' : 'transparent',
+                            color: externalType === 'link' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🌐 Enlace Web Externo
+                        </button>
+                      </div>
 
-                    {externalType === 'whatsapp' ? (
-                      <div>
+                      {externalType === 'whatsapp' ? (
+                        <div>
+                          <AppInput
+                            disableBlur
+                            hideAceptar
+                            label="Número de WhatsApp (Las Tunas) *"
+                            placeholder="Ej: 53999999 (Sin +53 ni código de país)"
+                            value={externalValue}
+                            onChange={e => setExternalValue(e.target.value)}
+                            required={isExternal}
+                          />
+                          <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
+                            💡 Escribe los 8 dígitos locales (ej: 53999999). El sistema lo convertirá a wa.me/53...
+                          </p>
+                        </div>
+                      ) : (
                         <AppInput
                           disableBlur
                           hideAceptar
-                          label="Número de WhatsApp (Las Tunas) *"
-                          placeholder="Ej: 53999999 (Sin +53 ni código de país)"
+                          label="URL o Enlace Web Directo *"
+                          placeholder="https://tienda-externa.com/producto..."
                           value={externalValue}
                           onChange={e => setExternalValue(e.target.value)}
                           required={isExternal}
                         />
-                        <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
-                          💡 Escribe los 8 dígitos locales (ej: 53999999). El sistema lo convertirá a wa.me/53...
-                        </p>
-                      </div>
-                    ) : (
-                      <AppInput
-                        disableBlur
-                        hideAceptar
-                        label="URL o Enlace Web Directo *"
-                        placeholder="https://tienda-externa.com/producto..."
-                        value={externalValue}
-                        onChange={e => setExternalValue(e.target.value)}
-                        required={isExternal}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Detailed Description Field */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -1280,72 +1527,74 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 />
               </div>
 
-              {/* Libro de Tasaciones: Manufacturing & Expiration Dates */}
-              <div style={{
-                padding: '14px',
-                borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                border: '1px dashed var(--md-sys-color-primary)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '1.1rem' }}>📜</span>
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                      Fechas para Libro de Tasaciones (Opcional)
-                    </h4>
-                    <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
-                      Requerido para control sanitario e inspección de autoridades. No visible en tienda pública.
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
-                      F. Fabricación / Creación
-                    </label>
-                    <input
-                      type="date"
-                      value={mfgDate}
-                      onChange={e => setMfgDate(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
-                        backgroundColor: 'var(--md-sys-color-surface-container)',
-                        color: 'var(--md-sys-color-on-surface)',
-                        fontSize: '0.82rem',
-                        fontWeight: 700
-                      }}
-                    />
+              {/* Libro de Tasaciones: Manufacturing & Expiration Dates (Solo si el módulo de alimentos está activo) */}
+              {storeModules.enableFoodTraceability && (
+                <div style={{
+                  padding: '14px',
+                  borderRadius: '16px',
+                  backgroundColor: 'var(--md-sys-color-surface)',
+                  border: '1px dashed var(--md-sys-color-primary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.1rem' }}>📜</span>
+                    <div>
+                      <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
+                        Fechas para Libro de Tasaciones (Opcional)
+                      </h4>
+                      <p style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
+                        Requerido para control sanitario e inspección de autoridades. No visible en tienda pública.
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
-                      F. Vencimiento / Caducidad
-                    </label>
-                    <input
-                      type="date"
-                      value={expDate}
-                      onChange={e => setExpDate(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
-                        backgroundColor: 'var(--md-sys-color-surface-container)',
-                        color: 'var(--md-sys-color-on-surface)',
-                        fontSize: '0.82rem',
-                        fontWeight: 700
-                      }}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
+                        F. Fabricación / Creación
+                      </label>
+                      <input
+                        type="date"
+                        value={mfgDate}
+                        onChange={e => setMfgDate(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--md-sys-color-outline-variant)',
+                          backgroundColor: 'var(--md-sys-color-surface-container)',
+                          color: 'var(--md-sys-color-on-surface)',
+                          fontSize: '0.82rem',
+                          fontWeight: 700
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '4px' }}>
+                        F. Vencimiento / Caducidad
+                      </label>
+                      <input
+                        type="date"
+                        value={expDate}
+                        onChange={e => setExpDate(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--md-sys-color-outline-variant)',
+                          backgroundColor: 'var(--md-sys-color-surface-container)',
+                          color: 'var(--md-sys-color-on-surface)',
+                          fontSize: '0.82rem',
+                          fontWeight: 700
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Published Toggle Checkbox */}
               <label style={{
@@ -1561,26 +1810,28 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.74rem', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
-                  Fecha de Vencimiento de este Lote (Opcional)
-                </label>
-                <input
-                  type="date"
-                  value={addStockExpDate}
-                  onChange={e => setAddStockExpDate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--md-sys-color-outline-variant)',
-                    backgroundColor: 'var(--md-sys-color-surface)',
-                    color: 'var(--md-sys-color-on-surface)',
-                    fontSize: '0.85rem',
-                    fontWeight: 700
-                  }}
-                />
-              </div>
+              {storeModules.enableFoodTraceability && (
+                <div>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
+                    Fecha de Vencimiento de este Lote (Opcional)
+                  </label>
+                  <input
+                    type="date"
+                    value={addStockExpDate}
+                    onChange={e => setAddStockExpDate(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: 'var(--md-sys-color-surface)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      fontSize: '0.85rem',
+                      fontWeight: 700
+                    }}
+                  />
+                </div>
+              )}
 
               <button
                 type="button"

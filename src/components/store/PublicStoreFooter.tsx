@@ -25,7 +25,8 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { getCategoryVisualMeta } from '@/lib/seoHelper';
-import { getLoggedInUser } from '@/lib/storage';
+import { getLoggedInUser, getStoreCustomizationSettings, StoreCustomizationSettings } from '@/lib/storage';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 import { CategoryStatItem } from './PublicStoreHeaderBar';
 
 interface PublicStoreFooterProps {
@@ -66,7 +67,20 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
   const [internalHelpSection, setInternalHelpSection] = useState<'como-comprar' | 'envios' | 'pagos' | 'faq' | null>(null);
   const [copiedStoreUrl, setCopiedStoreUrl] = useState(false);
   const [openMobileAccordion, setOpenMobileAccordion] = useState<string | null>(null);
+  const [customization, setCustomization] = useState<StoreCustomizationSettings>(() => getStoreCustomizationSettings());
   const isUserLoggedIn = typeof window !== 'undefined' && !!getLoggedInUser();
+
+  React.useEffect(() => {
+    const handleCustomizationChange = (e: any) => {
+      if (e?.detail) {
+        setCustomization(e.detail);
+      } else {
+        setCustomization(getStoreCustomizationSettings());
+      }
+    };
+    window.addEventListener('cuentacasa-store-customization-changed', handleCustomizationChange);
+    return () => window.removeEventListener('cuentacasa-store-customization-changed', handleCustomizationChange);
+  }, []);
 
   const activeHelpSection = externalHelpSection !== undefined ? externalHelpSection : internalHelpSection;
   const setActiveHelpSection = setExternalHelpSection || setInternalHelpSection;
@@ -93,10 +107,10 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
   const handleShareStore = async () => {
     if (typeof window === 'undefined') return;
     const url = window.location.origin;
-    const text = '🛍️ Visita Samy Store Las Tunas: Catálogo online con precios en CUP y USD y pedidos directos por WhatsApp.';
+    const text = `🛍️ Visita ${customization.storeName}: Catálogo online con precios en CUP y USD y pedidos directos por WhatsApp.`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Samy Store Las Tunas', text, url });
+        await navigator.share({ title: customization.storeName, text, url });
       } catch {
         // Cancelado
       }
@@ -270,23 +284,7 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
       <div className="store-container" style={{ paddingTop: '36px', paddingBottom: '28px' }}>
         {/* Identidad de Marca (Visible tanto en PC como en Móvil arriba de los acordeones) */}
         <div className="mobile-only" style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              backgroundColor: '#FFFFFF',
-              padding: '3px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
-            </div>
-            <span className="font-logo-script" style={{ fontSize: '1.6rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>
-              Samy Store
-            </span>
-          </div>
+          <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" style={{ marginBottom: '8px' }} />
         </div>
 
         {/* VISTA MÓVIL (< 768px): Acordeones Colapsables para no alargar el scroll en teléfonos */}
@@ -473,25 +471,9 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
             gap: '28px',
             marginBottom: '32px'
           }}>
-            {/* COLUMNA 1: Identidad Oficial Samy Store */}
+            {/* COLUMNA 1: Identidad Oficial */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
-                  backgroundColor: '#FFFFFF',
-                  padding: '3px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
-                </div>
-                <span className="font-logo-script" style={{ fontSize: '1.7rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>
-                  Samy Store
-                </span>
-              </div>
+              <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" style={{ marginBottom: '14px' }} />
 
               <p style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: '1.58', margin: '0 0 14px 0' }}>
                 Tu mercado online y tienda física en Las Tunas, Cuba. Artículos seleccionados con stock real y entregas a domicilio.
@@ -878,7 +860,7 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span>
-              © {new Date().getFullYear()} <strong style={{ color: '#FFFFFF' }}>Samy Store</strong>. Todos los derechos reservados.
+              © {new Date().getFullYear()} <strong style={{ color: '#FFFFFF' }}>{customization.storeName}</strong>. Todos los derechos reservados.
             </span>
             <span style={{
               fontSize: '0.66rem',
@@ -930,7 +912,7 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0F172A', margin: 0 }}>
-                {activeHelpSection === 'como-comprar' && '¿Cómo Comprar en Samy Store?'}
+                {activeHelpSection === 'como-comprar' && `¿Cómo Comprar en ${customization.storeName}?`}
                 {activeHelpSection === 'envios' && 'Envíos y Entregas en Las Tunas'}
                 {activeHelpSection === 'pagos' && 'Monedas y Métodos de Pago'}
                 {activeHelpSection === 'faq' && 'Preguntas Frecuentes'}

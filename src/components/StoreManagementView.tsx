@@ -15,7 +15,9 @@ import {
   getUserRole,
   getCurrencySettings,
   syncElToqueExchangeRate,
-  getLocalISODate
+  getLocalISODate,
+  getStoreModulesConfig,
+  StoreModulesConfig
 } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { formatCurrency, getProductDisplayPrice } from '@/lib/invoice';
@@ -83,9 +85,37 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProductForDetailModal, setSelectedProductForDetailModal] = useState<StoreProduct | null>(null);
 
-  // Navigation Sub-Tabs
+  // Navigation Sub-Tabs & Store Modules
+  const [storeModules, setStoreModules] = useState<StoreModulesConfig>(() => getStoreModulesConfig());
   const [activeSubTab, setActiveSubTab] = useState<'products' | 'suppliers' | 'sales' | 'debts'>('products');
   const subTabsNavRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleModulesChanged = (e: any) => {
+      const updated = e?.detail || getStoreModulesConfig();
+      setStoreModules(updated);
+      if (!updated.enableSuppliers && activeSubTab === 'suppliers') {
+        setActiveSubTab('products');
+      }
+      if (!updated.enableCustomerDebts && activeSubTab === 'debts') {
+        setActiveSubTab('products');
+      }
+    };
+    window.addEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+    return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+  }, [activeSubTab]);
+
+  useEffect(() => {
+    const handleRemoteTab = (e: any) => {
+      if (e?.detail && ['products', 'suppliers', 'sales', 'debts'].includes(e.detail)) {
+        if (e.detail === 'suppliers' && !storeModules.enableSuppliers) return;
+        if (e.detail === 'debts' && !storeModules.enableCustomerDebts) return;
+        setActiveSubTab(e.detail);
+      }
+    };
+    window.addEventListener('cuentacasa-navigate-store-tab', handleRemoteTab);
+    return () => window.removeEventListener('cuentacasa-navigate-store-tab', handleRemoteTab);
+  }, [storeModules]);
 
   const handleSubTabSelect = (tab: 'products' | 'suppliers' | 'sales' | 'debts') => {
     setActiveSubTab(tab);
@@ -580,65 +610,75 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </button>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        <button
-          onClick={() => {
-            if (typeof window !== 'undefined' && window.innerWidth >= 768 && onNavigateTab) {
-              onNavigateTab('shifts');
-            } else {
-              setIsShiftModalOpen(true);
-            }
-          }}
-          style={{
-            width: '100%',
-            padding: '14px 10px',
-            borderRadius: '18px',
-            border: '2px solid var(--md-sys-color-outline-variant)',
-            backgroundColor: 'var(--md-sys-color-surface-container)',
-            color: 'var(--md-sys-color-on-surface)',
-            fontSize: '0.95rem',
-            fontWeight: 900,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            boxShadow: 'var(--md-shadow-elevation-1)'
-          }}
-        >
-          <Clock size={20} color="var(--md-sys-color-secondary, var(--brand-secondary))" />
-          <span>TURNOS E IPV</span>
-        </button>
+      {(storeModules.enableShiftManagement || storeModules.enableFoodTraceability) && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: (storeModules.enableShiftManagement && storeModules.enableFoodTraceability) ? '1fr 1fr' : '1fr',
+          gap: '10px'
+        }}>
+          {storeModules.enableShiftManagement && (
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.innerWidth >= 768 && onNavigateTab) {
+                  onNavigateTab('shifts');
+                } else {
+                  setIsShiftModalOpen(true);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '14px 10px',
+                borderRadius: '18px',
+                border: '2px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                color: 'var(--md-sys-color-on-surface)',
+                fontSize: '0.95rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: 'var(--md-shadow-elevation-1)'
+              }}
+            >
+              <Clock size={20} color="var(--md-sys-color-secondary, var(--brand-secondary))" />
+              <span>TURNOS E IPV</span>
+            </button>
+          )}
 
-        <button
-          onClick={() => {
-            if (typeof window !== 'undefined' && window.innerWidth >= 768 && onNavigateTab) {
-              onNavigateTab('valuation');
-            } else {
-              setIsValuationBookOpen(true);
-            }
-          }}
-          style={{
-            width: '100%',
-            padding: '14px 10px',
-            borderRadius: '18px',
-            border: '1px solid var(--md-sys-color-outline-variant)',
-            backgroundColor: 'var(--md-sys-color-surface-container)',
-            color: 'var(--md-sys-color-on-surface)',
-            fontSize: '0.95rem',
-            fontWeight: 900,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            boxShadow: 'var(--md-shadow-elevation-1)'
-          }}
-        >
-          <FileText size={20} color="var(--md-sys-color-primary)" />
-          <span>TASACIONES</span>
-        </button>
-      </div>
+          {storeModules.enableFoodTraceability && (
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.innerWidth >= 768 && onNavigateTab) {
+                  onNavigateTab('valuation');
+                } else {
+                  setIsValuationBookOpen(true);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '14px 10px',
+                borderRadius: '18px',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                color: 'var(--md-sys-color-on-surface)',
+                fontSize: '0.95rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: 'var(--md-shadow-elevation-1)'
+              }}
+            >
+              <FileText size={20} color="var(--md-sys-color-primary)" />
+              <span>TASACIONES</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 4. SUB-TAB NAVIGATION BAR */}
       <div 
@@ -672,7 +712,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           <span>Productos ({products.length})</span>
         </button>
 
-        {!isVendor && (
+        {!isVendor && storeModules.enableSuppliers && (
           <button
             onClick={() => handleSubTabSelect('suppliers')}
             style={{
@@ -716,26 +756,28 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           <span>Ventas ({salesRecords.length})</span>
         </button>
 
-        <button
-          onClick={() => handleSubTabSelect('debts')}
-          style={{
-            padding: '8px 14px',
-            borderRadius: '9999px',
-            border: 'none',
-            backgroundColor: activeSubTab === 'debts' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
-            color: activeSubTab === 'debts' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
-            fontWeight: activeSubTab === 'debts' ? 800 : 600,
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <CreditCard size={16} />
-          <span>Fiados & Cobros</span>
-        </button>
+        {storeModules.enableCustomerDebts && (
+          <button
+            onClick={() => handleSubTabSelect('debts')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '9999px',
+              border: 'none',
+              backgroundColor: activeSubTab === 'debts' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)',
+              color: activeSubTab === 'debts' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)',
+              fontWeight: activeSubTab === 'debts' ? 800 : 600,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <CreditCard size={16} />
+            <span>Fiados & Cobros</span>
+          </button>
+        )}
       </div>
 
       {/* SUB TAB 1: PRODUCTS INVENTORY */}

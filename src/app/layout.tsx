@@ -31,18 +31,28 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <link rel="icon" href="/icons/icon-192.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        {/* Inyección síncrona inmediata de la paleta seleccionada antes del primer renderizado para evitar cualquier destello (FOUC) */}
+        <link id="cuentacasa-app-favicon" rel="icon" href="/icons/icon-192.png" type="image/png" />
+        <link id="cuentacasa-apple-touch-icon" rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600;700;800;900&family=Dancing+Script:wght@700&family=Great+Vibes&family=Montserrat:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet" />
+        {/* Inyección síncrona inmediata de la paleta, favicons, fuentes y textos de identidad antes del primer pintado (Cero FOUC) */}
         <script
           id="cuentacasa-instant-theme"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
+                  // 1. Restaurar paleta de colores CSS inmediatamente
                   var css = localStorage.getItem('cuentacasa_cached_theme_css');
                   if (!css) {
                     var p = localStorage.getItem('cuentacasa_theme_color');
+                    if (!p && document.cookie) {
+                      var mTheme = document.cookie.match(/cuentacasa_theme=([^;]+)/);
+                      if (mTheme) {
+                        try { p = decodeURIComponent(mTheme[1]); } catch(e) {}
+                      }
+                    }
                     if (!p) {
                       var raw = localStorage.getItem('cuentacasa_db');
                       if (raw) {
@@ -59,6 +69,55 @@ export default function RootLayout({
                     s.id = 'cuentacasa-theme-style';
                     s.textContent = css;
                     document.head.appendChild(s);
+                  }
+
+                  // 2. Restaurar personalización de tienda, favicons y fuentes de logotipo inmediatamente
+                  var rawCust = localStorage.getItem('cuentacasa_store_customization');
+                  if (!rawCust && document.cookie) {
+                    var match = document.cookie.match(/cuentacasa_customization=([^;]+)/);
+                    if (match) {
+                      try { rawCust = decodeURIComponent(match[1]); } catch(e) {}
+                    }
+                  }
+                  if (!rawCust) {
+                    var rawDb = localStorage.getItem('cuentacasa_db');
+                    if (rawDb) {
+                      var d2 = JSON.parse(rawDb);
+                      if (d2 && d2.settings) {
+                        rawCust = JSON.stringify({
+                          storeName: d2.settings.storeName || d2.settings.appName,
+                          logoSquareUrl: d2.settings.storeLogoSquare,
+                          logoFontFamily: d2.settings.storeLogoFontFamily,
+                          heroBadgeText: d2.settings.heroBadgeText,
+                          heroTitle: d2.settings.heroTitle,
+                          heroSubtitle: d2.settings.heroSubtitle
+                        });
+                      }
+                    }
+                  }
+
+                  if (rawCust) {
+                    var cust = JSON.parse(rawCust);
+                    window.__CUENTACASA_STORE_CUSTOMIZATION__ = cust;
+
+                    // Tipografía personalizada del logotipo
+                    if (cust.logoFontFamily) {
+                      document.documentElement.style.setProperty('--store-logo-font', cust.logoFontFamily);
+                    }
+
+                    // Título de la pestaña en el navegador
+                    if (cust.storeName) {
+                      document.title = cust.storeName;
+                    }
+
+                    // Favicon e icono de la app procesado
+                    var iconUrl = cust.logoSquareUrl || localStorage.getItem('cuentacasa_app_favicon');
+                    if (iconUrl) {
+                      var fav = document.getElementById('cuentacasa-app-favicon');
+                      if (fav) fav.href = iconUrl;
+                      var apple = document.getElementById('cuentacasa-apple-touch-icon');
+                      if (apple) apple.href = iconUrl;
+                    }
                   }
                 } catch(e) {}
               })();

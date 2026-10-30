@@ -260,6 +260,7 @@ export interface RawDatabase {
     exchangeRateUSD?: number;   // Tipo de cambio 1 USD = X CUP (e.g. 675)
     exchangeRateTrend?: 'up' | 'down' | 'stable'; // Tendencia de la tasa de elTOQUE (subiendo/bajando/estable)
     autoSyncElToque?: boolean;  // Sincronizar automáticamente la tasa con elTOQUE si hay conexión
+    elToqueApiToken?: string;   // Token API oficial de elTOQUE (opcional para TRMI)
     lastElToqueSync?: number;   // Timestamp de la última actualización exitosa con elTOQUE
     usdIndexedPricing?: boolean; // Indexar inventario a USD y recalcular CUP dinámicamente según la tasa
     primaryColor?: string;      // Color principal del sistema y tienda (Default: '#1A73E8')
@@ -267,15 +268,39 @@ export interface RawDatabase {
     storeLogoMode?: StoreLogoDisplayMode; // Modo de presentación del logo: 'both' | 'text_only' | 'logo_only' | 'wide_logo'
     storeLogoSquare?: string;   // Logo cuadrado (URL o data URI base64)
     storeLogoWide?: string;     // Logo rectangular apaisado (URL o data URI base64)
+    storeLogoFontId?: string;   // ID del preset tipográfico del logo (e.g. 'cinzel', 'playfair', etc.)
+    storeLogoFontFamily?: string; // Declaración CSS de la familia tipográfica del logo
     storeName?: string;         // Nombre corto de la tienda / sistema (default 'Samy Store')
     storeSeoName?: string;      // Nombre largo SEO de la tienda
     storeSeoDescription?: string; // Descripción meta para Google / SEO
     heroBadgeText?: string;     // Texto pre-titular del Hero ("Tienda Online • Las Tunas, Cuba")
     heroTitle?: string;         // Título principal del Hero
     heroSubtitle?: string;      // Descripción o subtítulo del Hero
+    // Módulos y Secciones Activas
+    enableFoodTraceability?: boolean; // Trazabilidad de alimentos, fechas EXP/MFG y Libro de Tasaciones (default true)
+    enableSuppliers?: boolean;         // Gestión de proveedores y mercancía en consignación (default true)
+    enableCustomerDebts?: boolean;     // Cuentas por cobrar y libreta de fiados (default true)
+    enableShiftManagement?: boolean;   // Registro y arqueo de turnos de dependientes (default true)
+    enableExternalProducts?: boolean;  // Enlaces a productos externos o de terceros (default true)
     updatedAt?: number;         // Timestamp del último cambio de configuración global
   };
 }
+
+export interface StoreModulesConfig {
+  enableFoodTraceability: boolean;   // Fechas exp/mfg, alertas caducidad y Libro de Tasaciones
+  enableSuppliers: boolean;          // Gestión de proveedores, compras y mercancía en consignación
+  enableCustomerDebts: boolean;      // Cuentas por cobrar y libreta de fiados
+  enableShiftManagement: boolean;    // Registro formal de turnos de caja y arqueos IPV
+  enableExternalProducts: boolean;   // Cotizaciones y enlaces a WhatsApp de terceros
+}
+
+export const DEFAULT_STORE_MODULES: StoreModulesConfig = {
+  enableFoodTraceability: true,
+  enableSuppliers: true,
+  enableCustomerDebts: true,
+  enableShiftManagement: true,
+  enableExternalProducts: true
+};
 
 export type StoreLogoDisplayMode = 'both' | 'text_only' | 'logo_only' | 'wide_logo';
 
@@ -283,6 +308,8 @@ export interface StoreCustomizationSettings {
   logoMode: StoreLogoDisplayMode;
   logoSquareUrl?: string;
   logoWideUrl?: string;
+  logoFontId?: string;
+  logoFontFamily?: string;
   storeName: string;
   storeSeoName: string;
   storeSeoDescription: string;

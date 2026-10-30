@@ -50,7 +50,8 @@ import {
   Zap,
   Info,
   Layers,
-  LayoutTemplate
+  LayoutTemplate,
+  Clock
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
@@ -81,6 +82,8 @@ import {
   getStoreCustomizationSettings,
   saveStoreCustomizationSettings,
   DEFAULT_STORE_CUSTOMIZATION,
+  getStoreModulesConfig,
+  saveStoreModulesConfig,
   getCasaAvailableBalance,
   getCalculatedStoreFund,
   getCalculatedStoreFundUSD,
@@ -97,7 +100,9 @@ import {
   normalizeHexColor,
   applyBrandPaletteToDocument
 } from '@/lib/themePalette';
-import { AppUser, CurrencyMode, StoreCustomizationSettings, StoreLogoDisplayMode } from '@/types';
+import { AppUser, CurrencyMode, StoreCustomizationSettings, StoreLogoDisplayMode, StoreModulesConfig } from '@/types';
+import { LOGO_FONT_OPTIONS, DEFAULT_LOGO_FONT } from '@/lib/logoFonts';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 import { UserManagementModal } from '@/components/UserManagementModal';
 import { TransferModal } from '@/components/TransferModal';
 import { formatCurrency } from '@/lib/invoice';
@@ -128,6 +133,7 @@ export type SettingsSubView =
   | 'accounts'
   | 'currency'
   | 'exchange'
+  | 'modules'
   | 'whatsapp'
   | 'users'
   | 'customizer'
@@ -188,12 +194,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isAutoSecondary, setIsAutoSecondary] = useState<boolean>(true);
   const [customHexInput, setCustomHexInput] = useState<string>('');
 
+  // Store Modules & Feature Toggles
+  const [storeModules, setStoreModules] = useState<StoreModulesConfig>(() => getStoreModulesConfig());
+
   // Store Customization States (WordPress Customizer style)
   const [storeCustomization, setStoreCustomization] = useState<StoreCustomizationSettings>(() => getStoreCustomizationSettings());
   const [logoMode, setLogoMode] = useState<StoreLogoDisplayMode>('both');
   const [logoSquareUrl, setLogoSquareUrl] = useState<string>('');
   const [logoWideUrl, setLogoWideUrl] = useState<string>('');
   const [customStoreName, setCustomStoreName] = useState<string>('Samy Store');
+  const [logoFontId, setLogoFontId] = useState<string>(DEFAULT_LOGO_FONT.id);
+  const [logoFontFamily, setLogoFontFamily] = useState<string>(DEFAULT_LOGO_FONT.family);
   const [customSeoName, setCustomSeoName] = useState<string>('');
   const [customSeoDesc, setCustomSeoDesc] = useState<string>('');
   const [heroBadgeText, setHeroBadgeText] = useState<string>('');
@@ -238,13 +249,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setLogoSquareUrl(cust.logoSquareUrl || '');
       setLogoWideUrl(cust.logoWideUrl || '');
       setCustomStoreName(cust.storeName || 'Samy Store');
+      setLogoFontId(cust.logoFontId || DEFAULT_LOGO_FONT.id);
+      setLogoFontFamily(cust.logoFontFamily || DEFAULT_LOGO_FONT.family);
       setCustomSeoName(cust.storeSeoName || '');
       setCustomSeoDesc(cust.storeSeoDescription || '');
       setHeroBadgeText(cust.heroBadgeText || '');
       setHeroTitle(cust.heroTitle || '');
       setHeroSubtitle(cust.heroSubtitle || '');
+
+      setStoreModules(getStoreModulesConfig());
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const handleModulesChanged = (e: any) => {
+      if (e?.detail) setStoreModules(e.detail);
+      else setStoreModules(getStoreModulesConfig());
+    };
+    window.addEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+    return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+  }, []);
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>, mode: 'square' | 'wide') => {
     const file = e.target.files?.[0];
@@ -282,6 +306,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         logoMode,
         logoSquareUrl: logoSquareUrl.trim(),
         logoWideUrl: logoWideUrl.trim(),
+        logoFontId,
+        logoFontFamily,
         storeName: customStoreName.trim() || 'Samy Store',
         storeSeoName: customSeoName.trim(),
         storeSeoDescription: customSeoDesc.trim(),
@@ -292,7 +318,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setStoreCustomization(updated);
       showToast({
         title: 'Personalización Guardada',
-        message: 'La identidad y portada de la tienda pública se han actualizado exitosamente.',
+        message: 'La identidad, logotipo y tipografía se han actualizado en todo el sistema y tienda.',
         type: 'success'
       });
     } catch {
@@ -627,6 +653,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       case 'accounts': return 'Cuentas y Saldos';
       case 'currency': return 'Ajustes de Monedas';
       case 'exchange': return 'Tasa de Cambio';
+      case 'modules': return 'Módulos y Secciones';
       case 'whatsapp': return 'WhatsApp de Pedidos';
       case 'users': return 'Gestión de Usuarios y Roles';
       case 'customizer': return 'Personalizar Tienda';
@@ -634,6 +661,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       case 'security': return 'Seguridad y Datos';
       default: return 'Ajustes del Sistema';
     }
+  };
+
+  const handleNavigateSubView = (subView: SettingsSubView, requiresOwner: boolean = false) => {
+    if (requiresOwner && !isOwner) {
+      showToast({
+        title: 'Acceso Restringido a Propietarios',
+        message: 'Esta configuración contiene parámetros reservados exclusivamente para el Propietario del negocio.',
+        type: 'warning'
+      });
+      return;
+    }
+    setActiveSubView(subView);
+  };
+
+  const handleToggleModule = (key: keyof StoreModulesConfig, val: boolean) => {
+    if (!isOwner) {
+      showToast({
+        title: 'Acceso Restringido a Propietarios',
+        message: 'Solo el usuario Propietario tiene autorización para modificar los módulos activos de la tienda.',
+        type: 'warning'
+      });
+      return;
+    }
+    const updated = saveStoreModulesConfig({ [key]: val });
+    setStoreModules(updated);
+    showToast({
+      title: 'Módulo Actualizado',
+      message: `Se ha ${val ? 'habilitado' : 'deshabilitado'} la sección correctamente.`,
+      type: 'success'
+    });
   };
 
   // Styling presets for Hierarchical Settings Menu (concentric, accessible, responsive)
@@ -819,7 +876,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Cuentas y Saldos */}
             <div
-              onClick={() => setActiveSubView('accounts')}
+              onClick={() => handleNavigateSubView('accounts', true)}
               style={menuItemCardStyle}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
@@ -832,6 +889,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       Cuentas y Saldos
                     </span>
                     <span style={menuBadgeStyle('neutral')}>3 Cuentas</span>
+                    {!isOwner && (
+                      <span style={menuBadgeStyle('warning')}>
+                        <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     Saldos de Casa, Negocio, Ahorro y transferencias
@@ -843,7 +905,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Ajustes de Monedas */}
             <div
-              onClick={() => setActiveSubView('currency')}
+              onClick={() => handleNavigateSubView('currency', true)}
               style={menuItemCardStyle}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
@@ -858,6 +920,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span style={menuBadgeStyle('neutral')}>
                       {currencyMode === 'CUP' ? 'CUP' : currencyMode === 'USD' ? 'USD' : 'CUP + USD'}
                     </span>
+                    {!isOwner && (
+                      <span style={menuBadgeStyle('warning')}>
+                        <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
                     Modo activo: {currencyMode === 'CUP' ? 'Solo CUP ($)' : currencyMode === 'USD' ? 'Solo USD (US$)' : 'Ambas Divisas (CUP + USD)'}
@@ -869,7 +936,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Tasa de Cambio */}
             <div
-              onClick={() => setActiveSubView('exchange')}
+              onClick={() => handleNavigateSubView('exchange', true)}
               style={menuItemCardStyle}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
@@ -882,6 +949,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       Tasa de Cambio
                     </span>
                     <span style={menuBadgeStyle('neutral')}>${exchangeRateUSD}</span>
+                    {!isOwner && (
+                      <span style={menuBadgeStyle('warning')}>
+                        <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
                     1 USD = ${exchangeRateUSD} CUP • Mercado informal
@@ -933,7 +1005,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Gestión de Usuarios */}
             <div
-              onClick={() => setActiveSubView('users')}
+              onClick={() => handleNavigateSubView('users', true)}
               style={menuItemCardStyle}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
@@ -946,6 +1018,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       Gestión de Usuarios
                     </span>
                     <span style={menuBadgeStyle('neutral')}>{usersList.length} usuarios</span>
+                    {!isOwner && (
+                      <span style={menuBadgeStyle('warning')}>
+                        <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
                     {usersList.length} usuarios con roles y permisos
@@ -955,9 +1032,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
             </div>
 
+            {/* Módulos y Secciones del Negocio */}
+            <div
+              onClick={() => handleNavigateSubView('modules', true)}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <Layers size={20} color="#2563EB" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Módulos y Secciones
+                    </span>
+                    <span style={menuBadgeStyle(storeModules.enableFoodTraceability ? 'neutral' : 'success')}>
+                      {storeModules.enableFoodTraceability ? 'Alimentos & Vencimientos' : 'Tienda General'}
+                    </span>
+                    {!isOwner && (
+                      <span style={menuBadgeStyle('warning')}>
+                        <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    Activa o desactiva alimentos, tasaciones, proveedores y fiados
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+
             {/* Personalizar Tienda */}
             <div
-              onClick={() => setActiveSubView('customizer')}
+              onClick={() => handleNavigateSubView('customizer', true)}
               style={menuItemCardStyle}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
@@ -970,6 +1078,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       Personalizar Tienda
                     </span>
                     <span style={menuBadgeStyle('neutral')}>Identidad & Hero</span>
+                    {!isOwner && (
+                      <span style={menuBadgeStyle('warning')}>
+                        <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
                     Logos, portadas, títulos y SEO
@@ -981,7 +1094,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Marca & Apariencia */}
             <div
-              onClick={() => setActiveSubView('appearance')}
+              onClick={() => handleNavigateSubView('appearance', true)}
               style={menuItemCardStyle}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
@@ -994,6 +1107,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       Marca & Apariencia
                     </span>
                     <span style={menuBadgeStyle('neutral')}>Colores</span>
+                    {!isOwner && (
+                      <span style={menuBadgeStyle('warning')}>
+                        <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
                     Color primario, secundario y estilos visuales
@@ -1019,7 +1137,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Seguridad y Datos */}
             <div
-              onClick={() => setActiveSubView('security')}
+              onClick={() => handleNavigateSubView('security', true)}
               style={menuItemCardStyle}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
@@ -1027,9 +1145,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <ShieldCheck size={20} color="#2563EB" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
-                    Seguridad y Datos
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Seguridad y Datos
+                    </span>
+                    {!isOwner && (
+                      <span style={menuBadgeStyle('warning')}>
+                        <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
+                      </span>
+                    )}
+                  </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
                     PIN de acceso, gestión de caché y reinicio
                   </span>
@@ -1453,6 +1578,483 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       )}
 
+      {/* SUB-VIEW: MÓDULOS Y SECCIONES DEL NEGOCIO */}
+      {activeSubView === 'modules' && isOwner && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          
+          {/* Header Card */}
+          <div className="md-card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                color: '#2563EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Layers size={22} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.08rem', fontWeight: 900, margin: 0 }}>
+                  Módulos y Secciones Activas del Sistema
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0' }}>
+                  Personaliza tu ERP según el rubro de tu tienda (ropa, calzado, tecnología, ferretería, alimentos).
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 16px',
+              borderRadius: '14px',
+              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
+              marginTop: '12px',
+              fontSize: '0.8rem',
+              color: 'var(--md-sys-color-on-surface)'
+            }}>
+              <Info size={18} color="var(--md-sys-color-primary)" style={{ flexShrink: 0 }} />
+              <span>
+                <strong>Modo Simplificado Seguro:</strong> Ocultar una sección retira sus botones y campos de los formularios para que el registro sea ultra-rápido. Los registros históricos y transacciones previas se conservan 100% seguros sin eliminarse.
+              </span>
+            </div>
+          </div>
+
+          {/* Tarjetas de Módulos con Toggles */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+            {/* Módulo 1: Trazabilidad de Alimentos y Vencimientos */}
+            <div style={{
+              padding: '18px 20px',
+              borderRadius: '18px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: storeModules.enableFoodTraceability ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              boxShadow: 'var(--md-shadow-elevation-1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    backgroundColor: storeModules.enableFoodTraceability ? 'rgba(16, 185, 129, 0.12)' : 'var(--md-sys-color-surface-container-high)',
+                    color: storeModules.enableFoodTraceability ? '#059669' : 'var(--md-sys-color-on-surface-variant)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Sparkles size={22} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                        Trazabilidad de Alimentos y Vencimientos
+                      </span>
+                      <span style={menuBadgeStyle(storeModules.enableFoodTraceability ? 'success' : 'neutral')}>
+                        {storeModules.enableFoodTraceability ? 'Activo (Alimentos / Supermercados)' : 'Desactivado (Tienda de Ropa / Tech)'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
+                      Control de fechas de caducidad (EXP), fecha de elaboración (MFG), lotes y el <strong>Libro Oficial de Tasaciones y Vencimientos</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Switch Toggle */}
+                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={storeModules.enableFoodTraceability}
+                    onChange={e => handleToggleModule('enableFoodTraceability', e.target.checked)}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: storeModules.enableFoodTraceability ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
+                    borderRadius: '34px',
+                    transition: '0.2s',
+                    display: 'block'
+                  }}>
+                    <span style={{
+                      position: 'absolute',
+                      height: '22px',
+                      width: '22px',
+                      left: storeModules.enableFoodTraceability ? '25px' : '3px',
+                      bottom: '3px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '50%',
+                      transition: '0.2s',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }} />
+                  </span>
+                </label>
+              </div>
+
+              <div style={{
+                fontSize: '0.74rem',
+                color: 'var(--md-sys-color-on-surface-variant)',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                padding: '8px 12px',
+                borderRadius: '10px'
+              }}>
+                {storeModules.enableFoodTraceability 
+                  ? '✅ Mostrando campos de fechas en formulario de producto y acceso al Libro de Tasaciones e inspección sanitaria.'
+                  : '🛡️ Modo no-comida activo: se ocultan los campos de fecha en formularios y el botón de tasaciones. Los productos no exigen caducidad.'}
+              </div>
+            </div>
+
+            {/* Módulo 2: Proveedores y Mercancía en Consignación */}
+            <div style={{
+              padding: '18px 20px',
+              borderRadius: '18px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: storeModules.enableSuppliers ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              boxShadow: 'var(--md-shadow-elevation-1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    backgroundColor: storeModules.enableSuppliers ? 'rgba(37, 99, 235, 0.12)' : 'var(--md-sys-color-surface-container-high)',
+                    color: storeModules.enableSuppliers ? '#2563EB' : 'var(--md-sys-color-on-surface-variant)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Users size={22} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                        Gestión de Proveedores y Consignación
+                      </span>
+                      <span style={menuBadgeStyle(storeModules.enableSuppliers ? 'success' : 'neutral')}>
+                        {storeModules.enableSuppliers ? 'Activo' : 'Solo Mercancía Propia'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
+                      Liquidaciones a terceros, saldo pendiente de pago por ventas y asignación de proveedores a los productos.
+                    </p>
+                  </div>
+                </div>
+
+                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={storeModules.enableSuppliers}
+                    onChange={e => handleToggleModule('enableSuppliers', e.target.checked)}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: storeModules.enableSuppliers ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
+                    borderRadius: '34px',
+                    transition: '0.2s',
+                    display: 'block'
+                  }}>
+                    <span style={{
+                      position: 'absolute',
+                      height: '22px',
+                      width: '22px',
+                      left: storeModules.enableSuppliers ? '25px' : '3px',
+                      bottom: '3px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '50%',
+                      transition: '0.2s',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }} />
+                  </span>
+                </label>
+              </div>
+
+              <div style={{
+                fontSize: '0.74rem',
+                color: 'var(--md-sys-color-on-surface-variant)',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                padding: '8px 12px',
+                borderRadius: '10px'
+              }}>
+                {storeModules.enableSuppliers
+                  ? '✅ Pestaña de Proveedores visible y opción de consignación habilitada en la creación de artículos.'
+                  : '🛡️ Formulario limpio: todo producto se carga automáticamente como inversión propia de la tienda.'}
+              </div>
+            </div>
+
+            {/* Módulo 3: Cuentas por Cobrar y Libreta de Fiados */}
+            <div style={{
+              padding: '18px 20px',
+              borderRadius: '18px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: storeModules.enableCustomerDebts ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              boxShadow: 'var(--md-shadow-elevation-1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    backgroundColor: storeModules.enableCustomerDebts ? 'rgba(234, 88, 12, 0.12)' : 'var(--md-sys-color-surface-container-high)',
+                    color: storeModules.enableCustomerDebts ? '#EA580C' : 'var(--md-sys-color-on-surface-variant)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Wallet size={22} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                        Cuentas por Cobrar (Libreta de Fiados)
+                      </span>
+                      <span style={menuBadgeStyle(storeModules.enableCustomerDebts ? 'success' : 'neutral')}>
+                        {storeModules.enableCustomerDebts ? 'Activo' : 'Solo Ventas al Contado'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
+                      Registro de deudas a clientes, abonos parciales, saldo pendiente y libretas de cobro.
+                    </p>
+                  </div>
+                </div>
+
+                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={storeModules.enableCustomerDebts}
+                    onChange={e => handleToggleModule('enableCustomerDebts', e.target.checked)}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: storeModules.enableCustomerDebts ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
+                    borderRadius: '34px',
+                    transition: '0.2s',
+                    display: 'block'
+                  }}>
+                    <span style={{
+                      position: 'absolute',
+                      height: '22px',
+                      width: '22px',
+                      left: storeModules.enableCustomerDebts ? '25px' : '3px',
+                      bottom: '3px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '50%',
+                      transition: '0.2s',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }} />
+                  </span>
+                </label>
+              </div>
+
+              <div style={{
+                fontSize: '0.74rem',
+                color: 'var(--md-sys-color-on-surface-variant)',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                padding: '8px 12px',
+                borderRadius: '10px'
+              }}>
+                {storeModules.enableCustomerDebts
+                  ? '✅ Pestaña de Fiados visible en la tienda para control de créditos y abonos de clientes.'
+                  : '🛡️ Oculta las pestañas de fiados para negocios que no otorgan crédito a clientes.'}
+              </div>
+            </div>
+
+            {/* Módulo 4: Turnos de Dependientes y Arqueos IPV */}
+            <div style={{
+              padding: '18px 20px',
+              borderRadius: '18px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: storeModules.enableShiftManagement ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              boxShadow: 'var(--md-shadow-elevation-1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    backgroundColor: storeModules.enableShiftManagement ? 'rgba(147, 51, 234, 0.12)' : 'var(--md-sys-color-surface-container-high)',
+                    color: storeModules.enableShiftManagement ? '#9333EA' : 'var(--md-sys-color-on-surface-variant)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Clock size={22} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                        Turnos de Dependientes y Arqueos IPV
+                      </span>
+                      <span style={menuBadgeStyle(storeModules.enableShiftManagement ? 'success' : 'neutral')}>
+                        {storeModules.enableShiftManagement ? 'Activo' : 'Caja Abierta Continua'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
+                      Control formal de apertura de turno con fondo inicial en caja, vendedor responsable y arqueo al cierre.
+                    </p>
+                  </div>
+                </div>
+
+                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={storeModules.enableShiftManagement}
+                    onChange={e => handleToggleModule('enableShiftManagement', e.target.checked)}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: storeModules.enableShiftManagement ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
+                    borderRadius: '34px',
+                    transition: '0.2s',
+                    display: 'block'
+                  }}>
+                    <span style={{
+                      position: 'absolute',
+                      height: '22px',
+                      width: '22px',
+                      left: storeModules.enableShiftManagement ? '25px' : '3px',
+                      bottom: '3px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '50%',
+                      transition: '0.2s',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }} />
+                  </span>
+                </label>
+              </div>
+
+              <div style={{
+                fontSize: '0.74rem',
+                color: 'var(--md-sys-color-on-surface-variant)',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                padding: '8px 12px',
+                borderRadius: '10px'
+              }}>
+                {storeModules.enableShiftManagement
+                  ? '✅ Botón "TURNOS E IPV" activo en la tienda para control estricto de caja.'
+                  : '🛡️ Las ventas se pueden realizar directamente sin obligar a abrir turno.'}
+              </div>
+            </div>
+
+            {/* Módulo 5: Productos y Enlaces Externos */}
+            <div style={{
+              padding: '18px 20px',
+              borderRadius: '18px',
+              backgroundColor: 'var(--md-sys-color-surface)',
+              border: storeModules.enableExternalProducts ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              boxShadow: 'var(--md-shadow-elevation-1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    backgroundColor: storeModules.enableExternalProducts ? 'rgba(37, 99, 235, 0.12)' : 'var(--md-sys-color-surface-container-high)',
+                    color: storeModules.enableExternalProducts ? '#2563EB' : 'var(--md-sys-color-on-surface-variant)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <ExternalLink size={22} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                        Productos y Enlaces Externos
+                      </span>
+                      <span style={menuBadgeStyle(storeModules.enableExternalProducts ? 'success' : 'neutral')}>
+                        {storeModules.enableExternalProducts ? 'Activo' : 'Solo Catálogo Local'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
+                      Permite asociar productos a enlaces web directos o botones de cotización directa por WhatsApp con otros proveedores.
+                    </p>
+                  </div>
+                </div>
+
+                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={storeModules.enableExternalProducts}
+                    onChange={e => handleToggleModule('enableExternalProducts', e.target.checked)}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: storeModules.enableExternalProducts ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
+                    borderRadius: '34px',
+                    transition: '0.2s',
+                    display: 'block'
+                  }}>
+                    <span style={{
+                      position: 'absolute',
+                      height: '22px',
+                      width: '22px',
+                      left: storeModules.enableExternalProducts ? '25px' : '3px',
+                      bottom: '3px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '50%',
+                      transition: '0.2s',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }} />
+                  </span>
+                </label>
+              </div>
+
+              <div style={{
+                fontSize: '0.74rem',
+                color: 'var(--md-sys-color-on-surface-variant)',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                padding: '8px 12px',
+                borderRadius: '10px'
+              }}>
+                {storeModules.enableExternalProducts
+                  ? '✅ Opción de producto externo visible en el formulario para cotizaciones a terceros.'
+                  : '🛡️ Formulario simplificado sin opciones de links externos.'}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* SUB-VIEW: PERSONALIZADOR DE TIENDA PÚBLICA E IDENTIDAD (Estilo WordPress Customizer) */}
       {activeSubView === 'customizer' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1565,7 +2167,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                       )}
                       {(logoMode === 'both' || logoMode === 'text_only') && (
-                        <span className="font-logo-script" style={{ fontSize: '1.6rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>
+                        <span style={{ 
+                          fontSize: '1.6rem', 
+                          fontWeight: 900, 
+                          color: '#FFFFFF', 
+                          lineHeight: 1,
+                          fontFamily: logoFontFamily || undefined
+                        }}>
                           {customStoreName || 'Samy Store'}
                         </span>
                       )}
@@ -1970,6 +2578,82 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '4px', display: 'block' }}>
                   Identificador principal en cabecera, comprobantes de pago, tickets y exportaciones.
                 </span>
+              </div>
+
+              {/* Selector Tipográfico del Logotipo */}
+              <div style={{
+                padding: '16px',
+                borderRadius: '16px',
+                backgroundColor: 'var(--md-sys-color-surface-container)',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Type size={18} color="var(--md-sys-color-primary)" />
+                    <span style={{ fontSize: '0.88rem', fontWeight: 900 }}>
+                      Tipografía del Logotipo
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                    {LOGO_FONT_OPTIONS.find(f => f.id === logoFontId)?.name || 'Personalizada'}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0, lineHeight: 1.4 }}>
+                  Selecciona el estilo caligráfico o tipográfico con el que se renderiza el nombre comercial en la cabecera, tickets y reportes.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                  {LOGO_FONT_OPTIONS.map(font => {
+                    const isSelected = font.id === logoFontId;
+                    return (
+                      <div
+                        key={font.id}
+                        onClick={() => {
+                          setLogoFontId(font.id);
+                          setLogoFontFamily(font.family);
+                        }}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '14px',
+                          border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
+                          backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                            {font.category}
+                          </span>
+                          {isSelected && <CheckCircle2 size={16} color="var(--md-sys-color-primary)" />}
+                        </div>
+
+                        <div style={{
+                          fontFamily: font.family,
+                          fontSize: '1.45rem',
+                          fontWeight: 900,
+                          color: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface)',
+                          lineHeight: 1.15,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {customStoreName || 'Samy Store'}
+                        </div>
+
+                        <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', opacity: 0.9 }}>
+                          {font.description}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>

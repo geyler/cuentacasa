@@ -16,12 +16,26 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
+  Package,
+  Users,
+  CreditCard,
+  Sparkles,
+  Coins,
+  Palette,
+  Sliders,
+  ShieldCheck,
+  Wallet,
+  MessageCircle,
+  TrendingUp,
   User,
   Crown,
-  CloudUpload
+  CloudUpload,
+  Layers
 } from 'lucide-react';
 
-import { getLoggedInUser, getStoreCustomizationSettings } from '@/lib/storage';
+import { getLoggedInUser, getStoreCustomizationSettings, getStoreModulesConfig, StoreModulesConfig } from '@/lib/storage';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface HeaderProps {
@@ -59,6 +73,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [customization, setCustomization] = useState(() => getStoreCustomizationSettings());
 
+  const [storeModules, setStoreModules] = useState<StoreModulesConfig>(() => getStoreModulesConfig());
+
   React.useEffect(() => {
     const handler = (e: any) => {
       if (e.detail) {
@@ -71,14 +87,43 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('cuentacasa-store-customization-changed', handler);
   }, []);
 
+  React.useEffect(() => {
+    const handleModules = (e: any) => {
+      if (e?.detail) setStoreModules(e.detail);
+      else setStoreModules(getStoreModulesConfig());
+    };
+    window.addEventListener('cuentacasa-store-modules-changed', handleModules);
+    return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModules);
+  }, []);
+
   useLockBodyScroll(isMenuOpen, () => setIsMenuOpen(false));
 
   const currentUser = getLoggedInUser();
   const isOwner = !currentUser || currentUser.role === 'propietario';
 
+  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
+    store: true,
+    finance: false,
+    settings: false
+  });
+
   const handleNavClick = (tab: AppTab) => {
     setActiveTab(tab);
     setIsMenuOpen(false);
+  };
+
+  const handleStoreSubTabClick = (subTab: 'products' | 'suppliers' | 'sales' | 'debts') => {
+    setActiveTab('store');
+    setIsMenuOpen(false);
+    window.dispatchEvent(new CustomEvent('cuentacasa-navigate-store-tab', { detail: subTab }));
+  };
+
+  const handleSettingsSubViewClick = (subView: string) => {
+    setIsMenuOpen(false);
+    onOpenSettings();
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('cuentacasa-open-settings-subview', { detail: subView }));
+    }, 60);
   };
 
   return (
@@ -117,45 +162,12 @@ export const Header: React.FC<HeaderProps> = ({
             flexShrink: 0
           }}
         >
-          {customization.logoMode === 'wide_logo' ? (
-            <img
-              src={customization.logoWideUrl || customization.logoSquareUrl || '/images/logo-nav.png'}
-              alt={customization.storeName}
-              style={{
-                height: '40px',
-                maxWidth: '220px',
-                width: 'auto',
-                objectFit: 'contain',
-                flexShrink: 0
-              }}
-            />
-          ) : (
-            <>
-              {(customization.logoMode === 'both' || customization.logoMode === 'logo_only') && (
-                <img
-                  src={customization.logoSquareUrl || '/images/logo-nav.png'}
-                  alt={customization.storeName}
-                  style={{
-                    height: '42px',
-                    width: 'auto',
-                    objectFit: 'contain',
-                    flexShrink: 0
-                  }}
-                />
-              )}
-              {(customization.logoMode === 'both' || customization.logoMode === 'text_only') && (
-                <h1 className="font-logo-script" style={{
-                  fontSize: '1.75rem',
-                  fontWeight: 900,
-                  letterSpacing: '-0.01em',
-                  color: 'var(--md-sys-color-on-surface)',
-                  lineHeight: 1
-                }}>
-                  {customization.storeName}
-                </h1>
-              )}
-            </>
-          )}
+          <StoreBrandDisplay
+            customization={customization}
+            align="left"
+            size="sm"
+            textColor="var(--md-sys-color-on-surface)"
+          />
         </button>
 
         {/* Right Utility Actions */}
@@ -290,136 +302,380 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Menu Options List */}
+            {/* Menu Options List - WordPress Style Navigation with Expandable Sub-Menus */}
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-              {isOwner && (
-                <>
-                  <button
-                    onClick={() => handleNavClick('quick')}
+              {/* 1. SECCIÓN: INVENTARIO & TIENDA (WordPress style con sub-menú) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div
+                  onClick={() => {
+                    if (activeTab !== 'store') {
+                      setActiveTab('store');
+                      setExpandedSections(prev => ({ ...prev, store: true }));
+                    } else {
+                      setExpandedSections(prev => ({ ...prev, store: !prev.store }));
+                    }
+                  }}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '16px',
+                    backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                    color: activeTab === 'store' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Store size={20} color="var(--md-sys-color-primary)" />
+                    <span>Inventario & Tienda</span>
+                  </div>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedSections(prev => ({ ...prev, store: !prev.store }));
+                    }}
                     style={{
-                      padding: '14px 16px',
-                      borderRadius: '16px',
-                      border: 'none',
-                      backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                      color: activeTab === 'quick' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: 800,
-                      fontSize: '0.95rem',
-                      cursor: 'pointer',
+                      padding: '4px 6px',
+                      borderRadius: '8px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between'
+                      cursor: 'pointer'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <Home size={20} />
-                      <span>Inicio Rápido</span>
-                    </div>
-                    <ChevronRight size={18} opacity={0.6} />
-                  </button>
-
-                  <button
-                    onClick={() => handleNavClick('dashboard')}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: '16px',
-                      border: 'none',
-                      backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                      color: activeTab === 'dashboard' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: 800,
-                      fontSize: '0.95rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <LayoutDashboard size={20} />
-                      <span>Dashboard Contable</span>
-                    </div>
-                    <ChevronRight size={18} opacity={0.6} />
-                  </button>
-                </>
-              )}
-
-              <button
-                onClick={() => handleNavClick('store')}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: '16px',
-                  border: 'none',
-                  backgroundColor: activeTab === 'store' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                  color: activeTab === 'store' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Store size={20} />
-                  <span>Inventario de Tienda</span>
+                    <ChevronDown
+                      size={18}
+                      style={{
+                        transform: expandedSections.store ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 0.2s ease',
+                        opacity: 0.7
+                      }}
+                    />
+                  </div>
                 </div>
-                <ChevronRight size={18} opacity={0.6} />
-              </button>
 
+                {/* Sub-Menú Desplegable WordPress Style para Tienda */}
+                {expandedSections.store && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    paddingLeft: '14px',
+                    marginLeft: '16px',
+                    borderLeft: '2px solid var(--md-sys-color-primary)',
+                    marginTop: '2px',
+                    marginBottom: '4px'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => handleStoreSubTabClick('products')}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        color: 'var(--md-sys-color-on-surface)',
+                        fontWeight: 700,
+                        fontSize: '0.86rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Package size={16} color="var(--md-sys-color-primary)" />
+                        <span>Catálogo de Productos</span>
+                      </div>
+                      <ChevronRight size={14} opacity={0.4} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleStoreSubTabClick('sales')}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        color: 'var(--md-sys-color-on-surface)',
+                        fontWeight: 700,
+                        fontSize: '0.86rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Receipt size={16} color="var(--md-sys-color-primary)" />
+                        <span>Registro de Ventas</span>
+                      </div>
+                      <ChevronRight size={14} opacity={0.4} />
+                    </button>
+
+                    {isOwner && storeModules.enableSuppliers && (
+                      <button
+                        type="button"
+                        onClick={() => handleStoreSubTabClick('suppliers')}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          color: 'var(--md-sys-color-on-surface)',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Users size={16} color="var(--md-sys-color-primary)" />
+                          <span>Proveedores & Consignación</span>
+                        </div>
+                        <ChevronRight size={14} opacity={0.4} />
+                      </button>
+                    )}
+
+                    {storeModules.enableCustomerDebts && (
+                      <button
+                        type="button"
+                        onClick={() => handleStoreSubTabClick('debts')}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          color: 'var(--md-sys-color-on-surface)',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <CreditCard size={16} color="var(--md-sys-color-primary)" />
+                          <span>Fiados & Cobros de Clientes</span>
+                        </div>
+                        <ChevronRight size={14} opacity={0.4} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. SECCIÓN: FINANZAS & CONTABILIDAD (Solo Propietario con sub-menú) */}
               {isOwner && (
-                <>
-                  <button
-                    onClick={() => handleNavClick('transactions')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div
+                    onClick={() => {
+                      if (!['quick', 'dashboard', 'transactions', 'reports'].includes(activeTab)) {
+                        setActiveTab('dashboard');
+                        setExpandedSections(prev => ({ ...prev, finance: true }));
+                      } else {
+                        setExpandedSections(prev => ({ ...prev, finance: !prev.finance }));
+                      }
+                    }}
                     style={{
                       padding: '14px 16px',
                       borderRadius: '16px',
-                      border: 'none',
-                      backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                      color: activeTab === 'transactions' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                      backgroundColor: ['quick', 'dashboard', 'transactions', 'reports'].includes(activeTab) ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                      color: ['quick', 'dashboard', 'transactions', 'reports'].includes(activeTab) ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                       fontWeight: 800,
                       fontSize: '0.95rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <Receipt size={20} />
-                      <span>Movimientos</span>
+                      <LayoutDashboard size={20} color="var(--md-sys-color-primary)" />
+                      <span>Finanzas & Contabilidad</span>
                     </div>
-                    <ChevronRight size={18} opacity={0.6} />
-                  </button>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedSections(prev => ({ ...prev, finance: !prev.finance }));
+                      }}
+                      style={{
+                        padding: '4px 6px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <ChevronDown
+                        size={18}
+                        style={{
+                          transform: expandedSections.finance ? 'rotate(180deg)' : 'none',
+                          transition: 'transform 0.2s ease',
+                          opacity: 0.7
+                        }}
+                      />
+                    </div>
+                  </div>
 
-                  <button
-                    onClick={() => handleNavClick('reports')}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: '16px',
-                      border: 'none',
-                      backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                      color: activeTab === 'reports' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: 800,
-                      fontSize: '0.95rem',
-                      cursor: 'pointer',
+                  {/* Sub-Menú Desplegable Finanzas */}
+                  {expandedSections.finance && (
+                    <div style={{
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <FileText size={20} />
-                      <span>Historial IPV por Periodos</span>
+                      flexDirection: 'column',
+                      gap: '4px',
+                      paddingLeft: '14px',
+                      marginLeft: '16px',
+                      borderLeft: '2px solid var(--md-sys-color-primary)',
+                      marginTop: '2px',
+                      marginBottom: '4px'
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick('dashboard')}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'dashboard' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                          color: activeTab === 'dashboard' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <LayoutDashboard size={16} />
+                          <span>Dashboard General</span>
+                        </div>
+                        <ChevronRight size={14} opacity={0.4} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick('quick')}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'quick' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                          color: activeTab === 'quick' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Home size={16} />
+                          <span>Inicio Rápido & Arqueo</span>
+                        </div>
+                        <ChevronRight size={14} opacity={0.4} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick('transactions')}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'transactions' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                          color: activeTab === 'transactions' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Receipt size={16} />
+                          <span>Movimientos y Gastos</span>
+                        </div>
+                        <ChevronRight size={14} opacity={0.4} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick('reports')}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'reports' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
+                          color: activeTab === 'reports' ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <FileText size={16} />
+                          <span>Historial IPV por Periodos</span>
+                        </div>
+                        <ChevronRight size={14} opacity={0.4} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSettingsSubViewClick('accounts')}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          backgroundColor: 'var(--md-sys-color-surface)',
+                          color: 'var(--md-sys-color-on-surface)',
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Wallet size={16} color="#2563EB" />
+                          <span>Cuentas & Transferencias</span>
+                        </div>
+                        <ChevronRight size={14} opacity={0.4} />
+                      </button>
                     </div>
-                    <ChevronRight size={18} opacity={0.6} />
-                  </button>
-                </>
+                  )}
+                </div>
               )}
 
-              <div style={{ margin: '8px 0', borderTop: '1px solid var(--md-sys-color-outline-variant)' }} />
-
+              {/* 3. ESCÁNER DE CÓDIGOS DE BARRA */}
               {onOpenScanner && (
                 <button
+                  type="button"
                   onClick={() => { setIsMenuOpen(false); onOpenScanner(); }}
                   style={{
                     padding: '14px 16px',
@@ -442,6 +698,277 @@ export const Header: React.FC<HeaderProps> = ({
                   <ChevronRight size={18} opacity={0.6} />
                 </button>
               )}
+
+              {/* 4. SECCIÓN: AJUSTES DEL SISTEMA (WordPress style con sub-menú) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div
+                  onClick={() => {
+                    setExpandedSections(prev => ({ ...prev, settings: !prev.settings }));
+                  }}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '16px',
+                    backgroundColor: 'var(--md-sys-color-surface)',
+                    color: 'var(--md-sys-color-on-surface)',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Settings size={20} color="var(--md-sys-color-primary)" />
+                    <span>Ajustes del Sistema</span>
+                  </div>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedSections(prev => ({ ...prev, settings: !prev.settings }));
+                    }}
+                    style={{
+                      padding: '4px 6px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <ChevronDown
+                      size={18}
+                      style={{
+                        transform: expandedSections.settings ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 0.2s ease',
+                        opacity: 0.7
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Sub-Menú Desplegable Ajustes */}
+                {expandedSections.settings && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    paddingLeft: '14px',
+                    marginLeft: '16px',
+                    borderLeft: '2px solid var(--md-sys-color-primary)',
+                    marginTop: '2px',
+                    marginBottom: '4px'
+                  }}>
+                    {isOwner ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleSettingsSubViewClick('appearance')}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: 'var(--md-sys-color-surface)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            fontWeight: 700,
+                            fontSize: '0.86rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Palette size={16} color="var(--md-sys-color-primary)" />
+                            <span>Marca & Colores Corporativos</span>
+                          </div>
+                          <ChevronRight size={14} opacity={0.4} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSettingsSubViewClick('customizer')}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: 'var(--md-sys-color-surface)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            fontWeight: 700,
+                            fontSize: '0.86rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Sliders size={16} color="var(--md-sys-color-primary)" />
+                            <span>Personalizar Tienda & Logos</span>
+                          </div>
+                          <ChevronRight size={14} opacity={0.4} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSettingsSubViewClick('currency')}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: 'var(--md-sys-color-surface)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            fontWeight: 700,
+                            fontSize: '0.86rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Coins size={16} color="var(--md-sys-color-primary)" />
+                            <span>Modo Monedas & Indexación USD</span>
+                          </div>
+                          <ChevronRight size={14} opacity={0.4} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSettingsSubViewClick('exchange')}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: 'var(--md-sys-color-surface)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            fontWeight: 700,
+                            fontSize: '0.86rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <TrendingUp size={16} color="var(--md-sys-color-primary)" />
+                            <span>Tasa de Cambio elTOQUE</span>
+                          </div>
+                          <ChevronRight size={14} opacity={0.4} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSettingsSubViewClick('users')}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: 'var(--md-sys-color-surface)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            fontWeight: 700,
+                            fontSize: '0.86rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Users size={16} color="var(--md-sys-color-primary)" />
+                            <span>Gestión de Usuarios & Roles</span>
+                          </div>
+                          <ChevronRight size={14} opacity={0.4} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSettingsSubViewClick('modules')}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: 'var(--md-sys-color-surface)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            fontWeight: 700,
+                            fontSize: '0.86rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Layers size={16} color="var(--md-sys-color-primary)" />
+                            <span>Módulos y Secciones del Negocio</span>
+                          </div>
+                          <ChevronRight size={14} opacity={0.4} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSettingsSubViewClick('security')}
+                          style={{
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: 'var(--md-sys-color-surface)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            fontWeight: 700,
+                            fontSize: '0.86rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <ShieldCheck size={16} color="var(--md-sys-color-primary)" />
+                            <span>Seguridad, PIN y Datos</span>
+                          </div>
+                          <ChevronRight size={14} opacity={0.4} />
+                        </button>
+                      </>
+                    ) : (
+                      <div style={{ padding: '8px 12px', fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Solo los propietarios tienen acceso a la configuración estética y financiera.
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleSettingsSubViewClick('whatsapp')}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        backgroundColor: 'var(--md-sys-color-surface)',
+                        color: 'var(--md-sys-color-on-surface)',
+                        fontWeight: 700,
+                        fontSize: '0.86rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <MessageCircle size={16} color="#25D366" />
+                        <span>WhatsApp de Pedidos</span>
+                      </div>
+                      <ChevronRight size={14} opacity={0.4} />
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={() => { setIsMenuOpen(false); onOpenSettings(); }}

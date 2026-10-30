@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { StoreProduct } from '@/types';
-import { getStoreProducts, saveStoreProduct } from '@/lib/storage';
+import { getStoreProducts, saveStoreProduct, getStoreCustomizationSettings } from '@/lib/storage';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { formatDate } from '@/lib/dateUtils';
 import { X, Search, FileText, Printer, AlertTriangle, CheckCircle, Clock, Calendar, Edit3 } from 'lucide-react';
@@ -138,8 +139,9 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
 
       {/* Printable Only Official Header */}
       <div className="printable-only" style={{ display: 'none', padding: '20px', borderBottom: '2px solid #000' }}>
+        <StoreBrandDisplay align="left" size="sm" textColor="#000000" style={{ marginBottom: '8px' }} />
         <h1 style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase' }}>LIBRO OFICIAL DE TASACIONES Y VENCIMIENTOS</h1>
-        <p style={{ fontSize: '0.85rem' }}>Establecimiento: Samy Store | Fecha de Registro: {formatDate(new Date())}</p>
+        <p style={{ fontSize: '0.85rem' }}>Establecimiento: {getStoreCustomizationSettings().storeName || 'Samy Store'} | Fecha de Registro: {formatDate(new Date())}</p>
       </div>
 
         {/* Modal Top Bar Header */}

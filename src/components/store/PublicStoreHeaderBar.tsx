@@ -21,6 +21,7 @@ import { formatCurrency } from '@/lib/invoice';
 import { getCategoryVisualMeta } from '@/lib/seoHelper';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { getStoreCustomizationSettings, StoreCustomizationSettings } from '@/lib/storage';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 
 export interface CategoryStatItem {
   name: string;
@@ -146,49 +147,9 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
 
                 <div
                   onClick={onResetFilters}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                 >
-                  {customization.logoMode === 'wide_logo' ? (
-                    <img
-                      src={customization.logoWideUrl || customization.logoSquareUrl || '/images/logo-nav.png'}
-                      alt={customization.storeName}
-                      style={{
-                        maxHeight: '38px',
-                        maxWidth: '220px',
-                        width: 'auto',
-                        height: 'auto',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  ) : (
-                    <>
-                      {(customization.logoMode === 'both' || customization.logoMode === 'logo_only') && (
-                        <div style={{
-                          width: '38px',
-                          height: '38px',
-                          borderRadius: '10px',
-                          backgroundColor: '#FFFFFF',
-                          padding: '3px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                          flexShrink: 0
-                        }}>
-                          <img
-                            src={customization.logoSquareUrl || '/images/logo-nav.png'}
-                            alt={customization.storeName}
-                            style={{ height: '100%', width: '100%', objectFit: 'contain' }}
-                          />
-                        </div>
-                      )}
-                      {(customization.logoMode === 'both' || customization.logoMode === 'text_only') && (
-                        <h1 className="font-logo-script" style={{ fontSize: '1.7rem', fontWeight: 900, color: '#FFFFFF', lineHeight: '1', margin: 0 }}>
-                          {customization.storeName}
-                        </h1>
-                      )}
-                    </>
-                  )}
+                  <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" />
                 </div>
               </div>
 
@@ -235,7 +196,7 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
                       <input
                         id="store-desktop-search-input"
                         type="text"
-                        placeholder="Buscar productos, marcas y categorías en Samy Store..."
+                        placeholder={`Buscar productos, marcas y categorías en ${customization.storeName}...`}
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         style={{
@@ -470,7 +431,7 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
                   <input
                     id="store-hero-search-input"
                     type="text"
-                    placeholder="Buscar en Samy Store..."
+                    placeholder={`Buscar en ${customization.storeName}...`}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     style={{
@@ -683,37 +644,8 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {customization.logoMode === 'wide_logo' ? (
-                  <img
-                    src={customization.logoWideUrl || customization.logoSquareUrl || '/images/logo-nav.png'}
-                    alt={customization.storeName}
-                    style={{ maxHeight: '34px', maxWidth: '180px', objectFit: 'contain' }}
-                  />
-                ) : (
-                  <>
-                    {(customization.logoMode === 'both' || customization.logoMode === 'logo_only') && (
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '10px',
-                        backgroundColor: '#FFFFFF',
-                        padding: '3px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <img src={customization.logoSquareUrl || '/images/logo-nav.png'} alt={customization.storeName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      </div>
-                    )}
-                    {(customization.logoMode === 'both' || customization.logoMode === 'text_only') && (
-                      <div className="font-logo-script" style={{ fontSize: '1.5rem', fontWeight: 900, lineHeight: 1 }}>
-                        {customization.storeName}
-                      </div>
-                    )}
-                  </>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" />
               </div>
 
               <button
@@ -908,7 +840,7 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
                     }}
                   >
                     <HelpCircle size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
-                    <span>¿Cómo comprar en Samy Store?</span>
+                    <span>¿Cómo comprar en {customization.storeName}?</span>
                   </button>
                 )}
 

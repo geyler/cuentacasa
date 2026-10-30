@@ -105,11 +105,12 @@
 }
 
 .font-logo-script {
-  font-family: 'Dancing Script', 'Pacifico', cursive, sans-serif !important;
+  font-family: var(--store-logo-font, 'Dancing Script', 'Pacifico', cursive, sans-serif) !important;
 }
 
 :root {
   --font-main: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --store-logo-font: 'Dancing Script', 'Pacifico', cursive, sans-serif;
   
   /* Dynamic Brand Palette (Derived from Admin Primary Color, default #1A73E8) */
   --brand-primary: #1A73E8;

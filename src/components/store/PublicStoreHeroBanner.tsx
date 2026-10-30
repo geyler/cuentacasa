@@ -13,6 +13,7 @@ import {
 import { StoreProduct } from '@/types';
 import { CategoryStatItem } from './PublicStoreHeaderBar';
 import { getStoreCustomizationSettings, StoreCustomizationSettings } from '@/lib/storage';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 
 interface PublicStoreHeroBannerProps {
   products?: StoreProduct[];
@@ -250,27 +251,16 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
             textAlign: 'center',
             position: 'relative'
           }}>
-            <div style={{
-              width: '84px',
-              height: '84px',
-              borderRadius: '22px',
-              backgroundColor: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '8px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-              marginBottom: '14px'
-            }}>
-              <img src="/images/logo-nav.png" alt="Samy Store" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            </div>
-
-            <h3 className="font-logo-script" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#FFFFFF', margin: '0 0 2px 0', lineHeight: 1.1 }}>
-              Samy Store
-            </h3>
-            <span style={{ fontSize: '0.74rem', color: 'rgba(255, 255, 255, 0.9)', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '18px' }}>
-              Boutique & Punto de Venta
-            </span>
+            <StoreBrandDisplay
+              customization={customization}
+              align="center"
+              size="lg"
+              textColor="#FFFFFF"
+              showSubtitle={true}
+              subtitleText="Boutique & Punto de Venta"
+              subtitleColor="rgba(255, 255, 255, 0.9)"
+              style={{ marginBottom: '18px' }}
+            />
 
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '14px', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.16)' }}>

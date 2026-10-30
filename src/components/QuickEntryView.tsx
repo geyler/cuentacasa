@@ -13,6 +13,7 @@ import {
   Clock
 } from 'lucide-react';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
+import { getStoreCustomizationSettings } from '@/lib/storage';
 
 interface QuickEntryViewProps {
   onOpenGasto: () => void;
@@ -38,6 +39,18 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   const { showActionResult } = useActionFeedback();
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
   const [isInstalled, setIsInstalled] = React.useState<boolean>(false);
+  const [storeName, setStoreName] = React.useState<string>(() => {
+    return getStoreCustomizationSettings().storeName || 'Samy Store';
+  });
+
+  React.useEffect(() => {
+    const handleCustChange = (e: any) => {
+      if (e.detail?.storeName) setStoreName(e.detail.storeName);
+      else setStoreName(getStoreCustomizationSettings().storeName || 'Samy Store');
+    };
+    window.addEventListener('cuentacasa-store-customization-changed', handleCustChange);
+    return () => window.removeEventListener('cuentacasa-store-customization-changed', handleCustChange);
+  }, []);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -101,7 +114,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '36px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
               <div>
                 <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-primary-container)', margin: 0 }}>
-                  Instalar App Samy Store
+                  Instalar App {storeName}
                 </h4>
                 <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-primary)', margin: '2px 0 0 0', fontWeight: 600 }}>
                   Acceso directo 100% offline
@@ -130,7 +143,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
         <div>
           <img
             src="/images/logo-loading.png"
-            alt="Samy Store Logo"
+            alt={`${storeName} Logo`}
             style={{
               height: '104px',
               width: 'auto',
@@ -140,7 +153,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             }}
           />
           <h2 className="font-logo-script" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.01em', lineHeight: 1 }}>
-            Samy Store
+            {storeName}
           </h2>
           <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
             Administración & POS Tienda

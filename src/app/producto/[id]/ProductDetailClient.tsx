@@ -23,6 +23,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { getProductSeoMeta } from '@/lib/seoHelper';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 
 interface ProductDetailClientProps {
   id: string;
@@ -193,21 +194,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
           </Link>
 
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-            <div style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
-              backgroundColor: '#FFFFFF',
-              padding: '3px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
-            </div>
-            <span className="font-logo-script" style={{ fontWeight: 900, fontSize: '1.55rem', color: '#FFFFFF' }}>
-              Samy Store
-            </span>
+            <StoreBrandDisplay align="left" size="sm" textColor="#FFFFFF" />
           </Link>
 
           <button

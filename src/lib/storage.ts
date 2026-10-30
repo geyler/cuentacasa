@@ -1,8 +1,74 @@
-import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot, QRSyncPayload, CurrencyType, CurrencyMode, CustomerDebtRecord, StoreSalePaymentBreakdown, StoreCustomizationSettings, StoreLogoDisplayMode } from '@/types';
-export type { StoreCustomizationSettings, StoreLogoDisplayMode };
+import { Transaction, StoreProduct, StoreSaleRecord, StoreSaleItem, SupplierAccount, RawDatabase, FundAccountType, AppUser, UserRole, StoreShiftRecord, ShiftInventorySnapshot, QRSyncPayload, CurrencyType, CurrencyMode, CustomerDebtRecord, StoreSalePaymentBreakdown, StoreCustomizationSettings, StoreLogoDisplayMode, StoreModulesConfig, DEFAULT_STORE_MODULES } from '@/types';
+export type { StoreCustomizationSettings, StoreLogoDisplayMode, StoreModulesConfig };
 import { DEFAULT_PRIMARY_COLOR, DEFAULT_SECONDARY_COLOR, normalizeHexColor, deriveHarmoniousSecondary, applyBrandPaletteToDocument } from '@/lib/themePalette';
+import { updateDocumentIcons } from '@/lib/imageProcessing';
+import { DEFAULT_LOGO_FONT } from '@/lib/logoFonts';
 
-const STORAGE_KEY = 'cuentacasa_raw_db_v5';
+/**
+ * Determina el espacio de nombres (namespace / tenant) único de la instancia.
+ * Permite que diferentes tiendas (ej. 'samystore' vs 'sandrashein' o diferentes subdominios/puertos)
+ * NUNCA crucen sus datos en LocalStorage ni pisen su base de datos local.
+ */
+export function getAppNamespace(): string {
+  // 1. Variable de entorno explícita (e.g. NEXT_PUBLIC_APP_INSTANCE_ID='sandrashein' o 'samy')
+  const envInstance = process.env.NEXT_PUBLIC_APP_INSTANCE_ID || process.env.NEXT_PUBLIC_STORE_SLUG;
+  if (envInstance && envInstance.trim()) {
+    return envInstance.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  }
+
+  // 2. Extracción dinámica por hostname en el navegador
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname.toLowerCase();
+    if (host !== 'localhost' && host !== '127.0.0.1' && !host.startsWith('192.168.') && !host.startsWith('10.')) {
+      const parts = host.split('.');
+      if (parts.length >= 3) {
+        return parts[0].replace(/[^a-z0-9_-]/g, '_');
+      }
+      return host.replace(/[^a-z0-9_-]/g, '_');
+    }
+  }
+
+  // 3. Fallback en desarrollo
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'cuentacasa';
+  return appName.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+}
+
+export function getScopedStorageKey(baseKey: string): string {
+  const ns = getAppNamespace();
+  return `${ns}_${baseKey}`;
+}
+
+export function getScopedItem(baseKey: string): string | null {
+  if (typeof window === 'undefined') return null;
+  const scopedKey = getScopedStorageKey(baseKey);
+  const val = localStorage.getItem(scopedKey);
+  if (val !== null) return val;
+
+  // Migración transparente si existía guardado bajo el nombre global antiguo
+  const legacyVal = localStorage.getItem(`cuentacasa_${baseKey}`);
+  if (legacyVal !== null) {
+    try {
+      localStorage.setItem(scopedKey, legacyVal);
+    } catch {}
+    return legacyVal;
+  }
+  return null;
+}
+
+export function setScopedItem(baseKey: string, value: string): void {
+  if (typeof window === 'undefined') return;
+  const scopedKey = getScopedStorageKey(baseKey);
+  localStorage.setItem(scopedKey, value);
+}
+
+export function removeScopedItem(baseKey: string): void {
+  if (typeof window === 'undefined') return;
+  const scopedKey = getScopedStorageKey(baseKey);
+  localStorage.removeItem(scopedKey);
+  localStorage.removeItem(`cuentacasa_${baseKey}`);
+}
+
+const STORAGE_KEY = 'raw_db_v5';
 
 export const DEFAULT_EXCHANGE_RATE_USD = 320;
 
@@ -345,7 +411,7 @@ export function authenticateUser(username: string, password: string): AppUser | 
 export function getLoggedInUser(): AppUser | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem('cuentacasa_active_user') || sessionStorage.getItem('cuentacasa_active_user');
+    const raw = getScopedItem('active_user') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(getScopedStorageKey('active_user')) : null);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (e) {
@@ -356,16 +422,22 @@ export function getLoggedInUser(): AppUser | null {
 export function setLoggedInUser(user: AppUser | null): void {
   if (typeof window === 'undefined') return;
   if (!user) {
-    localStorage.removeItem('cuentacasa_active_user');
-    sessionStorage.removeItem('cuentacasa_active_user');
-    localStorage.removeItem('cuentacasa_auth');
-    sessionStorage.removeItem('cuentacasa_auth');
+    removeScopedItem('active_user');
+    removeScopedItem('auth');
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(getScopedStorageKey('active_user'));
+      sessionStorage.removeItem(getScopedStorageKey('auth'));
+      sessionStorage.removeItem('cuentacasa_active_user');
+      sessionStorage.removeItem('cuentacasa_auth');
+    }
   } else {
     const serialized = JSON.stringify(user);
-    localStorage.setItem('cuentacasa_active_user', serialized);
-    sessionStorage.setItem('cuentacasa_active_user', serialized);
-    localStorage.setItem('cuentacasa_auth', 'true');
-    sessionStorage.setItem('cuentacasa_auth', 'true');
+    setScopedItem('active_user', serialized);
+    setScopedItem('auth', 'true');
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(getScopedStorageKey('active_user'), serialized);
+      sessionStorage.setItem(getScopedStorageKey('auth'), 'true');
+    }
   }
 }
 
@@ -381,7 +453,7 @@ let memoryRawString: string | null = null;
 export function getRawDatabase(): RawDatabase {
   if (typeof window === 'undefined') return INITIAL_DB;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = getScopedItem(STORAGE_KEY);
     if (!raw) {
       saveRawDatabase(INITIAL_DB);
       return INITIAL_DB;
@@ -432,12 +504,12 @@ export function saveRawDatabase(db: RawDatabase): void {
   db.lastUpdated = new Date().toISOString();
   const rawStr = JSON.stringify(db, null, 2);
   try {
-    localStorage.setItem(STORAGE_KEY, rawStr);
+    setScopedItem(STORAGE_KEY, rawStr);
   } catch (quotaErr) {
     // Free up space by clearing the offline safety snapshot and retry
     try {
-      localStorage.removeItem('cuentacasa_offline_safety_snapshot');
-      localStorage.setItem(STORAGE_KEY, rawStr);
+      removeScopedItem('offline_safety_snapshot');
+      setScopedItem(STORAGE_KEY, rawStr);
     } catch (retryErr) {
       console.error('LocalStorage quota exceeded:', retryErr);
     }
@@ -1726,6 +1798,8 @@ export const DEFAULT_STORE_CUSTOMIZATION: StoreCustomizationSettings = {
   logoMode: 'both',
   logoSquareUrl: '/images/logo-nav.png',
   logoWideUrl: '',
+  logoFontId: DEFAULT_LOGO_FONT.id,
+  logoFontFamily: DEFAULT_LOGO_FONT.family,
   storeName: 'Samy Store',
   storeSeoName: 'Samy Store - Tienda Online de Productos y Víveres',
   storeSeoDescription: 'Tienda de víveres, alimentos y artículos esenciales con existencias reales en almacén y entregas rápidas en Las Tunas, Cuba.',
@@ -1741,6 +1815,8 @@ export function getStoreCustomizationSettings(): StoreCustomizationSettings {
     logoMode: (s?.storeLogoMode as StoreLogoDisplayMode) || DEFAULT_STORE_CUSTOMIZATION.logoMode,
     logoSquareUrl: s?.storeLogoSquare !== undefined ? s.storeLogoSquare : DEFAULT_STORE_CUSTOMIZATION.logoSquareUrl,
     logoWideUrl: s?.storeLogoWide !== undefined ? s.storeLogoWide : DEFAULT_STORE_CUSTOMIZATION.logoWideUrl,
+    logoFontId: s?.storeLogoFontId || DEFAULT_LOGO_FONT.id,
+    logoFontFamily: s?.storeLogoFontFamily || DEFAULT_LOGO_FONT.family,
     storeName: (s?.storeName && s.storeName.trim()) ? s.storeName : (s?.appName && s.appName.trim() ? s.appName : DEFAULT_STORE_CUSTOMIZATION.storeName),
     storeSeoName: (s?.storeSeoName && s.storeSeoName.trim()) ? s.storeSeoName : DEFAULT_STORE_CUSTOMIZATION.storeSeoName,
     storeSeoDescription: (s?.storeSeoDescription && s.storeSeoDescription.trim()) ? s.storeSeoDescription : DEFAULT_STORE_CUSTOMIZATION.storeSeoDescription,
@@ -1756,8 +1832,17 @@ export function saveStoreCustomizationSettings(settings: Partial<StoreCustomizat
     db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
   }
   if (settings.logoMode !== undefined) db.settings.storeLogoMode = settings.logoMode;
-  if (settings.logoSquareUrl !== undefined) db.settings.storeLogoSquare = settings.logoSquareUrl;
+  if (settings.logoSquareUrl !== undefined) {
+    db.settings.storeLogoSquare = settings.logoSquareUrl;
+    if (typeof window !== 'undefined' && settings.logoSquareUrl) {
+      try {
+        updateDocumentIcons(settings.logoSquareUrl);
+      } catch {}
+    }
+  }
   if (settings.logoWideUrl !== undefined) db.settings.storeLogoWide = settings.logoWideUrl;
+  if (settings.logoFontId !== undefined) db.settings.storeLogoFontId = settings.logoFontId;
+  if (settings.logoFontFamily !== undefined) db.settings.storeLogoFontFamily = settings.logoFontFamily;
   if (settings.storeName !== undefined) {
     db.settings.storeName = settings.storeName;
     db.settings.appName = settings.storeName;
@@ -1780,6 +1865,74 @@ export function saveStoreCustomizationSettings(settings: Partial<StoreCustomizat
   }
 
   return updated;
+}
+
+/**
+ * Gestión de Módulos Activos y Desactivados del Negocio
+ * Permite a tiendas de ropa, calzado, tecnología, ferretería, etc. apagar
+ * módulos de alimentos (tasaciones, vencimientos, lotes) o compras a terceros.
+ */
+export function getStoreModulesConfig(): StoreModulesConfig {
+  const db = getRawDatabase();
+  const s = db.settings;
+  return {
+    enableFoodTraceability: s?.enableFoodTraceability !== undefined ? Boolean(s.enableFoodTraceability) : DEFAULT_STORE_MODULES.enableFoodTraceability,
+    enableSuppliers: s?.enableSuppliers !== undefined ? Boolean(s.enableSuppliers) : DEFAULT_STORE_MODULES.enableSuppliers,
+    enableCustomerDebts: s?.enableCustomerDebts !== undefined ? Boolean(s.enableCustomerDebts) : DEFAULT_STORE_MODULES.enableCustomerDebts,
+    enableShiftManagement: s?.enableShiftManagement !== undefined ? Boolean(s.enableShiftManagement) : DEFAULT_STORE_MODULES.enableShiftManagement,
+    enableExternalProducts: s?.enableExternalProducts !== undefined ? Boolean(s.enableExternalProducts) : DEFAULT_STORE_MODULES.enableExternalProducts
+  };
+}
+
+export function saveStoreModulesConfig(modules: Partial<StoreModulesConfig>): StoreModulesConfig {
+  const db = getRawDatabase();
+  if (!db.settings) {
+    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
+  }
+  if (modules.enableFoodTraceability !== undefined) db.settings.enableFoodTraceability = Boolean(modules.enableFoodTraceability);
+  if (modules.enableSuppliers !== undefined) db.settings.enableSuppliers = Boolean(modules.enableSuppliers);
+  if (modules.enableCustomerDebts !== undefined) db.settings.enableCustomerDebts = Boolean(modules.enableCustomerDebts);
+  if (modules.enableShiftManagement !== undefined) db.settings.enableShiftManagement = Boolean(modules.enableShiftManagement);
+  if (modules.enableExternalProducts !== undefined) db.settings.enableExternalProducts = Boolean(modules.enableExternalProducts);
+
+  db.settings.updatedAt = Date.now();
+  saveRawDatabase(db);
+
+  const updated = getStoreModulesConfig();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cuentacasa-store-modules-changed', {
+      detail: updated
+    }));
+  }
+  return updated;
+}
+
+/**
+ * Aplica la configuración recibida del servidor o la nube a todo el documento cliente
+ * y propaga los eventos a todos los componentes React en tiempo real.
+ */
+export function applyGlobalSettingsAndBroadcast(settings: any): void {
+  if (typeof window === 'undefined' || !settings) return;
+  try {
+    if (settings.primaryColor) {
+      const pColor = normalizeHexColor(settings.primaryColor, DEFAULT_PRIMARY_COLOR);
+      const sColor = settings.secondaryColor ? normalizeHexColor(settings.secondaryColor, deriveHarmoniousSecondary(pColor)) : deriveHarmoniousSecondary(pColor);
+      applyBrandPaletteToDocument(pColor, sColor);
+    }
+    const cust = getStoreCustomizationSettings();
+    window.dispatchEvent(new CustomEvent('cuentacasa-store-customization-changed', {
+      detail: cust
+    }));
+    const modules = getStoreModulesConfig();
+    window.dispatchEvent(new CustomEvent('cuentacasa-store-modules-changed', {
+      detail: modules
+    }));
+    if (cust.logoSquareUrl) {
+      try {
+        updateDocumentIcons(cust.logoSquareUrl);
+      } catch {}
+    }
+  } catch {}
 }
 
 export interface UniversalTransferRequest {

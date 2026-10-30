@@ -1,4 +1,4 @@
-import { getRawDatabase, saveRawDatabase } from './storage';
+import { getRawDatabase, saveRawDatabase, applyGlobalSettingsAndBroadcast, getAppNamespace } from './storage';
 import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, AppUser, StoreShiftRecord, CustomerDebtRecord, RawDatabase } from '@/types';
 import { applyBrandPaletteToDocument, normalizeHexColor } from './themePalette';
 import { formatRecordDateTime } from './dateUtils';
@@ -263,7 +263,8 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache',
+        'x-app-instance': getAppNamespace()
       },
       body: JSON.stringify({
         clientLastSync: lastSyncTime,
@@ -396,11 +397,8 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       };
 
       saveRawDatabase(updatedDb);
-      if (updatedDb.settings?.primaryColor && typeof window !== 'undefined') {
-        const norm = normalizeHexColor(updatedDb.settings.primaryColor);
-        localStorage.setItem('cuentacasa_theme_color', norm);
-        applyBrandPaletteToDocument(norm);
-        window.dispatchEvent(new CustomEvent('cuentacasa-theme-color-changed', { detail: { primaryColor: norm } }));
+      if (updatedDb.settings) {
+        applyGlobalSettingsAndBroadcast(updatedDb.settings);
       }
 
       return {
@@ -450,7 +448,10 @@ export async function syncPublicCatalog(force: boolean = false): Promise<{ succe
   try {
     const res = await fetch('/api/sync?public=1', {
       method: 'GET',
-      headers: { 'Cache-Control': 'no-cache' },
+      headers: { 
+        'Cache-Control': 'no-cache',
+        'x-app-instance': getAppNamespace()
+      },
       signal: controller.signal
     });
     clearTimeout(timeoutId);
@@ -474,11 +475,8 @@ export async function syncPublicCatalog(force: boolean = false): Promise<{ succe
         lastSync: new Date().toISOString()
       };
       saveRawDatabase(updatedDb);
-      if (updatedDb.settings?.primaryColor && typeof window !== 'undefined') {
-        const norm = normalizeHexColor(updatedDb.settings.primaryColor);
-        localStorage.setItem('cuentacasa_theme_color', norm);
-        applyBrandPaletteToDocument(norm);
-        window.dispatchEvent(new CustomEvent('cuentacasa-theme-color-changed', { detail: { primaryColor: norm } }));
+      if (updatedDb.settings) {
+        applyGlobalSettingsAndBroadcast(updatedDb.settings);
       }
       return { success: true, productCount: publicProducts.length };
     }
@@ -487,6 +485,29 @@ export async function syncPublicCatalog(force: boolean = false): Promise<{ succe
   }
   return { success: false, productCount: 0 };
 }
+
+let instantSyncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Dispara una sincronización silenciosa inmediata con la base de datos MySQL en la nube,
+ * consolidando cambios estéticos y de configuración en todos los dispositivos.
+ */
+export function triggerInstantCloudSync() {
+  if (typeof window === 'undefined') return;
+  if (instantSyncDebounceTimer) clearTimeout(instantSyncDebounceTimer);
+  instantSyncDebounceTimer = setTimeout(() => {
+    syncDatabaseWithCloud(true).catch(err => {
+      console.warn('Persistencia en la nube de ajustes en segundo plano:', err);
+    });
+  }, 400);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('cuentacasa-trigger-cloud-sync', () => {
+    triggerInstantCloudSync();
+  });
+}
+
 
 
 

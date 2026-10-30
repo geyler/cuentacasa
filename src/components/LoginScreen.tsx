@@ -5,6 +5,7 @@ import { KeyRound, Loader2, User, LogOut, Lock, HelpCircle, RotateCcw, ArrowLeft
 import { authenticateUser, setLoggedInUser, getLoggedInUser, getUserPin, clearUserPin, performTotalCacheReset, getLocalISODate } from '@/lib/storage';
 import { syncDatabaseWithCloud } from '@/lib/sync';
 import { AppUser } from '@/types';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 
 interface LoginScreenProps {
   mode: 'master' | 'pin';
@@ -176,27 +177,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         transition: 'all 0.2s ease'
       }}>
         
-        {/* Large Transparent Logo Without Gradient Box */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 12px auto'
-        }}>
-          <img 
-            src="/images/logo-nav.png" 
-            alt="Samy Store Logo" 
-            style={{ height: '72px', width: 'auto', objectFit: 'contain' }} 
-          />
-        </div>
-
-
-        <h1 className="font-logo-script" style={{ fontSize: '2.1rem', fontWeight: 900, color: '#0F172A', margin: 0, lineHeight: 1 }}>
-          Samy Store
-        </h1>
-        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', margin: '4px 0 12px 0' }}>
-          Gestión & Punto de Venta
-        </span>
+        {/* Brand Display (Consistent with Store Settings) */}
+        <StoreBrandDisplay
+          align="center"
+          size="lg"
+          textColor="#0F172A"
+          showSubtitle={true}
+          subtitleText="Gestión & Punto de Venta"
+          subtitleColor="var(--md-sys-color-primary)"
+          style={{ marginBottom: '12px' }}
+        />
 
         <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '4px', marginBottom: '20px', lineHeight: '1.4', fontWeight: 500 }}>
           {currentMode === 'pin' 

@@ -5,6 +5,7 @@ import { Transaction, StoreShiftRecord, StoreProduct, StoreSaleRecord } from '@/
 import { getStoreShifts, getStoreProducts, getStoreSales, getCurrencySettings, DEFAULT_EXCHANGE_RATE_USD } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { formatDateTime } from '@/lib/dateUtils';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 import { 
   Printer, 
   Calendar, 
@@ -372,12 +373,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       }}>
         {/* Ticket Header */}
         <div style={{ textAlign: 'center', borderBottom: '1.5px dashed #0F172A', paddingBottom: '12px', marginBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '4px' }}>
-            <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '34px', width: 'auto', objectFit: 'contain' }} />
-            <span className="font-logo-script" style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--md-sys-color-primary)', lineHeight: 1 }}>
-              Samy Store
-            </span>
-          </div>
+          <StoreBrandDisplay align="center" size="md" textColor="var(--md-sys-color-primary)" style={{ marginBottom: '6px' }} />
           <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: '2px 0 0 0', letterSpacing: '0.02em', textTransform: 'uppercase', color: '#0F172A' }}>
             === INFORME CONSOLIDADO IPV ===
           </h2>
