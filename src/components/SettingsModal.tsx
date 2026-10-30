@@ -112,7 +112,7 @@ interface SettingsModalProps {
   embedded?: boolean;
 }
 
-type SettingsTab = 'general' | 'customizer' | 'appearance' | 'store' | 'security' | 'data';
+type SettingsTab = 'general' | 'customizer' | 'appearance' | 'store' | 'security' | 'users' | 'data';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
@@ -600,6 +600,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     { id: 'appearance', label: 'Marca & Apariencia', icon: <Palette size={17} /> },
     { id: 'store', label: 'Tienda & WhatsApp', icon: <MessageCircle size={17} /> },
     { id: 'security', label: 'Seguridad & Acceso', icon: <ShieldCheck size={17} /> },
+    { id: 'users', label: 'Usuarios & Roles', icon: <Users size={17} /> },
     { id: 'data', label: 'Base de Datos', icon: <Database size={17} /> },
   ];
 
@@ -687,14 +688,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
 
-        {/* Horizontal Navigation Pills (Estándar Internacional SaaS) */}
+        {/* Lista de Secciones de Configuración (Accesible, Responsive y sin scroll horizontal oculto) */}
         <div style={{
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-          paddingBottom: '4px',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: '8px'
         }}>
           {SETTINGS_TABS.map(tab => {
             const isActive = activeTab === tab.id;
@@ -704,19 +702,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 style={{
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '8px',
-                  padding: '9px 16px',
-                  borderRadius: '9999px',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
                   border: isActive ? '1.5px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
                   backgroundColor: isActive ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
                   color: isActive ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
                   fontWeight: 800,
                   fontSize: '0.82rem',
                   cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.18s ease'
+                  transition: 'all 0.15s ease'
                 }}
               >
                 {tab.icon}
@@ -1932,12 +1930,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => setIsUserManagementOpen(true)}
+                onClick={() => setActiveTab('users')}
                 className="md-btn md-btn-primary"
                 style={{ padding: '10px 18px', fontSize: '0.85rem', borderRadius: '12px' }}
               >
                 <Users size={16} />
-                <span>Gestionar Usuarios ({usersList.length})</span>
+                <span>Ver y Gestionar Usuarios ({usersList.length})</span>
               </button>
             </div>
           </div>
@@ -1972,6 +1970,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </button>
           </div>
 
+        </div>
+      )}
+
+      {/* TAB 6: GESTIÓN DE USUARIOS Y ROLES (Primera Clase) */}
+      {activeTab === 'users' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <UserManagementModal
+            isOpen={true}
+            embedded={true}
+            onClose={() => setActiveTab('security')}
+          />
         </div>
       )}
 
