@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { FundAccountType, CurrencyType } from '@/types';
-import { getRawDatabase, getSavingsFund, getCasaAvailableBalance, executeUniversalTransfer, getCurrencySettings, withdrawSavingsAsExpense, getLoggedInUser } from '@/lib/storage';
+import { getRawDatabase, getCasaAvailableBalance, executeUniversalTransfer, getCurrencySettings, getLoggedInUser } from '@/lib/storage';
 import { formatCurrency, calculateFinancialSummary } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
-import { ArrowRightLeft, X, PiggyBank, Store, Home, Coins, LogOut, Wallet, Lock } from 'lucide-react';
+import { ArrowRightLeft, X, Store, Home, Coins, Wallet, Lock } from 'lucide-react';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -21,19 +21,16 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  defaultFrom = 'casa',
-  defaultTo = 'ahorro'
+  defaultFrom = 'tienda',
+  defaultTo = 'casa'
 }) => {
   useLockBodyScroll(isOpen, onClose);
   const { showActionResult, showToast, confirmAction } = useActionFeedback();
 
   const [fromAccount, setFromAccount] = useState<FundAccountType>(defaultFrom);
   const [toAccount, setToAccount] = useState<FundAccountType>(
-    defaultTo !== defaultFrom ? defaultTo : (defaultFrom === 'casa' ? 'ahorro' : 'casa')
+    defaultTo !== defaultFrom ? defaultTo : (defaultFrom === 'casa' ? 'tienda' : 'casa')
   );
-
-  // Special mode for Savings: Withdraw as Expense out of system
-  const [isSavingsExpenseMode, setIsSavingsExpenseMode] = useState<boolean>(false);
 
   // Transfer Mode: Standard (same currency) vs Cross-Currency Conversion (USD <-> CUP)
   const [isCrossCurrencyMode, setIsCrossCurrencyMode] = useState<boolean>(false);
@@ -79,13 +76,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       switch (acc) {
         case 'casa': return getCasaAvailableBalance('USD');
         case 'tienda': return rawDb.storeFundUSD || 0;
-        case 'ahorro': return rawDb.savingsFundUSD || 0;
       }
     } else {
       switch (acc) {
         case 'casa': return getCasaAvailableBalance('CUP');
         case 'tienda': return rawDb.storeFund || 0;
-        case 'ahorro': return getSavingsFund();
       }
     }
   };
@@ -94,7 +89,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     switch (acc) {
       case 'casa': return '🏡 Fondo de la Casa';
       case 'tienda': return '🏬 Fondo del Negocio';
-      case 'ahorro': return '🐷 Fondo de Ahorro';
     }
   };
 
@@ -118,12 +112,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   const handleFromChange = (acc: FundAccountType) => {
     setFromAccount(acc);
-    setIsSavingsExpenseMode(false);
-    if (acc === 'tienda' || acc === 'ahorro') {
-      setToAccount('casa');
-    } else if (toAccount === 'casa') {
-      setToAccount('ahorro');
-    }
+    setToAccount(acc === 'casa' ? 'tienda' : 'casa');
   };
 
   const handleExecuteTransfer = (e: React.FormEvent) => {
@@ -133,42 +122,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       return;
     }
 
-    if ((fromAccount === 'tienda' || fromAccount === 'ahorro') && numAmount > availableSourceBalance) {
+    if (numAmount > availableSourceBalance) {
       showToast({
         title: 'Saldo Insuficiente',
         message: `El saldo disponible en ${getAccountLabel(fromAccount)} (${activeSourceCurrency}) es ${srcSymbol} ${availableSourceBalance}.`,
         type: 'error'
-      });
-      return;
-    }
-
-    // Handle Savings Expense Withdrawal
-    if (fromAccount === 'ahorro' && isSavingsExpenseMode) {
-      confirmAction({
-        title: '¿Confirmar Retiro como Gasto?',
-        message: `Se debitarán ${srcSymbol}${numAmount} ${activeSourceCurrency} del Fondo de Ahorro y se registrarán como Gasto (sacándolos del sistema contable).`,
-        variant: 'warning',
-        confirmText: 'Registrar Gasto de Ahorro',
-        onConfirm: () => {
-          const res = withdrawSavingsAsExpense(numAmount, notes || 'Gasto del Fondo de Ahorro', activeSourceCurrency, notes);
-          if (res.success) {
-            setAmount('');
-            setNotes('');
-            onSuccess();
-            onClose();
-            showActionResult({
-              title: '¡Gasto de Ahorro Registrado!',
-              message: `Se retiraron ${srcSymbol}${numAmount} del Fondo de Ahorro como gasto del sistema.`,
-              type: 'success'
-            });
-          } else {
-            showToast({
-              title: 'Error al Retirar',
-              message: res.error || 'No se pudo registrar el gasto de ahorro.',
-              type: 'error'
-            });
-          }
-        }
       });
       return;
     }
@@ -229,8 +187,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const casaBalUSD = getCasaAvailableBalance('USD');
   const storeBalCUP = rawDb.storeFund || 0;
   const storeBalUSD = rawDb.storeFundUSD || 0;
-  const savingsBalCUP = getSavingsFund();
-  const savingsBalUSD = rawDb.savingsFundUSD || 0;
 
   return (
     <div
@@ -312,67 +268,48 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         {/* Scrollable Form Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-        {/* Top Balances Cards (3 for owner, 1 for admin) */}
+        {/* Top Balances Cards (Casa & Negocio) */}
         {isOwner ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '8px'
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px'
           }}>
             {/* 1. Casa */}
             <div style={{
-              padding: '10px',
+              padding: '12px 14px',
               borderRadius: '14px',
               backgroundColor: 'var(--md-sys-color-surface-container-high)',
               border: '1px solid var(--md-sys-color-outline-variant)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '2px'
+              gap: '3px'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>🏡 Casa</span>
-              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap' }}>
-                ${casaBalCUP.toLocaleString('es-ES')}
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>🏡 Fondo Casa</span>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap' }}>
+                ${casaBalCUP.toLocaleString('es-ES')} CUP
               </div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', whiteSpace: 'nowrap' }}>
-                US$ {casaBalUSD.toLocaleString('es-ES')}
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--brand-secondary-dark, #115E59)', whiteSpace: 'nowrap' }}>
+                US$ {casaBalUSD.toLocaleString('es-ES')} USD
               </span>
             </div>
 
             {/* 2. Negocio */}
             <div style={{
-              padding: '10px',
+              padding: '12px 14px',
               borderRadius: '14px',
               backgroundColor: '#ECFDF5',
               border: '1.5px solid #A7F3D0',
               display: 'flex',
               flexDirection: 'column',
-              gap: '2px'
+              gap: '3px'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#065F46' }}>🏬 Negocio</span>
-              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#047857', whiteSpace: 'nowrap' }}>
-                ${storeBalCUP.toLocaleString('es-ES')}
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo Negocio</span>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', whiteSpace: 'nowrap' }}>
+                ${storeBalCUP.toLocaleString('es-ES')} CUP
               </div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0F766E', whiteSpace: 'nowrap' }}>
-                US$ {storeBalUSD.toLocaleString('es-ES')}
-              </span>
-            </div>
-
-            {/* 3. Ahorro */}
-            <div style={{
-              padding: '10px',
-              borderRadius: '14px',
-              backgroundColor: '#F5F3FF',
-              border: '1.5px solid #DDD6FE',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '2px'
-            }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#5B21B6' }}>🐷 Ahorro</span>
-              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#6D28D9', whiteSpace: 'nowrap' }}>
-                ${savingsBalCUP.toLocaleString('es-ES')}
-              </div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#7C3AED', whiteSpace: 'nowrap' }}>
-                US$ {savingsBalUSD.toLocaleString('es-ES')}
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F766E', whiteSpace: 'nowrap' }}>
+                US$ {storeBalUSD.toLocaleString('es-ES')} USD
               </span>
             </div>
           </div>
@@ -422,7 +359,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           }}>
             <Lock size={18} color="var(--md-sys-color-on-surface-variant)" style={{ flexShrink: 0 }} />
             <span style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: 1.4 }}>
-              Las transferencias entre cuentas y el acceso a las cuentas de Casa y Ahorro están restringidas exclusivamente al <strong>Propietario</strong> del sistema.
+              Las transferencias entre cuentas y el acceso a los fondos están restringidas exclusivamente al <strong>Propietario</strong> del sistema.
             </span>
           </div>
         ) : (
@@ -610,148 +547,104 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </div>
         )}
 
-        {/* Account Selector Grid: FROM */}
-        <div>
-          <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-            1. Cuenta Origen (Sale {activeSourceCurrency}):
+        {/* Account Selector: Direction Flip */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <label style={{ fontSize: '0.78rem', fontWeight: 800 }}>
+            Dirección del Movimiento:
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-            {(['casa', 'tienda', 'ahorro'] as FundAccountType[]).map((acc) => {
-              const isSelected = fromAccount === acc;
-              return (
-                <button
-                  key={`from-${acc}`}
-                  type="button"
-                  onClick={() => handleFromChange(acc)}
-                  style={{
-                    padding: '10px 4px',
-                    borderRadius: '12px',
-                    border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                    backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                    color: isSelected ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                    fontWeight: isSelected ? 800 : 600,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  {acc === 'casa' && <Home size={16} />}
-                  {acc === 'tienda' && <Store size={16} />}
-                  {acc === 'ahorro' && <PiggyBank size={16} />}
-                  <span>{getAccountLabel(acc).replace(/^[^\s]+\s*/, '')}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Account Selector Grid: TO / DESTINATION */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>
-              2. Destino de los Fondos:
-            </label>
-            {fromAccount === 'ahorro' && (
-              <button
-                type="button"
-                onClick={() => setIsSavingsExpenseMode(!isSavingsExpenseMode)}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  border: isSavingsExpenseMode ? '1.5px solid #EF4444' : '1px solid #FCA5A5',
-                  backgroundColor: isSavingsExpenseMode ? '#FEE2E2' : '#FFF5F5',
-                  color: isSavingsExpenseMode ? '#991B1B' : '#B91C1C',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <LogOut size={13} />
-                <span>{isSavingsExpenseMode ? '✓ Sacar como Gasto' : 'Sacar como Gasto'}</span>
-              </button>
-            )}
-          </div>
-
-          {!isSavingsExpenseMode ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-              {(['casa', 'tienda', 'ahorro'] as FundAccountType[]).map((acc) => {
-                const isSameAccount = !isCrossCurrencyMode && fromAccount === acc;
-                const isForbiddenCross = (fromAccount === 'tienda' && acc === 'ahorro') || (fromAccount === 'ahorro' && acc === 'tienda');
-                const isDisabled = isSameAccount || isForbiddenCross;
-                const isSelected = toAccount === acc;
-
-                return (
-                  <button
-                    key={`to-${acc}`}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => setToAccount(acc)}
-                    style={{
-                      padding: '10px 4px',
-                      borderRadius: '12px',
-                      border: isSelected ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: isSelected ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface)',
-                      color: isSelected ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: isSelected ? 800 : 600,
-                      fontSize: '0.78rem',
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
-                      opacity: isDisabled ? 0.35 : 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    {acc === 'casa' && <Home size={16} />}
-                    {acc === 'tienda' && <Store size={16} />}
-                    {acc === 'ahorro' && <PiggyBank size={16} />}
-                    <span>{getAccountLabel(acc).replace(/^[^\s]+\s*/, '')}</span>
-                    {isForbiddenCross && (
-                      <span style={{ fontSize: '0.6rem', color: '#991B1B', fontWeight: 800 }}>Pasa por Casa</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{
-              padding: '12px',
-              borderRadius: '12px',
-              backgroundColor: '#FEF2F2',
-              border: '1.5px solid #FCA5A5',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <LogOut size={20} color="#DC2626" />
-              <div>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#991B1B', display: 'block' }}>
-                  Retiro del Sistema (Gasto de Ahorros)
-                </span>
-                <span style={{ fontSize: '0.72rem', color: '#B91C1C' }}>
-                  El dinero saldrá del Fondo de Ahorro y no ingresará a ninguna otra cuenta. Se registrará como gasto definitivo.
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            gap: '8px',
+            alignItems: 'center'
+          }}>
+            {/* Origen */}
+            <div
+              onClick={() => {
+                const nextFrom = fromAccount === 'casa' ? 'tienda' : 'casa';
+                setFromAccount(nextFrom);
+                setToAccount(nextFrom === 'casa' ? 'tienda' : 'casa');
+              }}
+              style={{
+                padding: '12px 8px',
+                borderRadius: '14px',
+                backgroundColor: fromAccount === 'tienda' ? 'var(--brand-secondary-light, #ECFDF5)' : 'var(--md-sys-color-surface)',
+                border: fromAccount === 'tienda' ? '2px solid var(--brand-secondary, #0D9488)' : '2px solid var(--brand-primary, #1A73E8)',
+                textAlign: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', display: 'block' }}>
+                Origen (Sale {activeSourceCurrency})
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' }}>
+                {fromAccount === 'tienda' ? <Store size={16} color="var(--brand-secondary, #0D9488)" /> : <Home size={16} color="var(--brand-primary)" />}
+                <span style={{ fontSize: '0.86rem', fontWeight: 900 }}>
+                  {fromAccount === 'tienda' ? 'Fondo Negocio' : 'Fondo Casa'}
                 </span>
               </div>
             </div>
-          )}
 
-          {/* Rule Clarification Banner */}
-          {fromAccount === 'tienda' && (
-            <div style={{ marginTop: '6px', fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-              💡 Las ganancias del negocio se acumulan en la Tienda. Para usarlas en Casa, realiza una transferencia directa.
+            {/* Swap Button */}
+            <button
+              type="button"
+              title="Invertir dirección"
+              onClick={() => {
+                const nextFrom = fromAccount === 'casa' ? 'tienda' : 'casa';
+                setFromAccount(nextFrom);
+                setToAccount(nextFrom === 'casa' ? 'tienda' : 'casa');
+              }}
+              className="md-btn"
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
+                border: '1.5px solid var(--brand-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0
+              }}
+            >
+              <ArrowRightLeft size={18} />
+            </button>
+
+            {/* Destino */}
+            <div
+              onClick={() => {
+                const nextFrom = fromAccount === 'casa' ? 'tienda' : 'casa';
+                setFromAccount(nextFrom);
+                setToAccount(nextFrom === 'casa' ? 'tienda' : 'casa');
+              }}
+              style={{
+                padding: '12px 8px',
+                borderRadius: '14px',
+                backgroundColor: toAccount === 'casa' ? 'var(--md-sys-color-primary-container)' : 'var(--brand-secondary-light, #ECFDF5)',
+                border: toAccount === 'casa' ? '2px solid var(--brand-primary)' : '2px solid var(--brand-secondary, #0D9488)',
+                textAlign: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', display: 'block' }}>
+                Destino (Entra {activeTargetCurrency})
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' }}>
+                {toAccount === 'casa' ? <Home size={16} color="var(--brand-primary)" /> : <Store size={16} color="var(--brand-secondary, #0D9488)" />}
+                <span style={{ fontSize: '0.86rem', fontWeight: 900 }}>
+                  {toAccount === 'casa' ? 'Fondo Casa' : 'Fondo Negocio'}
+                </span>
+              </div>
             </div>
-          )}
-          {fromAccount === 'ahorro' && !isSavingsExpenseMode && (
-            <div style={{ marginTop: '6px', fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-              💡 El Fondo de Ahorro solo se transfiere de ida y vuelta con la Casa.
-            </div>
-          )}
+          </div>
+
+          <div style={{ marginTop: '2px', fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+            {fromAccount === 'tienda' 
+              ? '💡 Transfiere ganancias o capital acumulado en la Tienda directamente hacia la Casa.' 
+              : '💡 Inyecta capital desde la Casa hacia la Tienda para inversión en mercadería o gastos.'}
+          </div>
         </div>
 
         {/* Balance Display Banner */}
@@ -858,7 +751,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               📊 Proyección de Saldos tras la Operación
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: isSavingsExpenseMode ? '1fr' : '1fr 1fr', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {/* Origen */}
               <div style={{
                 padding: '8px 10px',
@@ -875,27 +768,25 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               </div>
 
               {/* Destino */}
-              {!isSavingsExpenseMode && (
-                <div style={{
-                  padding: '8px 10px',
-                  borderRadius: '10px',
-                  backgroundColor: 'var(--md-sys-color-surface)',
-                  border: '1px solid var(--md-sys-color-outline-variant)'
-                }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                    Destino ({toAccount})
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-income)', marginTop: '2px' }}>
-                    {formatCurrency(availableTargetBalance, activeTargetCurrency, true)} ➔ {formatCurrency(availableTargetBalance + calculatedTargetAmount, activeTargetCurrency, true)}
-                  </div>
+              <div style={{
+                padding: '8px 10px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                border: '1px solid var(--md-sys-color-outline-variant)'
+              }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
+                  Destino ({toAccount})
                 </div>
-              )}
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-income)', marginTop: '2px' }}>
+                  {formatCurrency(availableTargetBalance, activeTargetCurrency, true)} ➔ {formatCurrency(availableTargetBalance + calculatedTargetAmount, activeTargetCurrency, true)}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Live Calculation Preview when converting */}
-        {isCrossCurrencyMode && numAmount > 0 && !isSavingsExpenseMode && (
+        {isCrossCurrencyMode && numAmount > 0 && (
           <div style={{
             padding: '12px 14px',
             borderRadius: '12px',
@@ -922,7 +813,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </label>
           <AppInput
             type="text"
-            placeholder={isSavingsExpenseMode ? "Ej. Compra de electrodoméstico..." : isCrossCurrencyMode ? "Ej. Cambio de divisas de caja..." : "Ej. Depósito mensual de ahorro..."}
+            placeholder={isCrossCurrencyMode ? "Ej. Cambio de divisas de caja..." : "Ej. Transferencia entre fondos..."}
             value={notes}
             onChange={e => setNotes(e.target.value)}
           />
@@ -953,14 +844,12 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
               <button
                 type="submit"
-                className={`md-btn ${isSavingsExpenseMode ? 'md-btn-expense' : 'md-btn-primary'}`}
+                className="md-btn md-btn-primary"
                 style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
-                {isSavingsExpenseMode ? <LogOut size={18} /> : <ArrowRightLeft size={18} />}
+                <ArrowRightLeft size={18} />
                 <span>
-                  {isSavingsExpenseMode 
-                    ? 'Registrar Gasto de Ahorro' 
-                    : (isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`)}
+                  {isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`}
                 </span>
               </button>
             </>

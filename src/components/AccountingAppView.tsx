@@ -13,13 +13,14 @@ import {
   addTransaction, 
   updateTransaction, 
   deleteTransaction,
-  getSavingsFund,
   getCalculatedStoreFund,
   getLoggedInUser,
   setLoggedInUser,
   getLocalISODate,
   getPrimaryThemeColor,
-  getSecondaryThemeColor
+  getSecondaryThemeColor,
+  getStoreModulesConfig,
+  StoreModulesConfig
 } from '@/lib/storage';
 import { applyBrandPaletteToDocument } from '@/lib/themePalette';
 import { syncDatabaseWithCloud, getPendingSyncCount } from '@/lib/sync';
@@ -37,7 +38,13 @@ import { ReportView } from '@/components/ReportView';
 import { StoreManagementView } from '@/components/StoreManagementView';
 import { StoreShiftModal } from '@/components/StoreShiftModal';
 import { ValuationBookModal } from '@/components/store/ValuationBookModal';
-import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
+import dynamic from 'next/dynamic';
+import { DashboardSkeleton, TableSkeleton } from '@/components/common/AppSkeleton';
+
+const BarcodeScannerModal = dynamic(
+  () => import('@/components/BarcodeScannerModal').then(mod => mod.BarcodeScannerModal),
+  { ssr: false }
+);
 import { SettingsModal } from '@/components/SettingsModal';
 import { PendingSyncModal } from '@/components/PendingSyncModal';
 import { RawDbModal } from '@/components/RawDbModal';
@@ -85,6 +92,24 @@ function AccountingAppContent() {
   const [authLoaded, setAuthLoaded] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPinUnlocked, setIsPinUnlocked] = useState(false);
+
+  // Modularización activa del sistema
+  const [storeModules, setStoreModules] = useState<StoreModulesConfig>(() => getStoreModulesConfig());
+
+  useEffect(() => {
+    const handleModulesChanged = (e: any) => {
+      const updated = e?.detail || getStoreModulesConfig();
+      setStoreModules(updated);
+      if (activeTab === 'shifts' && !updated.enableShiftManagement) {
+        setActiveTab('quick');
+      }
+      if (activeTab === 'valuation' && !updated.enableFoodTraceability) {
+        setActiveTab('store');
+      }
+    };
+    window.addEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+    return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+  }, [activeTab]);
 
   // PWA Install Prompt state
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -544,75 +569,7 @@ function AccountingAppContent() {
 
   // Full-page PWA Loader Shell on initial load
   if (!authLoaded || !db) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        width: '100vw',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FFFFFF',
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        zIndex: 9999,
-        padding: '24px'
-      }}>
-
-        {/* Large Clean Transparent Logo */}
-        <img 
-          src="/images/logo-loading.png" 
-          alt="Samy Store Logo" 
-          style={{ 
-            height: '140px', 
-            width: 'auto', 
-            objectFit: 'contain',
-            marginBottom: '16px',
-            position: 'relative'
-          }} 
-        />
-
-        {/* Branding & Title */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <h1 className="font-logo-script" style={{
-            fontSize: '2.4rem',
-            fontWeight: 900,
-            letterSpacing: '-0.02em',
-            color: '#111827',
-            marginBottom: '2px',
-            lineHeight: 1
-          }}>
-            Samy Store
-          </h1>
-          <p style={{
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            color: 'var(--md-sys-color-on-surface-variant)',
-            opacity: 0.8
-          }}>
-            Control Contable & POS Tienda
-          </p>
-        </div>
-
-        {/* Sleek Spinner & Status */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '8px 18px',
-          borderRadius: '9999px',
-          backgroundColor: 'var(--brand-primary-light, var(--md-sys-color-primary-container))',
-          border: '1.5px solid var(--brand-primary-border, var(--md-sys-color-primary))',
-          fontSize: '0.82rem',
-          fontWeight: 800,
-          color: 'var(--brand-primary, var(--md-sys-color-primary))',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.06)'
-        }}>
-          <Loader2 size={16} className="animate-spin" style={{ color: 'var(--brand-primary, var(--md-sys-color-primary))' }} />
-          <span>Iniciando aplicación 100% offline...</span>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Enforce Master Password Login Screen
@@ -766,8 +723,6 @@ function AccountingAppContent() {
               isLoading={isTabTransitioning}
               storeFund={getCalculatedStoreFund()}
               storeFundUSD={db.storeFundUSD || 0}
-              savingsFund={db.savingsFund || 0}
-              savingsFundUSD={db.savingsFundUSD || 0}
               onOpenTransfer={() => setIsTransferModalOpen(true)}
             />
 
@@ -799,12 +754,16 @@ function AccountingAppContent() {
 
         {/* Tab 2: Store Inventory Management ("Tienda") */}
         {activeTab === 'store' && (
-          <StoreManagementView
-            currency={db.settings.currency}
-            onOpenScanner={() => setIsScannerOpen(true)}
-            userRole={getLoggedInUser()?.role || 'propietario'}
-            onNavigateTab={handleTabChange}
-          />
+          isTabTransitioning ? (
+            <TableSkeleton rows={7} columns={5} />
+          ) : (
+            <StoreManagementView
+              currency={db.settings.currency}
+              onOpenScanner={() => setIsScannerOpen(true)}
+              userRole={getLoggedInUser()?.role || 'propietario'}
+              onNavigateTab={handleTabChange}
+            />
+          )
         )}
 
         {/* Tab 3: Movimientos Completo */}
@@ -835,16 +794,20 @@ function AccountingAppContent() {
 
         {/* Tab 4: Facturación y Reportes */}
         {activeTab === 'reports' && (
-          <ReportView
-            transactions={transactions}
-            currency={db.settings.currency}
-            showBalance={showBalance}
-            onSelectTransaction={(tx) => setSelectedTxForDetailModal(tx)}
-          />
+          isTabTransitioning ? (
+            <TableSkeleton rows={8} columns={6} />
+          ) : (
+            <ReportView
+              transactions={transactions}
+              currency={db.settings.currency}
+              showBalance={showBalance}
+              onSelectTransaction={(tx) => setSelectedTxForDetailModal(tx)}
+            />
+          )
         )}
 
         {/* Tab 5: Turnos & Cierre IPV (Vista Completa Fluida en PC) */}
-        {activeTab === 'shifts' && (
+        {activeTab === 'shifts' && storeModules.enableShiftManagement && (
           <StoreShiftModal
             isOpen={true}
             embedded={true}
@@ -856,7 +819,7 @@ function AccountingAppContent() {
         )}
 
         {/* Tab 6: Tasaciones & Libro Oficial de Trazabilidad (Vista Completa Fluida en PC) */}
-        {activeTab === 'valuation' && (
+        {activeTab === 'valuation' && storeModules.enableFoodTraceability && (
           <ValuationBookModal
             isOpen={true}
             embedded={true}

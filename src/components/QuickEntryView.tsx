@@ -1,19 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowDownRight,
   ArrowUpRight,
   Scan,
   LayoutDashboard,
   ShieldCheck,
-  PiggyBank,
+  ArrowRightLeft,
   Store,
   Home,
   Clock
 } from 'lucide-react';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
-import { getStoreCustomizationSettings } from '@/lib/storage';
+import { getStoreCustomizationSettings, getStoreModulesConfig, StoreModulesConfig } from '@/lib/storage';
 
 interface QuickEntryViewProps {
   onOpenGasto: () => void;
@@ -43,13 +43,22 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
     return getStoreCustomizationSettings().storeName || 'Samy Store';
   });
 
-  React.useEffect(() => {
+  const [storeModules, setStoreModules] = useState<StoreModulesConfig>(() => getStoreModulesConfig());
+
+  useEffect(() => {
     const handleCustChange = (e: any) => {
       if (e.detail?.storeName) setStoreName(e.detail.storeName);
       else setStoreName(getStoreCustomizationSettings().storeName || 'Samy Store');
     };
+    const handleModulesChange = (e: any) => {
+      setStoreModules(e?.detail || getStoreModulesConfig());
+    };
     window.addEventListener('cuentacasa-store-customization-changed', handleCustChange);
-    return () => window.removeEventListener('cuentacasa-store-customization-changed', handleCustChange);
+    window.addEventListener('cuentacasa-store-modules-changed', handleModulesChange);
+    return () => {
+      window.removeEventListener('cuentacasa-store-customization-changed', handleCustChange);
+      window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChange);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -173,22 +182,23 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             style={{
               width: '100%',
               padding: '16px',
-              borderRadius: '20px',
+              borderRadius: '16px',
               border: 'none',
               backgroundColor: 'var(--md-sys-color-expense)',
               color: '#FFFFFF',
-              fontSize: '1.1rem',
+              fontSize: '1.05rem',
               fontWeight: 900,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              boxShadow: '0 4px 16px rgba(220, 38, 38, 0.28)',
-              letterSpacing: '0.02em'
+              boxShadow: '0 4px 14px rgba(220, 38, 38, 0.25)',
+              letterSpacing: '0.02em',
+              transition: 'all 0.15s ease'
             }}
           >
-            <ArrowDownRight size={25} />
+            <ArrowDownRight size={22} />
             <span>REGISTRAR GASTO</span>
           </button>
 
@@ -198,74 +208,104 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             style={{
               width: '100%',
               padding: '16px',
-              borderRadius: '20px',
+              borderRadius: '16px',
               border: 'none',
               backgroundColor: 'var(--md-sys-color-income)',
               color: '#FFFFFF',
-              fontSize: '1.1rem',
+              fontSize: '1.05rem',
               fontWeight: 900,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              boxShadow: '0 4px 16px rgba(5, 150, 105, 0.28)',
-              letterSpacing: '0.02em'
+              boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)',
+              letterSpacing: '0.02em',
+              transition: 'all 0.15s ease'
             }}
           >
-            <ArrowUpRight size={25} />
+            <ArrowUpRight size={22} />
             <span>REGISTRAR INGRESO</span>
           </button>
 
-          {/* Vender / POS Button (Theme Surface + Primary Accent) */}
+          {/* Vender / POS Button */}
           <button
             onClick={onOpenPOS}
             style={{
               width: '100%',
-              padding: '16px',
-              borderRadius: '20px',
-              border: '2px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: 'var(--md-sys-color-surface-container)',
+              padding: '14px 16px',
+              borderRadius: '16px',
+              border: '1.5px solid var(--brand-primary-border, #CBD5E1)',
+              backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
               color: 'var(--md-sys-color-on-surface)',
-              fontSize: '1.06rem',
-              fontWeight: 900,
+              fontSize: '1rem',
+              fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '10px',
-              boxShadow: 'var(--md-shadow-elevation-1)',
-              letterSpacing: '0.01em'
+              gap: '12px',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+              letterSpacing: '0.02em',
+              gridColumn: !storeModules.enableShiftManagement ? '1 / -1' : undefined,
+              transition: 'all 0.15s ease'
             }}
           >
-            <Scan size={24} color="var(--md-sys-color-primary)" />
+            <div style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+              color: 'var(--brand-primary, #1A73E8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Scan size={18} />
+            </div>
             <span>ESCANEAR Y VENDER</span>
           </button>
 
-          {/* Turnos & IPV Button (Theme Surface + Secondary Accent) */}
-          <button
-            onClick={() => onOpenShiftModal && onOpenShiftModal()}
-            style={{
-              width: '100%',
-              padding: '16px',
-              borderRadius: '20px',
-              border: '2px solid var(--md-sys-color-outline-variant)',
-              backgroundColor: 'var(--md-sys-color-surface-container)',
-              color: 'var(--md-sys-color-on-surface)',
-              fontSize: '1.06rem',
-              fontWeight: 900,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              boxShadow: 'var(--md-shadow-elevation-1)',
-              letterSpacing: '0.01em'
-            }}
-          >
-            <Clock size={24} color="var(--md-sys-color-secondary, var(--brand-secondary))" />
-            <span>TURNOS E IPV</span>
-          </button>
+          {/* Turnos & IPV Button (Solo si el módulo está habilitado) */}
+          {storeModules.enableShiftManagement && (
+            <button
+              onClick={() => onOpenShiftModal && onOpenShiftModal()}
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                borderRadius: '16px',
+                border: '1.5px solid var(--brand-primary-border, #CBD5E1)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+                color: 'var(--md-sys-color-on-surface)',
+                fontSize: '1rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                letterSpacing: '0.02em',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Clock size={18} />
+              </div>
+              <span>TURNOS DE CAJA</span>
+            </button>
+          )}
 
         </div>
 
@@ -299,24 +339,25 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 }
               }}
               style={{
-                padding: '12px 14px',
+                padding: '14px 14px',
                 borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '12px',
                 textAlign: 'left',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.15s ease'
               }}
             >
               <div style={{
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                color: 'var(--md-sys-color-primary)',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -325,7 +366,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 <Store size={18} />
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
                   Tienda Pública
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
@@ -338,24 +379,25 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             <div
               onClick={onOpenDashboard}
               style={{
-                padding: '12px 14px',
+                padding: '14px 14px',
                 borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '12px',
                 textAlign: 'left',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.15s ease'
               }}
             >
               <div style={{
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                color: 'var(--md-sys-color-primary)',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -364,7 +406,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 <LayoutDashboard size={18} />
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
                   Finanzas del Hogar
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
@@ -377,24 +419,25 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             <div
               onClick={() => onOpenStore && onOpenStore()}
               style={{
-                padding: '12px 14px',
+                padding: '14px 14px',
                 borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '12px',
                 textAlign: 'left',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.15s ease'
               }}
             >
               <div style={{
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                color: 'var(--md-sys-color-primary)',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -403,7 +446,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
                 <Home size={18} />
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
                   Gestión del Negocio
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
@@ -412,41 +455,42 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
               </div>
             </div>
 
-            {/* Card 4: Cuenta de Ahorros */}
+            {/* Card 4: Transferir Fondos entre Cuentas */}
             <div
               onClick={() => onOpenTransfer && onOpenTransfer()}
               style={{
-                padding: '12px 14px',
+                padding: '14px 14px',
                 borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '12px',
                 textAlign: 'left',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.15s ease'
               }}
             >
               <div style={{
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                color: 'var(--md-sys-color-primary)',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <PiggyBank size={18} />
+                <ArrowRightLeft size={18} />
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <h4 style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
-                  Cuenta Ahorro
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', lineHeight: '1.2' }}>
+                  Transferir Fondos
                 </h4>
                 <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                  Transferencias
+                  Casa & Negocio
                 </span>
               </div>
             </div>

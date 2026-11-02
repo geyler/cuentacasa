@@ -3,6 +3,7 @@ export type { StoreCustomizationSettings, StoreLogoDisplayMode, StoreModulesConf
 import { DEFAULT_PRIMARY_COLOR, DEFAULT_SECONDARY_COLOR, normalizeHexColor, deriveHarmoniousSecondary, applyBrandPaletteToDocument } from '@/lib/themePalette';
 import { updateDocumentIcons } from '@/lib/imageProcessing';
 import { DEFAULT_LOGO_FONT } from '@/lib/logoFonts';
+import { hashPassword, verifyPassword } from '@/lib/security';
 
 /**
  * Determina el espacio de nombres (namespace / tenant) único de la instancia.
@@ -334,10 +335,14 @@ export function saveAppUser(user: Omit<AppUser, 'id' | 'createdAt' | 'updatedAt'
   const db = getRawDatabase();
   const users = getAppUsers();
   
+  const rawPass = (user.password || '').trim();
+  const securedPassword = rawPass ? (rawPass.startsWith('$sha256$') ? rawPass : hashPassword(rawPass)) : '';
+
   let targetUser: AppUser;
   if (user.id) {
     targetUser = {
       ...user,
+      password: securedPassword || users.find(u => u.id === user.id)?.password || '',
       id: user.id,
       createdAt: users.find(u => u.id === user.id)?.createdAt || Date.now(),
       updatedAt: Date.now()
@@ -348,6 +353,7 @@ export function saveAppUser(user: Omit<AppUser, 'id' | 'createdAt' | 'updatedAt'
   } else {
     targetUser = {
       ...user,
+      password: securedPassword,
       id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -395,7 +401,7 @@ export function authenticateUser(username: string, password: string): AppUser | 
     return {
       id: 'usr-admin',
       username: 'admin',
-      password: '1234',
+      password: hashPassword('1234'),
       name: 'Administrador',
       role: 'propietario',
       createdAt: 1700000000000,
@@ -404,7 +410,10 @@ export function authenticateUser(username: string, password: string): AppUser | 
   }
 
   const users = getAppUsers();
-  const found = users.find(u => u.username.trim().toLowerCase() === cleanUser && u.password.trim() === cleanPass);
+  const found = users.find(u => {
+    if (u.username.trim().toLowerCase() !== cleanUser) return false;
+    return verifyPassword(cleanPass, u.password);
+  });
   return found || null;
 }
 
@@ -676,12 +685,6 @@ function applyTransactionFundEffect(db: RawDatabase, tx: Transaction, multiplier
       db.storeFundUSD = Math.max(0, (db.storeFundUSD || 0) + signedAmount);
     } else {
       db.storeFund = Math.max(0, (db.storeFund || 0) + signedAmount);
-    }
-  } else if (source === 'ahorro') {
-    if (curr === 'USD') {
-      db.savingsFundUSD = Math.max(0, (db.savingsFundUSD || 0) + signedAmount);
-    } else {
-      db.savingsFund = Math.max(0, (db.savingsFund || 0) + signedAmount);
     }
   }
 }
@@ -1167,6 +1170,23 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
 
   const saleCurrency: CurrencyType = isMixedSale ? 'MIXED' : (saleData.currency || (subtotalUSDFromItems > 0 ? 'USD' : 'CUP'));
 
+  // Desglosar la ganancia neta estrictamente por moneda de origen para no cruzarlas jamás
+  let calculatedProfitCUP = 0;
+  let calculatedProfitUSD = 0;
+  if (saleData.items && saleData.items.length > 0) {
+    saleData.items.forEach(item => {
+      const itemCurr = item.currency || (saleCurrency === 'USD' ? 'USD' : 'CUP');
+      const itemRev = item.subtotal !== undefined ? item.subtotal : (item.unitPrice * item.quantity);
+      const itemCost = (item.costPrice || 0) * item.quantity;
+      const profit = Math.max(0, itemRev - itemCost);
+      if (itemCurr === 'USD') calculatedProfitUSD += profit;
+      else calculatedProfitCUP += profit;
+    });
+  } else {
+    if (saleCurrency === 'USD') calculatedProfitUSD = saleData.netProfit || 0;
+    else calculatedProfitCUP = saleData.netProfit || 0;
+  }
+
   const saleRecord: StoreSaleRecord = {
     ...saleData,
     sellerId: effectiveSellerId,
@@ -1175,6 +1195,8 @@ export function registerStoreSale(saleData: Omit<StoreSaleRecord, 'id' | 'timest
     currency: saleCurrency,
     totalAmountCUP: isMixedSale ? totalAmountCUP : (saleCurrency === 'CUP' ? saleData.totalAmount : 0),
     totalAmountUSD: isMixedSale ? totalAmountUSD : (saleCurrency === 'USD' ? saleData.totalAmount : 0),
+    netProfitCUP: saleData.netProfitCUP !== undefined ? saleData.netProfitCUP : Math.round(calculatedProfitCUP * 100) / 100,
+    netProfitUSD: saleData.netProfitUSD !== undefined ? saleData.netProfitUSD : Math.round(calculatedProfitUSD * 100) / 100,
     id: `sale-${Date.now()}`,
     timestamp: Date.now()
   };
@@ -1587,6 +1609,8 @@ export interface CurrencySettings {
   autoSyncElToque?: boolean;
   lastElToqueSync?: number;
   usdIndexedPricing?: boolean;
+  forceShowPricesOnlyCUP?: boolean; // Forzar mostrar y cobrar precios exclusivamente en CUP en la tienda pública
+  roundUpCUPToTen?: boolean;   // Redondear importes y precios CUP a múltiplos de 10 (ej. 109 -> 110, 1257 -> 1260)
 }
 
 export function getCurrencySettings(): CurrencySettings {
@@ -1597,7 +1621,9 @@ export function getCurrencySettings(): CurrencySettings {
     exchangeRateTrend: db.settings?.exchangeRateTrend || 'stable',
     autoSyncElToque: db.settings?.autoSyncElToque !== undefined ? db.settings.autoSyncElToque : true,
     lastElToqueSync: db.settings?.lastElToqueSync || 0,
-    usdIndexedPricing: db.settings?.usdIndexedPricing !== undefined ? db.settings.usdIndexedPricing : false
+    usdIndexedPricing: db.settings?.usdIndexedPricing !== undefined ? db.settings.usdIndexedPricing : false,
+    forceShowPricesOnlyCUP: Boolean(db.settings?.forceShowPricesOnlyCUP),
+    roundUpCUPToTen: Boolean(db.settings?.roundUpCUPToTen)
   };
 }
 
@@ -1612,6 +1638,8 @@ export function saveCurrencySettings(settings: Partial<CurrencySettings>): Curre
   if (settings.autoSyncElToque !== undefined) db.settings.autoSyncElToque = settings.autoSyncElToque;
   if (settings.lastElToqueSync !== undefined) db.settings.lastElToqueSync = settings.lastElToqueSync;
   if (settings.usdIndexedPricing !== undefined) db.settings.usdIndexedPricing = settings.usdIndexedPricing;
+  if (settings.forceShowPricesOnlyCUP !== undefined) db.settings.forceShowPricesOnlyCUP = settings.forceShowPricesOnlyCUP;
+  if (settings.roundUpCUPToTen !== undefined) db.settings.roundUpCUPToTen = settings.roundUpCUPToTen;
 
   db.settings.updatedAt = Date.now();
   saveRawDatabase(db);
@@ -1798,6 +1826,10 @@ export const DEFAULT_STORE_CUSTOMIZATION: StoreCustomizationSettings = {
   logoMode: 'both',
   logoSquareUrl: '/images/logo-nav.png',
   logoWideUrl: '',
+  logoDarkSquareUrl: '',
+  logoDarkWideUrl: '',
+  faviconUrl: '/favicon.ico',
+  faviconDarkUrl: '',
   logoFontId: DEFAULT_LOGO_FONT.id,
   logoFontFamily: DEFAULT_LOGO_FONT.family,
   storeName: 'Samy Store',
@@ -1815,6 +1847,10 @@ export function getStoreCustomizationSettings(): StoreCustomizationSettings {
     logoMode: (s?.storeLogoMode as StoreLogoDisplayMode) || DEFAULT_STORE_CUSTOMIZATION.logoMode,
     logoSquareUrl: s?.storeLogoSquare !== undefined ? s.storeLogoSquare : DEFAULT_STORE_CUSTOMIZATION.logoSquareUrl,
     logoWideUrl: s?.storeLogoWide !== undefined ? s.storeLogoWide : DEFAULT_STORE_CUSTOMIZATION.logoWideUrl,
+    logoDarkSquareUrl: s?.storeLogoDarkSquare !== undefined ? s.storeLogoDarkSquare : DEFAULT_STORE_CUSTOMIZATION.logoDarkSquareUrl,
+    logoDarkWideUrl: s?.storeLogoDarkWide !== undefined ? s.storeLogoDarkWide : DEFAULT_STORE_CUSTOMIZATION.logoDarkWideUrl,
+    faviconUrl: s?.storeFavicon !== undefined ? s.storeFavicon : DEFAULT_STORE_CUSTOMIZATION.faviconUrl,
+    faviconDarkUrl: s?.storeFaviconDark !== undefined ? s.storeFaviconDark : DEFAULT_STORE_CUSTOMIZATION.faviconDarkUrl,
     logoFontId: s?.storeLogoFontId || DEFAULT_LOGO_FONT.id,
     logoFontFamily: s?.storeLogoFontFamily || DEFAULT_LOGO_FONT.family,
     storeName: (s?.storeName && s.storeName.trim()) ? s.storeName : (s?.appName && s.appName.trim() ? s.appName : DEFAULT_STORE_CUSTOMIZATION.storeName),
@@ -1832,15 +1868,12 @@ export function saveStoreCustomizationSettings(settings: Partial<StoreCustomizat
     db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
   }
   if (settings.logoMode !== undefined) db.settings.storeLogoMode = settings.logoMode;
-  if (settings.logoSquareUrl !== undefined) {
-    db.settings.storeLogoSquare = settings.logoSquareUrl;
-    if (typeof window !== 'undefined' && settings.logoSquareUrl) {
-      try {
-        updateDocumentIcons(settings.logoSquareUrl);
-      } catch {}
-    }
-  }
+  if (settings.logoSquareUrl !== undefined) db.settings.storeLogoSquare = settings.logoSquareUrl;
   if (settings.logoWideUrl !== undefined) db.settings.storeLogoWide = settings.logoWideUrl;
+  if (settings.logoDarkSquareUrl !== undefined) db.settings.storeLogoDarkSquare = settings.logoDarkSquareUrl;
+  if (settings.logoDarkWideUrl !== undefined) db.settings.storeLogoDarkWide = settings.logoDarkWideUrl;
+  if (settings.faviconUrl !== undefined) db.settings.storeFavicon = settings.faviconUrl;
+  if (settings.faviconDarkUrl !== undefined) db.settings.storeFaviconDark = settings.faviconDarkUrl;
   if (settings.logoFontId !== undefined) db.settings.storeLogoFontId = settings.logoFontId;
   if (settings.logoFontFamily !== undefined) db.settings.storeLogoFontFamily = settings.logoFontFamily;
   if (settings.storeName !== undefined) {
@@ -1859,6 +1892,14 @@ export function saveStoreCustomizationSettings(settings: Partial<StoreCustomizat
   const updated = getStoreCustomizationSettings();
 
   if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('cuentacasa_store_customization', JSON.stringify(updated));
+      updateDocumentIcons(
+        updated.faviconUrl || updated.logoSquareUrl,
+        updated.faviconDarkUrl || updated.logoDarkSquareUrl
+      );
+    } catch {}
+
     window.dispatchEvent(new CustomEvent('cuentacasa-store-customization-changed', {
       detail: updated
     }));
@@ -1986,22 +2027,9 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
     }
   }
 
-  if ((fromAccount === 'tienda' && toAccount === 'ahorro') || (fromAccount === 'ahorro' && toAccount === 'tienda')) {
-    return { success: false, error: 'No se permite transferir directamente entre el Negocio y el Ahorro. El dinero debe pasar primero por la Casa.' };
-  }
-
-  if (fromAccount === 'ahorro' && toAccount !== 'casa') {
-    return { success: false, error: 'Desde la cuenta de Ahorro solo se permite transferir hacia la Casa.' };
-  }
-
-  if (toAccount === 'ahorro' && fromAccount !== 'casa') {
-    return { success: false, error: 'A la cuenta de Ahorro solo se permite transferir desde la Casa.' };
-  }
-
   // Deduct from Source Account (in source currency)
   if (currency === 'USD') {
     const currentStoreUSD = db.storeFundUSD || 0;
-    const currentSavingsUSD = db.savingsFundUSD || 0;
     const currentCasaUSD = getCasaAvailableBalance('USD');
 
     if (fromAccount === 'casa' && amount > currentCasaUSD) {
@@ -2010,15 +2038,10 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
     if (fromAccount === 'tienda' && amount > currentStoreUSD) {
       return { success: false, error: `Saldo insuficiente en Fondo Negocio USD (US$ ${currentStoreUSD}).` };
     }
-    if (fromAccount === 'ahorro' && amount > currentSavingsUSD) {
-      return { success: false, error: `Saldo insuficiente en Ahorro USD (US$ ${currentSavingsUSD}).` };
-    }
 
     if (fromAccount === 'tienda') db.storeFundUSD = currentStoreUSD - amount;
-    if (fromAccount === 'ahorro') db.savingsFundUSD = currentSavingsUSD - amount;
   } else {
     const currentStoreCUP = db.storeFund || 0;
-    const currentSavingsCUP = db.savingsFund || 0;
     const currentCasaCUP = getCasaAvailableBalance('CUP');
 
     if (fromAccount === 'casa' && amount > currentCasaCUP) {
@@ -2027,27 +2050,20 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
     if (fromAccount === 'tienda' && amount > currentStoreCUP) {
       return { success: false, error: `Saldo insuficiente en Fondo Tienda ($${currentStoreCUP}).` };
     }
-    if (fromAccount === 'ahorro' && amount > currentSavingsCUP) {
-      return { success: false, error: `Saldo insuficiente en Fondo Ahorro ($${currentSavingsCUP}).` };
-    }
 
     if (fromAccount === 'tienda') db.storeFund = currentStoreCUP - amount;
-    if (fromAccount === 'ahorro') db.savingsFund = currentSavingsCUP - amount;
   }
 
   // Add to Target Account (in target currency)
   if (targetCurrency === 'USD') {
     if (toAccount === 'tienda') db.storeFundUSD = (db.storeFundUSD || 0) + finalTargetAmount;
-    if (toAccount === 'ahorro') db.savingsFundUSD = (db.savingsFundUSD || 0) + finalTargetAmount;
   } else {
     if (toAccount === 'tienda') db.storeFund = (db.storeFund || 0) + finalTargetAmount;
-    if (toAccount === 'ahorro') db.savingsFund = (db.savingsFund || 0) + finalTargetAmount;
   }
 
   const fundLabels: Record<FundAccountType, string> = {
     casa: 'Fondo de la Casa',
-    tienda: 'Fondo del Negocio',
-    ahorro: 'Fondo de Ahorro'
+    tienda: 'Fondo del Negocio'
   };
 
   const fromLabel = fundLabels[fromAccount];
@@ -2115,54 +2131,6 @@ export function executeUniversalTransfer(req: UniversalTransferRequest): { succe
 // Transfer funds from Store Business Fund (Fondo Tienda) to Cuenta Casa Accounting
 export function transferStoreFundToCasa(amount: number, notes?: string, currency: CurrencyType = 'CUP'): { success: boolean; error?: string } {
   return executeUniversalTransfer({ fromAccount: 'tienda', toAccount: 'casa', amount, currency, notes });
-}
-
-// Retirar fondos de Ahorro como Gasto del Sistema
-export function withdrawSavingsAsExpense(
-  amount: number,
-  concept: string,
-  currency: CurrencyType = 'CUP',
-  notes?: string
-): { success: boolean; error?: string } {
-  const db = getRawDatabase();
-  if (amount <= 0) return { success: false, error: 'El monto a retirar debe ser mayor a 0.' };
-
-  if (currency === 'USD') {
-    const currentSavingsUSD = db.savingsFundUSD || 0;
-    if (amount > currentSavingsUSD) {
-      return { success: false, error: `Saldo insuficiente en Ahorro USD (US$ ${currentSavingsUSD}).` };
-    }
-    db.savingsFundUSD = currentSavingsUSD - amount;
-  } else {
-    const currentSavingsCUP = db.savingsFund || 0;
-    if (amount > currentSavingsCUP) {
-      return { success: false, error: `Saldo insuficiente en Fondo Ahorro ($${currentSavingsCUP}).` };
-    }
-    db.savingsFund = currentSavingsCUP - amount;
-  }
-
-  const now = Date.now();
-  const todayISO = getLocalISODate();
-
-  const expenseTx: Transaction = {
-    id: `tx-savings-exp-${now}`,
-    type: 'gasto',
-    concept: concept.trim() || 'Gasto / Retiro del Fondo de Ahorro',
-    category: 'Gasto de Ahorro',
-    amount: amount,
-    currency: currency,
-    date: todayISO,
-    accountSource: 'ahorro',
-    notes: notes?.trim() || 'Ahorros retirados del sistema como gasto.',
-    createdAt: now,
-    updatedAt: now,
-    synced: false
-  };
-
-  if (!db.transactions) db.transactions = [];
-  db.transactions.unshift(expenseTx);
-  saveRawDatabase(db);
-  return { success: true };
 }
 
 // Transfer funds from House (Cuenta Casa) to Store Business Fund (Fondo Tienda)

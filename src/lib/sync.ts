@@ -1,4 +1,4 @@
-import { getRawDatabase, saveRawDatabase, applyGlobalSettingsAndBroadcast, getAppNamespace } from './storage';
+import { getRawDatabase, saveRawDatabase, applyGlobalSettingsAndBroadcast, getAppNamespace, getMasterPassword } from './storage';
 import { Transaction, StoreProduct, StoreSaleRecord, SupplierAccount, AppUser, StoreShiftRecord, CustomerDebtRecord, RawDatabase } from '@/types';
 import { applyBrandPaletteToDocument, normalizeHexColor } from './themePalette';
 import { formatRecordDateTime } from './dateUtils';
@@ -259,17 +259,20 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const authSecret = getMasterPassword() || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_APP_PASSWORD : '') || 'Del1Al9#';
     const res = await fetch('/api/sync', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'x-app-instance': getAppNamespace()
+        'x-app-instance': getAppNamespace(),
+        'x-app-auth': authSecret
       },
       body: JSON.stringify({
         clientLastSync: lastSyncTime,
         pendingReset: !!db.pendingReset,
         pendingResetAt: db.pendingResetAt || 0,
+        resetMasterPassword: db.pendingReset ? authSecret : undefined,
         transactions: db.transactions,
         deletedIds: db.deletedIds || [],
         storeProducts: db.storeProducts || [],
@@ -367,15 +370,35 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
       const localProducts = (db.storeProducts || []).filter(p => !returnedProdIds.has(p.id) && (p.createdAt || 0) > (db.pendingResetAt || 0));
       const finalProducts = [...localProducts, ...mergedProducts];
 
+      // Safeguard: Retain any local sales not yet in server list
+      const returnedSaleIds = new Set(mergedSales.map(s => s.id));
+      const unsyncedSales = (db.storeSales || []).filter(s => s && s.id && !returnedSaleIds.has(s.id));
+      const finalSales = [...unsyncedSales, ...mergedSales].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      // Safeguard: Retain any local shifts not yet in server list
+      const returnedShiftIds = new Set(mergedShifts.map(s => s.id));
+      const unsyncedShifts = (db.shifts || []).filter(s => s && s.id && !returnedShiftIds.has(s.id));
+      const finalShifts = [...unsyncedShifts, ...mergedShifts].sort((a, b) => (b.openedAt || 0) - (a.openedAt || 0));
+
+      // Safeguard: Retain any local debts not yet in server list
+      const returnedDebtIds = new Set(mergedDebts.map(d => d.id));
+      const unsyncedDebts = (db.customerDebts || []).filter(d => d && d.id && !returnedDebtIds.has(d.id));
+      const finalDebts = [...unsyncedDebts, ...mergedDebts].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      // Safeguard: Retain any local suppliers not yet in server list
+      const returnedSupplierIds = new Set(mergedSuppliers.map(s => s.id));
+      const unsyncedSuppliers = (db.supplierAccounts || []).filter(s => s && s.id && !returnedSupplierIds.has(s.id));
+      const finalSuppliers = [...unsyncedSuppliers, ...mergedSuppliers];
+
       const updatedDb: RawDatabase = {
         ...db,
         transactions: finalTransactions,
         storeProducts: finalProducts,
-        storeSales: mergedSales,
-        shifts: mergedShifts,
-        supplierAccounts: mergedSuppliers,
+        storeSales: finalSales,
+        shifts: finalShifts,
+        supplierAccounts: finalSuppliers,
         users: mergedUsers,
-        customerDebts: mergedDebts,
+        customerDebts: finalDebts,
         storeFund: data.storeFund !== undefined ? data.storeFund : (db.storeFund || 0),
         storeFundUSD: data.storeFundUSD !== undefined ? data.storeFundUSD : (db.storeFundUSD || 0),
         savingsFund: data.savingsFund !== undefined ? data.savingsFund : (db.savingsFund || 0),

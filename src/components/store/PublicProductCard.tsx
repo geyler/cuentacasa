@@ -14,6 +14,8 @@ interface PublicProductCardProps {
   displayCurrency: 'CUP' | 'USD';
   exchangeRateUSD: number;
   usdIndexedPricing: boolean;
+  forceShowPricesOnlyCUP?: boolean;
+  roundUpCUPToTen?: boolean;
   showDualCurrency?: boolean;
   onOpenDetail: (product: StoreProduct) => void;
   onAddToCart: (product: StoreProduct) => void;
@@ -28,6 +30,8 @@ export const PublicProductCard: React.FC<PublicProductCardProps> = ({
   displayCurrency,
   exchangeRateUSD,
   usdIndexedPricing,
+  forceShowPricesOnlyCUP = false,
+  roundUpCUPToTen = false,
   showDualCurrency = true,
   onOpenDetail,
   onAddToCart,
@@ -46,7 +50,9 @@ export const PublicProductCard: React.FC<PublicProductCardProps> = ({
     displayCurrency,
     exchangeRateUSD,
     product.priceUSD,
-    usdIndexedPricing
+    usdIndexedPricing,
+    forceShowPricesOnlyCUP,
+    roundUpCUPToTen
   );
 
   const secondaryCurr = disp.currency === 'USD' ? 'CUP' : 'USD';
@@ -56,7 +62,9 @@ export const PublicProductCard: React.FC<PublicProductCardProps> = ({
     secondaryCurr,
     exchangeRateUSD,
     product.priceUSD,
-    usdIndexedPricing
+    usdIndexedPricing,
+    false,
+    roundUpCUPToTen
   );
 
   const isOutOfStock = !product.isExternal && product.stock <= 0;
@@ -302,25 +310,49 @@ export const PublicProductCard: React.FC<PublicProductCardProps> = ({
         gap: '6px'
       }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px', flexWrap: 'wrap' }}>
             <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
               {formatCurrency(disp.amount, disp.currency, true)}
             </span>
             <span style={{
               fontSize: '0.62rem',
               fontWeight: 900,
-              padding: '1px 5px',
-              borderRadius: '4px',
+              padding: '1.5px 6px',
+              borderRadius: '9999px',
               backgroundColor: disp.currency === 'USD' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--brand-primary-light, #EFF6FF)',
               color: disp.currency === 'USD' ? 'var(--brand-secondary-dark, #115E59)' : 'var(--brand-primary-dark, #1E3A8A)',
-              border: disp.currency === 'USD' ? '1px solid var(--brand-secondary-border, #99F6E4)' : '1px solid var(--brand-primary-border, #BFDBFE)'
+              border: disp.currency === 'USD' ? '1px solid var(--brand-secondary-border, #99F6E4)' : '1px solid var(--brand-primary-border, #BFDBFE)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.02em'
             }}>
               {disp.currency}
             </span>
           </div>
-          {showDualCurrency && (Boolean(product.priceUSD && product.priceUSD > 0) || product.currency === 'USD' || usdIndexedPricing) && (
-            <div className="desktop-only tabular-nums" style={{ fontSize: '0.66rem', color: 'var(--brand-secondary-dark, #115E59)', fontWeight: 700, marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
-              ≈ {formatCurrency(secondaryDisp.amount, secondaryDisp.currency, true)} {secondaryDisp.currency}
+
+          {/* Micro-píldora de Doble Moneda de Alta Definición (Visible en Móvil y PC) */}
+          {!forceShowPricesOnlyCUP && showDualCurrency && (Boolean(product.priceUSD && product.priceUSD > 0) || product.currency === 'USD' || usdIndexedPricing) && (
+            <div
+              className="tabular-nums"
+              title={`Equivalente estimado: 1 USD = ${exchangeRateUSD} CUP`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '2px 7px',
+                borderRadius: '9999px',
+                backgroundColor: disp.currency === 'USD' ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--brand-secondary-light, #F0FDFA)',
+                color: disp.currency === 'USD' ? 'var(--brand-primary-dark, #1E3A8A)' : 'var(--brand-secondary-dark, #115E59)',
+                border: disp.currency === 'USD' ? '1px solid var(--brand-primary-border, #BFDBFE)' : '1px solid var(--brand-secondary-border, #99F6E4)',
+                fontSize: '0.66rem',
+                fontWeight: 800,
+                marginTop: '3px',
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 1.2
+              }}
+            >
+              <span style={{ opacity: 0.65 }}>≈</span>
+              <span>{formatCurrency(secondaryDisp.amount, secondaryDisp.currency, true)}</span>
+              <span style={{ fontSize: '0.58rem', fontWeight: 900 }}>{secondaryDisp.currency}</span>
             </div>
           )}
         </div>

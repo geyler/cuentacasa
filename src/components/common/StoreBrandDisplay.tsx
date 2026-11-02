@@ -17,6 +17,7 @@ export interface StoreBrandDisplayProps {
   subtitleText?: string;
   subtitleColor?: string;
   onClick?: () => void;
+  variant?: 'light' | 'dark' | 'auto'; // 'dark' para fondos oscuros como Navbar o Modo Oscuro
 }
 
 export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
@@ -31,7 +32,8 @@ export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
   showSubtitle = false,
   subtitleText,
   subtitleColor,
-  onClick
+  onClick,
+  variant = 'auto'
 }) => {
   const [cust, setCust] = useState<StoreCustomizationSettings>(() => {
     return propCustomization || getStoreCustomizationSettings();
@@ -61,11 +63,37 @@ export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
   const effectiveImgH = imageMaxHeight || sizeConfig.imgH;
   const effectiveWideH = imageMaxHeight ? Math.round(imageMaxHeight * 1.15) : sizeConfig.wideH;
   const effectiveFontS = textFontSize || sizeConfig.fontS;
-  const effectiveTextColor = textColor || 'var(--md-sys-color-primary)';
+
+  const [isDocDark, setIsDocDark] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.getAttribute('data-theme') === 'dark';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkDark = () => {
+      setIsDocDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const isDarkVariant = variant === 'dark' || (variant === 'auto' && isDocDark);
+  const effectiveTextColor = textColor || (isDarkVariant ? '#FFFFFF' : 'var(--md-sys-color-primary)');
 
   const mode = cust.logoMode || 'both';
-  const squareUrl = cust.logoSquareUrl || '/images/logo-nav.png';
-  const wideUrl = cust.logoWideUrl || cust.logoSquareUrl || '/images/logo-nav.png';
+
+  // Selección inteligente de logotipo según la variante de color de fondo
+  const squareUrl = (isDarkVariant && cust.logoDarkSquareUrl)
+    ? cust.logoDarkSquareUrl
+    : (cust.logoSquareUrl || '/images/logo-nav.png');
+
+  const wideUrl = (isDarkVariant && cust.logoDarkWideUrl)
+    ? cust.logoDarkWideUrl
+    : (cust.logoWideUrl || (isDarkVariant && cust.logoDarkSquareUrl ? cust.logoDarkSquareUrl : (cust.logoSquareUrl || '/images/logo-nav.png')));
+
   const name = cust.storeName || 'Samy Store';
 
   const containerJustify = align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center';

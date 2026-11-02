@@ -4,15 +4,25 @@ import { Transaction, ReportFilter, FinancialSummary, CurrencyType } from '@/typ
 export const EDITABLE_WINDOW_MS = 5 * 60 * 1000;
 
 export function isTransactionEditable(createdAt?: number): boolean {
-  if (!createdAt) return false;
-  return (Date.now() - createdAt) <= EDITABLE_WINDOW_MS;
+  if (!createdAt || typeof createdAt !== 'number' || isNaN(createdAt)) return false;
+  const elapsed = Date.now() - createdAt;
+  // Si elapsed es negativo por desajuste de reloj o fue creado hace más de 5 minutos, no es editable.
+  if (elapsed < -30000 || elapsed > EDITABLE_WINDOW_MS) return false;
+  return true;
 }
 
 export function getRemainingEditableTime(createdAt?: number): string | null {
-  if (!createdAt) return null;
-  const elapsed = Date.now() - createdAt;
-  const remainingMs = EDITABLE_WINDOW_MS - elapsed;
-  if (remainingMs <= 0) return null;
+  if (!createdAt || typeof createdAt !== 'number' || isNaN(createdAt)) return null;
+  const now = Date.now();
+  const elapsed = now - createdAt;
+  // Si superó la ventana de 5 minutos o tiene fecha futura anormal, no hay tiempo restante
+  if (elapsed > EDITABLE_WINDOW_MS || elapsed < -30000) return null;
+
+  // Acotar elapsed mínimo a 0 para que el reloj NUNCA supere los 5 minutos ni muestre números inflados
+  const safeElapsed = Math.max(0, elapsed);
+  const remainingMs = EDITABLE_WINDOW_MS - safeElapsed;
+  if (remainingMs <= 0 || remainingMs > EDITABLE_WINDOW_MS) return null;
+
   const remainingSecs = Math.ceil(remainingMs / 1000);
   const mins = Math.floor(remainingSecs / 60);
   const secs = remainingSecs % 60;
@@ -164,46 +174,63 @@ export function formatCurrency(amount: number, currency: string = '$', showBalan
   return `${symbol} ${formatted}`;
 }
 
-// Helper for product price display according to currencyMode and USD indexing
+/**
+ * Redondea un importe en CUP hacia arriba al múltiplo de 10 más cercano para cobros parejos.
+ * Ejemplo solicitado: 109 -> 110, 1257 -> 1260, 1200 -> 1200.
+ */
+export function roundUpToMultipleOf10(amount: number): number {
+  if (!amount || isNaN(amount) || amount <= 0) return 0;
+  return Math.ceil(amount / 10) * 10;
+}
+
+// Helper for product price display according to currencyMode, forceShowPricesOnlyCUP, roundUpCUPToTen and USD indexing
 export function getProductDisplayPrice(
   productPrice: number,
   productCurrency: 'CUP' | 'USD' | string | undefined,
   currencyMode: 'CUP' | 'USD' | 'BOTH',
   exchangeRateUSD: number = 320,
   priceUSD?: number,
-  usdIndexedPricing?: boolean
+  usdIndexedPricing?: boolean,
+  forceShowPricesOnlyCUP?: boolean,
+  roundUpCUPToTen?: boolean
 ): { amount: number; currency: 'CUP' | 'USD' } {
   const pCurr = productCurrency === 'USD' ? 'USD' : 'CUP';
   const rate = exchangeRateUSD || 320;
+  const effectiveMode = forceShowPricesOnlyCUP ? 'CUP' : currencyMode;
+
+  let result: { amount: number; currency: 'CUP' | 'USD' };
 
   // 1. Product is registered in USD: USD price is fixed, CUP recalculates dynamically with current rate
   if (pCurr === 'USD') {
-    if (currencyMode === 'CUP') {
-      return { amount: Math.round(productPrice * rate), currency: 'CUP' };
+    if (effectiveMode === 'CUP') {
+      result = { amount: Math.round(productPrice * rate), currency: 'CUP' };
+    } else {
+      result = { amount: productPrice, currency: 'USD' };
     }
-    return { amount: productPrice, currency: 'USD' };
-  }
-
-  // 2. Product is registered in CUP and USD indexing is active:
-  if (usdIndexedPricing) {
+  } else if (usdIndexedPricing) {
+    // 2. Product is registered in CUP and USD indexing is active:
     const usdVal = priceUSD !== undefined && priceUSD > 0 ? priceUSD : (productPrice / rate);
-    if (currencyMode === 'USD') {
-      return { amount: Math.round(usdVal * 100) / 100, currency: 'USD' };
+    if (effectiveMode === 'USD') {
+      result = { amount: Math.round(usdVal * 100) / 100, currency: 'USD' };
+    } else {
+      // In CUP mode or BOTH mode: recalculate CUP display price dynamically based on rate
+      result = { amount: Math.round(usdVal * rate), currency: 'CUP' };
     }
-    // In CUP mode or BOTH mode: recalculate CUP display price dynamically based on rate
-    return { amount: Math.round(usdVal * rate), currency: 'CUP' };
+  } else {
+    // 3. Normal Mode (Non-indexed CUP product): CUP price stays fixed
+    if (effectiveMode === 'USD') {
+      result = { amount: Math.round((productPrice / rate) * 100) / 100, currency: 'USD' };
+    } else {
+      result = { amount: productPrice, currency: 'CUP' };
+    }
   }
 
-  // 3. Normal Mode (Non-indexed CUP product): CUP price stays fixed
-  if (currencyMode === 'CUP') {
-    return { amount: productPrice, currency: 'CUP' };
+  // Redondeo parejo a múltiplos de 10 para importes en CUP si está activado
+  if (result.currency === 'CUP' && roundUpCUPToTen) {
+    result.amount = roundUpToMultipleOf10(result.amount);
   }
 
-  if (currencyMode === 'USD') {
-    return { amount: Math.round((productPrice / rate) * 100) / 100, currency: 'USD' };
-  }
-
-  return { amount: productPrice, currency: pCurr };
+  return result;
 }
 
 // Visual styling badge helper for USD distinction (Unified with Secondary Brand Palette)

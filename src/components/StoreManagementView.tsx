@@ -25,7 +25,12 @@ import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { ProductDetailModal } from '@/components/ProductDetailModal';
 import { TransferModal } from '@/components/TransferModal';
 import { StoreShiftModal } from '@/components/StoreShiftModal';
-import { QRSyncModal } from '@/components/QRSyncModal';
+import dynamic from 'next/dynamic';
+
+const QRSyncModal = dynamic(
+  () => import('@/components/QRSyncModal').then(mod => mod.QRSyncModal),
+  { ssr: false }
+);
 import { getActiveShift } from '@/lib/storage';
 
 import {
@@ -165,20 +170,34 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     };
   }, []);
 
-  // Compute Store Financial Metrics with dynamic currency mode conversion
+  // Compute Store Financial Metrics with strict currency separation (never cross or convert blindly)
   const { currencyMode, exchangeRateUSD, usdIndexedPricing, exchangeRateTrend, autoSyncElToque } = getCurrencySettings();
 
-  const totalStoreProductsValue = products.reduce((acc, p) => {
-    const disp = getProductDisplayPrice(p.price * p.stock, p.currency, currencyMode, exchangeRateUSD, p.priceUSD ? p.priceUSD * p.stock : undefined, usdIndexedPricing);
-    return acc + disp.amount;
+  // Separación contable estricta de inventario: productos CUP en CUP y productos USD en USD
+  const inventoryValueCUP = products.reduce((acc, p) => {
+    if (p.currency === 'USD') return acc;
+    return acc + (p.price * (p.stock || 0));
   }, 0);
 
-  const totalStoreProductsCost = products.reduce((acc, p) => {
-    const costVal = (p.costPrice || 0) * p.stock;
-    const costUSD = p.costPriceUSD ? p.costPriceUSD * p.stock : undefined;
-    const disp = getProductDisplayPrice(costVal, p.currency, currencyMode, exchangeRateUSD, costUSD, usdIndexedPricing);
-    return acc + disp.amount;
+  const inventoryValueUSD = products.reduce((acc, p) => {
+    if (p.currency === 'USD') return acc + (p.price * (p.stock || 0));
+    if (p.priceUSD && p.priceUSD > 0) return acc + (p.priceUSD * (p.stock || 0));
+    return acc;
   }, 0);
+
+  const inventoryCostCUP = products.reduce((acc, p) => {
+    if (p.currency === 'USD') return acc;
+    return acc + ((p.costPrice || 0) * (p.stock || 0));
+  }, 0);
+
+  const inventoryCostUSD = products.reduce((acc, p) => {
+    if (p.currency === 'USD') return acc + ((p.costPrice || 0) * (p.stock || 0));
+    if (p.costPriceUSD && p.costPriceUSD > 0) return acc + (p.costPriceUSD * (p.stock || 0));
+    return acc;
+  }, 0);
+
+  const totalStoreProductsValue = currencyMode === 'USD' ? inventoryValueUSD : inventoryValueCUP;
+  const totalStoreProductsCost = currencyMode === 'USD' ? inventoryCostUSD : inventoryCostCUP;
 
   const totalPendingSupplierDebt = suppliers.reduce((acc, s) => acc + s.pendingPayout, 0);
 
@@ -186,23 +205,20 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const rate = exchangeRateUSD || 320;
   const displayCurrency = currencyMode === 'USD' ? 'USD' : 'CUP';
 
-  const totalAccumulatedSalesRevenue = salesRecords.reduce((acc, s) => {
-    const saleCurr = s.currency || 'CUP';
-    const amt = Number(s.totalAmount || 0);
-    if (displayCurrency === 'USD') {
-      return acc + (saleCurr === 'USD' ? amt : amt / rate);
-    }
-    return acc + (saleCurr === 'USD' ? amt * rate : amt);
+  // Separación estricta de ganancias: las ventas en USD generan ganancias en USD; las ventas en CUP en CUP
+  const totalHouseProfitsCUP = salesRecords.reduce((acc, s) => {
+    if (s.netProfitCUP !== undefined) return acc + s.netProfitCUP;
+    if (s.currency === 'USD') return acc; // No cruzar ganancias USD en CUP
+    return acc + Number(s.netProfit || 0);
   }, 0);
 
-  const totalAccumulatedHouseProfits = salesRecords.reduce((acc, s) => {
-    const saleCurr = s.currency || 'CUP';
-    const profit = Number(s.netProfit || 0);
-    if (displayCurrency === 'USD') {
-      return acc + (saleCurr === 'USD' ? profit : profit / rate);
-    }
-    return acc + (saleCurr === 'USD' ? profit * rate : profit);
+  const totalHouseProfitsUSD = salesRecords.reduce((acc, s) => {
+    if (s.netProfitUSD !== undefined) return acc + s.netProfitUSD;
+    if (s.currency === 'USD') return acc + Number(s.netProfit || 0);
+    return acc;
   }, 0);
+
+  const totalAccumulatedHouseProfits = currencyMode === 'USD' ? totalHouseProfitsUSD : totalHouseProfitsCUP;
 
   const houseCapitalTransactions = rawDb.transactions.filter(t => (t.concept + ' ' + (t.notes || '')).toLowerCase().includes('fondo negocio') || (t.concept + ' ' + (t.notes || '')).toLowerCase().includes('tienda'));
   const netTransferredToCasa = houseCapitalTransactions
@@ -411,47 +427,54 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         </div>
       </div>
 
-      {/* 2. MAIN 4 METRICS CARDS GRID (Responsive 2 cols on mobile, 4 cols on PC) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: '10px' }}>
+      {/* 2. MAIN 4 METRICS CARDS (2 arriba, 2 abajo como en Dashboard Contable) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Row 1: Fondo del Negocio & Valor Inventario */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '12px'
+        }}>
 
-        {/* Card 1: Fondo del Negocio (Secondary Brand Palette) */}
+        {/* Card 1: Fondo del Negocio */}
         <div 
           className="md-card" 
           onClick={() => isOwner && setIsUniversalTransferModalOpen(true)}
           style={{
-            backgroundColor: 'var(--md-sys-color-secondary-container, var(--brand-secondary-light))',
-            color: 'var(--md-sys-color-on-secondary-container, var(--brand-on-secondary-container))',
-            border: '1px solid var(--brand-secondary-border, #99F6E4)',
-            padding: '14px 12px',
+            backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
+            borderRadius: '16px',
+            padding: '16px 14px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
             cursor: isOwner ? 'pointer' : 'default'
           }}
           title={isOwner ? "Clic para transferir entre cuentas" : undefined}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-secondary-container, var(--brand-on-secondary-container))' }}>🏬 Fondo del Negocio</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>🏬 Fondo del Negocio</span>
             <div style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              backgroundColor: 'color-mix(in srgb, var(--brand-secondary) 16%, transparent)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '10px',
+              backgroundColor: '#F0FDFA',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <Wallet size={16} color="var(--md-sys-color-secondary, var(--brand-secondary))" />
+              <Wallet size={16} color="#0D9488" />
             </div>
           </div>
           {currencyMode === 'CUP' && (
-            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--md-sys-color-on-secondary-container, var(--brand-secondary-dark))', letterSpacing: '-0.02em', margin: '6px 0 2px 0', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em', margin: '6px 0 2px 0', fontVariantNumeric: 'tabular-nums' }}>
               {formatCurrency(totalStoreFund, 'CUP', true)}
             </div>
           )}
           {currencyMode === 'USD' && (
-            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--md-sys-color-on-secondary-container, var(--brand-secondary-dark))', letterSpacing: '-0.02em', margin: '6px 0 2px 0', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em', margin: '6px 0 2px 0', fontVariantNumeric: 'tabular-nums' }}>
               {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
             </div>
           )}
@@ -462,40 +485,97 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               gap: '4px',
               margin: '6px 0 4px 0'
             }}>
+              {/* CUP Row */}
               <div style={{
-                padding: '5px 8px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.85)',
-                border: '1px solid rgba(0,0,0,0.06)',
                 display: 'flex',
+                alignItems: 'baseline',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '6px'
+                gap: '8px',
+                padding: '2px 0'
               }}>
-                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)', textTransform: 'uppercase', flexShrink: 0 }}>CUP</span>
-                <span className="tabular-nums" style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--brand-primary-dark, #1E3A8A)', whiteSpace: 'nowrap', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{
+                  fontSize: '0.67rem',
+                  fontWeight: 800,
+                  color: '#059669',
+                  letterSpacing: '0.04em',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  flexShrink: 0
+                }}>
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#10B981',
+                    display: 'inline-block'
+                  }} />
+                  CUP
+                </span>
+                <span className="tabular-nums" style={{
+                  fontSize: '1.18rem',
+                  fontWeight: 900,
+                  color: 'var(--md-sys-color-on-surface)',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.02em',
+                  fontVariantNumeric: 'tabular-nums'
+                }}>
                   {formatCurrency(totalStoreFund, 'CUP', true)}
                 </span>
               </div>
+
+              {/* Hairline Divider */}
               <div style={{
-                padding: '5px 8px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
-                border: '1px solid var(--brand-secondary-border, #99F6E4)',
+                height: '1px',
+                backgroundColor: 'currentColor',
+                opacity: 0.08,
+                margin: '1px 0'
+              }} />
+
+              {/* USD Row */}
+              <div style={{
                 display: 'flex',
+                alignItems: 'baseline',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '6px'
+                gap: '8px',
+                padding: '2px 0'
               }}>
-                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--brand-secondary-dark, #115E59)', textTransform: 'uppercase', flexShrink: 0 }}>USD</span>
-                <span className="tabular-nums" style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--brand-secondary-dark, #115E59)', whiteSpace: 'nowrap', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{
+                  fontSize: '0.67rem',
+                  fontWeight: 800,
+                  color: '#0284C7',
+                  letterSpacing: '0.04em',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  flexShrink: 0
+                }}>
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#0284C7',
+                    display: 'inline-block'
+                  }} />
+                  USD
+                </span>
+                <span className="tabular-nums" style={{
+                  fontSize: '1.08rem',
+                  fontWeight: 800,
+                  color: 'var(--md-sys-color-on-surface)',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.02em',
+                  fontVariantNumeric: 'tabular-nums'
+                }}>
                   {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
                 </span>
               </div>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-secondary-container, var(--brand-on-secondary-container))', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
               {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Caja USD' : 'Caja CUP')}
             </span>
           </div>
@@ -503,77 +583,225 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
         {/* Card 2: Valor Inventario */}
         <div className="md-card" style={{
-          backgroundColor: 'var(--md-sys-color-surface-container-high)',
+          backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
           border: '1px solid var(--md-sys-color-outline-variant)',
-          padding: '14px 12px',
+          borderRadius: '16px',
+          padding: '16px 14px',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📦 Valor Inventario</span>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
-              {products.length} art. ({products.reduce((acc, p) => acc + (p.stock || 0), 0)} u)
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>📦 Valor Inventario</span>
+            <span style={{
+              fontSize: '0.78rem',
+              fontWeight: 900,
+              padding: '3px 8px',
+              borderRadius: '8px',
+              backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+              color: 'var(--brand-primary, #1A73E8)',
+              border: '1px solid var(--brand-primary-border, #BFDBFE)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <span>{products.length} art.</span>
+              <span style={{ opacity: 0.4 }}>•</span>
+              <span style={{ fontWeight: 900 }}>{products.reduce((acc, p) => acc + (p.stock || 0), 0)} u</span>
             </span>
           </div>
-          <div className="tabular-nums" style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)', fontVariantNumeric: 'tabular-nums' }}>
-            {formatCurrency(totalStoreProductsValue, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
-          </div>
-          <div className="tabular-nums" style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-            {!isVendor ? `Costo Stock: ${formatCurrency(totalStoreProductsCost, currencyMode === 'USD' ? 'USD' : 'CUP', true)}` : 'Precio público'}
+
+          {currencyMode !== 'BOTH' ? (
+            <>
+              <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0 2px 0', color: 'var(--md-sys-color-on-surface)', fontVariantNumeric: 'tabular-nums' }}>
+                {formatCurrency(totalStoreProductsValue, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
+              </div>
+              <div className="tabular-nums" style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                {!isVendor ? `Costo Stock: ${formatCurrency(totalStoreProductsCost, currencyMode === 'USD' ? 'USD' : 'CUP', true)}` : 'Precio público'}
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0' }}>
+              {/* CUP Row */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+                <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#059669', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+                  CUP
+                </span>
+                <div style={{ textAlign: 'right' }}>
+                  <span className="tabular-nums" style={{ fontSize: '1.18rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                    {formatCurrency(inventoryValueCUP, 'CUP', true)}
+                  </span>
+                  {!isVendor && (
+                    <div className="tabular-nums" style={{ fontSize: '0.64rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                      Costo: {formatCurrency(inventoryCostCUP, 'CUP', true)}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ height: '1px', backgroundColor: 'currentColor', opacity: 0.08, margin: '1px 0' }} />
+
+              {/* USD Row */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+                <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#0284C7', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284C7', display: 'inline-block' }} />
+                  USD
+                </span>
+                <div style={{ textAlign: 'right' }}>
+                  <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                    {formatCurrency(inventoryValueUSD, 'USD', true)}
+                  </span>
+                  {!isVendor && (
+                    <div className="tabular-nums" style={{ fontSize: '0.64rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                      Costo: {formatCurrency(inventoryCostUSD, 'USD', true)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, marginTop: '2px' }}>
+            Existencia: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{products.reduce((acc, p) => acc + (p.stock || 0), 0)} unidades</strong> en {products.length} productos
           </div>
         </div>
+        </div>
+
+        {/* Row 2: Ganancias en Tienda & Ventas del Día */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '12px'
+        }}>
 
         {/* Card 3: Fondo de Ganancias */}
         <div className="md-card" style={{
-          backgroundColor: 'var(--md-sys-color-income-container)',
-          color: 'var(--md-sys-color-on-income-container)',
-          border: '1px solid rgba(0, 135, 90, 0.2)',
-          padding: '14px 12px',
+          backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+          border: '1px solid var(--md-sys-color-outline-variant)',
+          borderRadius: '16px',
+          padding: '16px 14px',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>📈 Ganancias en Tienda</span>
-            <TrendingUp size={16} color="var(--md-sys-color-income)" />
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>📈 Ganancias en Tienda</span>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '10px',
+              backgroundColor: '#ECFDF5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <TrendingUp size={16} color="#059669" />
+            </div>
           </div>
-          <div className="tabular-nums" style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-income)', fontVariantNumeric: 'tabular-nums' }}>
-            +{formatCurrency(totalAccumulatedHouseProfits, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
-          </div>
-          <div style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
-            Retenidas en Tienda (Mover con Transferencia)
+
+          {currencyMode !== 'BOTH' ? (
+            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0 2px 0', color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
+              +{formatCurrency(totalAccumulatedHouseProfits, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0' }}>
+              {/* CUP Row */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+                <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#059669', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+                  CUP
+                </span>
+                <span className="tabular-nums" style={{ fontSize: '1.18rem', fontWeight: 900, color: '#059669', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                  +{formatCurrency(totalHouseProfitsCUP, 'CUP', true)}
+                </span>
+              </div>
+
+              <div style={{ height: '1px', backgroundColor: 'currentColor', opacity: 0.08, margin: '1px 0' }} />
+
+              {/* USD Row */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+                <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#0284C7', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284C7', display: 'inline-block' }} />
+                  USD
+                </span>
+                <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0284C7', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                  +{formatCurrency(totalHouseProfitsUSD, 'USD', true)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+            Ganancias reales sin cruzar (Mover a Casa)
           </div>
         </div>
 
         {/* Card 4: Ventas del Día / Turno Activo */}
         <div className="md-card" style={{
-          backgroundColor: 'var(--md-sys-color-surface-container)',
+          backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
           border: '1px solid var(--md-sys-color-outline-variant)',
-          padding: '14px 12px',
+          borderRadius: '16px',
+          padding: '16px 14px',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>🛍️ Ventas del Día</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>🛍️ Ventas del Día</span>
             <span style={{
               fontSize: '0.68rem',
               fontWeight: 800,
-              padding: '2px 6px',
+              padding: '2px 7px',
               borderRadius: '6px',
-              backgroundColor: activeShift ? 'var(--md-sys-color-income-container)' : 'var(--md-sys-color-surface-container-high)',
-              color: activeShift ? 'var(--md-sys-color-on-income-container)' : 'var(--md-sys-color-on-surface-variant)',
-              border: '1px solid var(--md-sys-color-outline-variant)'
+              backgroundColor: (storeModules.enableShiftManagement && activeShift) ? '#ECFDF5' : 'var(--md-sys-color-surface-container)',
+              color: (storeModules.enableShiftManagement && activeShift) ? '#059669' : 'var(--md-sys-color-on-surface-variant)',
+              border: `1px solid ${(storeModules.enableShiftManagement && activeShift) ? '#A7F3D0' : 'var(--md-sys-color-outline-variant)'}`
             }}>
-              {activeShift ? `🟢 @${activeShift.sellerUsername}` : (todaySalesRecords.length > 0 ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'venta' : 'ventas'}` : 'Sin Turno')}
+              {storeModules.enableShiftManagement 
+                ? (activeShift ? `🟢 @${activeShift.sellerUsername}` : (todaySalesRecords.length > 0 ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'venta' : 'ventas'}` : 'Sin Turno'))
+                : (todaySalesRecords.length > 0 ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'venta' : 'ventas'}` : '0 ventas')}
             </span>
           </div>
-          <div className="tabular-nums" style={{ fontSize: '1.35rem', fontWeight: 900, margin: '8px 0 2px 0', color: 'var(--md-sys-color-primary)', fontVariantNumeric: 'tabular-nums' }}>
-            {formatCurrency(todaySalesDisplay, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
-          </div>
+
+          {currencyMode !== 'BOTH' ? (
+            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0 2px 0', color: 'var(--brand-primary, #1A73E8)', fontVariantNumeric: 'tabular-nums' }}>
+              {formatCurrency(todaySalesDisplay, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0' }}>
+              {/* CUP Row */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+                <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#059669', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+                  CUP
+                </span>
+                <span className="tabular-nums" style={{ fontSize: '1.18rem', fontWeight: 900, color: 'var(--brand-primary, #1A73E8)', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                  {formatCurrency(todaySalesCUP, 'CUP', true)}
+                </span>
+              </div>
+
+              <div style={{ height: '1px', backgroundColor: 'currentColor', opacity: 0.08, margin: '1px 0' }} />
+
+              {/* USD Row */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+                <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#0284C7', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284C7', display: 'inline-block' }} />
+                  USD
+                </span>
+                <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0284C7', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                  {formatCurrency(todaySalesUSD, 'USD', true)}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-            {activeShift
+            {storeModules.enableShiftManagement && activeShift
               ? `Turno de @${activeShift.sellerUsername} (${todaySalesRecords.length} ventas hoy)`
               : (todaySalesRecords.length > 0
                   ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'venta registrada' : 'ventas registradas'} hoy`
@@ -581,31 +809,45 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           </div>
         </div>
 
+        </div>
       </div>
 
-      {/* 3. MAIN ACTION BUTTONS: ESCANEAR Y VENDER & TURNOS E IPV */}
+      {/* 3. MAIN ACTION BUTTONS: ESCANEAR Y VENDER, TURNOS DE CAJA & TASACIONES */}
       {onOpenScanner && (
         <button
           onClick={onOpenScanner}
           style={{
             width: '100%',
-            padding: '16px',
-            borderRadius: '20px',
-            border: '2px solid var(--md-sys-color-outline-variant)',
-            backgroundColor: 'var(--md-sys-color-surface-container)',
+            padding: '14px 16px',
+            borderRadius: '16px',
+            border: '1.5px solid var(--brand-primary-border, #CBD5E1)',
+            backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
             color: 'var(--md-sys-color-on-surface)',
-            fontSize: '1.1rem',
-            fontWeight: 900,
+            fontSize: '1rem',
+            fontWeight: 800,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '10px',
-            boxShadow: 'var(--md-shadow-elevation-1)',
-            letterSpacing: '0.01em'
+            gap: '12px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+            letterSpacing: '0.02em',
+            transition: 'all 0.15s ease'
           }}
         >
-          <Scan size={24} color="var(--md-sys-color-primary)" />
+          <div style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '10px',
+            backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+            color: 'var(--brand-primary, #1A73E8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Scan size={18} />
+          </div>
           <span>ESCANEAR Y VENDER</span>
         </button>
       )}
@@ -614,7 +856,7 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
         <div style={{
           display: 'grid',
           gridTemplateColumns: (storeModules.enableShiftManagement && storeModules.enableFoodTraceability) ? '1fr 1fr' : '1fr',
-          gap: '10px'
+          gap: '12px'
         }}>
           {storeModules.enableShiftManagement && (
             <button
@@ -627,23 +869,37 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               }}
               style={{
                 width: '100%',
-                padding: '14px 10px',
-                borderRadius: '18px',
-                border: '2px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
+                padding: '14px 12px',
+                borderRadius: '16px',
+                border: '1.5px solid var(--brand-primary-border, #CBD5E1)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
                 color: 'var(--md-sys-color-on-surface)',
-                fontSize: '0.95rem',
-                fontWeight: 900,
+                fontSize: '0.94rem',
+                fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                boxShadow: 'var(--md-shadow-elevation-1)'
+                gap: '10px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                letterSpacing: '0.01em',
+                transition: 'all 0.15s ease'
               }}
             >
-              <Clock size={20} color="var(--md-sys-color-secondary, var(--brand-secondary))" />
-              <span>TURNOS E IPV</span>
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Clock size={18} />
+              </div>
+              <span>TURNOS DE CAJA</span>
             </button>
           )}
 
@@ -658,22 +914,36 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               }}
               style={{
                 width: '100%',
-                padding: '14px 10px',
-                borderRadius: '18px',
-                border: '1px solid var(--md-sys-color-outline-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
+                padding: '14px 12px',
+                borderRadius: '16px',
+                border: '1.5px solid var(--brand-primary-border, #CBD5E1)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
                 color: 'var(--md-sys-color-on-surface)',
-                fontSize: '0.95rem',
-                fontWeight: 900,
+                fontSize: '0.94rem',
+                fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                boxShadow: 'var(--md-shadow-elevation-1)'
+                gap: '10px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                letterSpacing: '0.01em',
+                transition: 'all 0.15s ease'
               }}
             >
-              <FileText size={20} color="var(--md-sys-color-primary)" />
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                color: 'var(--brand-primary, #1A73E8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <FileText size={18} />
+              </div>
               <span>TASACIONES</span>
             </button>
           )}

@@ -33,7 +33,6 @@ import {
   ArrowLeft,
   Home,
   Store,
-  PiggyBank,
   Palette,
   ExternalLink,
   Smartphone,
@@ -87,8 +86,7 @@ import {
   getCasaAvailableBalance,
   getCalculatedStoreFund,
   getCalculatedStoreFundUSD,
-  getSavingsFund,
-  getSavingsFundUSD
+  getAppNamespace
 } from '@/lib/storage';
 import {
   THEME_COLOR_PRESETS,
@@ -108,6 +106,8 @@ import { TransferModal } from '@/components/TransferModal';
 import { formatCurrency } from '@/lib/invoice';
 import { getPendingSyncCount, syncDatabaseWithCloud } from '@/lib/sync';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
+import { SettingsModulesView } from './settings/SettingsModulesView';
+import { SettingsSecurityView } from './settings/SettingsSecurityView';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -188,6 +188,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [manualRateInput, setManualRateInput] = useState<string>('320');
   const [isEditingExchangeRate, setIsEditingExchangeRate] = useState(false);
   const [isSyncingElToque, setIsSyncingElToque] = useState(false);
+  const [forceShowPricesOnlyCUP, setForceShowPricesOnlyCUP] = useState<boolean>(false);
+  const [roundUpCUPToTen, setRoundUpCUPToTen] = useState<boolean>(false);
 
   const [primaryColor, setPrimaryColor] = useState<string>(DEFAULT_PRIMARY_COLOR);
   const [secondaryColor, setSecondaryColor] = useState<string>(DEFAULT_SECONDARY_COLOR);
@@ -202,6 +204,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [logoMode, setLogoMode] = useState<StoreLogoDisplayMode>('both');
   const [logoSquareUrl, setLogoSquareUrl] = useState<string>('');
   const [logoWideUrl, setLogoWideUrl] = useState<string>('');
+  const [logoDarkSquareUrl, setLogoDarkSquareUrl] = useState<string>('');
+  const [logoDarkWideUrl, setLogoDarkWideUrl] = useState<string>('');
+  const [faviconUrl, setFaviconUrl] = useState<string>('');
+  const [faviconDarkUrl, setFaviconDarkUrl] = useState<string>('');
   const [customStoreName, setCustomStoreName] = useState<string>('Samy Store');
   const [logoFontId, setLogoFontId] = useState<string>(DEFAULT_LOGO_FONT.id);
   const [logoFontFamily, setLogoFontFamily] = useState<string>(DEFAULT_LOGO_FONT.family);
@@ -211,9 +217,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [heroTitle, setHeroTitle] = useState<string>('');
   const [heroSubtitle, setHeroSubtitle] = useState<string>('');
   const [isSavingCustomizer, setIsSavingCustomizer] = useState(false);
+  const [previewBgMode, setPreviewBgMode] = useState<'dark' | 'light'>('dark');
 
   const squareFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const wideFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const darkSquareFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const darkWideFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const faviconFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const faviconDarkFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -235,6 +246,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setExchangeRateUSD(cSettings.exchangeRateUSD);
       setManualRateInput(String(cSettings.exchangeRateUSD));
       setIsEditingExchangeRate(false);
+      setForceShowPricesOnlyCUP(Boolean(cSettings.forceShowPricesOnlyCUP));
+      setRoundUpCUPToTen(Boolean(cSettings.roundUpCUPToTen));
 
       const pColor = getPrimaryThemeColor();
       const sColor = getSecondaryThemeColor();
@@ -248,6 +261,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setLogoMode(cust.logoMode);
       setLogoSquareUrl(cust.logoSquareUrl || '');
       setLogoWideUrl(cust.logoWideUrl || '');
+      setLogoDarkSquareUrl(cust.logoDarkSquareUrl || '');
+      setLogoDarkWideUrl(cust.logoDarkWideUrl || '');
+      setFaviconUrl(cust.faviconUrl || '');
+      setFaviconDarkUrl(cust.faviconDarkUrl || '');
       setCustomStoreName(cust.storeName || 'Samy Store');
       setLogoFontId(cust.logoFontId || DEFAULT_LOGO_FONT.id);
       setLogoFontFamily(cust.logoFontFamily || DEFAULT_LOGO_FONT.family);
@@ -270,7 +287,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
   }, []);
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>, mode: 'square' | 'wide') => {
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>, mode: 'square' | 'wide' | 'darkSquare' | 'darkWide' | 'favicon' | 'faviconDark') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -287,12 +304,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const dataUrl = evt.target?.result as string;
       if (mode === 'square') {
         setLogoSquareUrl(dataUrl);
-      } else {
+      } else if (mode === 'wide') {
         setLogoWideUrl(dataUrl);
+      } else if (mode === 'darkSquare') {
+        setLogoDarkSquareUrl(dataUrl);
+      } else if (mode === 'darkWide') {
+        setLogoDarkWideUrl(dataUrl);
+      } else if (mode === 'favicon') {
+        setFaviconUrl(dataUrl);
+      } else if (mode === 'faviconDark') {
+        setFaviconDarkUrl(dataUrl);
       }
       showToast({
         title: 'Imagen cargada en borrador',
-        message: 'Logo cargado en la vista previa. Haz clic en "Guardar Personalización" para aplicarlo a la tienda pública.',
+        message: 'Archivo cargado en la vista previa. Haz clic en "Guardar Personalización" para aplicarlo.',
         type: 'success'
       });
     };
@@ -306,6 +331,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         logoMode,
         logoSquareUrl: logoSquareUrl.trim(),
         logoWideUrl: logoWideUrl.trim(),
+        logoDarkSquareUrl: logoDarkSquareUrl.trim(),
+        logoDarkWideUrl: logoDarkWideUrl.trim(),
+        faviconUrl: faviconUrl.trim(),
+        faviconDarkUrl: faviconDarkUrl.trim(),
         logoFontId,
         logoFontFamily,
         storeName: customStoreName.trim() || 'Samy Store',
@@ -318,7 +347,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setStoreCustomization(updated);
       showToast({
         title: 'Personalización Guardada',
-        message: 'La identidad, logotipo y tipografía se han actualizado en todo el sistema y tienda.',
+        message: 'La identidad, logotipo claro/oscuro y favicons se han actualizado en todo el sistema y tienda.',
         type: 'success'
       });
     } catch {
@@ -344,6 +373,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         setLogoMode(reset.logoMode);
         setLogoSquareUrl(reset.logoSquareUrl || '');
         setLogoWideUrl(reset.logoWideUrl || '');
+        setLogoDarkSquareUrl(reset.logoDarkSquareUrl || '');
+        setLogoDarkWideUrl(reset.logoDarkWideUrl || '');
+        setFaviconUrl(reset.faviconUrl || '');
+        setFaviconDarkUrl(reset.faviconDarkUrl || '');
         setCustomStoreName(reset.storeName);
         setCustomSeoName(reset.storeSeoName);
         setCustomSeoDesc(reset.storeSeoDescription);
@@ -356,6 +389,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           type: 'success'
         });
       }
+    });
+  };
+
+  const handleToggleForceCUP = () => {
+    if (!isOwner) {
+      showToast({
+        title: 'Acceso Restringido',
+        message: 'Solo los propietarios pueden cambiar las reglas de precio de la tienda.',
+        type: 'warning'
+      });
+      return;
+    }
+    const nextVal = !forceShowPricesOnlyCUP;
+    setForceShowPricesOnlyCUP(nextVal);
+    saveCurrencySettings({ forceShowPricesOnlyCUP: nextVal });
+    showToast({
+      title: nextVal ? 'Solo CUP en Tienda Activado' : 'Precios Multimoneda Restaurados',
+      message: nextVal
+        ? 'En la tienda pública todos los precios se mostrarán y cobrarán en CUP al tipo de cambio activo.'
+        : 'La tienda vuelve a mostrar selectores de divisa y equivalentes en USD.',
+      type: 'info'
+    });
+  };
+
+  const handleToggleRoundToTen = () => {
+    if (!isOwner) {
+      showToast({
+        title: 'Acceso Restringido',
+        message: 'Solo los propietarios pueden cambiar las reglas de redondeo.',
+        type: 'warning'
+      });
+      return;
+    }
+    const nextVal = !roundUpCUPToTen;
+    setRoundUpCUPToTen(nextVal);
+    saveCurrencySettings({ roundUpCUPToTen: nextVal });
+    showToast({
+      title: nextVal ? 'Redondeo a múltiplos de 10 Activado' : 'Redondeo Desactivado',
+      message: nextVal
+        ? 'Cobro parejo: precios redondeados hacia arriba a múltiplos de 10 (ej. $109 -> $110, $1,257 -> $1,260).'
+        : 'Los precios se calcularán sin redondeo al múltiplo de 10.',
+      type: 'info'
     });
   };
 
@@ -575,8 +650,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       if (typeof window !== 'undefined' && navigator.onLine) {
         const res = await fetch('/api/sync', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resetAll: true, resetAt: resetTimestamp })
+          headers: {
+            'Content-Type': 'application/json',
+            'x-app-instance': getAppNamespace(),
+            'x-app-auth': masterPasswordInput.trim()
+          },
+          body: JSON.stringify({
+            resetAll: true,
+            resetAt: resetTimestamp,
+            resetMasterPassword: masterPasswordInput.trim()
+          })
         });
         if (res.ok) {
           onlineSuccess = true;
@@ -645,8 +728,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const casaUSD = getCasaAvailableBalance('USD');
   const storeCUP = getCalculatedStoreFund();
   const storeUSD = getCalculatedStoreFundUSD();
-  const savingsCUP = getSavingsFund();
-  const savingsUSD = getSavingsFundUSD();
 
   const getSubViewTitle = (view: SettingsSubView): string => {
     switch (view) {
@@ -896,7 +977,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    Saldos de Casa, Negocio, Ahorro y transferencias
+                    Saldos de Casa, Negocio y transferencias
                   </span>
                 </div>
               </div>
@@ -1382,33 +1463,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                 </div>
               </div>
-
-              {/* Fondo de Ahorro */}
-              <div style={{
-                padding: '16px',
-                borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                border: '1px solid var(--md-sys-color-outline-variant)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <PiggyBank size={18} color="#D97706" />
-                  <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>Fondo de Ahorro</span>
-                </div>
-                <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
-                  Reserva financiera de emergencia e inversiones futuras.
-                </p>
-                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
-                    ${formatCurrency(savingsCUP, '$', showBalance)} CUP
-                  </span>
-                  <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#16A34A' }}>
-                    US$ {formatCurrency(savingsUSD, 'US$', showBalance)} USD
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -1495,6 +1549,105 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span style={{ fontSize: '0.74rem', opacity: 0.85 }}>Dólares estadounidenses como moneda única del sistema.</span>
               </div>
             </div>
+
+            {/* Reglas de Visualización y Cobro: Forzar Solo CUP & Redondeo Múltiplos de 10 */}
+            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <span style={{ fontSize: '0.84rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                Reglas Especiales de la Tienda Pública
+              </span>
+
+              {/* Opción 1: Forzar Solo CUP en la Web */}
+              <div
+                onClick={handleToggleForceCUP}
+                style={{
+                  padding: '16px',
+                  borderRadius: '16px',
+                  border: forceShowPricesOnlyCUP ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: forceShowPricesOnlyCUP ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
+                  cursor: isOwner ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '14px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: 900, fontSize: '0.92rem', color: forceShowPricesOnlyCUP ? 'var(--brand-primary-dark, #1E3A8A)' : 'var(--md-sys-color-on-surface)' }}>
+                      Mostrar precios solo en CUP en la tienda pública
+                    </span>
+                    {forceShowPricesOnlyCUP && (
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px', backgroundColor: 'var(--brand-primary, #1A73E8)', color: '#FFFFFF' }}>
+                        Activo
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.4' }}>
+                    Aunque tengas activada doble moneda o existan productos registrados en USD, los clientes verán los precios únicamente en CUP calculados a la tasa de cambio vigente.
+                  </span>
+                </div>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '6px',
+                  border: forceShowPricesOnlyCUP ? 'none' : '2px solid var(--md-sys-color-outline)',
+                  backgroundColor: forceShowPricesOnlyCUP ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  {forceShowPricesOnlyCUP && <CheckCircle2 size={18} color="#FFFFFF" />}
+                </div>
+              </div>
+
+              {/* Opción 2: Cobro parejo (Redondear múltiplos de 10) */}
+              <div
+                onClick={handleToggleRoundToTen}
+                style={{
+                  padding: '16px',
+                  borderRadius: '16px',
+                  border: roundUpCUPToTen ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                  backgroundColor: roundUpCUPToTen ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
+                  cursor: isOwner ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '14px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: 900, fontSize: '0.92rem', color: roundUpCUPToTen ? 'var(--brand-primary-dark, #1E3A8A)' : 'var(--md-sys-color-on-surface)' }}>
+                      Cobro parejo: Redondear precios CUP a múltiplos de 10
+                    </span>
+                    {roundUpCUPToTen && (
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px', backgroundColor: 'var(--brand-primary, #1A73E8)', color: '#FFFFFF' }}>
+                        Activo
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: '1.4' }}>
+                    Redondea los precios hacia arriba para no lidiar con billetes pequeños o fracciones (ejemplo: <strong>$109</strong> se cobra a <strong>$110</strong>, <strong>$1,257</strong> se cobra a <strong>$1,260</strong>).
+                  </span>
+                </div>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '6px',
+                  border: roundUpCUPToTen ? 'none' : '2px solid var(--md-sys-color-outline)',
+                  backgroundColor: roundUpCUPToTen ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  {roundUpCUPToTen && <CheckCircle2 size={18} color="#FFFFFF" />}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1579,480 +1732,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       )}
 
       {/* SUB-VIEW: MÓDULOS Y SECCIONES DEL NEGOCIO */}
-      {activeSubView === 'modules' && isOwner && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          
-          {/* Header Card */}
-          <div className="md-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(37, 99, 235, 0.12)',
-                color: '#2563EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <Layers size={22} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.08rem', fontWeight: 900, margin: 0 }}>
-                  Módulos y Secciones Activas del Sistema
-                </h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0' }}>
-                  Personaliza tu ERP según el rubro de tu tienda (ropa, calzado, tecnología, ferretería, alimentos).
-                </p>
-              </div>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px 16px',
-              borderRadius: '14px',
-              backgroundColor: 'var(--md-sys-color-surface-container-high)',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              marginTop: '12px',
-              fontSize: '0.8rem',
-              color: 'var(--md-sys-color-on-surface)'
-            }}>
-              <Info size={18} color="var(--md-sys-color-primary)" style={{ flexShrink: 0 }} />
-              <span>
-                <strong>Modo Simplificado Seguro:</strong> Ocultar una sección retira sus botones y campos de los formularios para que el registro sea ultra-rápido. Los registros históricos y transacciones previas se conservan 100% seguros sin eliminarse.
-              </span>
-            </div>
-          </div>
-
-          {/* Tarjetas de Módulos con Toggles */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-            {/* Módulo 1: Trazabilidad de Alimentos y Vencimientos */}
-            <div style={{
-              padding: '18px 20px',
-              borderRadius: '18px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: storeModules.enableFoodTraceability ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              boxShadow: 'var(--md-shadow-elevation-1)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    backgroundColor: storeModules.enableFoodTraceability ? 'rgba(16, 185, 129, 0.12)' : 'var(--md-sys-color-surface-container-high)',
-                    color: storeModules.enableFoodTraceability ? '#059669' : 'var(--md-sys-color-on-surface-variant)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <Sparkles size={22} />
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                        Trazabilidad de Alimentos y Vencimientos
-                      </span>
-                      <span style={menuBadgeStyle(storeModules.enableFoodTraceability ? 'success' : 'neutral')}>
-                        {storeModules.enableFoodTraceability ? 'Activo (Alimentos / Supermercados)' : 'Desactivado (Tienda de Ropa / Tech)'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
-                      Control de fechas de caducidad (EXP), fecha de elaboración (MFG), lotes y el <strong>Libro Oficial de Tasaciones y Vencimientos</strong>.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Switch Toggle */}
-                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={storeModules.enableFoodTraceability}
-                    onChange={e => handleToggleModule('enableFoodTraceability', e.target.checked)}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: storeModules.enableFoodTraceability ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
-                    borderRadius: '34px',
-                    transition: '0.2s',
-                    display: 'block'
-                  }}>
-                    <span style={{
-                      position: 'absolute',
-                      height: '22px',
-                      width: '22px',
-                      left: storeModules.enableFoodTraceability ? '25px' : '3px',
-                      bottom: '3px',
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '50%',
-                      transition: '0.2s',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }} />
-                  </span>
-                </label>
-              </div>
-
-              <div style={{
-                fontSize: '0.74rem',
-                color: 'var(--md-sys-color-on-surface-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
-                padding: '8px 12px',
-                borderRadius: '10px'
-              }}>
-                {storeModules.enableFoodTraceability 
-                  ? '✅ Mostrando campos de fechas en formulario de producto y acceso al Libro de Tasaciones e inspección sanitaria.'
-                  : '🛡️ Modo no-comida activo: se ocultan los campos de fecha en formularios y el botón de tasaciones. Los productos no exigen caducidad.'}
-              </div>
-            </div>
-
-            {/* Módulo 2: Proveedores y Mercancía en Consignación */}
-            <div style={{
-              padding: '18px 20px',
-              borderRadius: '18px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: storeModules.enableSuppliers ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              boxShadow: 'var(--md-shadow-elevation-1)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    backgroundColor: storeModules.enableSuppliers ? 'rgba(37, 99, 235, 0.12)' : 'var(--md-sys-color-surface-container-high)',
-                    color: storeModules.enableSuppliers ? '#2563EB' : 'var(--md-sys-color-on-surface-variant)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <Users size={22} />
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                        Gestión de Proveedores y Consignación
-                      </span>
-                      <span style={menuBadgeStyle(storeModules.enableSuppliers ? 'success' : 'neutral')}>
-                        {storeModules.enableSuppliers ? 'Activo' : 'Solo Mercancía Propia'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
-                      Liquidaciones a terceros, saldo pendiente de pago por ventas y asignación de proveedores a los productos.
-                    </p>
-                  </div>
-                </div>
-
-                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={storeModules.enableSuppliers}
-                    onChange={e => handleToggleModule('enableSuppliers', e.target.checked)}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: storeModules.enableSuppliers ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
-                    borderRadius: '34px',
-                    transition: '0.2s',
-                    display: 'block'
-                  }}>
-                    <span style={{
-                      position: 'absolute',
-                      height: '22px',
-                      width: '22px',
-                      left: storeModules.enableSuppliers ? '25px' : '3px',
-                      bottom: '3px',
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '50%',
-                      transition: '0.2s',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }} />
-                  </span>
-                </label>
-              </div>
-
-              <div style={{
-                fontSize: '0.74rem',
-                color: 'var(--md-sys-color-on-surface-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
-                padding: '8px 12px',
-                borderRadius: '10px'
-              }}>
-                {storeModules.enableSuppliers
-                  ? '✅ Pestaña de Proveedores visible y opción de consignación habilitada en la creación de artículos.'
-                  : '🛡️ Formulario limpio: todo producto se carga automáticamente como inversión propia de la tienda.'}
-              </div>
-            </div>
-
-            {/* Módulo 3: Cuentas por Cobrar y Libreta de Fiados */}
-            <div style={{
-              padding: '18px 20px',
-              borderRadius: '18px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: storeModules.enableCustomerDebts ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              boxShadow: 'var(--md-shadow-elevation-1)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    backgroundColor: storeModules.enableCustomerDebts ? 'rgba(234, 88, 12, 0.12)' : 'var(--md-sys-color-surface-container-high)',
-                    color: storeModules.enableCustomerDebts ? '#EA580C' : 'var(--md-sys-color-on-surface-variant)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <Wallet size={22} />
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                        Cuentas por Cobrar (Libreta de Fiados)
-                      </span>
-                      <span style={menuBadgeStyle(storeModules.enableCustomerDebts ? 'success' : 'neutral')}>
-                        {storeModules.enableCustomerDebts ? 'Activo' : 'Solo Ventas al Contado'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
-                      Registro de deudas a clientes, abonos parciales, saldo pendiente y libretas de cobro.
-                    </p>
-                  </div>
-                </div>
-
-                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={storeModules.enableCustomerDebts}
-                    onChange={e => handleToggleModule('enableCustomerDebts', e.target.checked)}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: storeModules.enableCustomerDebts ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
-                    borderRadius: '34px',
-                    transition: '0.2s',
-                    display: 'block'
-                  }}>
-                    <span style={{
-                      position: 'absolute',
-                      height: '22px',
-                      width: '22px',
-                      left: storeModules.enableCustomerDebts ? '25px' : '3px',
-                      bottom: '3px',
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '50%',
-                      transition: '0.2s',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }} />
-                  </span>
-                </label>
-              </div>
-
-              <div style={{
-                fontSize: '0.74rem',
-                color: 'var(--md-sys-color-on-surface-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
-                padding: '8px 12px',
-                borderRadius: '10px'
-              }}>
-                {storeModules.enableCustomerDebts
-                  ? '✅ Pestaña de Fiados visible en la tienda para control de créditos y abonos de clientes.'
-                  : '🛡️ Oculta las pestañas de fiados para negocios que no otorgan crédito a clientes.'}
-              </div>
-            </div>
-
-            {/* Módulo 4: Turnos de Dependientes y Arqueos IPV */}
-            <div style={{
-              padding: '18px 20px',
-              borderRadius: '18px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: storeModules.enableShiftManagement ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              boxShadow: 'var(--md-shadow-elevation-1)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    backgroundColor: storeModules.enableShiftManagement ? 'rgba(147, 51, 234, 0.12)' : 'var(--md-sys-color-surface-container-high)',
-                    color: storeModules.enableShiftManagement ? '#9333EA' : 'var(--md-sys-color-on-surface-variant)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <Clock size={22} />
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                        Turnos de Dependientes y Arqueos IPV
-                      </span>
-                      <span style={menuBadgeStyle(storeModules.enableShiftManagement ? 'success' : 'neutral')}>
-                        {storeModules.enableShiftManagement ? 'Activo' : 'Caja Abierta Continua'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
-                      Control formal de apertura de turno con fondo inicial en caja, vendedor responsable y arqueo al cierre.
-                    </p>
-                  </div>
-                </div>
-
-                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={storeModules.enableShiftManagement}
-                    onChange={e => handleToggleModule('enableShiftManagement', e.target.checked)}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: storeModules.enableShiftManagement ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
-                    borderRadius: '34px',
-                    transition: '0.2s',
-                    display: 'block'
-                  }}>
-                    <span style={{
-                      position: 'absolute',
-                      height: '22px',
-                      width: '22px',
-                      left: storeModules.enableShiftManagement ? '25px' : '3px',
-                      bottom: '3px',
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '50%',
-                      transition: '0.2s',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }} />
-                  </span>
-                </label>
-              </div>
-
-              <div style={{
-                fontSize: '0.74rem',
-                color: 'var(--md-sys-color-on-surface-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
-                padding: '8px 12px',
-                borderRadius: '10px'
-              }}>
-                {storeModules.enableShiftManagement
-                  ? '✅ Botón "TURNOS E IPV" activo en la tienda para control estricto de caja.'
-                  : '🛡️ Las ventas se pueden realizar directamente sin obligar a abrir turno.'}
-              </div>
-            </div>
-
-            {/* Módulo 5: Productos y Enlaces Externos */}
-            <div style={{
-              padding: '18px 20px',
-              borderRadius: '18px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: storeModules.enableExternalProducts ? '2px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              boxShadow: 'var(--md-shadow-elevation-1)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                  <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    backgroundColor: storeModules.enableExternalProducts ? 'rgba(37, 99, 235, 0.12)' : 'var(--md-sys-color-surface-container-high)',
-                    color: storeModules.enableExternalProducts ? '#2563EB' : 'var(--md-sys-color-on-surface-variant)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <ExternalLink size={22} />
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
-                        Productos y Enlaces Externos
-                      </span>
-                      <span style={menuBadgeStyle(storeModules.enableExternalProducts ? 'success' : 'neutral')}>
-                        {storeModules.enableExternalProducts ? 'Activo' : 'Solo Catálogo Local'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '4px 0 0 0', lineHeight: 1.45 }}>
-                      Permite asociar productos a enlaces web directos o botones de cotización directa por WhatsApp con otros proveedores.
-                    </p>
-                  </div>
-                </div>
-
-                <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px', flexShrink: 0, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={storeModules.enableExternalProducts}
-                    onChange={e => handleToggleModule('enableExternalProducts', e.target.checked)}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: storeModules.enableExternalProducts ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
-                    borderRadius: '34px',
-                    transition: '0.2s',
-                    display: 'block'
-                  }}>
-                    <span style={{
-                      position: 'absolute',
-                      height: '22px',
-                      width: '22px',
-                      left: storeModules.enableExternalProducts ? '25px' : '3px',
-                      bottom: '3px',
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '50%',
-                      transition: '0.2s',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }} />
-                  </span>
-                </label>
-              </div>
-
-              <div style={{
-                fontSize: '0.74rem',
-                color: 'var(--md-sys-color-on-surface-variant)',
-                backgroundColor: 'var(--md-sys-color-surface-container)',
-                padding: '8px 12px',
-                borderRadius: '10px'
-              }}>
-                {storeModules.enableExternalProducts
-                  ? '✅ Opción de producto externo visible en el formulario para cotizaciones a terceros.'
-                  : '🛡️ Formulario simplificado sin opciones de links externos.'}
-              </div>
-            </div>
-
-          </div>
-        </div>
+      {activeSubView === "modules" && isOwner && (
+        <SettingsModulesView
+          storeModules={storeModules}
+          onToggleModule={handleToggleModule}
+        />
       )}
 
       {/* SUB-VIEW: PERSONALIZADOR DE TIENDA PÚBLICA E IDENTIDAD (Estilo WordPress Customizer) */}
@@ -2073,6 +1757,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             accept="image/*"
             style={{ display: 'none' }}
             onChange={e => handleImageFileChange(e, 'wide')}
+          />
+          <input
+            ref={darkWideFileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={e => handleImageFileChange(e, 'darkWide')}
+          />
+          <input
+            ref={darkSquareFileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={e => handleImageFileChange(e, 'darkSquare')}
+          />
+          <input
+            ref={faviconFileInputRef}
+            type="file"
+            accept="image/*,.ico"
+            style={{ display: 'none' }}
+            onChange={e => handleImageFileChange(e, 'favicon')}
+          />
+          <input
+            ref={faviconDarkFileInputRef}
+            type="file"
+            accept="image/*,.ico"
+            style={{ display: 'none' }}
+            onChange={e => handleImageFileChange(e, 'faviconDark')}
           />
 
           {/* Intro Card */}
@@ -2102,23 +1814,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* VISTA PREVIA EN VIVO (Live Preview estilo WordPress) */}
+          {/* VISTA PREVIA EN VIVO (Live Preview estilo WordPress / Shopify) */}
           <div className="md-card" style={{ padding: '20px', backgroundColor: 'var(--md-sys-color-surface-container)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={18} color="var(--md-sys-color-primary)" />
                 <span style={{ fontSize: '0.92rem', fontWeight: 900 }}>Vista Previa en Tiempo Real</span>
               </div>
-              <span style={{
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                padding: '4px 10px',
-                borderRadius: '9999px',
-                backgroundColor: 'var(--md-sys-color-primary-container)',
-                color: 'var(--md-sys-color-on-primary-container)'
+              
+              {/* Switcher Interactivo de Fondo para el Preview */}
+              <div style={{
+                display: 'inline-flex',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                padding: '3px',
+                borderRadius: '12px',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                gap: '4px'
               }}>
-                Simulación en Vivo
-              </span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewBgMode('dark')}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    backgroundColor: previewBgMode === 'dark' ? '#0B1528' : 'transparent',
+                    color: previewBgMode === 'dark' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  🌙 Navbar Dark
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewBgMode('light')}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    backgroundColor: previewBgMode === 'light' ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                    color: previewBgMode === 'light' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ☀️ Barra Clara
+                </button>
+              </div>
             </div>
 
             {/* Contenedor del Preview Simulado */}
@@ -2128,50 +1875,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               border: '1px solid var(--md-sys-color-outline-variant)',
               boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
             }}>
-              {/* Barra de Cabecera Simulada */}
+              {/* Barra de Cabecera Simulada con Selección Dinámica de Logo y Contraste */}
               <div style={{
-                backgroundColor: 'var(--brand-primary-darker, #0B1528)',
-                padding: '12px 16px',
+                backgroundColor: previewBgMode === 'dark' ? '#0B1528' : '#FFFFFF',
+                borderBottom: previewBgMode === 'light' ? '1px solid #E2E8F0' : '1px solid rgba(255,255,255,0.08)',
+                padding: '12px 18px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '12px'
+                gap: '12px',
+                transition: 'background-color 0.2s ease'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {logoMode === 'wide_logo' ? (
                     <img
-                      src={logoWideUrl || logoSquareUrl || '/images/logo-nav.png'}
+                      src={logoWideUrl || ((previewBgMode === 'dark' && logoDarkSquareUrl) ? logoDarkSquareUrl : (logoSquareUrl || '/images/logo-nav.png'))}
                       alt={customStoreName || 'Logo'}
-                      style={{ maxHeight: '36px', maxWidth: '210px', objectFit: 'contain' }}
+                      style={{ maxHeight: '40px', maxWidth: '240px', width: 'auto', objectFit: 'contain' }}
                     />
                   ) : (
                     <>
                       {(logoMode === 'both' || logoMode === 'logo_only') && (
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '10px',
-                          backgroundColor: '#FFFFFF',
-                          padding: '3px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                          flexShrink: 0
-                        }}>
-                          <img
-                            src={logoSquareUrl || '/images/logo-nav.png'}
-                            alt={customStoreName || 'Logo'}
-                            style={{ height: '100%', width: '100%', objectFit: 'contain' }}
-                          />
-                        </div>
+                        <img
+                          src={(previewBgMode === 'dark' && logoDarkSquareUrl) ? logoDarkSquareUrl : (logoSquareUrl || '/images/logo-nav.png')}
+                          alt={customStoreName || 'Logo'}
+                          style={{
+                            height: '38px',
+                            maxHeight: '38px',
+                            width: 'auto',
+                            objectFit: 'contain',
+                            display: 'block'
+                          }}
+                        />
                       )}
                       {(logoMode === 'both' || logoMode === 'text_only') && (
                         <span style={{ 
-                          fontSize: '1.6rem', 
+                          fontSize: '1.65rem', 
                           fontWeight: 900, 
-                          color: '#FFFFFF', 
+                          color: previewBgMode === 'dark' ? '#FFFFFF' : 'var(--brand-primary, #1A73E8)', 
                           lineHeight: 1,
+                          letterSpacing: '-0.01em',
                           fontFamily: logoFontFamily || undefined
                         }}>
                           {customStoreName || 'Samy Store'}
@@ -2184,8 +1927,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {/* Simulador de Acciones Derecha */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{
-                    backgroundColor: 'rgba(255,255,255,0.12)',
-                    color: '#FFFFFF',
+                    backgroundColor: previewBgMode === 'dark' ? 'rgba(255,255,255,0.12)' : '#F1F5F9',
+                    color: previewBgMode === 'dark' ? '#FFFFFF' : '#334155',
                     padding: '6px 12px',
                     borderRadius: '9999px',
                     fontSize: '0.74rem',
@@ -2264,7 +2007,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </p>
 
             {/* Selector de 4 Modos de Logotipo */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '22px' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gap: '12px',
+              marginBottom: '20px'
+            }}>
               {/* Opción 1: Logo Cuadrado + Título */}
               <div
                 onClick={() => setLogoMode('both')}
@@ -2368,12 +2116,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <LayoutTemplate size={16} />
-                    <span style={{ fontWeight: 900, fontSize: '0.88rem' }}>Logo Rectangular Largo</span>
+                    <span style={{ fontWeight: 900, fontSize: '0.88rem' }}>Logo Rectangular</span>
                   </div>
                   {logoMode === 'wide_logo' && <CheckCircle2 size={16} color="var(--md-sys-color-primary)" />}
                 </div>
                 <span style={{ fontSize: '0.73rem', opacity: 0.85, lineHeight: 1.35 }}>
-                  Banner apaisado horizontal exclusivo. Desactiva e inhabilita el título y el logo chiquito.
+                  Banner apaisado horizontal exclusivo. Desactiva el título y el logo pequeño.
                 </span>
               </div>
             </div>
@@ -2394,169 +2142,599 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               }}>
                 <Info size={18} color="var(--md-sys-color-primary)" style={{ flexShrink: 0 }} />
                 <span>
-                  <strong>Modo Exclusivo Activo:</strong> El banner rectangular largo se mostrará como elemento único en la cabecera. Ni el título ni el logo cuadrado pequeño lo acompañarán.
+                  <strong>Modo Banner Exclusivo Activo:</strong> El banner rectangular se mostrará como elemento único en la cabecera. Ni el título ni el logo cuadrado lo acompañarán.
                 </span>
               </div>
             )}
 
-            {/* Cuadrícula de Archivos de Logotipo */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '22px' }}>
+            {/* SECCIÓN 2: ARCHIVOS DE IDENTIDAD VISUAL ORGANIZADOS PROFESIONALMENTE */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
               
-              {/* Tarjeta Logo Cuadrado */}
+              {/* BLOQUE A: LOGOTIPOS CUADRADOS (CLARO Y DARK) */}
               <div style={{
-                padding: '16px',
+                padding: '20px',
                 borderRadius: '16px',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 backgroundColor: 'var(--md-sys-color-surface)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px',
-                opacity: logoMode === 'wide_logo' || logoMode === 'text_only' ? 0.65 : 1
+                gap: '16px',
+                opacity: logoMode === 'wide_logo' || logoMode === 'text_only' ? 0.75 : 1
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.88rem', fontWeight: 900 }}>Logotipo Cuadrado</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      backgroundColor: 'var(--md-sys-color-primary-container)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--md-sys-color-primary)',
+                      flexShrink: 0
+                    }}>
+                      <ImageIcon size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.96rem', fontWeight: 900 }}>Logotipos Cuadrados (Icono / Emblema 1:1)</div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Recomendado: 512x512 px en PNG transparente o SVG.
+                      </div>
+                    </div>
+                  </div>
                   {(logoMode === 'wide_logo' || logoMode === 'text_only') && (
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }}>
-                      Inactivo en cabecera
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '4px 10px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      Inactivo en cabecera (Modo actual)
                     </span>
                   )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '14px'
+                }}>
+                  {/* Variante 1: Logo Modo Claro (Fondos Claros & Admin) */}
                   <div style={{
-                    width: '64px',
-                    height: '64px',
+                    padding: '16px',
                     borderRadius: '14px',
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: 'var(--md-sys-color-surface-container-low, var(--md-sys-color-surface))',
                     border: '1px solid var(--md-sys-color-outline-variant)',
-                    padding: '4px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: 'var(--md-shadow-elevation-1)',
-                    flexShrink: 0
+                    gap: '14px'
                   }}>
-                    <img
-                      src={logoSquareUrl || '/images/logo-nav.png'}
-                      alt="Logo Cuadrado"
-                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                    <button
-                      type="button"
+                    {/* Canvas de Previsualización con Patrón Damero de Transparencia Claro */}
+                    <div
                       onClick={() => squareFileInputRef.current?.click()}
-                      className="md-btn md-btn-secondary"
-                      style={{ padding: '7px 12px', fontSize: '0.78rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                      title="Clic para cambiar logotipo claro"
+                      style={{
+                        width: '84px',
+                        height: '84px',
+                        borderRadius: '14px',
+                        backgroundColor: '#FFFFFF',
+                        backgroundImage: 'repeating-conic-gradient(#F1F5F9 0% 25%, #FFFFFF 0% 50%)',
+                        backgroundSize: '16px 16px',
+                        border: '1.5px dashed #CBD5E1',
+                        padding: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        flexShrink: 0,
+                        transition: 'transform 0.15s ease'
+                      }}
                     >
-                      <Upload size={14} />
-                      <span>Subir Imagen</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLogoSquareUrl('/images/logo-nav.png')}
-                      className="md-btn"
-                      style={{ padding: '6px 12px', fontSize: '0.74rem', borderRadius: '10px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
-                    >
-                      Predeterminado
-                    </button>
-                  </div>
-                </div>
+                      <img
+                        src={logoSquareUrl || '/images/logo-nav.png'}
+                        alt="Logo Claro"
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    Ruta o URL del Logo Cuadrado
-                  </label>
-                  <input
-                    type="text"
-                    value={logoSquareUrl}
-                    onChange={e => setLogoSquareUrl(e.target.value)}
-                    placeholder="/images/logo-nav.png"
-                    className="md-input"
-                    style={{ fontSize: '0.8rem', padding: '8px 12px', borderRadius: '10px' }}
-                  />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 900 }}>Logo Modo Claro</span>
+                        <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', backgroundColor: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }}>
+                          ☀️ Fondos Claros
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.71rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: 1.3 }}>
+                        Usado en la barra lateral del sistema, comprobantes y pantallas claras.
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => squareFileInputRef.current?.click()}
+                          className="md-btn md-btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '0.74rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Upload size={13} />
+                          <span>Subir Logo</span>
+                        </button>
+                        {logoSquareUrl && logoSquareUrl !== '/images/logo-nav.png' && (
+                          <button
+                            type="button"
+                            onClick={() => setLogoSquareUrl('/images/logo-nav.png')}
+                            className="md-btn"
+                            style={{ padding: '6px 10px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
+                          >
+                            Restablecer
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Variante 2: Logo Modo Dark (Navbar Oscuro & Dark Mode) */}
+                  <div style={{
+                    padding: '16px',
+                    borderRadius: '14px',
+                    backgroundColor: 'var(--md-sys-color-surface-container-low, var(--md-sys-color-surface))',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px'
+                  }}>
+                    {/* Canvas de Previsualización con Patrón Damero de Transparencia Oscuro */}
+                    <div
+                      onClick={() => darkSquareFileInputRef.current?.click()}
+                      title="Clic para subir o cambiar logotipo dark"
+                      style={{
+                        width: '84px',
+                        height: '84px',
+                        borderRadius: '14px',
+                        backgroundColor: '#070D1E',
+                        backgroundImage: 'repeating-conic-gradient(#070D1E 0% 25%, #0F1C3D 0% 50%)',
+                        backgroundSize: '16px 16px',
+                        border: '1.5px dashed rgba(255, 255, 255, 0.25)',
+                        padding: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+                        flexShrink: 0,
+                        transition: 'transform 0.15s ease'
+                      }}
+                    >
+                      <img
+                        src={logoDarkSquareUrl || logoSquareUrl || '/images/logo-nav.png'}
+                        alt="Logo Dark"
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 900 }}>Logo Modo Dark</span>
+                        {logoDarkSquareUrl ? (
+                          <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', backgroundColor: '#0B1528', color: '#60A5FA', border: '1px solid #1E3A8A' }}>
+                            🌙 Personalizado
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                            Heredado de claro
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.71rem', color: 'var(--md-sys-color-on-surface-variant)', lineHeight: 1.3 }}>
+                        Variante optimizada para el navbar de la tienda pública y tema oscuro.
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => darkSquareFileInputRef.current?.click()}
+                          className="md-btn md-btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '0.74rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Upload size={13} />
+                          <span>{logoDarkSquareUrl ? 'Cambiar Dark' : 'Subir Dark'}</span>
+                        </button>
+                        {logoDarkSquareUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setLogoDarkSquareUrl('')}
+                            className="md-btn"
+                            style={{ padding: '6px 10px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
+                          >
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Tarjeta Logo Rectangular Largo */}
+              {/* BLOQUE B: LOGOTIPO RECTANGULAR HORIZONTAL (BANNER DE CABECERA) */}
               <div style={{
-                padding: '16px',
+                padding: '20px',
                 borderRadius: '16px',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 backgroundColor: 'var(--md-sys-color-surface)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px'
+                gap: '16px',
+                opacity: logoMode !== 'wide_logo' ? 0.8 : 1
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.88rem', fontWeight: 900 }}>Logotipo Rectangular Largo</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      backgroundColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-primary)',
+                      flexShrink: 0
+                    }}>
+                      <LayoutTemplate size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.96rem', fontWeight: 900 }}>Logotipos Rectangulares (Banners Horizontales 3:1 / 4:1)</div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Recomendado: 600x150 px en PNG transparente o SVG. Reemplaza el título y el logo cuadrado en la cabecera.
+                      </div>
+                    </div>
+                  </div>
                   {logoMode === 'wide_logo' ? (
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
-                      Activo Exclusivo
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '4px 10px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                      Activo como Cabecera
                     </span>
                   ) : (
-                    <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.7 }}>Banner</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '4px 10px', borderRadius: '9999px', backgroundColor: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      Requiere modo "Logo Rectangular"
+                    </span>
                   )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '14px'
+                }}>
+                  {/* Variante 1: Banner Modo Claro */}
                   <div style={{
-                    width: '120px',
-                    height: '54px',
-                    borderRadius: '12px',
-                    backgroundColor: 'var(--brand-primary-darker, #0B1528)',
+                    padding: '16px',
+                    borderRadius: '14px',
+                    backgroundColor: 'var(--md-sys-color-surface-container-low, var(--md-sys-color-surface))',
                     border: '1px solid var(--md-sys-color-outline-variant)',
-                    padding: '6px',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
+                    flexDirection: 'column',
+                    gap: '12px'
                   }}>
-                    {logoWideUrl ? (
-                      <img
-                        src={logoWideUrl}
-                        alt="Logo Largo"
-                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 700 }}>Sin Banner</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-                    <button
-                      type="button"
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 900 }}>Banner Modo Claro</span>
+                      <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', backgroundColor: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }}>
+                        ☀️ Fondos Claros
+                      </span>
+                    </div>
+
+                    <div
                       onClick={() => wideFileInputRef.current?.click()}
-                      className="md-btn md-btn-secondary"
-                      style={{ padding: '7px 12px', fontSize: '0.78rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                      title="Clic para subir banner para fondos claros"
+                      style={{
+                        width: '100%',
+                        height: '76px',
+                        borderRadius: '12px',
+                        backgroundColor: '#FFFFFF',
+                        backgroundImage: 'repeating-conic-gradient(#F1F5F9 0% 25%, #FFFFFF 0% 50%)',
+                        backgroundSize: '16px 16px',
+                        border: '1.5px dashed #CBD5E1',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                        transition: 'transform 0.15s ease'
+                      }}
                     >
-                      <Upload size={14} />
-                      <span>Subir Banner</span>
-                    </button>
-                    {logoWideUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setLogoWideUrl('')}
-                        className="md-btn"
-                        style={{ padding: '6px 12px', fontSize: '0.74rem', borderRadius: '10px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
-                      >
-                        Quitar
-                      </button>
-                    )}
+                      {logoWideUrl ? (
+                        <img
+                          src={logoWideUrl}
+                          alt="Banner Claro"
+                          style={{ maxWidth: '100%', maxHeight: '60px', width: 'auto', objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B' }}>
+                          <Upload size={16} color="var(--brand-primary, #1A73E8)" />
+                          <span style={{ fontSize: '0.76rem', fontWeight: 700 }}>Subir banner claro</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        {logoWideUrl ? 'Banner claro activo' : 'Sin banner'}
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => wideFileInputRef.current?.click()}
+                          className="md-btn md-btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '0.74rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Upload size={13} />
+                          <span>{logoWideUrl ? 'Cambiar' : 'Subir'}</span>
+                        </button>
+                        {logoWideUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setLogoWideUrl('')}
+                            className="md-btn"
+                            style={{ padding: '6px 10px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
+                          >
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Variante 2: Banner Modo Dark */}
+                  <div style={{
+                    padding: '16px',
+                    borderRadius: '14px',
+                    backgroundColor: 'var(--md-sys-color-surface-container-low, var(--md-sys-color-surface))',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 900 }}>Banner Modo Dark</span>
+                      {logoDarkWideUrl ? (
+                        <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', backgroundColor: '#0B1528', color: '#60A5FA', border: '1px solid #1E3A8A' }}>
+                          🌙 Personalizado
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', backgroundColor: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          Hereda de claro
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      onClick={() => darkWideFileInputRef.current?.click()}
+                      title="Clic para subir banner para fondos oscuros"
+                      style={{
+                        width: '100%',
+                        height: '76px',
+                        borderRadius: '12px',
+                        backgroundColor: '#070D1E',
+                        backgroundImage: 'repeating-conic-gradient(#070D1E 0% 25%, #0F1C3D 0% 50%)',
+                        backgroundSize: '16px 16px',
+                        border: '1.5px dashed rgba(255, 255, 255, 0.25)',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        transition: 'transform 0.15s ease'
+                      }}
+                    >
+                      {logoDarkWideUrl || logoWideUrl ? (
+                        <img
+                          src={logoDarkWideUrl || logoWideUrl}
+                          alt="Banner Dark"
+                          style={{ maxWidth: '100%', maxHeight: '60px', width: 'auto', objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94A3B8' }}>
+                          <Upload size={16} color="var(--brand-primary, #60A5FA)" />
+                          <span style={{ fontSize: '0.76rem', fontWeight: 700 }}>Subir banner dark</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        {logoDarkWideUrl ? 'Banner dark activo' : 'Usa variante clara'}
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => darkWideFileInputRef.current?.click()}
+                          className="md-btn md-btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '0.74rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Upload size={13} />
+                          <span>{logoDarkWideUrl ? 'Cambiar Dark' : 'Subir Dark'}</span>
+                        </button>
+                        {logoDarkWideUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setLogoDarkWideUrl('')}
+                            className="md-btn"
+                            style={{ padding: '6px 10px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
+                          >
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* BLOQUE C: FAVICONS DEL NAVEGADOR (PESTAÑA & PWA) */}
+              <div style={{
+                padding: '18px',
+                borderRadius: '16px',
+                border: '1px solid var(--md-sys-color-outline-variant)',
+                backgroundColor: 'var(--md-sys-color-surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      backgroundColor: 'color-mix(in srgb, var(--brand-secondary, #0D9488) 15%, transparent)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-secondary, #0D9488)'
+                    }}>
+                      <Globe size={16} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 900 }}>Favicons del Navegador (Pestaña & PWA)</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Recomendado: 32x32 o 64x64 px (PNG o ICO). Se adapta automáticamente al tema claro/oscuro del navegador.
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    Ruta o URL del Logo Rectangular
-                  </label>
-                  <input
-                    type="text"
-                    value={logoWideUrl}
-                    onChange={e => setLogoWideUrl(e.target.value)}
-                    placeholder="https://... o sube una imagen"
-                    className="md-input"
-                    style={{ fontSize: '0.8rem', padding: '8px 12px', borderRadius: '10px' }}
-                  />
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                  gap: '14px'
+                }}>
+                  {/* Favicon Claro */}
+                  <div style={{
+                    padding: '14px',
+                    borderRadius: '14px',
+                    backgroundColor: 'var(--md-sys-color-surface-container-low, var(--md-sys-color-surface))',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px'
+                  }}>
+                    <div
+                      onClick={() => faviconFileInputRef.current?.click()}
+                      title="Clic para subir favicon claro"
+                      style={{
+                        width: '54px',
+                        height: '54px',
+                        borderRadius: '12px',
+                        backgroundColor: '#FFFFFF',
+                        border: '1.5px dashed #CBD5E1',
+                        padding: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                        flexShrink: 0
+                      }}
+                    >
+                      <img
+                        src={faviconUrl || logoSquareUrl || '/favicon.ico'}
+                        alt="Favicon Claro"
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800 }}>Favicon Modo Claro</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Pestañas con tema del sistema claro.
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => faviconFileInputRef.current?.click()}
+                          className="md-btn md-btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '0.74rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Upload size={13} />
+                          <span>Subir</span>
+                        </button>
+                        {faviconUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setFaviconUrl('')}
+                            className="md-btn"
+                            style={{ padding: '6px 10px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
+                          >
+                            Predeterminado
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Favicon Dark */}
+                  <div style={{
+                    padding: '14px',
+                    borderRadius: '14px',
+                    backgroundColor: 'var(--md-sys-color-surface-container-low, var(--md-sys-color-surface))',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px'
+                  }}>
+                    <div
+                      onClick={() => faviconDarkFileInputRef.current?.click()}
+                      title="Clic para subir favicon dark"
+                      style={{
+                        width: '54px',
+                        height: '54px',
+                        borderRadius: '12px',
+                        backgroundColor: '#0F172A',
+                        border: '1.5px dashed #334155',
+                        padding: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        flexShrink: 0
+                      }}
+                    >
+                      <img
+                        src={faviconDarkUrl || logoDarkSquareUrl || logoSquareUrl || '/favicon.ico'}
+                        alt="Favicon Dark"
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>Favicon Modo Dark</span>
+                        <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: '4px', backgroundColor: '#0F172A', color: '#FFFFFF' }}>Dark Mode</span>
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Pestañas con tema del sistema oscuro.
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => faviconDarkFileInputRef.current?.click()}
+                          className="md-btn md-btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '0.74rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Upload size={13} />
+                          <span>Subir Dark</span>
+                        </button>
+                        {faviconDarkUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setFaviconDarkUrl('')}
+                            className="md-btn"
+                            style={{ padding: '6px 10px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
+                          >
+                            Predeterminado
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3056,291 +3234,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       )}
 
       {/* SUB-VIEW: SEGURIDAD Y DATOS */}
-      {activeSubView === 'security' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
-          {/* PIN Management Card */}
-          <div className="md-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <Lock size={20} color="var(--md-sys-color-primary)" />
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>PIN de Seguridad Personal (4 Dígitos)</h3>
-            </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', marginBottom: '16px', lineHeight: 1.5 }}>
-              Permite desbloqueos rápidos de sesión en el punto de venta y confirma arqueos de caja sin tener que ingresar contraseñas largas.
-            </p>
-
-            <div style={{
-              padding: '16px',
-              borderRadius: '16px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>Estado del PIN:</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: hasPin ? '#059669' : 'var(--md-sys-color-on-surface-variant)' }}>
-                  {hasPin ? '🔐 Activado y Protegido (••••)' : '🔓 Sin PIN configurado'}
-                </span>
-              </div>
-
-              {!isEditingPin ? (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                  <button
-                    type="button"
-                    onClick={() => { setIsEditingPin(true); setNewPin(''); }}
-                    className="md-btn md-btn-secondary"
-                    style={{ padding: '9px 16px', fontSize: '0.82rem', borderRadius: '12px' }}
-                  >
-                    <KeyRound size={16} />
-                    <span>{hasPin ? 'Cambiar PIN' : 'Configurar PIN'}</span>
-                  </button>
-
-                  {hasPin && (
-                    <button
-                      type="button"
-                      onClick={handleRemovePin}
-                      style={{
-                        padding: '9px 14px',
-                        fontSize: '0.82rem',
-                        borderRadius: '12px',
-                        border: '1px solid #FCA5A5',
-                        backgroundColor: '#FEF2F2',
-                        color: '#DC2626',
-                        fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Desactivar PIN
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
-                  <input
-                    type="password"
-                    maxLength={4}
-                    value={newPin}
-                    onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="4 dígitos..."
-                    autoFocus
-                    style={{
-                      width: '120px',
-                      padding: '10px 14px',
-                      borderRadius: '12px',
-                      border: '1.5px solid var(--md-sys-color-primary)',
-                      backgroundColor: 'var(--md-sys-color-surface-container)',
-                      color: 'var(--md-sys-color-on-surface)',
-                      fontSize: '1.1rem',
-                      fontWeight: 900,
-                      textAlign: 'center',
-                      letterSpacing: '0.2em'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSavePin}
-                    className="md-btn md-btn-primary"
-                    style={{ padding: '10px 18px', fontSize: '0.82rem', borderRadius: '12px' }}
-                  >
-                    <Save size={16} />
-                    <span>Guardar PIN</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setIsEditingPin(false); setNewPin(''); }}
-                    className="md-btn md-btn-secondary"
-                    style={{ padding: '10px 14px', fontSize: '0.82rem', borderRadius: '12px' }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* User Management Entry Card */}
-          <div className="md-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Users size={22} color="var(--md-sys-color-primary)" />
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>Administración de Usuarios y Permisos</h3>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0' }}>
-                    Control de roles (Propietario, Administrador, Vendedor) y acceso al punto de venta.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSubView('users')}
-                className="md-btn md-btn-primary"
-                style={{ padding: '10px 18px', fontSize: '0.85rem', borderRadius: '12px' }}
-              >
-                <Users size={16} />
-                <span>Ver y Gestionar Usuarios ({usersList.length})</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Database Connection Status Card */}
-          <div className="md-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Server size={22} color="var(--md-sys-color-primary)" />
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>Base de Datos Local MySQL</h3>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-                    Conexión directa a schema <strong>cuentacasa</strong> en 127.0.0.1:3306
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={onSync}
-                  disabled={isSyncing}
-                  className="md-btn md-btn-primary"
-                  style={{ padding: '8px 16px', fontSize: '0.82rem', borderRadius: '12px' }}
-                >
-                  <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-                  <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div style={{
-              padding: '14px',
-              borderRadius: '14px',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              border: '1px solid var(--md-sys-color-outline-variant)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: '0.8rem'
-            }}>
-              <span>Operaciones pendientes en cola de sincronización:</span>
-              <strong style={{ color: pendingSyncCount > 0 ? 'var(--md-sys-color-warning)' : '#059669', fontSize: '0.9rem' }}>
-                {pendingSyncCount} pendientes
-              </strong>
-            </div>
-          </div>
-
-          {/* Cache Maintenance Actions */}
-          <div className="md-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 12px 0' }}>Mantenimiento y Caché</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
-              
-              <button
-                type="button"
-                onClick={handleClearCacheAndReload}
-                style={{
-                  padding: '14px',
-                  borderRadius: '16px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}
-              >
-                <RotateCcw size={20} color="var(--md-sys-color-primary)" />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.86rem' }}>Recargar Caché de la Aplicación</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
-                    Actualiza Service Worker y limpia caché de red sin borrar tus datos.
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  confirmAction({
-                    title: '¿Reset Total de Caché?',
-                    message: 'Esta opción vacía Service Workers y archivos temporales para una instalación limpia.',
-                    variant: 'warning',
-                    confirmText: 'Realizar Reset Limpio',
-                    onConfirm: () => performTotalCacheReset()
-                  });
-                }}
-                style={{
-                  padding: '14px',
-                  borderRadius: '16px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}
-              >
-                <Sparkles size={20} color="#D97706" />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.86rem' }}>Reset Total de Caché</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
-                    Recomendado si notas problemas de visualización o caché rebelde.
-                  </div>
-                </div>
-              </button>
-
-            </div>
-          </div>
-
-          {/* Reset / Backup Database */}
-          <div className="md-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 12px 0' }}>Respaldo y Reinicio Seguro</h3>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              
-              {onOpenRawDb && (
-                <button
-                  type="button"
-                  onClick={onOpenRawDb}
-                  className="md-btn md-btn-secondary"
-                  style={{ padding: '10px 16px', fontSize: '0.84rem', borderRadius: '12px' }}
-                >
-                  <Download size={16} />
-                  <span>Ver / Descargar Base de Datos (JSON)</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMasterPasswordInput('');
-                  setMasterPassError('');
-                  setIsMasterPassModalOpen(true);
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid #FCA5A5',
-                  backgroundColor: '#FEF2F2',
-                  color: '#DC2626',
-                  fontWeight: 800,
-                  fontSize: '0.84rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <Trash2 size={16} />
-                <span>Reiniciar Base de Datos (Conserva Usuarios)</span>
-              </button>
-
-            </div>
-          </div>
-
-        </div>
+      {activeSubView === "security" && (
+        <SettingsSecurityView
+          hasPin={hasPin}
+          isEditingPin={isEditingPin}
+          newPin={newPin}
+          onSetIsEditingPin={setIsEditingPin}
+          onSetNewPin={setNewPin}
+          onSavePin={handleSavePin}
+          onRemovePin={handleRemovePin}
+          usersCount={usersList.length}
+          onOpenUsersSubView={() => setActiveSubView("users")}
+          onSync={onSync}
+          isSyncing={isSyncing}
+          pendingSyncCount={pendingSyncCount}
+          onClearCache={handleClearCacheAndReload}
+          onTotalCacheReset={() => {
+            confirmAction({
+              title: "¿Reset Total de Caché?",
+              message: "Esta opción vacía Service Workers y archivos temporales para una instalación limpia.",
+              variant: "warning",
+              confirmText: "Realizar Reset Limpio",
+              onConfirm: () => performTotalCacheReset()
+            });
+          }}
+          onOpenRawDb={onOpenRawDb}
+          onOpenMasterPassModal={() => {
+            setMasterPasswordInput("");
+            setMasterPassError("");
+            setIsMasterPassModalOpen(true);
+          }}
+        />
       )}
 
       {/* Botón inferior de retorno al menú principal para cualquier subview */}

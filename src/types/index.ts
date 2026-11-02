@@ -1,6 +1,6 @@
 export type TransactionType = 'ingreso' | 'gasto';
 export type SupplierType = 'propia' | 'proveedor';
-export type FundAccountType = 'casa' | 'tienda' | 'ahorro';
+export type FundAccountType = 'casa' | 'tienda';
 export type CurrencyType = 'CUP' | 'USD' | 'MIXED';
 export type CurrencyMode = 'CUP' | 'USD' | 'BOTH';
 
@@ -13,7 +13,7 @@ export interface Transaction {
   currency?: CurrencyType; // Moneda: 'CUP' | 'USD'
   date: string;            // ISO String YYYY-MM-DD
   notes?: string;
-  accountSource?: FundAccountType; // Source account identifier ('casa', 'tienda', 'ahorro')
+  accountSource?: FundAccountType | 'ahorro'; // Source account identifier ('casa', 'tienda', 'ahorro' histórico)
   createdAt: number;       // Timestamp
   updatedAt: number;       // Timestamp
   synced?: boolean;        // Cloud sync status
@@ -127,6 +127,8 @@ export interface StoreSaleRecord {
   totalAmountUSD?: number; // Desglose cobrado en USD (si es mixta)
   totalCost: number;       // Total costo de adquisición
   netProfit: number;       // Ganancia neta (que va a CuentaCasa)
+  netProfitCUP?: number;   // Ganancia neta correspondiente a CUP
+  netProfitUSD?: number;   // Ganancia neta correspondiente a USD
   currency?: CurrencyType;
   paymentMethod?: PaymentMethodType;
   paymentBreakdown?: StoreSalePaymentBreakdown;
@@ -263,11 +265,17 @@ export interface RawDatabase {
     elToqueApiToken?: string;   // Token API oficial de elTOQUE (opcional para TRMI)
     lastElToqueSync?: number;   // Timestamp de la última actualización exitosa con elTOQUE
     usdIndexedPricing?: boolean; // Indexar inventario a USD y recalcular CUP dinámicamente según la tasa
+    forceShowPricesOnlyCUP?: boolean; // Forzar mostrar y cobrar precios exclusivamente en CUP en la tienda pública
+    roundUpCUPToTen?: boolean;   // Redondear importes y precios CUP a múltiplos de 10 (ej. 109 -> 110, 1257 -> 1260)
     primaryColor?: string;      // Color principal del sistema y tienda (Default: '#1A73E8')
     secondaryColor?: string;    // Color secundario del sistema y tienda (Default: armónico o '#0D9488')
     storeLogoMode?: StoreLogoDisplayMode; // Modo de presentación del logo: 'both' | 'text_only' | 'logo_only' | 'wide_logo'
-    storeLogoSquare?: string;   // Logo cuadrado (URL o data URI base64)
-    storeLogoWide?: string;     // Logo rectangular apaisado (URL o data URI base64)
+    storeLogoSquare?: string;   // Logo cuadrado fondo claro (URL o data URI base64)
+    storeLogoWide?: string;     // Logo rectangular apaisado fondo claro (URL o data URI base64)
+    storeLogoDarkSquare?: string; // Logo cuadrado para fondos oscuros / dark mode (URL o data URI base64)
+    storeLogoDarkWide?: string; // Logo apaisado para fondos oscuros / dark mode (URL o data URI base64)
+    storeFavicon?: string;      // Favicon predeterminado / modo claro
+    storeFaviconDark?: string;  // Favicon para modo oscuro (prefers-color-scheme: dark)
     storeLogoFontId?: string;   // ID del preset tipográfico del logo (e.g. 'cinzel', 'playfair', etc.)
     storeLogoFontFamily?: string; // Declaración CSS de la familia tipográfica del logo
     storeName?: string;         // Nombre corto de la tienda / sistema (default 'Samy Store')
@@ -308,6 +316,10 @@ export interface StoreCustomizationSettings {
   logoMode: StoreLogoDisplayMode;
   logoSquareUrl?: string;
   logoWideUrl?: string;
+  logoDarkSquareUrl?: string;
+  logoDarkWideUrl?: string;
+  faviconUrl?: string;
+  faviconDarkUrl?: string;
   logoFontId?: string;
   logoFontFamily?: string;
   storeName: string;

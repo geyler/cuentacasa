@@ -6,6 +6,7 @@ import {
   Home,
   Receipt,
   FileText,
+  BarChart3,
   Eye,
   EyeOff,
   Settings,
@@ -199,11 +200,11 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Reportes Header Button (Replaces top settings gear) */}
+          {/* Reportes / IPV Header Button (Siempre activo para control contable de productos e inventario) */}
           {isOwner && (
             <button
               onClick={() => setActiveTab('reports')}
-              title="Reportes y Estadísticas"
+              title="Historial IPV y Control de Inventario"
               style={{
                 padding: '6px 12px',
                 borderRadius: '9999px',
@@ -218,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({
                 fontWeight: 800
               }}
             >
-              <FileText size={16} color={activeTab === 'reports' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)'} />
+              <FileText size={16} color={activeTab === 'reports' ? 'var(--brand-primary, #1A73E8)' : 'var(--md-sys-color-on-surface-variant)'} />
               <span>IPV</span>
             </button>
           )}
@@ -638,7 +639,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <FileText size={16} />
-                          <span>Historial IPV por Periodos</span>
+                          <span>Historial IPV y Ventas</span>
                         </div>
                         <ChevronRight size={14} opacity={0.4} />
                       </button>
@@ -692,7 +693,19 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Scan size={20} color="var(--md-sys-color-primary)" />
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                      color: 'var(--brand-primary, #1A73E8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Scan size={18} />
+                    </div>
                     <span>Escáner de Ventas</span>
                   </div>
                   <ChevronRight size={18} opacity={0.6} />

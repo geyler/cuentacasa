@@ -14,6 +14,7 @@ const pool = (process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MY
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      connectTimeout: 2000,
       ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined
     })
   : null;
@@ -269,6 +270,9 @@ export function isMySQLConfigured(): boolean {
 
 export async function checkMySQLConnection(): Promise<boolean> {
   if (!pool) return false;
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return false;
+  }
   try {
     await Promise.race([
       pool.query('SELECT 1'),
@@ -329,6 +333,54 @@ export async function getServerProductById(id: string): Promise<StoreProduct | n
     console.warn('Error in getServerProductById:', err);
   }
   return null;
+}
+
+export async function getServerPublishedProducts(): Promise<StoreProduct[]> {
+  try {
+    const hasDB = await checkMySQLConnection();
+    if (pool && hasDB) {
+      await ensureTableExists();
+      const [rows] = await pool.query<mysql.RowDataPacket[]>(
+        'SELECT * FROM store_products WHERE published = 1 ORDER BY sales_count DESC, created_at DESC LIMIT 60'
+      );
+      return rows.map(r => ({
+        id: r.id,
+        barcode: r.barcode,
+        name: r.name,
+        costPrice: 0,
+        price: Number(r.price || 0),
+        priceUSD: r.price_usd !== null && r.price_usd !== undefined ? Number(r.price_usd) : undefined,
+        currency: (r.currency as any) || 'CUP',
+        unit: r.unit || 'u',
+        category: r.category,
+        description: r.description || undefined,
+        stock: Number(r.stock || 0),
+        photoUrl: r.photo_url || undefined,
+        published: true,
+        salesCount: Number(r.sales_count || 0),
+        supplierType: 'propia',
+        isExternal: Boolean(r.is_external),
+        externalType: (r.external_type as any) || undefined,
+        externalUrl: r.external_url || undefined,
+        ratingScore: r.rating_score !== null && r.rating_score !== undefined ? Number(r.rating_score) : undefined,
+        ratingCount: r.rating_count !== null && r.rating_count !== undefined ? Number(r.rating_count) : undefined,
+        createdAt: Number(r.created_at || Date.now()),
+        updatedAt: Number(r.updated_at || Date.now())
+      }));
+    } else {
+      const dataFile = path.join(process.cwd(), 'data', 'cuentacasa_cloud_db.json');
+      const nextFile = path.join(process.cwd(), '.next', 'cuentacasa_cloud_db.json');
+      const targetFile = fs.existsSync(dataFile) ? dataFile : (fs.existsSync(nextFile) ? nextFile : null);
+      if (targetFile) {
+        const parsed = JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
+        const products: StoreProduct[] = Array.isArray(parsed?.storeProducts) ? parsed.storeProducts : [];
+        return products.filter(p => p.published !== false);
+      }
+    }
+  } catch (err) {
+    console.warn('Error in getServerPublishedProducts:', err);
+  }
+  return [];
 }
 
 export default pool;

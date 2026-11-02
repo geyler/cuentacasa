@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppTab, AppUser } from '@/types';
+import { getStoreModulesConfig, StoreModulesConfig } from '@/lib/storage';
 import { 
   Home, 
   LayoutDashboard, 
@@ -21,7 +22,8 @@ import {
   TrendingUp,
   ShieldCheck,
   Clock,
-  FileSpreadsheet
+  FileSpreadsheet,
+  FileText
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -57,14 +59,24 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 }) => {
   const isOwner = !currentUser || currentUser.role === 'propietario';
 
+  const [storeModules, setStoreModules] = useState<StoreModulesConfig>(() => getStoreModulesConfig());
+
+  useEffect(() => {
+    const handleModulesChanged = (e: any) => {
+      setStoreModules(e?.detail || getStoreModulesConfig());
+    };
+    window.addEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+    return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
+  }, []);
+
   const navItems: { id: AppTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'quick', label: 'Inicio', icon: <Home size={18} /> },
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { id: 'store', label: 'Tienda & POS', icon: <Store size={18} /> },
     { id: 'transactions', label: 'Movimientos', icon: <Receipt size={18} /> },
-    { id: 'reports', label: 'Reportes', icon: <BarChart3 size={18} /> },
-    { id: 'shifts', label: 'Turnos e IPV', icon: <Clock size={18} /> },
-    { id: 'valuation', label: 'Trazabilidad & Tasación', icon: <FileSpreadsheet size={18} /> }
+    { id: 'reports', label: 'Reporte IPV', icon: <FileText size={18} /> },
+    ...(storeModules.enableShiftManagement ? [{ id: 'shifts' as AppTab, label: 'Turnos de Caja', icon: <Clock size={18} /> }] : []),
+    ...(storeModules.enableFoodTraceability ? [{ id: 'valuation' as AppTab, label: 'Trazabilidad & Tasación', icon: <FileSpreadsheet size={18} /> }] : [])
   ];
 
   return (
@@ -219,7 +231,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             textAlign: 'left'
           }}
         >
-          <Scan size={18} color="var(--brand-secondary, #0D9488)" />
+          <Scan size={18} color="var(--brand-primary, #1A73E8)" />
           <span style={{ flex: 1 }}>Escanear / POS</span>
         </button>
 

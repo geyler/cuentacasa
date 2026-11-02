@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://samystore.cu'),
   title: "Samy Store - POS & Gestión de Tienda PWA",
   description: "Aplicación PWA / WebAPK 100% offline para POS, ventas, gestión de inventario y finanzas de Samy Store.",
   manifest: "/manifest.json",
@@ -32,6 +33,7 @@ export default function RootLayout({
     <html lang="es">
       <head>
         <link id="cuentacasa-app-favicon" rel="icon" href="/icons/icon-192.png" type="image/png" />
+        <link id="cuentacasa-app-favicon-dark" rel="icon" href="/icons/icon-192.png" type="image/png" media="(prefers-color-scheme: dark)" />
         <link id="cuentacasa-apple-touch-icon" rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -110,13 +112,18 @@ export default function RootLayout({
                       document.title = cust.storeName;
                     }
 
-                    // Favicon e icono de la app procesado
-                    var iconUrl = cust.logoSquareUrl || localStorage.getItem('cuentacasa_app_favicon');
+                    // Favicons claro y oscuro
+                    var iconUrl = cust.faviconUrl || cust.logoSquareUrl || localStorage.getItem('cuentacasa_app_favicon');
+                    var darkIconUrl = cust.faviconDarkUrl || cust.logoDarkSquareUrl || iconUrl;
                     if (iconUrl) {
                       var fav = document.getElementById('cuentacasa-app-favicon');
                       if (fav) fav.href = iconUrl;
                       var apple = document.getElementById('cuentacasa-apple-touch-icon');
                       if (apple) apple.href = iconUrl;
+                    }
+                    if (darkIconUrl) {
+                      var favDark = document.getElementById('cuentacasa-app-favicon-dark');
+                      if (favDark) favDark.href = darkIconUrl;
                     }
                   }
                 } catch(e) {}

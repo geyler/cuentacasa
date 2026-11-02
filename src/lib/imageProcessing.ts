@@ -67,27 +67,41 @@ export async function processSquareLogoImage(file: File): Promise<{
 
 /**
  * Actualiza dinámicamente los elementos <link rel="icon"> y <link rel="apple-touch-icon">
- * en el documento HTML actual sin recargar la página.
+ * en el documento HTML actual sin recargar la página, soportando Favicon Claro y Oscuro.
  */
-export function updateDocumentIcons(iconUrl: string) {
-  if (typeof document === 'undefined' || !iconUrl) return;
-  try {
-    let fav = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
-    if (!fav) {
-      fav = document.createElement('link');
-      fav.rel = 'icon';
-      document.head.appendChild(fav);
-    }
-    fav.type = 'image/png';
-    fav.href = iconUrl;
+export function updateDocumentIcons(iconUrl?: string, darkIconUrl?: string) {
+  if (typeof document === 'undefined') return;
+  const primaryIcon = iconUrl || '/favicon.ico';
+  const darkIcon = darkIconUrl || primaryIcon;
 
+  try {
+    // 1. Favicon base (tema claro / por defecto)
+    let favLight = document.querySelector<HTMLLinkElement>("link[rel='icon']:not([media])");
+    if (!favLight) {
+      favLight = document.createElement('link');
+      favLight.rel = 'icon';
+      document.head.appendChild(favLight);
+    }
+    favLight.href = primaryIcon;
+
+    // 2. Favicon para tema oscuro del navegador (si no hay uno dedicado, reutiliza el principal)
+    let favDark = document.querySelector<HTMLLinkElement>("link[rel='icon'][media*='dark']");
+    if (!favDark) {
+      favDark = document.createElement('link');
+      favDark.rel = 'icon';
+      favDark.setAttribute('media', '(prefers-color-scheme: dark)');
+      document.head.appendChild(favDark);
+    }
+    favDark.href = darkIcon;
+
+    // 3. Apple Touch Icon
     let appleIcon = document.querySelector<HTMLLinkElement>("link[rel='apple-touch-icon']");
     if (!appleIcon) {
       appleIcon = document.createElement('link');
       appleIcon.rel = 'apple-touch-icon';
       document.head.appendChild(appleIcon);
     }
-    appleIcon.href = iconUrl;
+    appleIcon.href = primaryIcon;
   } catch (e) {
     console.warn('No se pudo actualizar el favicon dinámico:', e);
   }

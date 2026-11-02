@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { getProductSeoMeta } from '@/lib/seoHelper';
 import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
+import { ProductDetailSkeleton } from '@/components/common/AppSkeleton';
 
 interface ProductDetailClientProps {
   id: string;
@@ -77,14 +78,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
   }, [id]);
 
   if (!mounted && !initialProduct) {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--md-sys-color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: 'var(--md-sys-color-primary)' }}>
-          <ShoppingBag size={40} className="animate-bounce" />
-          <p style={{ marginTop: '12px', fontWeight: 700, fontSize: '0.9rem' }}>Cargando detalles del producto...</p>
-        </div>
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {
@@ -122,9 +116,23 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
     currencySettings.currencyMode,
     currencySettings.exchangeRateUSD,
     product.priceUSD,
-    currencySettings.usdIndexedPricing
+    currencySettings.usdIndexedPricing,
+    currencySettings.forceShowPricesOnlyCUP,
+    currencySettings.roundUpCUPToTen
   );
   const badgeStyle = getCurrencyBadgeStyle(disp.currency);
+
+  const secondaryCurr = disp.currency === 'USD' ? 'CUP' : 'USD';
+  const secondaryDisp = getProductDisplayPrice(
+    product.price || 0,
+    product.currency || 'CUP',
+    secondaryCurr,
+    currencySettings.exchangeRateUSD,
+    product.priceUSD,
+    currencySettings.usdIndexedPricing,
+    false,
+    currencySettings.roundUpCUPToTen
+  );
 
   const cartQuery = `${product.barcode || '0000'}:${quantity}`;
   const checkoutLink = typeof window !== 'undefined' ? `${window.location.origin}/app?cart=${encodeURIComponent(cartQuery)}` : `https://cuentacasa.app/app?cart=${encodeURIComponent(cartQuery)}`;
@@ -356,17 +364,42 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                 </div>
               </div>
 
-              <span style={{
-                fontSize: '0.85rem',
-                fontWeight: 900,
-                padding: '4px 12px',
-                borderRadius: '8px',
-                backgroundColor: disp.currency === 'USD' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--brand-primary-light, #EFF6FF)',
-                color: disp.currency === 'USD' ? 'var(--brand-secondary-dark, #115E59)' : 'var(--brand-primary-dark, #1E3A8A)',
-                border: disp.currency === 'USD' ? '1px solid var(--brand-secondary-border, #99F6E4)' : '1px solid var(--brand-primary-border, #BFDBFE)'
-              }}>
-                Moneda: {disp.currency === 'USD' ? 'USD' : 'CUP'}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                <span style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 900,
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  backgroundColor: disp.currency === 'USD' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--brand-primary-light, #EFF6FF)',
+                  color: disp.currency === 'USD' ? 'var(--brand-secondary-dark, #115E59)' : 'var(--brand-primary-dark, #1E3A8A)',
+                  border: disp.currency === 'USD' ? '1px solid var(--brand-secondary-border, #99F6E4)' : '1px solid var(--brand-primary-border, #BFDBFE)'
+                }}>
+                  {disp.currency}
+                </span>
+
+                {!currencySettings.forceShowPricesOnlyCUP && currencySettings.currencyMode === 'BOTH' && (Boolean(product.priceUSD && product.priceUSD > 0) || product.currency === 'USD' || currencySettings.usdIndexedPricing) && (
+                  <div
+                    className="tabular-nums"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 8px',
+                      borderRadius: '9999px',
+                      backgroundColor: disp.currency === 'USD' ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--brand-secondary-light, #F0FDFA)',
+                      color: disp.currency === 'USD' ? 'var(--brand-primary-dark, #1E3A8A)' : 'var(--brand-secondary-dark, #115E59)',
+                      border: disp.currency === 'USD' ? '1px solid var(--brand-primary-border, #BFDBFE)' : '1px solid var(--brand-secondary-border, #99F6E4)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      fontVariantNumeric: 'tabular-nums'
+                    }}
+                  >
+                    <span style={{ opacity: 0.65 }}>≈</span>
+                    <span>{formatCurrency(secondaryDisp.amount, secondaryDisp.currency, true)}</span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 900 }}>{secondaryDisp.currency}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Description Card */}

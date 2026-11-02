@@ -47,7 +47,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'todos' | TransactionType>('todos');
-  const [movementScope, setMovementScope] = useState<'casa' | 'tienda' | 'ahorro'>('casa');
+  const [movementScope, setMovementScope] = useState<'casa' | 'tienda'>('casa');
   const [selectedTransactionForModal, setSelectedTransactionForModal] = useState<Transaction | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [, setTick] = useState(0);
@@ -114,7 +114,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       
-      {/* Top Scope Switcher: Casa vs Tienda vs Ahorro */}
+      {/* Top Scope Switcher: Casa vs Tienda */}
       {!limit && (
         <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--md-sys-color-surface-container)', padding: '6px', borderRadius: '16px' }}>
           <button
@@ -163,30 +163,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           >
             <Store size={16} />
             <span>Gestión Negocio</span>
-          </button>
-
-          <button
-            onClick={() => setMovementScope('ahorro')}
-            style={{
-              flex: 1,
-              padding: '8px 10px',
-              borderRadius: '12px',
-              border: 'none',
-              fontSize: '0.8rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              backgroundColor: movementScope === 'ahorro' ? 'var(--md-sys-color-primary)' : 'transparent',
-              color: movementScope === 'ahorro' ? '#FFFFFF' : 'var(--md-sys-color-on-surface-variant)',
-              boxShadow: movementScope === 'ahorro' ? '0 4px 12px rgba(26, 115, 232, 0.25)' : 'none',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <PiggyBank size={16} />
-            <span>Ahorro</span>
           </button>
         </div>
       )}
@@ -295,9 +271,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             const scopeType = tx.accountSource || (
               (tx.category.toLowerCase().includes('tienda') || tx.category.toLowerCase().includes('proveedor') || tx.concept.toLowerCase().includes('venta pos')) ? 'tienda' : 'casa'
             );
-            const scopeLabel = scopeType === 'tienda' ? '🏪 Tienda' : scopeType === 'ahorro' ? '🐖 Ahorro' : '🏠 Casa';
-            const scopeBg = scopeType === 'tienda' ? 'var(--md-sys-color-primary-container)' : scopeType === 'ahorro' ? 'var(--md-sys-color-surface-container-high)' : 'var(--md-sys-color-surface-container)';
-            const scopeColor = scopeType === 'tienda' ? 'var(--md-sys-color-primary)' : scopeType === 'ahorro' ? 'var(--md-sys-color-on-surface-variant)' : 'var(--md-sys-color-on-surface)';
+            const scopeLabel = scopeType === 'tienda' ? '🏪 Tienda' : '🏠 Casa';
+            const scopeBg = scopeType === 'tienda' ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-surface-container)';
+            const scopeColor = scopeType === 'tienda' ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface)';
             const scopeBorder = scopeType === 'tienda' ? '1px solid var(--md-sys-color-primary)' : '1px solid var(--md-sys-color-outline-variant)';
 
             return (
@@ -348,7 +324,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         {tx.concept}
                       </h4>
 
-                      {/* Explicit Casa vs Tienda vs Ahorro Badge */}
+                      {/* Explicit Casa vs Tienda Badge */}
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',

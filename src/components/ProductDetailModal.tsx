@@ -100,7 +100,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     currencySettings.currencyMode,
     currencySettings.exchangeRateUSD,
     activeProduct.priceUSD,
-    currencySettings.usdIndexedPricing
+    currencySettings.usdIndexedPricing,
+    currencySettings.forceShowPricesOnlyCUP,
+    currencySettings.roundUpCUPToTen
   );
   const badgeStyle = getCurrencyBadgeStyle(disp.currency);
 
@@ -111,7 +113,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     secondaryCurr,
     currencySettings.exchangeRateUSD,
     activeProduct.priceUSD,
-    currencySettings.usdIndexedPricing
+    currencySettings.usdIndexedPricing,
+    false,
+    currencySettings.roundUpCUPToTen
   );
 
   const catMeta = getCategoryVisualMeta(activeProduct.category);
@@ -393,22 +397,36 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   )}
                 </div>
 
-                {currencySettings.currencyMode === 'BOTH' && (Boolean(activeProduct.priceUSD && activeProduct.priceUSD > 0) || activeProduct.currency === 'USD' || currencySettings.usdIndexedPricing) && (
+                {!currencySettings.forceShowPricesOnlyCUP && currencySettings.currencyMode === 'BOTH' && (Boolean(activeProduct.priceUSD && activeProduct.priceUSD > 0) || activeProduct.currency === 'USD' || currencySettings.usdIndexedPricing) && (
                   <div style={{
-                    marginTop: '8px',
-                    paddingTop: '8px',
-                    borderTop: '1px dashed #CBD5E1',
-                    fontSize: '0.8rem',
-                    color: '#475569',
-                    fontWeight: 700,
+                    marginTop: '10px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px'
                   }}>
-                    <span>Aprox. en {secondaryDisp.currency}:</span>
-                    <strong style={{ color: 'var(--brand-primary, #1A73E8)' }}>
-                      {formatCurrency(secondaryDisp.amount, secondaryDisp.currency, true)} {secondaryDisp.currency}
-                    </strong>
+                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 700 }}>
+                      Equivalente:
+                    </span>
+                    <div
+                      className="tabular-nums"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '3px 10px',
+                        borderRadius: '9999px',
+                        backgroundColor: disp.currency === 'USD' ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--brand-secondary-light, #F0FDFA)',
+                        color: disp.currency === 'USD' ? 'var(--brand-primary-dark, #1E3A8A)' : 'var(--brand-secondary-dark, #115E59)',
+                        border: disp.currency === 'USD' ? '1px solid var(--brand-primary-border, #BFDBFE)' : '1px solid var(--brand-secondary-border, #99F6E4)',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        fontVariantNumeric: 'tabular-nums'
+                      }}
+                    >
+                      <span style={{ opacity: 0.65 }}>≈</span>
+                      <span>{formatCurrency(secondaryDisp.amount, secondaryDisp.currency, true)}</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900 }}>{secondaryDisp.currency}</span>
+                    </div>
                   </div>
                 )}
               </div>

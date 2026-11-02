@@ -149,7 +149,7 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
                   onClick={onResetFilters}
                   style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                 >
-                  <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" />
+                  <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" variant="dark" />
                 </div>
               </div>
 
@@ -645,7 +645,7 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" />
+                <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" variant="dark" />
               </div>
 
               <button

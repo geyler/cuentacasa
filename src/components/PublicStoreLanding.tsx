@@ -35,6 +35,7 @@ import {
   PublicAddToCartSheet,
   PublicStoreCartDrawer
 } from '@/components/store';
+import { StoreCatalogSkeleton, SkeletonBox } from '@/components/common/AppSkeleton';
 
 import {
   ShoppingBag,
@@ -54,8 +55,17 @@ interface CartItem {
 
 type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'rating' | 'name';
 
-export const PublicStoreLanding: React.FC = () => {
-  const [products, setProducts] = useState<StoreProduct[]>([]);
+interface PublicStoreLandingProps {
+  initialProducts?: StoreProduct[];
+}
+
+export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialProducts = [] }) => {
+  const [products, setProducts] = useState<StoreProduct[]>(() => {
+    if (initialProducts && initialProducts.length > 0) return initialProducts;
+    return [];
+  });
+  const [isClientMounted, setIsClientMounted] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(initialProducts.length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
   const [sortBy, setSortBy] = useState<SortOption>('featured');
@@ -64,6 +74,8 @@ export const PublicStoreLanding: React.FC = () => {
   const [displayCurrency, setDisplayCurrency] = useState<'CUP' | 'USD'>('CUP');
   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(320);
   const [usdIndexedPricing, setUsdIndexedPricing] = useState<boolean>(false);
+  const [forceShowPricesOnlyCUP, setForceShowPricesOnlyCUP] = useState<boolean>(false);
+  const [roundUpCUPToTen, setRoundUpCUPToTen] = useState<boolean>(false);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -121,19 +133,26 @@ export const PublicStoreLanding: React.FC = () => {
   };
 
   useEffect(() => {
+    setIsClientMounted(true);
     const filterPublished = (list: StoreProduct[]) => list.filter(p => p.published);
 
     const syncLocalSettings = () => {
       const settings = getCurrencySettings();
       setCurrencyMode(settings.currencyMode || 'BOTH');
-      setDisplayCurrency(settings.currencyMode === 'USD' ? 'USD' : 'CUP');
+      setForceShowPricesOnlyCUP(Boolean(settings.forceShowPricesOnlyCUP));
+      setRoundUpCUPToTen(Boolean(settings.roundUpCUPToTen));
+      setDisplayCurrency(settings.forceShowPricesOnlyCUP ? 'CUP' : (settings.currencyMode === 'USD' ? 'USD' : 'CUP'));
       setExchangeRateUSD(settings.exchangeRateUSD);
       setUsdIndexedPricing(Boolean(settings.usdIndexedPricing));
       applyBrandPaletteToDocument(getPrimaryThemeColor(), getSecondaryThemeColor());
     };
 
     const all = getStoreProducts();
-    setProducts(filterPublished(all));
+    const localPublished = filterPublished(all);
+    if (localPublished.length > 0) {
+      setProducts(localPublished);
+      setIsInitialLoading(false);
+    }
     syncLocalSettings();
 
     syncPublicCatalog(false).then(res => {
@@ -144,6 +163,8 @@ export const PublicStoreLanding: React.FC = () => {
       }
     }).catch(err => {
       console.warn('Silent cloud sync warning on landing:', err);
+    }).finally(() => {
+      setIsInitialLoading(false);
     });
 
     const refreshLanding = () => {
@@ -248,7 +269,9 @@ export const PublicStoreLanding: React.FC = () => {
         displayCurrency,
         exchangeRateUSD,
         prod.priceUSD,
-        usdIndexedPricing
+        usdIndexedPricing,
+        forceShowPricesOnlyCUP,
+        roundUpCUPToTen
       ).amount;
     };
 
@@ -336,7 +359,9 @@ export const PublicStoreLanding: React.FC = () => {
       displayCurrency,
       exchangeRateUSD,
       prod.priceUSD,
-      usdIndexedPricing
+      usdIndexedPricing,
+      forceShowPricesOnlyCUP,
+      roundUpCUPToTen
     );
     const subtotal = disp.amount * qty;
 
@@ -384,7 +409,9 @@ export const PublicStoreLanding: React.FC = () => {
       displayCurrency,
       exchangeRateUSD,
       item.product.priceUSD,
-      usdIndexedPricing
+      usdIndexedPricing,
+      forceShowPricesOnlyCUP,
+      roundUpCUPToTen
     );
     return sum + (disp.amount * item.quantity);
   }, 0);
@@ -404,7 +431,9 @@ export const PublicStoreLanding: React.FC = () => {
         displayCurrency,
         exchangeRateUSD,
         item.product.priceUSD,
-        usdIndexedPricing
+        usdIndexedPricing,
+        forceShowPricesOnlyCUP,
+        roundUpCUPToTen
       );
       text += `${index + 1}. *${item.product.name}*\n   Cant: ${item.quantity}${item.product.unit || 'u'} | Subtotal: $${disp.amount * item.quantity} ${disp.currency}\n`;
     });
@@ -436,13 +465,18 @@ export const PublicStoreLanding: React.FC = () => {
 
   // Solo mostrar el selector de moneda cuando existan productos públicos en doble moneda / USD y la tienda esté en modo BOTH
   const hasDualCurrencyProducts = useMemo(() => {
+    if (forceShowPricesOnlyCUP) return false;
     if (currencyMode !== 'BOTH') return false;
     if (products.length === 0) return false;
     const hasUSDProduct = products.some(
       p => p.currency === 'USD' || (typeof p.priceUSD === 'number' && p.priceUSD > 0)
     );
     return hasUSDProduct || usdIndexedPricing;
-  }, [currencyMode, products, usdIndexedPricing]);
+  }, [forceShowPricesOnlyCUP, currencyMode, products, usdIndexedPricing]);
+
+  if (!isClientMounted && products.length === 0) {
+    return <StoreCatalogSkeleton />;
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column' }}>
@@ -724,6 +758,8 @@ export const PublicStoreLanding: React.FC = () => {
                     displayCurrency={displayCurrency}
                     exchangeRateUSD={exchangeRateUSD}
                     usdIndexedPricing={usdIndexedPricing}
+                    forceShowPricesOnlyCUP={forceShowPricesOnlyCUP}
+                    roundUpCUPToTen={roundUpCUPToTen}
                     showDualCurrency={hasDualCurrencyProducts}
                     onOpenDetail={handleOpenProductModal}
                     onAddToCart={handleOpenAddToCartSheet}
@@ -836,6 +872,9 @@ export const PublicStoreLanding: React.FC = () => {
                           displayCurrency={displayCurrency}
                           exchangeRateUSD={exchangeRateUSD}
                           usdIndexedPricing={usdIndexedPricing}
+                          forceShowPricesOnlyCUP={forceShowPricesOnlyCUP}
+                          roundUpCUPToTen={roundUpCUPToTen}
+                          showDualCurrency={hasDualCurrencyProducts}
                           onOpenDetail={handleOpenProductModal}
                           onAddToCart={handleOpenAddToCartSheet}
                           onUpdateCartQty={updateQuantity}
@@ -979,35 +1018,65 @@ export const PublicStoreLanding: React.FC = () => {
 
           {/* Grid de Productos */}
           {filteredProducts.length === 0 ? (
-            <div className="md-card" style={{ textAlign: 'center', padding: '48px 20px', maxWidth: '440px', margin: '28px auto', borderRadius: '22px', backgroundColor: '#FFFFFF' }}>
-              <ShoppingBag size={44} style={{ color: '#94A3B8', marginBottom: '12px' }} />
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>
-                No se encontraron productos
-              </h3>
-              <p style={{ fontSize: '0.84rem', color: '#64748B', marginTop: '6px', marginBottom: '16px' }}>
-                Prueba con otra categoría o limpia tu búsqueda.
-              </p>
-              <button
-                type="button"
-                onClick={handleResetAllFilters}
-                style={{
-                  backgroundColor: 'var(--brand-primary, #1A73E8)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '9999px',
-                  padding: '10px 20px',
-                  fontSize: '0.84rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <RotateCcw size={14} />
-                <span>Ver Todo el Catálogo</span>
-              </button>
-            </div>
+            isInitialLoading ? (
+              <div className="store-product-grid">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div
+                    key={i}
+                    className="md-card"
+                    style={{
+                      padding: '12px',
+                      borderRadius: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                      backgroundColor: '#FFFFFF'
+                    }}
+                  >
+                    <SkeletonBox width="100%" height="180px" borderRadius="16px" />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <SkeletonBox width="70px" height="16px" borderRadius="6px" />
+                      <SkeletonBox width="50px" height="16px" borderRadius="6px" />
+                    </div>
+                    <SkeletonBox width="85%" height="20px" borderRadius="6px" />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                      <SkeletonBox width="90px" height="24px" borderRadius="6px" />
+                      <SkeletonBox width="36px" height="36px" borderRadius="10px" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="md-card" style={{ textAlign: 'center', padding: '48px 20px', maxWidth: '440px', margin: '28px auto', borderRadius: '22px', backgroundColor: '#FFFFFF' }}>
+                <ShoppingBag size={44} style={{ color: '#94A3B8', marginBottom: '12px' }} />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>
+                  No se encontraron productos
+                </h3>
+                <p style={{ fontSize: '0.84rem', color: '#64748B', marginTop: '6px', marginBottom: '16px' }}>
+                  Prueba con otra categoría o limpia tu búsqueda.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResetAllFilters}
+                  style={{
+                    backgroundColor: 'var(--brand-primary, #1A73E8)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    padding: '10px 20px',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <RotateCcw size={14} />
+                  <span>Ver Todo el Catálogo</span>
+                </button>
+              </div>
+            )
           ) : (
             <div className="store-product-grid">
               {filteredProducts.map(product => {
@@ -1020,6 +1089,8 @@ export const PublicStoreLanding: React.FC = () => {
                     displayCurrency={displayCurrency}
                     exchangeRateUSD={exchangeRateUSD}
                     usdIndexedPricing={usdIndexedPricing}
+                    forceShowPricesOnlyCUP={forceShowPricesOnlyCUP}
+                    roundUpCUPToTen={roundUpCUPToTen}
                     showDualCurrency={hasDualCurrencyProducts}
                     onOpenDetail={handleOpenProductModal}
                     onAddToCart={handleOpenAddToCartSheet}

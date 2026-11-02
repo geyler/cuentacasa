@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppUser } from '@/types';
-import { getLoggedInUser, saveAppUser, getStoreSales } from '@/lib/storage';
+import { getLoggedInUser, saveAppUser, getStoreSales, getUserPin, setUserPin, clearUserPin } from '@/lib/storage';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
@@ -59,13 +59,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setPassword(activeUser.password || '');
-      const existingPin = localStorage.getItem('cuentacasa_pin') || '';
+      setPassword('');
+      const existingPin = getUserPin(activeUser.username) || '';
       setPin(existingPin);
       setShowPasswordForm(false);
       setShowPinForm(false);
     }
-  }, [isOpen, activeUser]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -98,16 +98,18 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password.trim() || password.length < 4) {
+    const cleanPass = password.trim();
+    if (!cleanPass || cleanPass.length < 4) {
       showToast({ title: 'Contraseña Inválida', message: 'Ingresa al menos 4 caracteres.', type: 'warning' });
       return;
     }
 
     saveAppUser({
       ...activeUser,
-      password: password.trim()
+      password: cleanPass
     });
 
+    setPassword('');
     setShowPasswordForm(false);
     showToast({ title: '¡Contraseña Actualizada!', message: 'Tu contraseña de acceso ha sido cambiada.', type: 'success' });
   };
@@ -115,15 +117,15 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const handleUpdatePin = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin && pin.length !== 4) {
-      showToast({ title: 'PIN Inválido', message: 'El PIN debe contener exactamente 4 dígitos.', type: 'warning' });
+      showToast({ title: 'PIN Inválido', message: 'El PIN debe contener exactamente 4 dígitos numéricos.', type: 'warning' });
       return;
     }
 
     if (pin) {
-      localStorage.setItem('cuentacasa_pin', pin);
+      setUserPin(activeUser.username, pin);
       showToast({ title: 'PIN Actualizado', message: 'Tu PIN de desbloqueo diario de 4 dígitos fue actualizado.', type: 'success' });
     } else {
-      localStorage.removeItem('cuentacasa_pin');
+      clearUserPin(activeUser.username);
       showToast({ title: 'PIN Removido', message: 'Se ha desactivado el PIN diario.', type: 'info' });
     }
     setShowPinForm(false);
@@ -411,7 +413,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <span>PIN de Desbloqueo Diario (4 dígitos)</span>
             </div>
             <span style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-              {localStorage.getItem('cuentacasa_pin') ? 'Activo' : 'Sin PIN'}
+              {getUserPin(activeUser.username) ? 'Activo (••••)' : 'Sin PIN'}
             </span>
           </button>
         ) : (

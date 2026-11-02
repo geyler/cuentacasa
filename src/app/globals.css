@@ -158,17 +158,19 @@
   --md-sys-color-warning-container: #FFFBEB;
   --md-sys-color-on-warning-container: #92400E;
 
+  --md-sys-color-background: #EEF2F6;
   --md-sys-color-surface: #FFFFFF;
   --md-sys-color-on-surface: #0F172A;
   --md-sys-color-surface-container: #FFFFFF;
-  --md-sys-color-surface-container-high: #F8FAFC;
-  --md-sys-color-surface-variant: #F1F5F9;
+  --md-sys-color-surface-container-high: #FFFFFF;
+  --md-sys-color-surface-container-low: #FFFFFF;
+  --md-sys-color-surface-variant: #E2E8F0;
   --md-sys-color-on-surface-variant: #64748B;
   
-  --md-sys-color-outline: #E2E8F0;
-  --md-sys-color-outline-variant: #F1F5F9;
+  --md-sys-color-outline: #CBD5E1;
+  --md-sys-color-outline-variant: #E2E8F0;
   
-  --md-shadow-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.06), 0px 1px 2px rgba(0, 0, 0, 0.08);
+  --md-shadow-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.05), 0px 1px 2px rgba(0, 0, 0, 0.03);
   --md-shadow-elevation-2: 0px 4px 12px rgba(0, 0, 0, 0.06), 0px 2px 4px rgba(0, 0, 0, 0.04);
   --md-shadow-elevation-3: 0px 8px 24px rgba(0, 0, 0, 0.08), 0px 4px 8px rgba(0, 0, 0, 0.05);
 
@@ -202,6 +204,7 @@
   --md-sys-color-warning-container: #78350F;
   --md-sys-color-on-warning-container: #FEF3C7;
 
+  --md-sys-color-background: #0B1120;
   --md-sys-color-surface: #0F172A;
   --md-sys-color-on-surface: #F8FAFC;
   --md-sys-color-surface-container: #1E293B;
@@ -224,7 +227,7 @@
 }
 
 html {
-  background-color: var(--md-sys-color-surface, #FFFFFF);
+  background-color: var(--md-sys-color-background, #F1F5F9);
   color: var(--md-sys-color-on-surface, #0F172A);
 }
 
@@ -235,7 +238,7 @@ body {
   width: 100%;
   min-height: 100vh;
   position: relative;
-  background-color: var(--md-sys-color-surface, #FFFFFF);
+  background-color: var(--md-sys-color-background, #F1F5F9);
   color: var(--md-sys-color-on-surface, #0F172A);
   margin: 0;
   padding: 0;
@@ -322,26 +325,48 @@ body {
   }
 }
 
-/* Skeleton Loading Shimmer Effect */
+/* Legacy .skeleton compatibility mapped to shimmer */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--md-sys-color-surface-container-high) 25%,
-    var(--md-sys-color-surface-variant) 50%,
-    var(--md-sys-color-surface-container-high) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite linear;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--md-sys-color-surface-container, rgba(226, 232, 240, 0.6));
   border-radius: 8px;
 }
 
-@keyframes skeleton-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+.skeleton::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.35) 40%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.35) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer 1.8s infinite ease-in-out;
+  content: '';
+}
+
+[data-theme='dark'] .skeleton,
+.dark .skeleton {
+  background-color: var(--md-sys-color-surface-container-high, rgba(30, 41, 59, 0.7));
+}
+
+[data-theme='dark'] .skeleton::after,
+.dark .skeleton::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
 }
 
 /* Material Ripple / Interaction Animation */
@@ -738,6 +763,8 @@ body {
 
 /* Responsive Bottom Sheet on Mobile (< 768px) & Centered Dialog on PC (>= 768px) */
 .bottom-sheet-modal {
+  background-color: var(--md-sys-color-surface-container, #FFFFFF);
+  color: var(--md-sys-color-on-surface, #0F172A);
   animation: slideUpModal 0.26s cubic-bezier(0.16, 1, 0.3, 1);
   border-top-left-radius: 28px !important;
   border-top-right-radius: 28px !important;
@@ -1034,4 +1061,56 @@ input:focus, select:focus, textarea:focus {
 * {
   scrollbar-width: thin !important;
   scrollbar-color: rgba(148, 163, 184, 0.25) transparent !important;
+}
+
+/* Professional High-Performance Skeleton Shimmer Effect */
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--md-sys-color-surface-container, rgba(226, 232, 240, 0.6));
+}
+
+.skeleton-shimmer::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.35) 40%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.35) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: skeleton-shimmer 1.8s infinite ease-in-out;
+  content: '';
+}
+
+[data-theme='dark'] .skeleton-shimmer,
+.dark .skeleton-shimmer {
+  background-color: var(--md-sys-color-surface-container-high, rgba(30, 41, 59, 0.7));
+}
+
+[data-theme='dark'] .skeleton-shimmer::after,
+.dark .skeleton-shimmer::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
 }
