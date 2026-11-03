@@ -518,20 +518,25 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       return;
     }
 
-    if (multiTotals.isMixed) {
+    const currSettings = getCurrencySettings();
+    const isOnlyCUP = Boolean(currSettings.forceShowPricesOnlyCUP) || currSettings.currencyMode === 'CUP';
+    const allowed = currSettings.posPaymentMethods || { cashCUP: true, transferCUP: true, cashUSD: true, fiado: true, split: true };
+
+    if (!isOnlyCUP && multiTotals.isMixed && allowed.split !== false) {
       setCheckoutMethod('mixto');
       setSplitCashCUP(multiTotals.totalCUP > 0 ? multiTotals.totalCUP.toString() : '');
       setSplitCashUSD(multiTotals.totalUSD > 0 ? multiTotals.totalUSD.toString() : '');
       setSplitTransferCUP('');
       setSplitDebtCUP('');
       setSplitDebtUSD('');
-    } else if (multiTotals.hasUSD) {
+    } else if (!isOnlyCUP && multiTotals.hasUSD && allowed.cashUSD !== false) {
       setCheckoutMethod('usd');
       setReceivedCashUSD(multiTotals.totalUSD.toString());
       setReceivedCashCUP('');
     } else {
-      setCheckoutMethod('efectivo');
-      setReceivedCashCUP(multiTotals.totalCUP.toString());
+      const defaultMethod: PaymentMethodType = allowed.cashCUP !== false ? 'efectivo' : (allowed.transferCUP !== false ? 'transferencia' : 'efectivo');
+      setCheckoutMethod(defaultMethod);
+      setReceivedCashCUP(multiTotals.equivalentCUP.toString());
       setReceivedCashUSD('');
     }
 
@@ -1433,37 +1438,46 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))',
                 gap: '6px'
               }}>
-                {[
-                  { id: 'efectivo', label: 'Efectivo CUP', icon: <Banknote size={15} /> },
-                  { id: 'transferencia', label: 'Transferencia', icon: <SendHorizontal size={15} /> },
-                  { id: 'usd', label: 'Dólares USD', icon: <DollarSign size={15} /> },
-                  { id: 'fiado', label: 'Fiado / Deuda', icon: <CreditCard size={15} /> },
-                  { id: 'mixto', label: 'Combinado', icon: <Split size={15} /> },
-                ].map(m => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setCheckoutMethod(m.id as PaymentMethodType)}
-                    style={{
-                      padding: '8px 4px',
-                      borderRadius: '12px',
-                      border: checkoutMethod === m.id ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
-                      backgroundColor: checkoutMethod === m.id ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
-                      color: checkoutMethod === m.id ? 'var(--brand-primary-dark, #1E3A8A)' : 'var(--md-sys-color-on-surface)',
-                      fontWeight: checkoutMethod === m.id ? 900 : 700,
-                      fontSize: '0.74rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {m.icon}
-                    <span>{m.label}</span>
-                  </button>
-                ))}
+                {(() => {
+                  const currSettings = getCurrencySettings();
+                  const isOnlyCUP = Boolean(currSettings.forceShowPricesOnlyCUP) || currSettings.currencyMode === 'CUP';
+                  const allowed = currSettings.posPaymentMethods || { cashCUP: true, transferCUP: true, cashUSD: true, fiado: true, split: true };
+
+                  const allMethods: Array<{ id: PaymentMethodType; label: string; icon: React.ReactNode; enabled: boolean }> = [
+                    { id: 'efectivo', label: 'Efectivo CUP', icon: <Banknote size={15} />, enabled: allowed.cashCUP !== false },
+                    { id: 'transferencia', label: 'Transferencia', icon: <SendHorizontal size={15} />, enabled: allowed.transferCUP !== false },
+                    { id: 'usd', label: 'Dólares USD', icon: <DollarSign size={15} />, enabled: !isOnlyCUP && allowed.cashUSD !== false },
+                    { id: 'fiado', label: 'Fiado / Deuda', icon: <CreditCard size={15} />, enabled: allowed.fiado !== false },
+                    { id: 'mixto', label: 'Combinado', icon: <Split size={15} />, enabled: !isOnlyCUP && allowed.split !== false },
+                  ];
+
+                  const available = allMethods.filter(m => m.enabled);
+                  return available.map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setCheckoutMethod(m.id)}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: '12px',
+                        border: checkoutMethod === m.id ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: checkoutMethod === m.id ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
+                        color: checkoutMethod === m.id ? 'var(--brand-primary-dark, #1E3A8A)' : 'var(--md-sys-color-on-surface)',
+                        fontWeight: checkoutMethod === m.id ? 900 : 700,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {m.icon}
+                      <span>{m.label}</span>
+                    </button>
+                  ));
+                })()}
               </div>
             </div>
 

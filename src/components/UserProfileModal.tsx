@@ -512,7 +512,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 Mi Perfil de Usuario
               </h2>
               <p style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '2px 0 0 0', fontWeight: 600 }}>
-                Samy Store • @{activeUser.username} ({activeUser.role})
+                Cubasoft ERP • @{activeUser.username} ({activeUser.role})
               </p>
             </div>
           </div>

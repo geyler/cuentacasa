@@ -90,7 +90,7 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
 
                   {/* Concept & Metadata */}
                   <div style={{ overflow: 'hidden', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <h4 style={{
                         fontSize: '0.88rem',
                         fontWeight: 800,
@@ -103,23 +103,6 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
                         {itemsTitle}
                       </h4>
 
-                      {/* Ticket Badge */}
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        padding: '1px 6px',
-                        borderRadius: '6px',
-                        fontSize: '0.65rem',
-                        fontWeight: 800,
-                        backgroundColor: 'var(--brand-primary-light, #FCE7F3)',
-                        color: 'var(--brand-primary, #EC4899)',
-                        border: '1px solid var(--brand-primary-border, #FBCFE8)',
-                        flexShrink: 0
-                      }}>
-                        🧾 Ticket #{sale.id.slice(-6)}
-                      </span>
-
                       {/* Currency Badge */}
                       <span style={{
                         display: 'inline-flex',
@@ -128,9 +111,9 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
                         borderRadius: '6px',
                         fontSize: '0.65rem',
                         fontWeight: 800,
-                        backgroundColor: saleCurrency === 'USD' ? '#ECFEFF' : '#E6F4EA',
-                        color: saleCurrency === 'USD' ? '#0F766E' : '#137333',
-                        border: saleCurrency === 'USD' ? '1px solid #99F6E4' : '1px solid #A8DADC',
+                        backgroundColor: saleCurrency === 'USD' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--brand-primary-light, #EFF6FF)',
+                        color: saleCurrency === 'USD' ? '#0D9488' : 'var(--md-sys-color-on-surface)',
+                        border: saleCurrency === 'USD' ? '1px solid var(--brand-secondary-border, #99F6E4)' : '1px solid var(--md-sys-color-outline-variant)',
                         flexShrink: 0
                       }}>
                         {saleCurrency}
@@ -138,20 +121,17 @@ export const StoreSalesTab: React.FC<StoreSalesTabProps> = ({
                     </div>
 
                     <div style={{
-                      fontSize: '0.74rem',
+                      fontSize: '0.72rem',
                       color: 'var(--md-sys-color-on-surface-variant)',
                       fontWeight: 600,
-                      marginTop: '3px',
+                      marginTop: '2px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      flexWrap: 'wrap'
+                      gap: '6px'
                     }}>
-                      <span>👤 {sale.sellerName || (sale.sellerUsername ? `@${sale.sellerUsername}` : (sale as any).seller || 'Administrador')}</span>
-                      <span>•</span>
                       <span>📅 {formatRecordDateTime(sale.timestamp || sale.createdAt, sale.date) || 'Reciente'}</span>
                       <span>•</span>
-                      <span>📦 {totalUnits} {totalUnits === 1 ? 'unidad' : 'unidades'}</span>
+                      <span>{totalUnits} {totalUnits === 1 ? 'ud' : 'uds'}</span>
                     </div>
                   </div>
                 </div>

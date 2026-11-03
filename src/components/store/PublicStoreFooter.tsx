@@ -25,9 +25,10 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { getCategoryVisualMeta } from '@/lib/seoHelper';
-import { getLoggedInUser, getStoreCustomizationSettings, StoreCustomizationSettings } from '@/lib/storage';
+import { getLoggedInUser, getStoreCustomizationSettings, StoreCustomizationSettings, getCurrencySettings } from '@/lib/storage';
 import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 import { CategoryStatItem } from './PublicStoreHeaderBar';
+import { APP_VERSION } from '@/lib/version';
 
 interface PublicStoreFooterProps {
   categories: CategoryStatItem[];
@@ -121,13 +122,27 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
     }
   };
 
-  const paymentMethods = [
-    '💵 Efectivo CUP',
-    '💲 Efectivo USD',
-    '📲 Transfermóvil',
-    '💳 EnZona',
-    '🤝 Pago en Entrega'
-  ];
+  // Métodos de pago dinámicos seleccionados por el propietario en el panel de administración
+  const currencySettings = getCurrencySettings();
+  const methodsConfig = currencySettings.posPaymentMethods || {
+    cashCUP: true,
+    transferCUP: true,
+    cashUSD: true,
+    fiado: true,
+    split: true
+  };
+  const allowUSD = currencySettings.currencyMode !== 'CUP' && !currencySettings.forceShowPricesOnlyCUP;
+
+  const paymentMethods: string[] = [];
+  if (methodsConfig.cashCUP) paymentMethods.push('💵 Efectivo CUP');
+  if (methodsConfig.transferCUP) paymentMethods.push('📲 Transfermóvil / EnZona');
+  if (methodsConfig.cashUSD && allowUSD) paymentMethods.push('💲 Dólares USD');
+  if (methodsConfig.fiado) paymentMethods.push('🤝 Pago en Entrega / Crédito');
+  if (methodsConfig.split && allowUSD) paymentMethods.push('🔀 Pago Mixto');
+
+  if (paymentMethods.length === 0) {
+    paymentMethods.push('💵 Efectivo CUP', '📲 Transferencia');
+  }
 
   return (
     <footer style={{
@@ -284,7 +299,7 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
       <div className="store-container" style={{ paddingTop: '36px', paddingBottom: '28px' }}>
         {/* Identidad de Marca (Visible tanto en PC como en Móvil arriba de los acordeones) */}
         <div className="mobile-only" style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" style={{ marginBottom: '8px' }} />
+          <StoreBrandDisplay customization={customization} align="left" size="sm" variant="dark" textColor="#FFFFFF" style={{ marginBottom: '8px' }} />
         </div>
 
         {/* VISTA MÓVIL (< 768px): Acordeones Colapsables para no alargar el scroll en teléfonos */}
@@ -473,7 +488,7 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
           }}>
             {/* COLUMNA 1: Identidad Oficial */}
             <div>
-              <StoreBrandDisplay customization={customization} align="left" size="sm" textColor="#FFFFFF" style={{ marginBottom: '14px' }} />
+              <StoreBrandDisplay customization={customization} align="left" size="sm" variant="dark" textColor="#FFFFFF" style={{ marginBottom: '14px' }} />
 
               <p style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: '1.58', margin: '0 0 14px 0' }}>
                 Tu mercado online y tienda física en Las Tunas, Cuba. Artículos seleccionados con stock real y entregas a domicilio.
@@ -870,7 +885,7 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
               padding: '2px 8px',
               borderRadius: '9999px'
             }}>
-              v1.7.5
+              v{APP_VERSION}
             </span>
           </div>
 
@@ -970,12 +985,15 @@ export const PublicStoreFooter: React.FC<PublicStoreFooterProps> = ({
             {activeHelpSection === 'pagos' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.88rem', color: '#334155', lineHeight: '1.5' }}>
                 <p style={{ margin: 0 }}>
-                  Aceptamos múltiples modalidades de pago para tu comodidad:
+                  Aceptamos las siguientes modalidades habilitadas por el establecimiento:
                 </p>
                 <ul style={{ paddingLeft: '18px', margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <li><strong>Efectivo en CUP o USD</strong> (o pago combinado).</li>
-                  <li><strong>Transfermóvil y EnZona</strong> previa coordinación en el pedido.</li>
-                  <li>Conversión automática a tasa vigente (1 USD = {exchangeRateUSD} CUP).</li>
+                  {paymentMethods.map(pm => (
+                    <li key={pm}><strong>{pm}</strong></li>
+                  ))}
+                  {allowUSD && (
+                    <li>Conversión automática a tasa vigente (1 USD = {exchangeRateUSD} CUP).</li>
+                  )}
                 </ul>
               </div>
             )}

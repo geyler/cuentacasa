@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { FundAccountType, CurrencyType } from '@/types';
 import { getRawDatabase, getCasaAvailableBalance, executeUniversalTransfer, getCurrencySettings, getLoggedInUser } from '@/lib/storage';
-import { formatCurrency, calculateFinancialSummary } from '@/lib/invoice';
+import { formatCurrency } from '@/lib/invoice';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { AppInput } from '@/components/common/AppInput';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
-import { ArrowRightLeft, X, Store, Home, Coins, Wallet, Lock } from 'lucide-react';
+import { ArrowRightLeft, X, Store, Home, Coins, Lock } from 'lucide-react';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -27,16 +27,19 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   useLockBodyScroll(isOpen, onClose);
   const { showActionResult, showToast, confirmAction } = useActionFeedback();
 
+  // Mode: 'transfer' (same currency between accounts) vs 'convert' (USD <-> CUP exchange)
+  const [activeTab, setActiveTab] = useState<'transfer' | 'convert'>('transfer');
+
+  // Transfer Mode States
   const [fromAccount, setFromAccount] = useState<FundAccountType>(defaultFrom);
   const [toAccount, setToAccount] = useState<FundAccountType>(
     defaultTo !== defaultFrom ? defaultTo : (defaultFrom === 'casa' ? 'tienda' : 'casa')
   );
-
-  // Transfer Mode: Standard (same currency) vs Cross-Currency Conversion (USD <-> CUP)
-  const [isCrossCurrencyMode, setIsCrossCurrencyMode] = useState<boolean>(false);
   const [sameCurrency, setSameCurrency] = useState<CurrencyType>('CUP');
-  
-  // Cross-Currency Direction
+
+  // Convert Mode States
+  const [convertFromAccount, setConvertFromAccount] = useState<FundAccountType>('casa');
+  const [convertToAccountMode, setConvertToAccountMode] = useState<'same' | 'other'>('same');
   const [conversionDirection, setConversionDirection] = useState<'USD_TO_CUP' | 'CUP_TO_USD'>('USD_TO_CUP');
   const [exchangeRate, setExchangeRate] = useState<number>(320);
 
@@ -48,18 +51,21 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       const cSettings = getCurrencySettings();
       setExchangeRate(cSettings.exchangeRateUSD || 320);
       if (cSettings.currencyMode === 'CUP') {
-        setIsCrossCurrencyMode(false);
+        setActiveTab('transfer');
         setSameCurrency('CUP');
       } else if (cSettings.currencyMode === 'USD') {
-        setIsCrossCurrencyMode(false);
+        setActiveTab('transfer');
         setSameCurrency('USD');
       }
+      setAmount('');
+      setNotes('');
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const rawDb = getRawDatabase();
+  const isCrossCurrencyMode = activeTab === 'convert';
 
   // Effective Source & Target Currency
   const activeSourceCurrency: CurrencyType = isCrossCurrencyMode
@@ -69,6 +75,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const activeTargetCurrency: CurrencyType = isCrossCurrencyMode
     ? (conversionDirection === 'USD_TO_CUP' ? 'CUP' : 'USD')
     : sameCurrency;
+
+  const effectiveFromAccount: FundAccountType = isCrossCurrencyMode ? convertFromAccount : fromAccount;
+  const effectiveToAccount: FundAccountType = isCrossCurrencyMode
+    ? (convertToAccountMode === 'same' ? convertFromAccount : (convertFromAccount === 'casa' ? 'tienda' : 'casa'))
+    : toAccount;
 
   // Balance calculation for source currency
   const getAccountBalanceInCurrency = (acc: FundAccountType, curr: CurrencyType): number => {
@@ -87,13 +98,13 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   const getAccountLabel = (acc: FundAccountType): string => {
     switch (acc) {
-      case 'casa': return '🏡 Fondo de la Casa';
-      case 'tienda': return '🏬 Fondo del Negocio';
+      case 'casa': return '🏡 Fondo Casa';
+      case 'tienda': return '🏬 Fondo Negocio';
     }
   };
 
-  const availableSourceBalance = getAccountBalanceInCurrency(fromAccount, activeSourceCurrency);
-  const availableTargetBalance = getAccountBalanceInCurrency(toAccount, activeTargetCurrency);
+  const availableSourceBalance = getAccountBalanceInCurrency(effectiveFromAccount, activeSourceCurrency);
+  const availableTargetBalance = getAccountBalanceInCurrency(effectiveToAccount, activeTargetCurrency);
   const srcSymbol = activeSourceCurrency === 'USD' ? 'US$' : '$';
   const tgtSymbol = activeTargetCurrency === 'USD' ? 'US$' : '$';
 
@@ -102,18 +113,13 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   let calculatedTargetAmount = 0;
   if (isCrossCurrencyMode && numAmount > 0 && exchangeRate > 0) {
     if (conversionDirection === 'USD_TO_CUP') {
-      calculatedTargetAmount = Math.round(numAmount * exchangeRate * 100) / 100;
+      calculatedTargetAmount = Math.round(numAmount * exchangeRate);
     } else {
       calculatedTargetAmount = Math.round((numAmount / exchangeRate) * 100) / 100;
     }
   } else {
     calculatedTargetAmount = numAmount;
   }
-
-  const handleFromChange = (acc: FundAccountType) => {
-    setFromAccount(acc);
-    setToAccount(acc === 'casa' ? 'tienda' : 'casa');
-  };
 
   const handleExecuteTransfer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,35 +131,35 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     if (numAmount > availableSourceBalance) {
       showToast({
         title: 'Saldo Insuficiente',
-        message: `El saldo disponible en ${getAccountLabel(fromAccount)} (${activeSourceCurrency}) es ${srcSymbol} ${availableSourceBalance}.`,
+        message: `El saldo disponible en ${getAccountLabel(effectiveFromAccount)} (${activeSourceCurrency}) es ${srcSymbol} ${availableSourceBalance}.`,
         type: 'error'
       });
       return;
     }
 
-    const fromLabel = getAccountLabel(fromAccount);
-    const toLabel = getAccountLabel(toAccount);
+    const fromLabel = getAccountLabel(effectiveFromAccount);
+    const toLabel = getAccountLabel(effectiveToAccount);
 
     const titleText = isCrossCurrencyMode ? '¿Confirmar Conversión de Divisa?' : '¿Confirmar Transferencia?';
     const detailMsg = isCrossCurrencyMode
-      ? `Se debitarán ${srcSymbol}${numAmount} ${activeSourceCurrency} de ${fromLabel} y se acreditarán ${tgtSymbol}${calculatedTargetAmount} ${activeTargetCurrency} en ${toLabel} (Tasa: 1 USD = ${exchangeRate} CUP).`
-      : `Se moverán ${formatCurrency(numAmount, activeSourceCurrency, true)} de ${fromLabel} hacia ${toLabel}.`;
+      ? `Se debitarán ${srcSymbol} ${numAmount} ${activeSourceCurrency} de ${fromLabel} y se acreditarán ${tgtSymbol} ${calculatedTargetAmount} ${activeTargetCurrency} en ${toLabel} (Tasa: 1 USD = ${exchangeRate} CUP).`
+      : `Se moverán ${formatCurrency(numAmount, activeSourceCurrency, true)} desde ${fromLabel} hacia ${toLabel}.`;
 
     confirmAction({
       title: titleText,
       message: detailMsg,
       variant: 'info',
-      confirmText: isCrossCurrencyMode ? 'Convertir y Transferir' : 'Confirmar y Transferir',
+      confirmText: isCrossCurrencyMode ? 'Confirmar Conversión' : 'Confirmar Transferencia',
       onConfirm: () => {
         const res = executeUniversalTransfer({
-          fromAccount,
-          toAccount,
+          fromAccount: effectiveFromAccount,
+          toAccount: effectiveToAccount,
           amount: numAmount,
           currency: activeSourceCurrency,
           targetCurrency: activeTargetCurrency,
           exchangeRate: exchangeRate,
           targetAmount: calculatedTargetAmount,
-          notes
+          notes: notes.trim() || (isCrossCurrencyMode ? `Conversión de divisas ${activeSourceCurrency} ➔ ${activeTargetCurrency}` : undefined)
         });
 
         if (res.success) {
@@ -165,8 +171,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           showActionResult({
             title: isCrossCurrencyMode ? '¡Conversión Exitosa!' : '¡Transferencia Registrada!',
             message: isCrossCurrencyMode
-              ? `Convertidos ${srcSymbol}${numAmount} ${activeSourceCurrency} ➔ ${tgtSymbol}${calculatedTargetAmount} ${activeTargetCurrency} desde ${fromLabel} hacia ${toLabel}.`
-              : `Movimiento exitoso de ${srcSymbol}${numAmount} desde ${fromLabel} a ${toLabel}.`,
+              ? `Convertidos ${srcSymbol} ${numAmount} ${activeSourceCurrency} ➔ ${tgtSymbol} ${calculatedTargetAmount} ${activeTargetCurrency} en ${toLabel}.`
+              : `Movimiento exitoso de ${formatCurrency(numAmount, activeSourceCurrency, true)} hacia ${toLabel}.`,
             type: 'success'
           });
         } else {
@@ -201,7 +207,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         onClick={e => e.stopPropagation()}
         onSubmit={isOwner ? handleExecuteTransfer : (e) => { e.preventDefault(); onClose(); }}
         style={{
-          backgroundColor: 'var(--md-sys-color-surface-container)',
+          backgroundColor: '#FFFFFF',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
           maxWidth: '520px',
@@ -218,31 +224,32 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
         {/* Header Bar */}
         <div style={{
-          padding: '12px 20px 14px 20px',
+          padding: '14px 20px',
           borderBottom: '1px solid var(--md-sys-color-outline-variant)',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          backgroundColor: '#FFFFFF'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '38px',
               height: '38px',
               borderRadius: '12px',
-              backgroundColor: 'var(--md-sys-color-primary-container)',
-              color: 'var(--md-sys-color-on-primary-container)',
+              backgroundColor: isCrossCurrencyMode ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--brand-primary-light, #EFF6FF)',
+              color: isCrossCurrencyMode ? '#0D9488' : 'var(--brand-primary, #1A73E8)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <ArrowRightLeft size={20} />
+              {isCrossCurrencyMode ? <Coins size={20} /> : <ArrowRightLeft size={20} />}
             </div>
             <div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--md-sys-color-on-surface)' }}>
-                {isCrossCurrencyMode ? 'Conversión de Divisas (USD ↔ CUP)' : (isOwner ? 'Cuentas y Transferencias' : 'Saldos de Cuenta')}
+                {isCrossCurrencyMode ? 'Cambiar Divisa (CUP ⇄ USD)' : (isOwner ? 'Mover Fondos entre Cuentas' : 'Saldos de Cuenta')}
               </h3>
               <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                {isOwner ? 'Intercambio de fondos y control financiero' : 'Consulta de saldo de operaciones'}
+                {isOwner ? 'Gestión clara de divisas y fondos sin cruzar cuentas' : 'Consulta de saldo de operaciones'}
               </span>
             </div>
           </div>
@@ -266,7 +273,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         </div>
 
         {/* Scrollable Form Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px', backgroundColor: '#FFFFFF' }}>
 
         {/* Top Balances Cards (Casa & Negocio) */}
         {isOwner ? (
@@ -279,7 +286,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             <div style={{
               padding: '12px 14px',
               borderRadius: '14px',
-              backgroundColor: 'var(--md-sys-color-surface-container-high)',
+              backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
               border: '1px solid var(--md-sys-color-outline-variant)',
               display: 'flex',
               flexDirection: 'column',
@@ -287,10 +294,10 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             }}>
               <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>🏡 Fondo Casa</span>
               <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap' }}>
-                ${casaBalCUP.toLocaleString('es-ES')} CUP
+                $ {casaBalCUP.toLocaleString('es-ES')}
               </div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--brand-secondary-dark, #115E59)', whiteSpace: 'nowrap' }}>
-                US$ {casaBalUSD.toLocaleString('es-ES')} USD
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0D9488', whiteSpace: 'nowrap' }}>
+                US$ {casaBalUSD.toFixed(2)}
               </span>
             </div>
 
@@ -298,18 +305,18 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             <div style={{
               padding: '12px 14px',
               borderRadius: '14px',
-              backgroundColor: '#ECFDF5',
-              border: '1.5px solid #A7F3D0',
+              backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+              border: '1px solid var(--md-sys-color-outline-variant)',
               display: 'flex',
               flexDirection: 'column',
               gap: '3px'
             }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#065F46' }}>🏬 Fondo Negocio</span>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', whiteSpace: 'nowrap' }}>
-                ${storeBalCUP.toLocaleString('es-ES')} CUP
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>🏬 Fondo Negocio</span>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap' }}>
+                $ {storeBalCUP.toLocaleString('es-ES')}
               </div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F766E', whiteSpace: 'nowrap' }}>
-                US$ {storeBalUSD.toLocaleString('es-ES')} USD
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0D9488', whiteSpace: 'nowrap' }}>
+                US$ {storeBalUSD.toFixed(2)}
               </span>
             </div>
           </div>
@@ -317,29 +324,29 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           <div style={{
             padding: '16px',
             borderRadius: '16px',
-            backgroundColor: '#ECFDF5',
-            border: '1.5px solid #A7F3D0',
+            backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+            border: '1px solid var(--md-sys-color-outline-variant)',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#065F46' }}>🏬 Saldo Disponible del Negocio</span>
-              <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#A7F3D0', color: '#064E3B', fontWeight: 800 }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>🏬 Saldo Disponible del Negocio</span>
+              <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', fontWeight: 800 }}>
                 Administración
               </span>
             </div>
             <div style={{ display: 'flex', gap: '20px', alignItems: 'baseline', marginTop: '2px' }}>
               <div>
-                <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 700, display: 'block' }}>Moneda Nacional:</span>
-                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#047857' }}>
-                  ${storeBalCUP.toLocaleString('es-ES')} CUP
+                <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, display: 'block' }}>Moneda Nacional:</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                  $ {storeBalCUP.toLocaleString('es-ES')}
                 </span>
               </div>
               <div>
-                <span style={{ fontSize: '0.72rem', color: '#0F766E', fontWeight: 700, display: 'block' }}>Divisa:</span>
-                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0F766E' }}>
-                  US$ {storeBalUSD.toLocaleString('es-ES')} USD
+                <span style={{ fontSize: '0.72rem', color: '#0D9488', fontWeight: 700, display: 'block' }}>Divisa USD:</span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0D9488' }}>
+                  US$ {storeBalUSD.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -350,7 +357,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           <div style={{
             padding: '16px',
             borderRadius: '14px',
-            backgroundColor: 'var(--md-sys-color-surface-container-high)',
+            backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
             border: '1px solid var(--md-sys-color-outline-variant)',
             display: 'flex',
             alignItems: 'center',
@@ -364,461 +371,503 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </div>
         ) : (
           <>
+          {/* Top Segmented Mode Tabs: Mover entre Cuentas vs Cambiar Divisa */}
+          {(() => {
+            const { currencyMode } = getCurrencySettings();
+            const allowConvert = currencyMode === 'BOTH';
 
-        {/* Mode Selector: Misma Moneda vs Conversión USD ↔ CUP */}
-        {(() => {
-          const { currencyMode } = getCurrencySettings();
-          if (currencyMode !== 'BOTH') return null;
-
-          return (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '6px',
-              backgroundColor: 'var(--md-sys-color-surface-container-high)',
-              padding: '4px',
-              borderRadius: '14px'
-            }}>
-              <button
-                type="button"
-                onClick={() => setIsCrossCurrencyMode(false)}
-                style={{
-                  padding: '8px',
-                  borderRadius: '10px',
-                  border: !isCrossCurrencyMode ? '2px solid var(--md-sys-color-primary)' : 'none',
-                  backgroundColor: !isCrossCurrencyMode ? 'var(--md-sys-color-surface)' : 'transparent',
-                  color: !isCrossCurrencyMode ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer'
-                }}
-              >
-                ↔️ Misma Moneda
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsCrossCurrencyMode(true)}
-                style={{
-                  padding: '8px',
-                  borderRadius: '10px',
-                  border: isCrossCurrencyMode ? '2px solid #7C3AED' : 'none',
-                  backgroundColor: isCrossCurrencyMode ? '#F5F3FF' : 'transparent',
-                  color: isCrossCurrencyMode ? '#6D28D9' : 'var(--md-sys-color-on-surface-variant)',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '4px'
-                }}
-              >
-                <Coins size={14} />
-                <span>USD ↔ CUP</span>
-              </button>
-            </div>
-          );
-        })()}
-
-        {/* Standard Currency Selector (if Misma Moneda) */}
-        {!isCrossCurrencyMode && getCurrencySettings().currencyMode === 'BOTH' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Moneda de la Operación *
-            </label>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '6px'
-            }}>
-              <button
-                type="button"
-                onClick={() => setSameCurrency('CUP')}
-                style={{
-                  padding: '8px',
-                  borderRadius: '10px',
-                  border: sameCurrency === 'CUP' ? '2px solid #059669' : '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: sameCurrency === 'CUP' ? '#ECFDF5' : 'var(--md-sys-color-surface)',
-                  color: sameCurrency === 'CUP' ? '#047857' : 'var(--md-sys-color-on-surface)',
-                  fontWeight: 800,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer'
-                }}
-              >
-                💵 CUP ($)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSameCurrency('USD')}
-                style={{
-                  padding: '8px',
-                  borderRadius: '10px',
-                  border: sameCurrency === 'USD' ? '2px solid #0F766E' : '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: sameCurrency === 'USD' ? '#CCFBF1' : 'var(--md-sys-color-surface)',
-                  color: sameCurrency === 'USD' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
-                  fontWeight: 800,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer'
-                }}
-              >
-                💲 USD (US$)
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {isCrossCurrencyMode && (
-          /* Cross-Currency Direction Selector & Exchange Rate */
-          <div style={{
-            padding: '12px',
-            borderRadius: '14px',
-            backgroundColor: '#F5F3FF',
-            border: '1.5px solid #DDD6FE',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#6D28D9' }}>
-                Dirección de Conversión:
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6D28D9' }}>Tasa: 1 USD =</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  pattern="[0-9]*"
+            return (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: allowConvert ? '1fr 1fr' : '1fr',
+                gap: '6px',
+                backgroundColor: 'var(--md-sys-color-surface-container-high, #E2E8F0)',
+                padding: '4px',
+                borderRadius: '14px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('transfer')}
                   style={{
-                    width: '65px',
-                    padding: '4px 6px',
-                    borderRadius: '8px',
-                    border: '1.5px solid #7C3AED',
-                    backgroundColor: '#FFF',
-                    fontSize: '0.82rem',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: activeTab === 'transfer' ? '2px solid var(--brand-primary, #1A73E8)' : 'none',
+                    backgroundColor: activeTab === 'transfer' ? 'var(--md-sys-color-surface-container, #FFFFFF)' : 'transparent',
+                    color: activeTab === 'transfer' ? 'var(--brand-primary, #1A73E8)' : 'var(--md-sys-color-on-surface-variant)',
                     fontWeight: 800,
-                    textAlign: 'center'
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: activeTab === 'transfer' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'
                   }}
-                  value={exchangeRate}
-                  onChange={e => setExchangeRate(e.target.value === '' ? '' as any : parseFloat(e.target.value))}
-                />
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6D28D9' }}>CUP</span>
+                >
+                  <ArrowRightLeft size={16} />
+                  <span>Mover Fondos</span>
+                </button>
+
+                {allowConvert && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('convert')}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: activeTab === 'convert' ? '2px solid #0D9488' : 'none',
+                      backgroundColor: activeTab === 'convert' ? 'var(--md-sys-color-surface-container, #FFFFFF)' : 'transparent',
+                      color: activeTab === 'convert' ? '#0F766E' : 'var(--md-sys-color-on-surface-variant)',
+                      fontWeight: 800,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: activeTab === 'convert' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'
+                    }}
+                  >
+                    <Coins size={16} color="#0D9488" />
+                    <span>Cambiar Divisa</span>
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* TAB 1: MOVER FONDOS (Misma moneda entre cuentas) */}
+          {activeTab === 'transfer' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Moneda selector */}
+              {getCurrencySettings().currencyMode === 'BOTH' && (
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+                    Moneda a Transferir:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSameCurrency('CUP')}
+                      style={{
+                        padding: '10px',
+                        borderRadius: '12px',
+                        border: sameCurrency === 'CUP' ? '2px solid var(--md-sys-color-on-surface, #0F172A)' : '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: sameCurrency === 'CUP' ? 'var(--md-sys-color-surface-container, #FFFFFF)' : 'transparent',
+                        color: 'var(--md-sys-color-on-surface, #0F172A)',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>💵 Pesos Cubanos (CUP)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSameCurrency('USD')}
+                      style={{
+                        padding: '10px',
+                        borderRadius: '12px',
+                        border: sameCurrency === 'USD' ? '2px solid #0D9488' : '1px solid var(--md-sys-color-outline-variant)',
+                        backgroundColor: sameCurrency === 'USD' ? 'var(--brand-secondary-light, #F0FDFA)' : 'transparent',
+                        color: sameCurrency === 'USD' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>💲 Dólares (USD)</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Dirección de Transferencia: De ➔ Hacia con botón flip */}
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+                  Dirección del Movimiento:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '8px', alignItems: 'center' }}>
+                  {/* De Origen */}
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '14px',
+                    backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+                    border: '1.5px solid var(--md-sys-color-outline-variant)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-expense, #DC2626)', textTransform: 'uppercase' }}>
+                      Sale de (Origen)
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                      {fromAccount === 'casa' ? <Home size={16} /> : <Store size={16} />}
+                      <strong style={{ fontSize: '0.88rem' }}>{fromAccount === 'casa' ? 'Fondo Casa' : 'Fondo Negocio'}</strong>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                      Disp: {sameCurrency === 'USD' ? `US$ ${getAccountBalanceInCurrency(fromAccount, 'USD').toFixed(2)}` : `$ ${getAccountBalanceInCurrency(fromAccount, 'CUP').toLocaleString('es-ES')}`}
+                    </span>
+                  </div>
+
+                  {/* Flip Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextFrom = fromAccount === 'casa' ? 'tienda' : 'casa';
+                      setFromAccount(nextFrom);
+                      setToAccount(nextFrom === 'casa' ? 'tienda' : 'casa');
+                    }}
+                    title="Invertir dirección"
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
+                      color: 'var(--brand-primary, #1A73E8)',
+                      border: '1.5px solid var(--brand-primary-border, #CBD5E1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <ArrowRightLeft size={16} />
+                  </button>
+
+                  {/* Hacia Destino */}
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '14px',
+                    backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+                    border: '1.5px solid var(--md-sys-color-outline-variant)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--md-sys-color-income, #059669)', textTransform: 'uppercase' }}>
+                      Entra a (Destino)
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                      {toAccount === 'casa' ? <Home size={16} /> : <Store size={16} />}
+                      <strong style={{ fontSize: '0.88rem' }}>{toAccount === 'casa' ? 'Fondo Casa' : 'Fondo Negocio'}</strong>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                      Saldo: {sameCurrency === 'USD' ? `US$ ${getAccountBalanceInCurrency(toAccount, 'USD').toFixed(2)}` : `$ ${getAccountBalanceInCurrency(toAccount, 'CUP').toLocaleString('es-ES')}`}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
+          )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={() => setConversionDirection('USD_TO_CUP')}
-                style={{
-                  padding: '10px 6px',
-                  borderRadius: '10px',
-                  border: conversionDirection === 'USD_TO_CUP' ? '2px solid #2563EB' : '1px solid #C7D2FE',
-                  backgroundColor: conversionDirection === 'USD_TO_CUP' ? '#EFF6FF' : '#FFF',
-                  color: conversionDirection === 'USD_TO_CUP' ? '#1E40AF' : '#4B5563',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  textAlign: 'center'
-                }}
-              >
-                💲 USD ➔ 💵 CUP
-              </button>
+          {/* TAB 2: CAMBIAR DIVISA (Conversión USD ⇄ CUP) */}
+          {activeTab === 'convert' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* 1. Tipo de Operación: Vender USD vs Comprar USD */}
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+                  ¿Qué operación deseas realizar?
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setConversionDirection('USD_TO_CUP')}
+                    style={{
+                      padding: '12px 10px',
+                      borderRadius: '12px',
+                      border: conversionDirection === 'USD_TO_CUP' ? '2px solid #0D9488' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: conversionDirection === 'USD_TO_CUP' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--md-sys-color-surface-container, #FFFFFF)',
+                      color: conversionDirection === 'USD_TO_CUP' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '2px'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.9rem' }}>💲 Vender USD por CUP</span>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Entregas USD ➔ Recibes CUP</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setConversionDirection('CUP_TO_USD')}
-                style={{
-                  padding: '10px 6px',
-                  borderRadius: '10px',
-                  border: conversionDirection === 'CUP_TO_USD' ? '2px solid #059669' : '1px solid #A7F3D0',
-                  backgroundColor: conversionDirection === 'CUP_TO_USD' ? '#ECFDF5' : '#FFF',
-                  color: conversionDirection === 'CUP_TO_USD' ? '#065F46' : '#4B5563',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  textAlign: 'center'
-                }}
-              >
-                💵 CUP ➔ 💲 USD
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Account Selector: Direction Flip */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label style={{ fontSize: '0.78rem', fontWeight: 800 }}>
-            Dirección del Movimiento:
-          </label>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto 1fr',
-            gap: '8px',
-            alignItems: 'center'
-          }}>
-            {/* Origen */}
-            <div
-              onClick={() => {
-                const nextFrom = fromAccount === 'casa' ? 'tienda' : 'casa';
-                setFromAccount(nextFrom);
-                setToAccount(nextFrom === 'casa' ? 'tienda' : 'casa');
-              }}
-              style={{
-                padding: '12px 8px',
-                borderRadius: '14px',
-                backgroundColor: fromAccount === 'tienda' ? 'var(--brand-secondary-light, #ECFDF5)' : 'var(--md-sys-color-surface)',
-                border: fromAccount === 'tienda' ? '2px solid var(--brand-secondary, #0D9488)' : '2px solid var(--brand-primary, #1A73E8)',
-                textAlign: 'center',
-                cursor: 'pointer'
-              }}
-            >
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', display: 'block' }}>
-                Origen (Sale {activeSourceCurrency})
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' }}>
-                {fromAccount === 'tienda' ? <Store size={16} color="var(--brand-secondary, #0D9488)" /> : <Home size={16} color="var(--brand-primary)" />}
-                <span style={{ fontSize: '0.86rem', fontWeight: 900 }}>
-                  {fromAccount === 'tienda' ? 'Fondo Negocio' : 'Fondo Casa'}
-                </span>
+                  <button
+                    type="button"
+                    onClick={() => setConversionDirection('CUP_TO_USD')}
+                    style={{
+                      padding: '12px 10px',
+                      borderRadius: '12px',
+                      border: conversionDirection === 'CUP_TO_USD' ? '2px solid #0D9488' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: conversionDirection === 'CUP_TO_USD' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--md-sys-color-surface-container, #FFFFFF)',
+                      color: conversionDirection === 'CUP_TO_USD' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '2px'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.9rem' }}>💵 Comprar USD con CUP</span>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Entregas CUP ➔ Recibes USD</span>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Swap Button */}
-            <button
-              type="button"
-              title="Invertir dirección"
-              onClick={() => {
-                const nextFrom = fromAccount === 'casa' ? 'tienda' : 'casa';
-                setFromAccount(nextFrom);
-                setToAccount(nextFrom === 'casa' ? 'tienda' : 'casa');
-              }}
-              className="md-btn"
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
-                color: 'var(--brand-primary, #1A73E8)',
-                border: '1.5px solid var(--brand-primary)',
+              {/* 2. ¿De qué cuenta salen los fondos? */}
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+                  ¿De qué fondo sale el dinero a cambiar?
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {(['casa', 'tienda'] as const).map(acc => {
+                    const bal = getAccountBalanceInCurrency(acc, activeSourceCurrency);
+                    const isSel = convertFromAccount === acc;
+                    return (
+                      <button
+                        key={acc}
+                        type="button"
+                        onClick={() => setConvertFromAccount(acc)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '12px',
+                          border: isSel ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                          backgroundColor: isSel ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface-container, #FFFFFF)',
+                          color: 'var(--md-sys-color-on-surface)',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <strong style={{ fontSize: '0.84rem', display: 'block' }}>
+                          {acc === 'casa' ? '🏡 Fondo Casa' : '🏬 Fondo Negocio'}
+                        </strong>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          Disp: {activeSourceCurrency === 'USD' ? `US$ ${bal.toFixed(2)}` : `$ ${bal.toLocaleString('es-ES')}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. ¿A dónde van los fondos convertidos? */}
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', display: 'block', marginBottom: '6px' }}>
+                  ¿A dónde entra el dinero convertido?
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setConvertToAccountMode('same')}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: convertToAccountMode === 'same' ? '2px solid #0D9488' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: convertToAccountMode === 'same' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--md-sys-color-surface-container, #FFFFFF)',
+                      color: convertToAccountMode === 'same' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <strong style={{ fontSize: '0.84rem', display: 'block' }}>
+                      {convertFromAccount === 'casa' ? '🏡 Mantener en Casa' : '🏬 Mantener en Negocio'}
+                    </strong>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Solo cambiar moneda en este fondo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setConvertToAccountMode('other')}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: convertToAccountMode === 'other' ? '2px solid #0D9488' : '1px solid var(--md-sys-color-outline-variant)',
+                      backgroundColor: convertToAccountMode === 'other' ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--md-sys-color-surface-container, #FFFFFF)',
+                      color: convertToAccountMode === 'other' ? '#0F766E' : 'var(--md-sys-color-on-surface)',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <strong style={{ fontSize: '0.84rem', display: 'block' }}>
+                      {convertFromAccount === 'casa' ? '🏬 Enviar a Negocio' : '🏡 Enviar a Casa'}
+                    </strong>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Convertir y enviar a la otra cuenta</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. Tasa de Cambio */}
+              <div style={{
+                padding: '12px 14px',
+                borderRadius: '12px',
+                backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
+                border: '1px solid var(--brand-secondary-border, #99F6E4)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0
-              }}
-            >
-              <ArrowRightLeft size={18} />
-            </button>
+                justifyContent: 'space-between',
+                gap: '10px'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0F766E', display: 'block' }}>
+                    Tasa de Cambio de la Operación
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: '#115E59' }}>
+                    1 USD = {exchangeRate} CUP
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0F766E' }}>Tasa:</span>
+                  <input
+                    type="number"
+                    value={exchangeRate}
+                    onChange={e => setExchangeRate(e.target.value === '' ? '' as any : parseFloat(e.target.value))}
+                    style={{
+                      width: '80px',
+                      padding: '6px 8px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #0D9488',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: '0.86rem',
+                      fontWeight: 800,
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0F766E' }}>CUP</span>
+                </div>
+              </div>
+            </div>
+          )}
 
-            {/* Destino */}
-            <div
-              onClick={() => {
-                const nextFrom = fromAccount === 'casa' ? 'tienda' : 'casa';
-                setFromAccount(nextFrom);
-                setToAccount(nextFrom === 'casa' ? 'tienda' : 'casa');
-              }}
+          {/* Input Monto a Debitar */}
+          <div>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+              {isCrossCurrencyMode 
+                ? `Monto que entregas en ${activeSourceCurrency}:` 
+                : `Monto a transferir (${activeSourceCurrency}):`}
+            </label>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="any"
+              required
+              max={availableSourceBalance}
+              placeholder={`Ej. ${activeSourceCurrency === 'USD' ? '50.00' : '5000'}`}
+              value={amount}
+              onChange={e => setAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
               style={{
-                padding: '12px 8px',
-                borderRadius: '14px',
-                backgroundColor: toAccount === 'casa' ? 'var(--md-sys-color-primary-container)' : 'var(--brand-secondary-light, #ECFDF5)',
-                border: toAccount === 'casa' ? '2px solid var(--brand-primary)' : '2px solid var(--brand-secondary, #0D9488)',
-                textAlign: 'center',
-                cursor: 'pointer'
+                width: '100%',
+                padding: '12px',
+                borderRadius: '12px',
+                border: isCrossCurrencyMode ? '2px solid #0D9488' : '2px solid var(--brand-primary, #1A73E8)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+                fontSize: '1.25rem',
+                fontWeight: 900,
+                textAlign: 'center'
               }}
-            >
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', display: 'block' }}>
-                Destino (Entra {activeTargetCurrency})
+            />
+
+            {/* Quick chips & Todo el Saldo */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+              {(activeSourceCurrency === 'USD' ? [10, 20, 50, 100] : [500, 1000, 2000, 5000]).map((chipVal) => (
+                <button
+                  key={chipVal}
+                  type="button"
+                  onClick={() => setAmount(chipVal)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '9999px',
+                    border: '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
+                    color: 'var(--md-sys-color-on-surface)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {activeSourceCurrency === 'USD' ? `US$ ${chipVal}` : `$ ${chipVal.toLocaleString('es-ES')}`}
+                </button>
+              ))}
+
+              {availableSourceBalance > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setAmount(availableSourceBalance)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '9999px',
+                    border: '1px solid #0D9488',
+                    backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
+                    color: '#0F766E',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Todo el Saldo ({srcSymbol} {activeSourceCurrency === 'USD' ? availableSourceBalance.toFixed(2) : availableSourceBalance.toLocaleString('es-ES')})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tarjeta de Cálculo Instantáneo para Conversión */}
+          {isCrossCurrencyMode && numAmount > 0 && (
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: '16px',
+              backgroundColor: '#F0FDFA',
+              border: '1.5px solid #99F6E4',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0F766E', textTransform: 'uppercase' }}>
+                Resultado de la Conversión
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' }}>
-                {toAccount === 'casa' ? <Home size={16} color="var(--brand-primary)" /> : <Store size={16} color="var(--brand-secondary, #0D9488)" />}
-                <span style={{ fontSize: '0.86rem', fontWeight: 900 }}>
-                  {toAccount === 'casa' ? 'Fondo Casa' : 'Fondo Negocio'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '2px', fontSize: '0.72rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-            {fromAccount === 'tienda' 
-              ? '💡 Transfiere ganancias o capital acumulado en la Tienda directamente hacia la Casa.' 
-              : '💡 Inyecta capital desde la Casa hacia la Tienda para inversión en mercadería o gastos.'}
-          </div>
-        </div>
-
-        {/* Balance Display Banner */}
-        <div style={{
-          padding: '12px 14px',
-          borderRadius: '12px',
-          backgroundColor: 'var(--md-sys-color-surface)',
-          border: '1px solid var(--md-sys-color-outline-variant)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-            Saldo Disponible en Origen ({activeSourceCurrency}):
-          </span>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
-            {formatCurrency(availableSourceBalance, activeSourceCurrency, true)}
-          </span>
-        </div>
-
-        {/* Input Amount & Quick Chips */}
-        <div>
-          <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-            Monto a Debitar ({activeSourceCurrency}):
-          </label>
-          <input
-            type="number"
-            inputMode="decimal"
-            pattern="[0-9]*"
-            step="any"
-            required
-            max={fromAccount === 'casa' ? undefined : availableSourceBalance}
-            placeholder={`Monto en ${activeSourceCurrency}...`}
-            value={amount}
-            onChange={e => setAmount(e.target.value === '' ? '' : parseFloat(e.target.value))}
-            className="app-input-numeric"
-            style={{
-              width: '100%',
-              padding: '12px',
-              borderRadius: '12px',
-              border: '2px solid var(--md-sys-color-primary)',
-              backgroundColor: 'var(--md-sys-color-surface)',
-              fontSize: '1.2rem',
-              fontWeight: 800,
-              textAlign: 'center'
-            }}
-          />
-
-          {/* Quick Amount Suggestion Chips */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-            {(activeSourceCurrency === 'USD' ? [10, 25, 50, 100] : [500, 1000, 5000, 10000]).map((chipVal) => (
-              <button
-                key={chipVal}
-                type="button"
-                onClick={() => setAmount(prev => (typeof prev === 'number' ? prev + chipVal : chipVal))}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
-                  backgroundColor: 'var(--md-sys-color-surface-container-high)',
-                  color: 'var(--md-sys-color-on-surface)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                +{chipVal.toLocaleString('es-ES')}
-              </button>
-            ))}
-
-            {availableSourceBalance > 0 && (
-              <button
-                type="button"
-                onClick={() => setAmount(availableSourceBalance)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '9999px',
-                  border: '1px solid var(--md-sys-color-primary)',
-                  backgroundColor: 'var(--md-sys-color-primary-container)',
-                  color: 'var(--md-sys-color-on-primary-container)',
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                Máx ({srcSymbol}{availableSourceBalance.toLocaleString('es-ES')})
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Live Balance Impact Preview */}
-        {numAmount > 0 && (
-          <div style={{
-            padding: '12px 14px',
-            borderRadius: '14px',
-            backgroundColor: 'var(--md-sys-color-surface-container-high)',
-            border: '1px solid var(--md-sys-color-outline-variant)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              📊 Proyección de Saldos tras la Operación
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {/* Origen */}
-              <div style={{
-                padding: '8px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                border: '1px solid var(--md-sys-color-outline-variant)'
-              }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                  Origen ({fromAccount})
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div>
+                  <span style={{ fontSize: '0.72rem', color: '#115E59', display: 'block' }}>Entregas ({getAccountLabel(effectiveFromAccount)}):</span>
+                  <strong style={{ fontSize: '1.1rem', color: '#0F766E' }}>
+                    {srcSymbol} {activeSourceCurrency === 'USD' ? numAmount.toFixed(2) : numAmount.toLocaleString('es-ES')} {activeSourceCurrency}
+                  </strong>
                 </div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-expense)', marginTop: '2px' }}>
-                  {formatCurrency(availableSourceBalance, activeSourceCurrency, true)} ➔ {formatCurrency(Math.max(0, availableSourceBalance - numAmount), activeSourceCurrency, true)}
+                <ArrowRightLeft size={18} color="#0D9488" />
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#115E59', display: 'block' }}>Recibes ({getAccountLabel(effectiveToAccount)}):</span>
+                  <strong style={{ fontSize: '1.25rem', color: 'var(--md-sys-color-income, #059669)' }}>
+                    {tgtSymbol} {activeTargetCurrency === 'USD' ? calculatedTargetAmount.toFixed(2) : calculatedTargetAmount.toLocaleString('es-ES')} {activeTargetCurrency}
+                  </strong>
                 </div>
               </div>
-
-              {/* Destino */}
-              <div style={{
-                padding: '8px 10px',
-                borderRadius: '10px',
-                backgroundColor: 'var(--md-sys-color-surface)',
-                border: '1px solid var(--md-sys-color-outline-variant)'
-              }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700 }}>
-                  Destino ({toAccount})
-                </div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--md-sys-color-income)', marginTop: '2px' }}>
-                  {formatCurrency(availableTargetBalance, activeTargetCurrency, true)} ➔ {formatCurrency(availableTargetBalance + calculatedTargetAmount, activeTargetCurrency, true)}
-                </div>
-              </div>
+              <span style={{ fontSize: '0.7rem', color: '#115E59', textAlign: 'center' }}>
+                Tasa aplicada: 1 USD = {exchangeRate} CUP
+              </span>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Live Calculation Preview when converting */}
-        {isCrossCurrencyMode && numAmount > 0 && (
-          <div style={{
-            padding: '12px 14px',
-            borderRadius: '12px',
-            backgroundColor: '#F0FDF4',
-            border: '1.5px solid #86EFAC',
-            textAlign: 'center'
-          }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', display: 'block' }}>
-              Monto Calculado que Ingresará en {getAccountLabel(toAccount)}:
-            </span>
-            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#15803D', display: 'block', marginTop: '2px' }}>
-              {formatCurrency(calculatedTargetAmount, activeTargetCurrency, true)}
-            </span>
-            <span style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 600 }}>
-              Conversión: {srcSymbol}{numAmount} {activeSourceCurrency} @ (1 USD = {exchangeRate} CUP)
-            </span>
+          {/* Input Notes */}
+          <div>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+              Nota / Concepto opcional:
+            </label>
+            <AppInput
+              type="text"
+              placeholder={isCrossCurrencyMode ? "Ej. Cambio de billetes de caja..." : "Ej. Transferencia para mercadería..."}
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
           </div>
-        )}
-
-        {/* Input Notes */}
-        <div>
-          <label style={{ fontSize: '0.78rem', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-            Nota / Concepto opcional:
-          </label>
-          <AppInput
-            type="text"
-            placeholder={isCrossCurrencyMode ? "Ej. Cambio de divisas de caja..." : "Ej. Transferencia entre fondos..."}
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-          />
-        </div>
-        </>
+          </>
         )}
 
         </div>
@@ -827,7 +876,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         <div style={{
           padding: '14px 20px',
           borderTop: '1px solid var(--md-sys-color-outline-variant)',
-          backgroundColor: 'var(--md-sys-color-surface-container)',
+          backgroundColor: '#FFFFFF',
           display: 'flex',
           gap: '12px'
         }}>
@@ -845,11 +894,22 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               <button
                 type="submit"
                 className="md-btn md-btn-primary"
-                style={{ flex: 1, padding: '14px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  backgroundColor: isCrossCurrencyMode ? '#0D9488' : undefined,
+                  border: isCrossCurrencyMode ? 'none' : undefined
+                }}
               >
                 <ArrowRightLeft size={18} />
                 <span>
-                  {isCrossCurrencyMode ? 'Convertir y Enviar' : `Transferir ${activeSourceCurrency}`}
+                  {isCrossCurrencyMode ? 'Confirmar Conversión' : `Transferir ${activeSourceCurrency}`}
                 </span>
               </button>
             </>
@@ -866,7 +926,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         </div>
 
       </form>
-
     </div>
   );
 };

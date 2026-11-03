@@ -31,6 +31,7 @@ const QRSyncModal = dynamic(
   () => import('@/components/QRSyncModal').then(mod => mod.QRSyncModal),
   { ssr: false }
 );
+import { StoreManagementSkeleton } from '@/components/common/AppSkeleton';
 import { getActiveShift } from '@/lib/storage';
 
 import {
@@ -147,6 +148,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isQRSyncModalOpen, setIsQRSyncModalOpen] = useState(false);
   const [isValuationBookOpen, setIsValuationBookOpen] = useState(false);
+  const [isClientMounted, setIsClientMounted] = useState(false);
+
+  useEffect(() => {
+    setIsClientMounted(true);
+  }, []);
 
   useEffect(() => {
     const refreshData = () => {
@@ -388,6 +394,25 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
     }
   };
 
+  if (!isClientMounted && products.length === 0) {
+    return <StoreManagementSkeleton />;
+  }
+
+  // Helper para escalar tipografía de importes en tarjetas métricas (soporte para grandes montos / mipymes)
+  const getAmountFontSize = (text: string, isSingle: boolean = false): string => {
+    const len = text.length;
+    if (isSingle) {
+      if (len > 18) return '1.05rem';
+      if (len > 14) return '1.20rem';
+      if (len > 11) return '1.32rem';
+      return '1.45rem';
+    }
+    if (len > 18) return '0.78rem';
+    if (len > 15) return '0.86rem';
+    if (len > 12) return '0.96rem';
+    return '1.10rem';
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '32px' }}>
 
@@ -449,12 +474,14 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             flexDirection: 'column',
             justifyContent: 'space-between',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
-            cursor: isOwner ? 'pointer' : 'default'
+            cursor: isOwner ? 'pointer' : 'default',
+            minWidth: 0,
+            overflow: 'hidden'
           }}
           title={isOwner ? "Clic para transferir entre cuentas" : undefined}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>🏬 Fondo del Negocio</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🏬 Fondo del Negocio</span>
             <div style={{
               width: '32px',
               height: '32px',
@@ -469,12 +496,42 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             </div>
           </div>
           {currencyMode === 'CUP' && (
-            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em', margin: '6px 0 2px 0', fontVariantNumeric: 'tabular-nums' }}>
+            <div 
+              className="tabular-nums" 
+              title={formatCurrency(totalStoreFund, 'CUP', true)}
+              style={{ 
+                fontSize: getAmountFontSize(formatCurrency(totalStoreFund, 'CUP', true), true), 
+                fontWeight: 900, 
+                color: 'var(--md-sys-color-on-surface, #0F172A)', 
+                letterSpacing: '-0.025em', 
+                margin: '6px 0 2px 0', 
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                fontVariantNumeric: 'tabular-nums',
+                minWidth: 0
+              }}
+            >
               {formatCurrency(totalStoreFund, 'CUP', true)}
             </div>
           )}
           {currencyMode === 'USD' && (
-            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.02em', margin: '6px 0 2px 0', fontVariantNumeric: 'tabular-nums' }}>
+            <div 
+              className="tabular-nums" 
+              title={formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
+              style={{ 
+                fontSize: getAmountFontSize(formatCurrency(rawDb.storeFundUSD || 0, 'USD', true), true), 
+                fontWeight: 900, 
+                color: '#0D9488', 
+                letterSpacing: '-0.025em', 
+                margin: '6px 0 2px 0', 
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                fontVariantNumeric: 'tabular-nums',
+                minWidth: 0
+              }}
+            >
               {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
             </div>
           )}
@@ -483,15 +540,18 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: '4px',
-              margin: '6px 0 4px 0'
+              margin: '6px 0 4px 0',
+              minWidth: 0,
+              overflow: 'hidden'
             }}>
               {/* CUP Row */}
               <div style={{
                 display: 'flex',
-                alignItems: 'baseline',
+                alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '8px',
-                padding: '2px 0'
+                gap: '6px',
+                padding: '2px 0',
+                minWidth: 0
               }}>
                 <span style={{
                   fontSize: '0.67rem',
@@ -512,15 +572,24 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   }} />
                   CUP
                 </span>
-                <span className="tabular-nums" style={{
-                  fontSize: '1.18rem',
-                  fontWeight: 900,
-                  color: 'var(--md-sys-color-on-surface)',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.1,
-                  letterSpacing: '-0.02em',
-                  fontVariantNumeric: 'tabular-nums'
-                }}>
+                <span 
+                  className="tabular-nums" 
+                  title={formatCurrency(totalStoreFund, 'CUP', true)}
+                  style={{
+                    fontSize: getAmountFontSize(formatCurrency(totalStoreFund, 'CUP', true), false),
+                    fontWeight: 900,
+                    color: 'var(--md-sys-color-on-surface)',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.15,
+                    letterSpacing: '-0.025em',
+                    fontVariantNumeric: 'tabular-nums',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'right',
+                    flexShrink: 1
+                  }}
+                >
                   {formatCurrency(totalStoreFund, 'CUP', true)}
                 </span>
               </div>
@@ -536,10 +605,11 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               {/* USD Row */}
               <div style={{
                 display: 'flex',
-                alignItems: 'baseline',
+                alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '8px',
-                padding: '2px 0'
+                gap: '6px',
+                padding: '2px 0',
+                minWidth: 0
               }}>
                 <span style={{
                   fontSize: '0.67rem',
@@ -560,22 +630,31 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
                   }} />
                   USD
                 </span>
-                <span className="tabular-nums" style={{
-                  fontSize: '1.08rem',
-                  fontWeight: 800,
-                  color: 'var(--md-sys-color-on-surface)',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.1,
-                  letterSpacing: '-0.02em',
-                  fontVariantNumeric: 'tabular-nums'
-                }}>
+                <span 
+                  className="tabular-nums" 
+                  title={formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
+                  style={{
+                    fontSize: getAmountFontSize(formatCurrency(rawDb.storeFundUSD || 0, 'USD', true), false),
+                    fontWeight: 800,
+                    color: '#0D9488',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.15,
+                    letterSpacing: '-0.025em',
+                    fontVariantNumeric: 'tabular-nums',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'right',
+                    flexShrink: 1
+                  }}
+                >
                   {formatCurrency(rawDb.storeFundUSD || 0, 'USD', true)}
                 </span>
               </div>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {currencyMode === 'BOTH' ? 'Paridad CUP / USD' : (currencyMode === 'USD' ? 'Caja USD' : 'Caja CUP')}
             </span>
           </div>
@@ -590,10 +669,12 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+          minWidth: 0,
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>📦 Valor Inventario</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📦 Valor Inventario</span>
             <span style={{
               fontSize: '0.78rem',
               fontWeight: 900,
@@ -604,7 +685,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               border: '1px solid var(--brand-primary-border, #BFDBFE)',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '5px'
+              gap: '5px',
+              flexShrink: 0
             }}>
               <span>{products.length} art.</span>
               <span style={{ opacity: 0.4 }}>•</span>
@@ -614,27 +696,55 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
 
           {currencyMode !== 'BOTH' ? (
             <>
-              <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0 2px 0', color: 'var(--md-sys-color-on-surface)', fontVariantNumeric: 'tabular-nums' }}>
+              <div 
+                className="tabular-nums" 
+                title={formatCurrency(totalStoreProductsValue, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
+                style={{ 
+                  fontSize: getAmountFontSize(formatCurrency(totalStoreProductsValue, currencyMode === 'USD' ? 'USD' : 'CUP', true), true), 
+                  fontWeight: 900, 
+                  margin: '6px 0 2px 0', 
+                  color: currencyMode === 'USD' ? '#0D9488' : 'var(--md-sys-color-on-surface, #0F172A)', 
+                  fontVariantNumeric: 'tabular-nums',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  minWidth: 0
+                }}
+              >
                 {formatCurrency(totalStoreProductsValue, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
               </div>
-              <div className="tabular-nums" style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              <div className="tabular-nums" style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {!isVendor ? `Costo Stock: ${formatCurrency(totalStoreProductsCost, currencyMode === 'USD' ? 'USD' : 'CUP', true)}` : 'Precio público'}
               </div>
             </>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0', minWidth: 0, overflow: 'hidden' }}>
               {/* CUP Row */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', padding: '2px 0', minWidth: 0 }}>
                 <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#059669', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
                   CUP
                 </span>
-                <div style={{ textAlign: 'right' }}>
-                  <span className="tabular-nums" style={{ fontSize: '1.18rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ textAlign: 'right', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                  <span 
+                    className="tabular-nums" 
+                    title={formatCurrency(inventoryValueCUP, 'CUP', true)}
+                    style={{ 
+                      fontSize: getAmountFontSize(formatCurrency(inventoryValueCUP, 'CUP', true), false), 
+                      fontWeight: 900, 
+                      color: 'var(--md-sys-color-on-surface)', 
+                      whiteSpace: 'nowrap', 
+                      lineHeight: 1.15, 
+                      fontVariantNumeric: 'tabular-nums',
+                      display: 'block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
                     {formatCurrency(inventoryValueCUP, 'CUP', true)}
                   </span>
                   {!isVendor && (
-                    <div className="tabular-nums" style={{ fontSize: '0.64rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                    <div className="tabular-nums" style={{ fontSize: '0.64rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       Costo: {formatCurrency(inventoryCostCUP, 'CUP', true)}
                     </div>
                   )}
@@ -644,17 +754,31 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               <div style={{ height: '1px', backgroundColor: 'currentColor', opacity: 0.08, margin: '1px 0' }} />
 
               {/* USD Row */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', padding: '2px 0', minWidth: 0 }}>
                 <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#0284C7', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284C7', display: 'inline-block' }} />
                   USD
                 </span>
-                <div style={{ textAlign: 'right' }}>
-                  <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ textAlign: 'right', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                  <span 
+                    className="tabular-nums" 
+                    title={formatCurrency(inventoryValueUSD, 'USD', true)}
+                    style={{ 
+                      fontSize: getAmountFontSize(formatCurrency(inventoryValueUSD, 'USD', true), false), 
+                      fontWeight: 800, 
+                      color: '#0D9488', 
+                      whiteSpace: 'nowrap', 
+                      lineHeight: 1.15, 
+                      fontVariantNumeric: 'tabular-nums',
+                      display: 'block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
                     {formatCurrency(inventoryValueUSD, 'USD', true)}
                   </span>
                   {!isVendor && (
-                    <div className="tabular-nums" style={{ fontSize: '0.64rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+                    <div className="tabular-nums" style={{ fontSize: '0.64rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       Costo: {formatCurrency(inventoryCostUSD, 'USD', true)}
                     </div>
                   )}
@@ -663,8 +787,8 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
             </div>
           )}
 
-          <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, marginTop: '2px' }}>
-            Existencia: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{products.reduce((acc, p) => acc + (p.stock || 0), 0)} unidades</strong> en {products.length} productos
+          <div style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 700, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Existencia: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{products.reduce((acc, p) => acc + (p.stock || 0), 0)} u</strong> en {products.length} productos
           </div>
         </div>
         </div>
@@ -685,10 +809,12 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+          minWidth: 0,
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>📈 Ganancias en Tienda</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📈 Ganancias</span>
             <div style={{
               width: '32px',
               height: '32px',
@@ -704,18 +830,48 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           </div>
 
           {currencyMode !== 'BOTH' ? (
-            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0 2px 0', color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
+            <div 
+              className="tabular-nums" 
+              title={formatCurrency(totalAccumulatedHouseProfits, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
+              style={{ 
+                fontSize: getAmountFontSize(formatCurrency(totalAccumulatedHouseProfits, currencyMode === 'USD' ? 'USD' : 'CUP', true), true), 
+                fontWeight: 900, 
+                margin: '6px 0 2px 0', 
+                color: '#059669', 
+                fontVariantNumeric: 'tabular-nums',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0
+              }}
+            >
               +{formatCurrency(totalAccumulatedHouseProfits, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0', minWidth: 0, overflow: 'hidden' }}>
               {/* CUP Row */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', padding: '2px 0', minWidth: 0 }}>
                 <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#059669', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
                   CUP
                 </span>
-                <span className="tabular-nums" style={{ fontSize: '1.18rem', fontWeight: 900, color: '#059669', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                <span 
+                  className="tabular-nums" 
+                  title={formatCurrency(totalHouseProfitsCUP, 'CUP', true)}
+                  style={{ 
+                    fontSize: getAmountFontSize(formatCurrency(totalHouseProfitsCUP, 'CUP', true), false), 
+                    fontWeight: 900, 
+                    color: '#059669', 
+                    whiteSpace: 'nowrap', 
+                    lineHeight: 1.15, 
+                    fontVariantNumeric: 'tabular-nums',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'right',
+                    flexShrink: 1
+                  }}
+                >
                   +{formatCurrency(totalHouseProfitsCUP, 'CUP', true)}
                 </span>
               </div>
@@ -723,20 +879,36 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               <div style={{ height: '1px', backgroundColor: 'currentColor', opacity: 0.08, margin: '1px 0' }} />
 
               {/* USD Row */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', padding: '2px 0', minWidth: 0 }}>
                 <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#0284C7', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284C7', display: 'inline-block' }} />
                   USD
                 </span>
-                <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0284C7', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                <span 
+                  className="tabular-nums" 
+                  title={formatCurrency(totalHouseProfitsUSD, 'USD', true)}
+                  style={{ 
+                    fontSize: getAmountFontSize(formatCurrency(totalHouseProfitsUSD, 'USD', true), false), 
+                    fontWeight: 800, 
+                    color: '#059669', 
+                    whiteSpace: 'nowrap', 
+                    lineHeight: 1.15, 
+                    fontVariantNumeric: 'tabular-nums',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'right',
+                    flexShrink: 1
+                  }}
+                >
                   +{formatCurrency(totalHouseProfitsUSD, 'USD', true)}
                 </span>
               </div>
             </div>
           )}
 
-          <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
-            Ganancias reales sin cruzar (Mover a Casa)
+          <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Ganancias reales (Mover a Casa)
           </div>
         </div>
 
@@ -749,10 +921,12 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+          minWidth: 0,
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)' }}>🛍️ Ventas del Día</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--md-sys-color-on-surface-variant)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>🛍️ Ventas de Hoy</span>
             <span style={{
               fontSize: '0.68rem',
               fontWeight: 800,
@@ -760,27 +934,58 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               borderRadius: '6px',
               backgroundColor: (storeModules.enableShiftManagement && activeShift) ? '#ECFDF5' : 'var(--md-sys-color-surface-container)',
               color: (storeModules.enableShiftManagement && activeShift) ? '#059669' : 'var(--md-sys-color-on-surface-variant)',
-              border: `1px solid ${(storeModules.enableShiftManagement && activeShift) ? '#A7F3D0' : 'var(--md-sys-color-outline-variant)'}`
+              border: `1px solid ${(storeModules.enableShiftManagement && activeShift) ? '#A7F3D0' : 'var(--md-sys-color-outline-variant)'}`,
+              flexShrink: 0
             }}>
               {storeModules.enableShiftManagement 
-                ? (activeShift ? `🟢 @${activeShift.sellerUsername}` : (todaySalesRecords.length > 0 ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'venta' : 'ventas'}` : 'Sin Turno'))
-                : (todaySalesRecords.length > 0 ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'venta' : 'ventas'}` : '0 ventas')}
+                ? (activeShift ? `🟢 @${activeShift.sellerUsername}` : (todaySalesRecords.length > 0 ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'vta' : 'vtas'}` : 'Sin Turno'))
+                : (todaySalesRecords.length > 0 ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'vta' : 'vtas'}` : '0 vtas')}
             </span>
           </div>
 
           {currencyMode !== 'BOTH' ? (
-            <div className="tabular-nums" style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0 2px 0', color: 'var(--brand-primary, #1A73E8)', fontVariantNumeric: 'tabular-nums' }}>
+            <div 
+              className="tabular-nums" 
+              title={formatCurrency(todaySalesDisplay, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
+              style={{ 
+                fontSize: getAmountFontSize(formatCurrency(todaySalesDisplay, currencyMode === 'USD' ? 'USD' : 'CUP', true), true), 
+                fontWeight: 900, 
+                margin: '6px 0 2px 0', 
+                color: currencyMode === 'USD' ? '#0D9488' : 'var(--md-sys-color-on-surface, #0F172A)', 
+                fontVariantNumeric: 'tabular-nums',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0
+              }}
+            >
               {formatCurrency(todaySalesDisplay, currencyMode === 'USD' ? 'USD' : 'CUP', true)}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '6px 0 4px 0', minWidth: 0, overflow: 'hidden' }}>
               {/* CUP Row */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', padding: '2px 0', minWidth: 0 }}>
                 <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#059669', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
                   CUP
                 </span>
-                <span className="tabular-nums" style={{ fontSize: '1.18rem', fontWeight: 900, color: 'var(--brand-primary, #1A73E8)', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                <span 
+                  className="tabular-nums" 
+                  title={formatCurrency(todaySalesCUP, 'CUP', true)}
+                  style={{ 
+                    fontSize: getAmountFontSize(formatCurrency(todaySalesCUP, 'CUP', true), false), 
+                    fontWeight: 900, 
+                    color: 'var(--md-sys-color-on-surface, #0F172A)', 
+                    whiteSpace: 'nowrap', 
+                    lineHeight: 1.15, 
+                    fontVariantNumeric: 'tabular-nums',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'right',
+                    flexShrink: 1
+                  }}
+                >
                   {formatCurrency(todaySalesCUP, 'CUP', true)}
                 </span>
               </div>
@@ -788,24 +993,40 @@ export const StoreManagementView: React.FC<StoreManagementViewProps> = ({
               <div style={{ height: '1px', backgroundColor: 'currentColor', opacity: 0.08, margin: '1px 0' }} />
 
               {/* USD Row */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', padding: '2px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', padding: '2px 0', minWidth: 0 }}>
                 <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#0284C7', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284C7', display: 'inline-block' }} />
                   USD
                 </span>
-                <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0284C7', whiteSpace: 'nowrap', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                <span 
+                  className="tabular-nums" 
+                  title={formatCurrency(todaySalesUSD, 'USD', true)}
+                  style={{ 
+                    fontSize: getAmountFontSize(formatCurrency(todaySalesUSD, 'USD', true), false), 
+                    fontWeight: 800, 
+                    color: '#0D9488', 
+                    whiteSpace: 'nowrap', 
+                    lineHeight: 1.15, 
+                    fontVariantNumeric: 'tabular-nums',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'right',
+                    flexShrink: 1
+                  }}
+                >
                   {formatCurrency(todaySalesUSD, 'USD', true)}
                 </span>
               </div>
             </div>
           )}
 
-          <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {storeModules.enableShiftManagement && activeShift
-              ? `Turno de @${activeShift.sellerUsername} (${todaySalesRecords.length} ventas hoy)`
+              ? `Turno de @${activeShift.sellerUsername} (${todaySalesRecords.length} vtas)`
               : (todaySalesRecords.length > 0
                   ? `${todaySalesRecords.length} ${todaySalesRecords.length === 1 ? 'venta registrada' : 'ventas registradas'} hoy`
-                  : '0 ventas registradas hoy')}
+                  : '0 ventas hoy')}
           </div>
         </div>
 

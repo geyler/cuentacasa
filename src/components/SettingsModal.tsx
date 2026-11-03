@@ -50,7 +50,8 @@ import {
   Info,
   Layers,
   LayoutTemplate,
-  Clock
+  Clock,
+  Scale
 } from 'lucide-react';
 
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
@@ -108,6 +109,9 @@ import { getPendingSyncCount, syncDatabaseWithCloud } from '@/lib/sync';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { SettingsModulesView } from './settings/SettingsModulesView';
 import { SettingsSecurityView } from './settings/SettingsSecurityView';
+import { SettingsCategoriesView } from './settings/SettingsCategoriesView';
+import { SettingsUnitsView } from './settings/SettingsUnitsView';
+import { APP_VERSION, APP_NAME } from '@/lib/version';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -134,6 +138,8 @@ export type SettingsSubView =
   | 'currency'
   | 'exchange'
   | 'modules'
+  | 'categories'
+  | 'units'
   | 'whatsapp'
   | 'users'
   | 'customizer'
@@ -190,6 +196,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isSyncingElToque, setIsSyncingElToque] = useState(false);
   const [forceShowPricesOnlyCUP, setForceShowPricesOnlyCUP] = useState<boolean>(false);
   const [roundUpCUPToTen, setRoundUpCUPToTen] = useState<boolean>(false);
+  const [posMethods, setPosMethods] = useState({
+    cashCUP: true,
+    transferCUP: true,
+    cashUSD: true,
+    fiado: true,
+    split: true
+  });
 
   const [primaryColor, setPrimaryColor] = useState<string>(DEFAULT_PRIMARY_COLOR);
   const [secondaryColor, setSecondaryColor] = useState<string>(DEFAULT_SECONDARY_COLOR);
@@ -208,7 +221,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [logoDarkWideUrl, setLogoDarkWideUrl] = useState<string>('');
   const [faviconUrl, setFaviconUrl] = useState<string>('');
   const [faviconDarkUrl, setFaviconDarkUrl] = useState<string>('');
-  const [customStoreName, setCustomStoreName] = useState<string>('Samy Store');
+  const [customStoreName, setCustomStoreName] = useState<string>('Cubasoft ERP');
   const [logoFontId, setLogoFontId] = useState<string>(DEFAULT_LOGO_FONT.id);
   const [logoFontFamily, setLogoFontFamily] = useState<string>(DEFAULT_LOGO_FONT.family);
   const [customSeoName, setCustomSeoName] = useState<string>('');
@@ -248,6 +261,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setIsEditingExchangeRate(false);
       setForceShowPricesOnlyCUP(Boolean(cSettings.forceShowPricesOnlyCUP));
       setRoundUpCUPToTen(Boolean(cSettings.roundUpCUPToTen));
+      setPosMethods({
+        cashCUP: cSettings.posPaymentMethods?.cashCUP !== false,
+        transferCUP: cSettings.posPaymentMethods?.transferCUP !== false,
+        cashUSD: cSettings.posPaymentMethods?.cashUSD !== false,
+        fiado: cSettings.posPaymentMethods?.fiado !== false,
+        split: cSettings.posPaymentMethods?.split !== false
+      });
 
       const pColor = getPrimaryThemeColor();
       const sColor = getSecondaryThemeColor();
@@ -265,7 +285,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setLogoDarkWideUrl(cust.logoDarkWideUrl || '');
       setFaviconUrl(cust.faviconUrl || '');
       setFaviconDarkUrl(cust.faviconDarkUrl || '');
-      setCustomStoreName(cust.storeName || 'Samy Store');
+      setCustomStoreName(cust.storeName || 'Cubasoft ERP');
       setLogoFontId(cust.logoFontId || DEFAULT_LOGO_FONT.id);
       setLogoFontFamily(cust.logoFontFamily || DEFAULT_LOGO_FONT.family);
       setCustomSeoName(cust.storeSeoName || '');
@@ -286,6 +306,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     window.addEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
     return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
   }, []);
+
+  const modalScrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to top al cambiar de sub-vista o volver a ajustes generales
+  useEffect(() => {
+    if (modalScrollRef.current) {
+      modalScrollRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [activeSubView]);
+
+  const handleTogglePosMethod = (method: 'cashCUP' | 'transferCUP' | 'cashUSD' | 'fiado' | 'split') => {
+    if (!isOwner) return;
+    const updated = {
+      ...posMethods,
+      [method]: !posMethods[method]
+    };
+    setPosMethods(updated);
+    saveCurrencySettings({ posPaymentMethods: updated });
+    showToast({
+      title: 'Métodos de Cobro Actualizados',
+      message: 'Los métodos disponibles en el punto de venta (POS) fueron guardados.',
+      type: 'success'
+    });
+  };
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>, mode: 'square' | 'wide' | 'darkSquare' | 'darkWide' | 'favicon' | 'faviconDark') => {
     const file = e.target.files?.[0];
@@ -337,7 +384,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         faviconDarkUrl: faviconDarkUrl.trim(),
         logoFontId,
         logoFontFamily,
-        storeName: customStoreName.trim() || 'Samy Store',
+        storeName: customStoreName.trim() || 'Cubasoft ERP',
         storeSeoName: customSeoName.trim(),
         storeSeoDescription: customSeoDesc.trim(),
         heroBadgeText: heroBadgeText.trim(),
@@ -735,6 +782,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       case 'currency': return 'Ajustes de Monedas';
       case 'exchange': return 'Tasa de Cambio';
       case 'modules': return 'Módulos y Secciones';
+      case 'categories': return 'Categorías de Productos';
+      case 'units': return 'Unidades de Medida';
       case 'whatsapp': return 'WhatsApp de Pedidos';
       case 'users': return 'Gestión de Usuarios y Roles';
       case 'customizer': return 'Personalizar Tienda';
@@ -793,8 +842,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     width: '42px',
     height: '42px',
     borderRadius: '14px',
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
-    color: '#2563EB',
+    backgroundColor: 'var(--brand-primary-light, var(--md-sys-color-primary-container))',
+    color: 'var(--brand-primary, var(--md-sys-color-primary))',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -914,7 +963,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   Ajustes del Sistema
                 </h2>
                 <p style={{ fontSize: '0.8rem', color: 'var(--md-sys-color-on-surface-variant)', margin: '3px 0 0 0', fontWeight: 600 }}>
-                  Samy Store • @{currentUser?.username || 'geyler'} ({currentUser?.role || 'propietario'})
+                  {customStoreName || APP_NAME} • @{currentUser?.username || 'geyler'} ({currentUser?.role || 'propietario'})
                 </p>
               </div>
             </div>
@@ -962,14 +1011,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <Wallet size={20} color="#2563EB" />
+                  <Wallet size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
                       Cuentas y Saldos
                     </span>
-                    <span style={menuBadgeStyle('neutral')}>3 Cuentas</span>
+                    <span style={menuBadgeStyle('neutral')}>CUP & USD</span>
                     {!isOwner && (
                       <span style={menuBadgeStyle('warning')}>
                         <Lock size={12} style={{ marginRight: '4px', display: 'inline' }} /> Solo Propietario
@@ -991,7 +1040,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <Coins size={20} color="#2563EB" />
+                  <Coins size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1022,7 +1071,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <TrendingUp size={20} color="#2563EB" />
+                  <TrendingUp size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1058,6 +1107,54 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               OPERACIÓN Y TIENDA
             </span>
 
+            {/* Categorías de Productos */}
+            <div
+              onClick={() => setActiveSubView('categories')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <Layers size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Categorías de Productos
+                    </span>
+                    <span style={menuBadgeStyle('neutral')}>Catálogo</span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    Crear, renombrar, eliminar y reasignar artículos
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+
+            {/* Unidades de Medida */}
+            <div
+              onClick={() => setActiveSubView('units')}
+              style={menuItemCardStyle}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                <div style={menuIconBoxStyle}>
+                  <Scale size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.96rem', color: 'var(--md-sys-color-on-surface)' }}>
+                      Unidades de Medida
+                    </span>
+                    <span style={menuBadgeStyle('neutral')}>Venta & Stock</span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px' }}>
+                    Activar o desactivar unidades (u, lb, kg, bolsa, paquete...)
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={18} color="var(--md-sys-color-outline)" style={{ flexShrink: 0 }} />
+            </div>
+
             {/* WhatsApp de Pedidos */}
             <div
               onClick={() => setActiveSubView('whatsapp')}
@@ -1065,7 +1162,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <MessageCircle size={20} color="#2563EB" />
+                  <MessageCircle size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1091,7 +1188,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <Users size={20} color="#2563EB" />
+                  <Users size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1120,7 +1217,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <Layers size={20} color="#2563EB" />
+                  <Layers size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1151,7 +1248,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <Sliders size={20} color="#2563EB" />
+                  <Sliders size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1180,7 +1277,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <Palette size={20} color="#2563EB" />
+                  <Palette size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1223,7 +1320,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
                 <div style={menuIconBoxStyle}>
-                  <ShieldCheck size={20} color="#2563EB" />
+                  <ShieldCheck size={20} color="var(--brand-primary, var(--md-sys-color-primary))" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1314,7 +1411,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             margin: '4px 0 0 0',
             fontWeight: 600
           }}>
-            Samy Store v1.8.0 • Cubasoft ERP Systems
+            {APP_NAME} v{APP_VERSION} • Sistema Contable & POS Tienda
           </p>
 
         </div>
@@ -1414,25 +1511,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div style={{
                 padding: '16px',
                 borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Home size={18} color="#2563EB" />
+                  <Home size={18} color="var(--brand-primary, #1A73E8)" />
                   <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>Fondo de la Casa</span>
                 </div>
                 <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
                   Gastos del hogar, caja personal y utilidades retiradas.
                 </p>
                 <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
-                    ${formatCurrency(casaCUP, '$', showBalance)} CUP
+                  <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface, #0F172A)' }}>
+                    {formatCurrency(casaCUP, 'CUP', showBalance)}
                   </span>
-                  <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#16A34A' }}>
-                    US$ {formatCurrency(casaUSD, 'US$', showBalance)} USD
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0D9488' }}>
+                    {formatCurrency(casaUSD, 'USD', showBalance)}
                   </span>
                 </div>
               </div>
@@ -1441,25 +1538,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div style={{
                 padding: '16px',
                 borderRadius: '16px',
-                backgroundColor: 'var(--md-sys-color-surface)',
+                backgroundColor: 'var(--md-sys-color-surface-container, #FFFFFF)',
                 border: '1px solid var(--md-sys-color-outline-variant)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Store size={18} color="#059669" />
+                  <Store size={18} color="#0D9488" />
                   <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>Fondo del Negocio (Tienda)</span>
                 </div>
                 <p style={{ fontSize: '0.74rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
                   Reposición de mercancía, compras a proveedores e inventario.
                 </p>
                 <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--md-sys-color-primary)' }}>
-                    ${formatCurrency(storeCUP, '$', showBalance)} CUP
+                  <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface, #0F172A)' }}>
+                    {formatCurrency(storeCUP, 'CUP', showBalance)}
                   </span>
-                  <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#16A34A' }}>
-                    US$ {formatCurrency(storeUSD, 'US$', showBalance)} USD
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0D9488' }}>
+                    {formatCurrency(storeUSD, 'USD', showBalance)}
                   </span>
                 </div>
               </div>
@@ -1648,6 +1745,198 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Configuración de Métodos de Cobro en Caja (POS) */}
+            <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Wallet size={18} color="var(--brand-primary, #1A73E8)" />
+                <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)' }}>
+                  Métodos de Cobro Permitidos en Caja (POS)
+                </span>
+              </div>
+              <p style={{ fontSize: '0.76rem', color: 'var(--md-sys-color-on-surface-variant)', margin: 0 }}>
+                Activa o desactiva qué formas de pago acepta la dependienta en caja para agilizar el cobro y no mostrar opciones innecesarias.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                {/* 1. Efectivo CUP */}
+                <div
+                  onClick={() => handleTogglePosMethod('cashCUP')}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    border: posMethods.cashCUP ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: posMethods.cashCUP ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
+                    cursor: isOwner ? 'pointer' : 'default',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800 }}>💵 Efectivo CUP</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>Billetes de pesos cubanos</span>
+                  </div>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '6px',
+                    backgroundColor: posMethods.cashCUP ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                    border: posMethods.cashCUP ? 'none' : '1.5px solid var(--md-sys-color-outline)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {posMethods.cashCUP && <CheckCircle2 size={16} color="#FFFFFF" />}
+                  </div>
+                </div>
+
+                {/* 2. Transferencia CUP */}
+                <div
+                  onClick={() => handleTogglePosMethod('transferCUP')}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    border: posMethods.transferCUP ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: posMethods.transferCUP ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
+                    cursor: isOwner ? 'pointer' : 'default',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800 }}>📲 Transferencia CUP</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>EnZona / Transfermóvil</span>
+                  </div>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '6px',
+                    backgroundColor: posMethods.transferCUP ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                    border: posMethods.transferCUP ? 'none' : '1.5px solid var(--md-sys-color-outline)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {posMethods.transferCUP && <CheckCircle2 size={16} color="#FFFFFF" />}
+                  </div>
+                </div>
+
+                {/* 3. Efectivo USD */}
+                <div
+                  onClick={() => {
+                    if (forceShowPricesOnlyCUP || currencyMode === 'CUP') return;
+                    handleTogglePosMethod('cashUSD');
+                  }}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    border: (posMethods.cashUSD && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') ? '2px solid #0D9488' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: (posMethods.cashUSD && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') ? 'var(--brand-secondary-light, #F0FDFA)' : 'var(--md-sys-color-surface)',
+                    cursor: (!forceShowPricesOnlyCUP && currencyMode !== 'CUP' && isOwner) ? 'pointer' : 'not-allowed',
+                    opacity: (forceShowPricesOnlyCUP || currencyMode === 'CUP') ? 0.45 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800 }}>💵 Efectivo USD</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      {(forceShowPricesOnlyCUP || currencyMode === 'CUP') ? 'Desactivado (Solo CUP activo)' : 'Billetes de dólares en caja'}
+                    </span>
+                  </div>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '6px',
+                    backgroundColor: (posMethods.cashUSD && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') ? '#0D9488' : 'transparent',
+                    border: (posMethods.cashUSD && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') ? 'none' : '1.5px solid var(--md-sys-color-outline)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {(posMethods.cashUSD && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') && <CheckCircle2 size={16} color="#FFFFFF" />}
+                  </div>
+                </div>
+
+                {/* 4. Fiados / Créditos */}
+                <div
+                  onClick={() => handleTogglePosMethod('fiado')}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    border: posMethods.fiado ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: posMethods.fiado ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
+                    cursor: isOwner ? 'pointer' : 'default',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800 }}>📝 Fiado / Deuda</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>Registro de cuenta por cobrar</span>
+                  </div>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '6px',
+                    backgroundColor: posMethods.fiado ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                    border: posMethods.fiado ? 'none' : '1.5px solid var(--md-sys-color-outline)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {posMethods.fiado && <CheckCircle2 size={16} color="#FFFFFF" />}
+                  </div>
+                </div>
+
+                {/* 5. Pago Mixto / Combinado */}
+                <div
+                  onClick={() => {
+                    if (forceShowPricesOnlyCUP || currencyMode === 'CUP') return;
+                    handleTogglePosMethod('split');
+                  }}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    border: (posMethods.split && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') ? '2px solid var(--brand-primary, #1A73E8)' : '1px solid var(--md-sys-color-outline-variant)',
+                    backgroundColor: (posMethods.split && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') ? 'var(--brand-primary-light, #EFF6FF)' : 'var(--md-sys-color-surface)',
+                    cursor: (!forceShowPricesOnlyCUP && currencyMode !== 'CUP' && isOwner) ? 'pointer' : 'not-allowed',
+                    opacity: (forceShowPricesOnlyCUP || currencyMode === 'CUP') ? 0.45 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800 }}>🔀 Combinado / Split</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      {(forceShowPricesOnlyCUP || currencyMode === 'CUP') ? 'Desactivado (Solo CUP activo)' : 'Dividir pago en varias vías'}
+                    </span>
+                  </div>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '6px',
+                    backgroundColor: (posMethods.split && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') ? 'var(--brand-primary, #1A73E8)' : 'transparent',
+                    border: (posMethods.split && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') ? 'none' : '1.5px solid var(--md-sys-color-outline)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {(posMethods.split && !forceShowPricesOnlyCUP && currencyMode !== 'CUP') && <CheckCircle2 size={16} color="#FFFFFF" />}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1737,6 +2026,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           storeModules={storeModules}
           onToggleModule={handleToggleModule}
         />
+      )}
+
+      {/* SUB-VIEW: CATEGORÍAS DE PRODUCTOS */}
+      {activeSubView === "categories" && (
+        <SettingsCategoriesView />
+      )}
+
+      {/* SUB-VIEW: UNIDADES DE MEDIDA */}
+      {activeSubView === "units" && (
+        <SettingsUnitsView />
       )}
 
       {/* SUB-VIEW: PERSONALIZADOR DE TIENDA PÚBLICA E IDENTIDAD (Estilo WordPress Customizer) */}
@@ -1889,7 +2188,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {logoMode === 'wide_logo' ? (
                     <img
-                      src={logoWideUrl || ((previewBgMode === 'dark' && logoDarkSquareUrl) ? logoDarkSquareUrl : (logoSquareUrl || '/images/logo-nav.png'))}
+                      src={
+                        previewBgMode === 'dark'
+                          ? (logoDarkWideUrl || logoDarkSquareUrl || '/brand/cubasoft-logo-wide-dark.png')
+                          : (logoWideUrl || logoSquareUrl || '/brand/cubasoft-logo-wide.png')
+                      }
                       alt={customStoreName || 'Logo'}
                       style={{ maxHeight: '40px', maxWidth: '240px', width: 'auto', objectFit: 'contain' }}
                     />
@@ -1897,7 +2200,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <>
                       {(logoMode === 'both' || logoMode === 'logo_only') && (
                         <img
-                          src={(previewBgMode === 'dark' && logoDarkSquareUrl) ? logoDarkSquareUrl : (logoSquareUrl || '/images/logo-nav.png')}
+                          src={
+                            previewBgMode === 'dark'
+                              ? (logoDarkSquareUrl || '/brand/cubasoft-logo-square-dark.png')
+                              : (logoSquareUrl || '/brand/cubasoft-logo-square.png')
+                          }
                           alt={customStoreName || 'Logo'}
                           style={{
                             height: '38px',
@@ -1917,7 +2224,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           letterSpacing: '-0.01em',
                           fontFamily: logoFontFamily || undefined
                         }}>
-                          {customStoreName || 'Samy Store'}
+                          {customStoreName || 'Cubasoft ERP'}
                         </span>
                       )}
                     </>
@@ -1988,7 +2295,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   margin: 0,
                   maxWidth: '560px'
                 }}>
-                  {heroSubtitle || `Explora el catálogo completo de ${customStoreName || 'Samy Store'} organizado por categorías con existencias reales en almacén.`}
+                  {heroSubtitle || `Explora el catálogo completo de ${customStoreName || 'Cubasoft ERP'} organizado por categorías con existencias reales en almacén.`}
                 </p>
               </div>
             </div>
@@ -2233,7 +2540,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }}
                     >
                       <img
-                        src={logoSquareUrl || '/images/logo-nav.png'}
+                        src={logoSquareUrl || '/brand/cubasoft-logo-square.png'}
                         alt="Logo Claro"
                         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                       />
@@ -2259,10 +2566,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           <Upload size={13} />
                           <span>Subir Logo</span>
                         </button>
-                        {logoSquareUrl && logoSquareUrl !== '/images/logo-nav.png' && (
+                        {logoSquareUrl && logoSquareUrl !== '/brand/cubasoft-logo-square.png' && (
                           <button
                             type="button"
-                            onClick={() => setLogoSquareUrl('/images/logo-nav.png')}
+                            onClick={() => setLogoSquareUrl('/brand/cubasoft-logo-square.png')}
                             className="md-btn"
                             style={{ padding: '6px 10px', fontSize: '0.72rem', borderRadius: '8px', border: '1px solid var(--md-sys-color-outline-variant)', background: 'transparent' }}
                           >
@@ -2306,7 +2613,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }}
                     >
                       <img
-                        src={logoDarkSquareUrl || logoSquareUrl || '/images/logo-nav.png'}
+                        src={logoDarkSquareUrl || logoSquareUrl || '/brand/cubasoft-logo-square.png'}
                         alt="Logo Dark"
                         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                       />
@@ -2749,7 +3056,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="text"
                   value={customStoreName}
                   onChange={e => setCustomStoreName(e.target.value)}
-                  placeholder="Samy Store"
+                  placeholder="Cubasoft ERP"
                   className="md-input"
                   style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 700 }}
                 />
@@ -2822,7 +3129,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           overflow: 'hidden',
                           textOverflow: 'ellipsis'
                         }}>
-                          {customStoreName || 'Samy Store'}
+                          {customStoreName || 'Cubasoft ERP'}
                         </div>
 
                         <span style={{ fontSize: '0.68rem', color: 'var(--md-sys-color-on-surface-variant)', opacity: 0.9 }}>
@@ -2842,7 +3149,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="text"
                   value={customSeoName}
                   onChange={e => setCustomSeoName(e.target.value)}
-                  placeholder="Samy Store - Tienda Online de Productos y Víveres en Las Tunas"
+                  placeholder="Cubasoft ERP - Sistema de Gestión y Tienda Online"
                   className="md-input"
                   style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', fontSize: '0.86rem' }}
                 />
@@ -2927,7 +3234,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={heroSubtitle}
                   onChange={e => setHeroSubtitle(e.target.value)}
                   rows={3}
-                  placeholder={`Explora el catálogo completo de ${customStoreName || 'Samy Store'} organizado por categorías con existencias reales en almacén y pedidos directos por WhatsApp con entrega en toda la ciudad.`}
+                  placeholder={`Explora el catálogo completo de ${customStoreName || 'Cubasoft ERP'} organizado por categorías con existencias reales en almacén y pedidos directos por WhatsApp con entrega en toda la ciudad.`}
                   className="md-input"
                   style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', fontSize: '0.85rem', resize: 'vertical' }}
                 />
@@ -3115,9 +3422,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="md-card" style={{ padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
+                <img src={logoSquareUrl || '/brand/cubasoft-logo-square.png'} alt={customStoreName || 'Cubasoft'} style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>Samy Store</h3>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: 0 }}>{customStoreName || 'Cubasoft'}</h3>
                   <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)', fontWeight: 600 }}>
                     Catálogo y Tienda Digital para Clientes
                   </span>
@@ -3415,10 +3722,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       onClick={onClose}
     >
       <div 
+        ref={modalScrollRef}
         className="bottom-sheet-modal"
         onClick={e => e.stopPropagation()}
         style={{
-          backgroundColor: 'var(--md-sys-color-surface-container)',
+          backgroundColor: 'var(--md-sys-color-background, #EEF2F6)',
           color: 'var(--md-sys-color-on-surface)',
           width: '100%',
           maxHeight: '92dvh',

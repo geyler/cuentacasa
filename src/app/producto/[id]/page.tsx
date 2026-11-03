@@ -28,15 +28,15 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
   if (!product) {
     return {
-      title: 'Catálogo de Productos - Samy Store Cuba',
-      description: 'Explora todos los productos y ofertas disponibles en Samy Store Cuba.'
+      title: 'Catálogo de Productos - Cubasoft ERP',
+      description: 'Explora todos los productos y ofertas disponibles en Cubasoft ERP.'
     };
   }
 
   const currLabel = product.currency === 'USD' ? 'USD' : 'CUP';
   const roundedPrice = product.currency === 'USD' ? Number(product.price.toFixed(2)) : Math.round(product.price);
-  const title = `${product.name} - $${roundedPrice} ${currLabel} | Samy Store Cuba`;
-  const description = product.description || `Compra ${product.name} en Samy Store Cuba por $${roundedPrice} ${currLabel}. Envíos directos y pedidos por WhatsApp.`;
+  const title = `${product.name} - $${roundedPrice} ${currLabel} | Cubasoft ERP`;
+  const description = product.description || `Compra ${product.name} en Cubasoft ERP por $${roundedPrice} ${currLabel}. Envíos directos y pedidos por WhatsApp.`;
 
   return {
     title,

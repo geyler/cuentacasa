@@ -321,9 +321,11 @@ export async function getServerProductById(id: string): Promise<StoreProduct | n
         };
       }
     } else {
-      const storageFile = path.join(process.cwd(), '.next', 'cuentacasa_cloud_db.json');
-      if (fs.existsSync(storageFile)) {
-        const parsed = JSON.parse(fs.readFileSync(storageFile, 'utf-8'));
+      const dataFile = path.join(process.cwd(), 'data', 'cuentacasa_cloud_db.json');
+      const nextFile = path.join(process.cwd(), '.next', 'cuentacasa_cloud_db.json');
+      const targetFile = fs.existsSync(dataFile) ? dataFile : (fs.existsSync(nextFile) ? nextFile : null);
+      if (targetFile) {
+        const parsed = JSON.parse(fs.readFileSync(targetFile, 'utf-8'));
         const products: StoreProduct[] = Array.isArray(parsed?.storeProducts) ? parsed.storeProducts : [];
         const match = products.find(p => p.id === id || p.barcode === id);
         if (match) return match;

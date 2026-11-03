@@ -69,7 +69,7 @@ export const PwaInstallBanner: React.FC<PwaInstallBannerProps> = ({ onInstall, o
           <Smartphone size={20} />
         </div>
         <div>
-          <h4 style={{ fontSize: '0.86rem', fontWeight: 800, margin: 0 }}>Instalar App Samy Store</h4>
+          <h4 style={{ fontSize: '0.86rem', fontWeight: 800, margin: 0 }}>Instalar App Cubasoft ERP</h4>
           <p style={{ fontSize: '0.72rem', opacity: 0.8, margin: '2px 0 0 0' }}>Funciona 100% offline en tu móvil</p>
         </div>
       </div>

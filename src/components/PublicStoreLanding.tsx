@@ -9,6 +9,7 @@ import {
   DEFAULT_CATEGORY_IMAGE,
   DEFAULT_PRODUCT_IMAGE,
   getCurrencySettings,
+  getStoreCustomizationSettings,
   getPrimaryThemeColor,
   getSecondaryThemeColor
 } from '@/lib/storage';
@@ -35,7 +36,7 @@ import {
   PublicAddToCartSheet,
   PublicStoreCartDrawer
 } from '@/components/store';
-import { StoreCatalogSkeleton, SkeletonBox } from '@/components/common/AppSkeleton';
+import { PublicStoreSkeleton, StoreCatalogSkeleton, SkeletonBox } from '@/components/common/AppSkeleton';
 
 import {
   ShoppingBag,
@@ -125,7 +126,7 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
       }
     } else {
       showActionResult({
-        title: '📱 Instalar App Samy Store',
+        title: '📱 Instalar App Cubasoft ERP',
         message: '1. En Chrome/Android: Toca los 3 puntos del navegador y elige "Añadir a la pantalla de inicio" o "Instalar aplicación".\n2. En iPhone/Safari: Toca el botón Compartir y elige "Añadir a pantalla de inicio".',
         type: 'info'
       });
@@ -133,7 +134,6 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
   };
 
   useEffect(() => {
-    setIsClientMounted(true);
     const filterPublished = (list: StoreProduct[]) => list.filter(p => p.published);
 
     const syncLocalSettings = () => {
@@ -147,6 +147,7 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
       applyBrandPaletteToDocument(getPrimaryThemeColor(), getSecondaryThemeColor());
     };
 
+    // 1. Sincronizar catálogo local y configuraciones de una sola pasada para evitar pestañazos o saltos de paridad
     const all = getStoreProducts();
     const localPublished = filterPublished(all);
     if (localPublished.length > 0) {
@@ -154,6 +155,7 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
       setIsInitialLoading(false);
     }
     syncLocalSettings();
+    setIsClientMounted(true);
 
     syncPublicCatalog(false).then(res => {
       if (res.success) {
@@ -419,11 +421,13 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
   const handleSendWhatsAppOrder = () => {
     if (cart.length === 0) return;
 
+    const storeSettings = getStoreCustomizationSettings();
+    const brandName = (storeSettings.storeName || 'TIENDA').toUpperCase();
     const targetPhone = getStoreWhatsappNumber();
     const cartQuery = cart.map(i => `${i.product.barcode}:${i.quantity}`).join(',');
     const cartLink = `${window.location.origin}/app?cart=${encodeURIComponent(cartQuery)}`;
 
-    let text = `🛒 *PEDIDO SAMY STORE*\n----------------------------------\n`;
+    let text = `🛒 *PEDIDO ${brandName}*\n----------------------------------\n`;
     cart.forEach((item, index) => {
       const disp = getProductDisplayPrice(
         item.product.price,
@@ -438,7 +442,7 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
       text += `${index + 1}. *${item.product.name}*\n   Cant: ${item.quantity}${item.product.unit || 'u'} | Subtotal: $${disp.amount * item.quantity} ${disp.currency}\n`;
     });
     text += `----------------------------------\n💰 *TOTAL A PAGAR: $${totalCartPrice} ${displayCurrency}*\n\n`;
-    text += `🔗 *Ver pedido en Samy Store:*\n${cartLink}`;
+    text += `🔗 *Ver pedido en Cubasoft ERP:*\n${cartLink}`;
 
     const encoded = encodeURIComponent(text);
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
@@ -449,7 +453,7 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
   const handleDirectWhatsAppContact = () => {
     const targetPhone = getStoreWhatsappNumber();
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
-    const text = encodeURIComponent('¡Hola Samy Store! Quisiera consultar sobre los productos disponibles y entregas en Las Tunas.');
+    const text = encodeURIComponent('¡Hola Cubasoft ERP! Quisiera consultar sobre los productos disponibles y entregas en Las Tunas.');
     const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
     window.open(waUrl, '_blank');
   };
@@ -474,12 +478,12 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
     return hasUSDProduct || usdIndexedPricing;
   }, [forceShowPricesOnlyCUP, currencyMode, products, usdIndexedPricing]);
 
-  if (!isClientMounted && products.length === 0) {
-    return <StoreCatalogSkeleton />;
+  if (!isClientMounted) {
+    return <PublicStoreSkeleton />;
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column' }}>
+    <div className="animate-fade-in" style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column' }}>
       {/* 1. Header Marketplace de 2 Niveles con Menú Móvil Lateral */}
       <PublicStoreHeaderBar
         totalCartCount={totalCartCount}
@@ -549,7 +553,7 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
       )}
 
       {/* 4. Contenido Principal del Marketplace */}
-      <main className="store-container" style={{ padding: '22px 16px 120px 16px', flex: 1 }}>
+      <main className="store-container" style={{ paddingTop: '28px', paddingBottom: '120px', flex: 1 }}>
         {/* HUB DE CATEGORÍAS: En Móvil tira horizontal deslizable; en PC cuadrícula */}
         {categoryStats.length > 0 && (
           <section style={{ marginBottom: '28px' }}>
@@ -632,7 +636,7 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
               {categoryStats.map(cat => {
                 const meta = getCategoryVisualMeta(cat.name);
                 const isSelected = selectedCategory === cat.name;
-                const thumb = cat.thumbnailUrl ? formatPhotoUrl(cat.thumbnailUrl) : '';
+                const thumb = cat.thumbnailUrl ? formatPhotoUrl(cat.thumbnailUrl) : DEFAULT_CATEGORY_IMAGE;
 
                 return (
                   <div
@@ -1262,7 +1266,7 @@ export const PublicStoreLanding: React.FC<PublicStoreLandingProps> = ({ initialP
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Store",
-            "name": "Samy Store",
+            "name": "Cubasoft ERP",
             "description": "Tienda Online en Cuba. Alimentos, electrodomésticos, tecnología y productos del hogar.",
             "url": typeof window !== 'undefined' ? window.location.origin : 'https://cubasoft.net',
             "telephone": STORE_SEO_CONFIG.contactWhatsapp,

@@ -23,7 +23,8 @@ import {
   ShieldCheck,
   Clock,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Package
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -69,15 +70,31 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     return () => window.removeEventListener('cuentacasa-store-modules-changed', handleModulesChanged);
   }, []);
 
-  const navItems: { id: AppTab; label: string; icon: React.ReactNode; badge?: string }[] = [
+  const navItems: { id: AppTab | 'inventory'; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'quick', label: 'Inicio', icon: <Home size={18} /> },
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+    { id: 'inventory', label: 'Inventario', icon: <Package size={18} /> },
     { id: 'store', label: 'Tienda & POS', icon: <Store size={18} /> },
     { id: 'transactions', label: 'Movimientos', icon: <Receipt size={18} /> },
     { id: 'reports', label: 'Reporte IPV', icon: <FileText size={18} /> },
     ...(storeModules.enableShiftManagement ? [{ id: 'shifts' as AppTab, label: 'Turnos de Caja', icon: <Clock size={18} /> }] : []),
     ...(storeModules.enableFoodTraceability ? [{ id: 'valuation' as AppTab, label: 'Trazabilidad & Tasación', icon: <FileSpreadsheet size={18} /> }] : [])
   ];
+
+  const handleNavClick = (itemId: AppTab | 'inventory') => {
+    if (itemId === 'inventory') {
+      setActiveTab('store');
+      window.dispatchEvent(new CustomEvent('cuentacasa-navigate-store-tab', { detail: 'products' }));
+      setTimeout(() => {
+        const el = document.getElementById('store-products-catalog');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+      return;
+    }
+    setActiveTab(itemId);
+  };
 
   return (
     <aside 
@@ -161,12 +178,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
         {navItems.map(item => {
           if (!isOwner && item.id !== 'store') return null;
-          const isActive = activeTab === item.id;
+          const isActive = item.id !== 'inventory' && activeTab === item.id;
 
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => handleNavClick(item.id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',

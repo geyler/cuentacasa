@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Samy Store",
-  "short_name": "Samy Store",
-  "description": "Samy Store POS & Gestión de Tienda 100% Offline",
+  "name": "Cubasoft",
+  "short_name": "Cubasoft",
+  "description": "Cubasoft - Sistema Contable, POS & Tienda 100% Offline",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -10,8 +10,8 @@
   "prefer_related_applications": false,
   "orientation": "portrait",
   "background_color": "#FFFFFF",
-  "theme_color": "#EC4899",
-  "categories": ["finance", "utilities", "lifestyle"],
+  "theme_color": "#1A73E8",
+  "categories": ["finance", "utilities", "business"],
   "icons": [
     {
       "src": "/icons/icon-192.png",

@@ -18,6 +18,8 @@ export interface StoreBrandDisplayProps {
   subtitleColor?: string;
   onClick?: () => void;
   variant?: 'light' | 'dark' | 'auto'; // 'dark' para fondos oscuros como Navbar o Modo Oscuro
+  forceSquareLogo?: boolean;
+  logoOnly?: boolean;
 }
 
 export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
@@ -33,7 +35,9 @@ export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
   subtitleText,
   subtitleColor,
   onClick,
-  variant = 'auto'
+  variant = 'auto',
+  forceSquareLogo = false,
+  logoOnly = false
 }) => {
   const [cust, setCust] = useState<StoreCustomizationSettings>(() => {
     return propCustomization || getStoreCustomizationSettings();
@@ -83,18 +87,22 @@ export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
   const isDarkVariant = variant === 'dark' || (variant === 'auto' && isDocDark);
   const effectiveTextColor = textColor || (isDarkVariant ? '#FFFFFF' : 'var(--md-sys-color-primary)');
 
-  const mode = cust.logoMode || 'both';
+  const effectiveMode = logoOnly
+    ? 'logo_only'
+    : (forceSquareLogo
+        ? (cust.logoMode === 'text_only' ? 'text_only' : (cust.logoMode === 'logo_only' ? 'logo_only' : 'both'))
+        : (cust.logoMode || 'both'));
 
   // Selección inteligente de logotipo según la variante de color de fondo
-  const squareUrl = (isDarkVariant && cust.logoDarkSquareUrl)
-    ? cust.logoDarkSquareUrl
-    : (cust.logoSquareUrl || '/images/logo-nav.png');
+  const squareUrl = isDarkVariant
+    ? (cust.logoDarkSquareUrl || '/brand/cubasoft-logo-square-dark.png')
+    : (cust.logoSquareUrl || '/brand/cubasoft-logo-square.png');
 
-  const wideUrl = (isDarkVariant && cust.logoDarkWideUrl)
-    ? cust.logoDarkWideUrl
-    : (cust.logoWideUrl || (isDarkVariant && cust.logoDarkSquareUrl ? cust.logoDarkSquareUrl : (cust.logoSquareUrl || '/images/logo-nav.png')));
+  const wideUrl = isDarkVariant
+    ? (cust.logoDarkWideUrl || cust.logoDarkSquareUrl || '/brand/cubasoft-logo-wide-dark.png')
+    : (cust.logoWideUrl || cust.logoSquareUrl || '/brand/cubasoft-logo-wide.png');
 
-  const name = cust.storeName || 'Samy Store';
+  const name = cust.storeName || 'Cubasoft';
 
   const containerJustify = align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center';
 
@@ -117,7 +125,7 @@ export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
         gap: `${sizeConfig.gap}px`,
         flexWrap: 'nowrap'
       }}>
-        {mode === 'wide_logo' ? (
+        {effectiveMode === 'wide_logo' ? (
           <img
             src={wideUrl}
             alt={name}
@@ -132,7 +140,7 @@ export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
           />
         ) : (
           <>
-            {(mode === 'both' || mode === 'logo_only') && (
+            {(effectiveMode === 'both' || effectiveMode === 'logo_only') && (
               <img
                 src={squareUrl}
                 alt={name}
@@ -146,7 +154,7 @@ export const StoreBrandDisplay: React.FC<StoreBrandDisplayProps> = ({
               />
             )}
 
-            {(mode === 'both' || mode === 'text_only') && (
+            {(effectiveMode === 'both' || effectiveMode === 'text_only') && (
               <span
                 className="font-logo-script"
                 style={{

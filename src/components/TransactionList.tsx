@@ -341,7 +341,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         {scopeLabel}
                       </span>
 
-                      {/* USD Badge (Unified with Secondary Brand Palette) */}
+                      {/* USD Badge */}
                       {tx.currency === 'USD' && (
                         <span style={{
                           display: 'inline-flex',
@@ -351,30 +351,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                           fontSize: '0.65rem',
                           fontWeight: 800,
                           backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
-                          color: 'var(--brand-secondary-dark, #115E59)',
+                          color: '#0D9488',
                           border: '1px solid var(--brand-secondary-border, #99F6E4)',
                           flexShrink: 0
                         }}>
-                          USD$
-                        </span>
-                      )}
-
-                      {/* Ticket POS Badge */}
-                      {hasTicket && (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          padding: '1px 6px',
-                          borderRadius: '6px',
-                          fontSize: '0.65rem',
-                          fontWeight: 800,
-                          backgroundColor: 'var(--brand-primary-light, #FCE7F3)',
-                          color: 'var(--brand-primary, #EC4899)',
-                          border: '1px solid var(--brand-primary-border, #FBCFE8)',
-                          flexShrink: 0
-                        }}>
-                          🧾 Ticket
+                          USD
                         </span>
                       )}
                     </div>

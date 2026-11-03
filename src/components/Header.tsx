@@ -37,6 +37,7 @@ import {
 
 import { getLoggedInUser, getStoreCustomizationSettings, getStoreModulesConfig, StoreModulesConfig } from '@/lib/storage';
 import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
+import { APP_VERSION, APP_NAME } from '@/lib/version';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface HeaderProps {
@@ -117,6 +118,14 @@ export const Header: React.FC<HeaderProps> = ({
     setActiveTab('store');
     setIsMenuOpen(false);
     window.dispatchEvent(new CustomEvent('cuentacasa-navigate-store-tab', { detail: subTab }));
+    if (subTab === 'products') {
+      setTimeout(() => {
+        const el = document.getElementById('store-products-catalog');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+    }
   };
 
   const handleSettingsSubViewClick = (subView: string) => {
@@ -391,7 +400,7 @@ export const Header: React.FC<HeaderProps> = ({
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <Package size={16} color="var(--md-sys-color-primary)" />
-                        <span>Catálogo de Productos</span>
+                        <span>Inventario de Productos</span>
                       </div>
                       <ChevronRight size={14} opacity={0.4} />
                     </button>
@@ -1010,7 +1019,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Footer status */}
             <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--md-sys-color-outline-variant)', fontSize: '0.75rem', color: 'var(--md-sys-color-on-surface-variant)', textAlign: 'center' }}>
-              Samy Store v1.7.5 • PWA Offline
+              {APP_NAME} v{APP_VERSION} • PWA Offline
             </div>
           </div>
         </div>

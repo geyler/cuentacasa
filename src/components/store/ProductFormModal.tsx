@@ -5,13 +5,17 @@ import { StoreProduct, SupplierAccount, SupplierType } from '@/types';
 import { 
   compressImageToBase64, 
   getCurrencySettings, 
+  saveCurrencySettings,
   getStoreProductByBarcode, 
   parseBarcodeDates,
   saveStoreProduct,
   getRawDatabase,
   getStoreModulesConfig,
   StoreModulesConfig,
-  DEFAULT_PRODUCT_IMAGE
+  DEFAULT_PRODUCT_IMAGE,
+  getEnabledUnits,
+  getSystemCategories,
+  ALL_SYSTEM_UNITS
 } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { AppInput } from '@/components/common/AppInput';
@@ -51,6 +55,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [category, setCategory] = useState('');
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [categoriesList, setCategoriesList] = useState<string[]>(() => {
+    return Array.from(new Set([...(existingCategories || []), ...getSystemCategories()])).sort((a, b) => a.localeCompare(b));
+  });
+  const [enabledUnits, setEnabledUnits] = useState<string[]>(() => getEnabledUnits());
   const [costPrice, setCostPrice] = useState<number | ''>('');
   const [price, setPrice] = useState<number | ''>('');
   const [priceUSD, setPriceUSD] = useState<number | ''>('');
@@ -107,12 +115,42 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   // Form Mode: 'simple' (Fast publishing direct to store with business fund) vs 'advanced' (Full options)
   const [formMode, setFormMode] = useState<'simple' | 'advanced'>('simple');
 
+  // 1-Hour Cadence Exchange Rate Notice State
+  const [showExchangeRateNotice, setShowExchangeRateNotice] = useState(false);
+  const [quickRateInput, setQuickRateInput] = useState('');
+  const [isEditingRateInline, setIsEditingRateInline] = useState(false);
+
   // Refs for focusing
   const productFormRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setStoreModules(getStoreModulesConfig());
+
+      const cSettings = getCurrencySettings();
+      const currentRate = cSettings.exchangeRateUSD || 320;
+      setQuickRateInput(currentRate.toString());
+
+      // Solo alertar si el negocio opera en USD o doble moneda o precios indexados a USD
+      const isMultiCurrency = cSettings.currencyMode === 'BOTH' || cSettings.currencyMode === 'USD' || cSettings.usdIndexedPricing;
+      if (isMultiCurrency) {
+        const LAST_WARN_KEY = 'cuentacasa_last_rate_warning_timestamp';
+        const lastWarnTime = typeof window !== 'undefined' ? localStorage.getItem(LAST_WARN_KEY) : null;
+        const ONE_HOUR_MS = 60 * 60 * 1000;
+        const now = Date.now();
+
+        if (!lastWarnTime || (now - Number(lastWarnTime) >= ONE_HOUR_MS)) {
+          setShowExchangeRateNotice(true);
+          try {
+            localStorage.setItem(LAST_WARN_KEY, now.toString());
+          } catch (e) {
+            // Ignore storage errors
+          }
+        }
+      }
+    } else {
+      setShowExchangeRateNotice(false);
+      setIsEditingRateInline(false);
     }
   }, [isOpen]);
 
@@ -231,11 +269,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   }, [editingProduct, isOpen]);
 
   const handleGenerateSku = () => {
-    const randomDigits = Math.floor(100000 + Math.random() * 900000);
-    const genSku = `SKU-${randomDigits}`;
+    // Generar código numérico limpio de 7 dígitos (ej. 7482910) sin letras ni prefijos
+    const genSku = Math.floor(1000000 + Math.random() * 9000000).toString();
     setBarcode(genSku);
     showToast({
-      title: 'SKU Generado',
+      title: 'SKU Numérico Generado',
       message: `Código asignado: ${genSku}`,
       type: 'success'
     });
@@ -344,16 +382,40 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const handleAddNewCategorySubmit = () => {
     if (newCategoryInput.trim()) {
       const cleanCat = newCategoryInput.trim();
+      setCategoriesList(prev => {
+        if (!prev.includes(cleanCat)) {
+          return [cleanCat, ...prev];
+        }
+        return prev;
+      });
       setCategory(cleanCat);
+      setNewCategoryInput('');
       setIsAddingNewCategory(false);
+      showToast({
+        title: 'Categoría Asignada',
+        message: `Categoría "${cleanCat}" seleccionada para el producto.`,
+        type: 'success'
+      });
     }
   };
 
   const handleAddNewUnitSubmit = () => {
     if (newUnitInput.trim()) {
       const cleanUnit = newUnitInput.trim();
+      setEnabledUnits(prev => {
+        if (!prev.includes(cleanUnit)) {
+          return [cleanUnit, ...prev];
+        }
+        return prev;
+      });
       setUnit(cleanUnit);
+      setNewUnitInput('');
       setIsAddingNewUnit(false);
+      showToast({
+        title: 'Unidad Asignada',
+        message: `Unidad "${cleanUnit}" seleccionada.`,
+        type: 'success'
+      });
     }
   };
 
@@ -386,17 +448,28 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       }
     }
 
-    const calculatedCost = costPrice !== '' ? Number(costPrice) : Math.round(Number(price) * 0.7);
+    const rate = (getCurrencySettings().exchangeRateUSD) || 350;
+    const finalPrice = Number(price);
+    const calculatedCost = costPrice !== '' ? Number(costPrice) : Math.round(finalPrice * 0.7);
+
+    // Cálculo automático en USD para que la indexación/fijación por dólar funcione en background
+    const finalCostUSD = costPriceUSD !== '' 
+      ? Number(costPriceUSD) 
+      : (productCurrency === 'USD' ? calculatedCost : Number((calculatedCost / rate).toFixed(2)));
+
+    const finalPriceUSD = priceUSD !== '' 
+      ? Number(priceUSD) 
+      : (productCurrency === 'USD' ? finalPrice : Number((finalPrice / rate).toFixed(2)));
 
     const productPayload = {
       name: name.trim(),
-      barcode: barcode.trim() || String(Math.floor(1000 + Math.random() * 9000)),
-      category: category.trim() || 'Varios',
+      barcode: barcode.trim() || String(Math.floor(1000000 + Math.random() * 9000000)),
+      category: category.trim() || 'General',
       unit: unit.trim() || 'u',
       costPrice: calculatedCost,
-      price: Number(price),
-      priceUSD: priceUSD !== '' ? Number(priceUSD) : (productCurrency === 'USD' ? Number(price) : undefined),
-      costPriceUSD: costPriceUSD !== '' ? Number(costPriceUSD) : (productCurrency === 'USD' ? calculatedCost : undefined),
+      price: finalPrice,
+      priceUSD: finalPriceUSD,
+      costPriceUSD: finalCostUSD,
       currency: productCurrency,
       stock: Number(stock) || 0,
       photoUrl: photoUrl || undefined,
@@ -502,6 +575,129 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           flexDirection: 'column',
           gap: '18px'
         }}>
+
+          {/* 1-Hour Cadence Exchange Rate Notice Banner */}
+          {showExchangeRateNotice && (
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: '16px',
+              backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
+              border: '1.5px solid var(--brand-secondary-border, #99F6E4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <DollarSign size={20} color="#0D9488" />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0F766E' }}>
+                    Tasa Oficial del Dólar Hoy: 1 USD = ${getCurrencySettings().exchangeRateUSD || 320} CUP
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowExchangeRateNotice(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0F766E', padding: '2px' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p style={{ fontSize: '0.78rem', color: '#115E59', margin: 0, lineHeight: 1.45 }}>
+                Verifica si el valor del dólar varió hoy para fijar tus costos y precios reales en USD sin afectación por la devaluación del peso. (Este aviso se muestra solo 1 vez por hora).
+              </p>
+
+              {isEditingRateInline ? (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0F766E' }}>Nueva Tasa:</span>
+                  <input
+                    type="number"
+                    value={quickRateInput}
+                    onChange={e => setQuickRateInput(e.target.value)}
+                    placeholder="Ej: 350"
+                    style={{
+                      width: '90px',
+                      padding: '6px 8px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #0D9488',
+                      fontSize: '0.86rem',
+                      fontWeight: 800,
+                      textAlign: 'center'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const parsed = parseFloat(quickRateInput);
+                      if (parsed > 0) {
+                        saveCurrencySettings({ exchangeRateUSD: parsed });
+                        setIsEditingRateInline(false);
+                        showToast({
+                          title: 'Tasa Actualizada',
+                          message: `La tasa de cambio se fijó en 1 USD = ${parsed} CUP.`,
+                          type: 'success'
+                        });
+                      }
+                    }}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#0D9488',
+                      color: '#FFFFFF',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Guardar Tasa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingRateInline(false)}
+                    style={{ background: 'none', border: 'none', fontSize: '0.78rem', color: '#0F766E', cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingRateInline(true)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #0D9488',
+                      backgroundColor: '#FFFFFF',
+                      color: '#0F766E',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✏️ Cambiar Tasa Hoy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowExchangeRateNotice(false)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      backgroundColor: '#0D9488',
+                      color: '#FFFFFF',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✓ La Tasa es Correcta
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Form Mode Segmented Switcher */}
           <div style={{
@@ -851,7 +1047,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               onChange={(e) => {
                 if (e.target.value === '__NEW_CATEGORY__') {
                   setIsAddingNewCategory(true);
-                  setCategory('');
+                  setNewCategoryInput('');
                 } else {
                   setIsAddingNewCategory(false);
                   setCategory(e.target.value);
@@ -871,7 +1067,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               }}
             >
               <option value="" disabled>-- Seleccionar Categoría --</option>
-              {existingCategories.map(cat => (
+              {category && !categoriesList.includes(category) && (
+                <option value={category}>{category}</option>
+              )}
+              {categoriesList.map(cat => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
@@ -941,22 +1140,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 cursor: 'pointer'
               }}
             >
-              <option value="u">u (Unidad)</option>
-              <option value="lb">lb (Libra)</option>
-              <option value="kg">kg (Kilogramo)</option>
-              <option value="g">g (Gramo)</option>
-              <option value="oz">oz (Onza)</option>
-              <option value="bolsa">Bolsa</option>
-              <option value="saco">Saco</option>
-              <option value="m">m (Metro)</option>
-              <option value="cm">cm (Centímetro)</option>
-              <option value="litro">Litro</option>
-              <option value="galón">Galón</option>
-              <option value="caja">Caja</option>
-              <option value="paquete">Paquete</option>
-              <option value="listero">Listero</option>
-              <option value="par">Par</option>
-              {!['u', 'lb', 'kg', 'g', 'oz', 'bolsa', 'saco', 'm', 'cm', 'litro', 'galón', 'caja', 'paquete', 'listero', 'par'].includes(unit) && unit && (
+              {ALL_SYSTEM_UNITS.filter(u => enabledUnits.includes(u.id)).map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+              {unit && !enabledUnits.includes(unit) && (
                 <option value={unit}>Personalizada: {unit}</option>
               )}
               <option value="__NEW_UNIT__" style={{ fontWeight: 800, color: 'var(--md-sys-color-primary)' }}>
@@ -994,11 +1183,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             )}
           </div>
 
-          {/* Currency Selector Toggle */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Moneda Base del Producto *
-            </label>
+          {/* Currency Selector Toggle & Bulk Calculator (Solo visible si el negocio tiene habilitada la doble moneda) */}
+          {getCurrencySettings().currencyMode !== 'CUP' && (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Moneda Base del Producto *
+                </label>
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -1179,7 +1370,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Ganancia Total del Lote:</span>
                           <strong style={{ color: 'var(--md-sys-color-income)' }}>
-                            +US$ {((Number(bulkTargetPriceUSD) - (Number(bulkTotalCostUSD) / Number(bulkTotalUnits))) * Number(bulkTotalUnits)).toFixed(2)} USD
+                            +US$ {((Number(bulkTargetPriceUSD) - (Number(bulkTotalCostUSD) / Number(bulkTotalUnits))) * Number(bulkTotalUnits)).toFixed(2)}
                           </strong>
                         </div>
 
@@ -1253,6 +1444,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
             )}
           </div>
+            </>
+          )}
 
           {/* Cost Price vs Selling Price Grid */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

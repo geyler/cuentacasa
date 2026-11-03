@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { StoreProduct } from '@/types';
-import { formatPhotoUrl, getStoreWhatsappNumber, getCurrencySettings } from '@/lib/storage';
+import { formatPhotoUrl, getStoreWhatsappNumber, getCurrencySettings, getStoreCustomizationSettings, DEFAULT_PRODUCT_IMAGE } from '@/lib/storage';
 import { formatCurrency, calculateMultiCurrencyTotals } from '@/lib/invoice';
 import { ShoppingBag, Trash2, Minus, Plus, MessageCircle, QrCode } from 'lucide-react';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
@@ -48,11 +48,13 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
   const handleSendWhatsAppOrder = () => {
     if (cart.length === 0) return;
 
+    const storeSettings = getStoreCustomizationSettings();
+    const brandName = (storeSettings.storeName || 'TIENDA').toUpperCase();
     const targetPhone = getStoreWhatsappNumber();
     const cartQuery = cart.map(i => `${i.product.barcode}:${i.quantity}`).join(',');
     const cartLink = `${window.location.origin}/app?cart=${encodeURIComponent(cartQuery)}`;
 
-    let text = `🛒 *PEDIDO SAMY STORE*\n----------------------------------\n`;
+    let text = `🛒 *PEDIDO ${brandName}*\n----------------------------------\n`;
     cart.forEach((item, index) => {
       const itemCurr = item.product.currency || 'CUP';
       const formattedSubtotal = formatCurrency(item.product.price * item.quantity, itemCurr, true);
@@ -65,7 +67,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
       const singleTotalStr = multiTotals.hasUSD ? formatCurrency(multiTotals.totalUSD, 'USD', true) : formatCurrency(multiTotals.totalCUP, 'CUP', true);
       text += `💰 *TOTAL A PAGAR: ${singleTotalStr}*\n\n`;
     }
-    text += `🔗 *Ver pedido en Samy Store:*\n${cartLink}`;
+    text += `🔗 *Ver pedido en ${storeSettings.storeName || 'Cubasoft'}:*\n${cartLink}`;
 
     const encoded = encodeURIComponent(text);
     const cleanPhone = targetPhone ? targetPhone.replace(/\D/g, '') : '';
@@ -123,7 +125,7 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
               </div>
               <div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--md-sys-color-on-surface)' }}>
-                  Carrito de Compra Samy Store
+                  Carrito de Compra {getStoreCustomizationSettings().storeName || 'Cubasoft'}
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: 'var(--md-sys-color-on-surface-variant)' }}>
                   {totalCartCount} {totalCartCount === 1 ? 'producto seleccionado' : 'productos seleccionados'}
@@ -185,8 +187,12 @@ export const PublicStoreCartDrawer: React.FC<PublicStoreCartDrawerProps> = ({
                       flexShrink: 0
                     }}>
                       <img
-                        src={formatPhotoUrl(item.product.photoUrl) || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
+                        src={formatPhotoUrl(item.product.photoUrl)}
                         alt={item.product.name}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+                        }}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     </div>

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Receipt, Coins, DollarSign, ShoppingBag, Handshake, CheckCircle2 } from 'lucide-react';
 import { formatDateTime } from '@/lib/dateUtils';
+import { getStoreCustomizationSettings } from '@/lib/storage';
 
 interface ReceiptTicketViewProps {
   note?: string;
@@ -82,11 +83,14 @@ export const ReceiptTicketView: React.FC<ReceiptTicketViewProps> = ({
     });
   }
 
+  const storeCustom = getStoreCustomizationSettings();
+  const storeNameHeader = (storeCustom.storeName || 'TIENDA').toUpperCase();
+
   const titleText = isPurchase 
     ? 'COMPROBANTE DE COMPRA DE MERCANCÍA' 
     : isPayout 
       ? 'COMPROBANTE DE LIQUIDACIÓN A PROVEEDOR' 
-      : 'TICKET DE TIENDA SAMY STORE';
+      : `TICKET DE TIENDA ${storeNameHeader}`;
 
   const subtitleText = isPurchase
     ? `Entrada de Mercancía ${ticketId ? `#${ticketId}` : ''}`

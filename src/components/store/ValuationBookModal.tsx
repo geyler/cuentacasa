@@ -141,7 +141,7 @@ export const ValuationBookModal: React.FC<ValuationBookModalProps> = ({
       <div className="printable-only" style={{ display: 'none', padding: '20px', borderBottom: '2px solid #000' }}>
         <StoreBrandDisplay align="left" size="sm" textColor="#000000" style={{ marginBottom: '8px' }} />
         <h1 style={{ fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase' }}>LIBRO OFICIAL DE TASACIONES Y VENCIMIENTOS</h1>
-        <p style={{ fontSize: '0.85rem' }}>Establecimiento: {getStoreCustomizationSettings().storeName || 'Samy Store'} | Fecha de Registro: {formatDate(new Date())}</p>
+        <p style={{ fontSize: '0.85rem' }}>Establecimiento: {getStoreCustomizationSettings().storeName || 'Cubasoft ERP'} | Fecha de Registro: {formatDate(new Date())}</p>
       </div>
 
         {/* Modal Top Bar Header */}

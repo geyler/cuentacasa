@@ -2,14 +2,14 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://samystore.cu'),
-  title: "Samy Store - POS & Gestión de Tienda PWA",
-  description: "Aplicación PWA / WebAPK 100% offline para POS, ventas, gestión de inventario y finanzas de Samy Store.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://cubasoft.cu'),
+  title: "Cubasoft - POS & Gestión de Tienda PWA",
+  description: "Aplicación PWA / WebAPK 100% offline para POS, ventas, gestión de inventario y finanzas de Cubasoft.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Samy Store",
+    title: "Cubasoft",
   },
   formatDetection: {
     telephone: false,
@@ -32,12 +32,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <link id="cuentacasa-app-favicon" rel="icon" href="/icons/icon-192.png" type="image/png" />
-        <link id="cuentacasa-app-favicon-dark" rel="icon" href="/icons/icon-192.png" type="image/png" media="(prefers-color-scheme: dark)" />
-        <link id="cuentacasa-apple-touch-icon" rel="apple-touch-icon" href="/icons/icon-192.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@600;700;800;900&family=Dancing+Script:wght@700&family=Great+Vibes&family=Montserrat:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="/fonts/logo-fonts.css" />
+        <link id="cuentacasa-app-favicon" rel="icon" href="/icons/favicon.png" type="image/png" />
+        <link id="cuentacasa-app-favicon-dark" rel="icon" href="/icons/favicon-dark.png" type="image/png" media="(prefers-color-scheme: dark)" />
+        <link id="cuentacasa-apple-touch-icon" rel="apple-touch-icon" href="/icons/apple-icon.png" />
         {/* Inyección síncrona inmediata de la paleta, favicons, fuentes y textos de identidad antes del primer pintado (Cero FOUC) */}
         <script
           id="cuentacasa-instant-theme"
@@ -178,7 +176,7 @@ export default function RootLayout({
                   }
                   navigator.serviceWorker.register('/sw.js').then(
                     function(registration) {
-                      console.log('Samy Store PWA Service Worker registered with scope: ', registration.scope);
+                      console.log('Cubasoft ERP PWA Service Worker registered with scope: ', registration.scope);
                       registration.update();
                     },
                     function(err) {

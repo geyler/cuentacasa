@@ -4,15 +4,15 @@ import { getServerPublishedProducts } from '@/lib/db';
 import { INITIAL_SEED_PRODUCTS } from '@/lib/storage';
 
 export const metadata: Metadata = {
-  title: 'Samy Store Cuba - Catálogo y Pedidos Directos',
-  description: 'Explora el catálogo oficial de Samy Store Las Tunas. Prendas exclusivas, accesorios, calzado y víveres con precios actualizados en CUP y USD. Pedidos directos por WhatsApp.',
-  keywords: ['tienda cuba', 'samy store', 'las tunas', 'ropa cuba', 'pedidos whatsapp', 'compras online cuba'],
+  title: 'Cubasoft - Catálogo y Pedidos Directos',
+  description: 'Explora el catálogo oficial de Cubasoft. Productos y víveres con precios actualizados en CUP y USD con pedidos directos por WhatsApp.',
+  keywords: ['tienda cuba', 'cubasoft', 'pedidos whatsapp', 'compras online cuba'],
   openGraph: {
-    title: 'Samy Store Cuba - Catálogo Oficial',
+    title: 'Cubasoft - Catálogo Oficial',
     description: 'Catálogo de productos exclusivos con entregas y pedidos directos en Cuba.',
     type: 'website',
     locale: 'es_CU',
-    siteName: 'Samy Store Cuba'
+    siteName: 'Cubasoft'
   },
   alternates: {
     canonical: '/'

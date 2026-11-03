@@ -39,7 +39,15 @@ import { StoreManagementView } from '@/components/StoreManagementView';
 import { StoreShiftModal } from '@/components/StoreShiftModal';
 import { ValuationBookModal } from '@/components/store/ValuationBookModal';
 import dynamic from 'next/dynamic';
-import { DashboardSkeleton, TableSkeleton } from '@/components/common/AppSkeleton';
+import { 
+  DashboardSkeleton, 
+  QuickEntrySkeleton, 
+  StoreManagementSkeleton, 
+  ReportsSkeleton, 
+  SettingsSkeleton, 
+  AppLayoutSkeleton, 
+  TableSkeleton 
+} from '@/components/common/AppSkeleton';
 
 const BarcodeScannerModal = dynamic(
   () => import('@/components/BarcodeScannerModal').then(mod => mod.BarcodeScannerModal),
@@ -390,7 +398,7 @@ function AccountingAppContent() {
 
   const handleLogout = () => {
     confirmAction({
-      title: '¿Cerrar Sesión en Samy Store?',
+      title: '¿Cerrar Sesión en Cubasoft ERP?',
       message: 'Se cerrará la sesión actual. Tendrás que ingresar tus credenciales para volver a acceder.',
       variant: 'danger',
       confirmText: 'Cerrar Sesión',
@@ -569,7 +577,7 @@ function AccountingAppContent() {
 
   // Full-page PWA Loader Shell on initial load
   if (!authLoaded || !db) {
-    return <DashboardSkeleton />;
+    return <AppLayoutSkeleton />;
   }
 
   // Enforce Master Password Login Screen
@@ -687,75 +695,83 @@ function AccountingAppContent() {
 
         {/* Tab 0: Quick Entry Home */}
         {activeTab === 'quick' && (
-          <QuickEntryView
-            onOpenGasto={() => handleOpenAddTx('gasto')}
-            onOpenIngreso={() => handleOpenAddTx('ingreso')}
-            onOpenDashboard={() => handleTabChange('dashboard')}
-            onOpenStore={() => handleTabChange('store')}
-            onOpenPublicStore={() => { window.location.href = '/'; }}
-            onOpenTransfer={() => setIsTransferModalOpen(true)}
-            onOpenPOS={() => setIsScannerOpen(true)}
-            onOpenShiftModal={() => handleTabChange('shifts')}
-          />
+          isTabTransitioning ? (
+            <QuickEntrySkeleton />
+          ) : (
+            <QuickEntryView
+              onOpenGasto={() => handleOpenAddTx('gasto')}
+              onOpenIngreso={() => handleOpenAddTx('ingreso')}
+              onOpenDashboard={() => handleTabChange('dashboard')}
+              onOpenStore={() => handleTabChange('store')}
+              onOpenPublicStore={() => { window.location.href = '/'; }}
+              onOpenTransfer={() => setIsTransferModalOpen(true)}
+              onOpenPOS={() => setIsScannerOpen(true)}
+              onOpenShiftModal={() => handleTabChange('shifts')}
+            />
+          )
         )}
 
         {/* Tab 1: Dashboard Contable */}
         {activeTab === 'dashboard' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Dashboard Contable</h2>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => handleOpenAddTx('gasto')}
-                  className="md-btn md-btn-primary"
-                  style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-                >
-                  <Plus size={16} /> Registrar
-                </button>
-              </div>
-            </div>
-
-            {/* Metric Stat Cards */}
-            <StatCards 
-              summary={summary} 
-              currency={db.settings.currency} 
-              showBalance={showBalance} 
-              isLoading={isTabTransitioning}
-              storeFund={getCalculatedStoreFund()}
-              storeFundUSD={db.storeFundUSD || 0}
-              onOpenTransfer={() => setIsTransferModalOpen(true)}
-            />
-
-            {/* Recent Transactions */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Últimos 10 Movimientos</h3>
-                <button
-                  onClick={() => handleTabChange('transactions')}
-                  style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-primary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-                >
-                  Ver todos →
-                </button>
+          isTabTransitioning ? (
+            <DashboardSkeleton />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Dashboard Contable</h2>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => handleOpenAddTx('gasto')}
+                    className="md-btn md-btn-primary"
+                    style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                  >
+                    <Plus size={16} /> Registrar
+                  </button>
+                </div>
               </div>
 
-              <TransactionList
-                transactions={transactions}
-                limit={10}
-                onEdit={handleOpenEditTx}
-                onDelete={handleDeleteTransaction}
-                currency={db.settings.currency}
-                showBalance={showBalance}
-                isLoading={isTabTransitioning}
-                deletingId={deletingId}
+              {/* Metric Stat Cards */}
+              <StatCards 
+                summary={summary} 
+                currency={db.settings.currency} 
+                showBalance={showBalance} 
+                isLoading={false}
+                storeFund={getCalculatedStoreFund()}
+                storeFundUSD={db.storeFundUSD || 0}
+                onOpenTransfer={() => setIsTransferModalOpen(true)}
               />
+
+              {/* Recent Transactions */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Últimos 10 Movimientos</h3>
+                  <button
+                    onClick={() => handleTabChange('transactions')}
+                    style={{ background: 'none', border: 'none', color: 'var(--md-sys-color-primary)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
+                  >
+                    Ver todos →
+                  </button>
+                </div>
+
+                <TransactionList
+                  transactions={transactions}
+                  limit={10}
+                  onEdit={handleOpenEditTx}
+                  onDelete={handleDeleteTransaction}
+                  currency={db.settings.currency}
+                  showBalance={showBalance}
+                  isLoading={false}
+                  deletingId={deletingId}
+                />
+              </div>
             </div>
-          </div>
+          )
         )}
 
         {/* Tab 2: Store Inventory Management ("Tienda") */}
         {activeTab === 'store' && (
           isTabTransitioning ? (
-            <TableSkeleton rows={7} columns={5} />
+            <StoreManagementSkeleton />
           ) : (
             <StoreManagementView
               currency={db.settings.currency}
@@ -795,7 +811,7 @@ function AccountingAppContent() {
         {/* Tab 4: Facturación y Reportes */}
         {activeTab === 'reports' && (
           isTabTransitioning ? (
-            <TableSkeleton rows={8} columns={6} />
+            <ReportsSkeleton />
           ) : (
             <ReportView
               transactions={transactions}
@@ -829,24 +845,28 @@ function AccountingAppContent() {
 
         {/* Tab 7: Configuración & Ajustes del Sistema (Vista Completa Fluida en PC) */}
         {activeTab === 'settings' && (
-          <SettingsModal
-            isOpen={true}
-            embedded={true}
-            onClose={() => handleTabChange('quick')}
-            isOnline={isOnline}
-            pendingSyncCount={pendingCount}
-            onSync={handleSync}
-            isSyncing={isSyncing}
-            theme={theme}
+          isTabTransitioning ? (
+            <SettingsSkeleton />
+          ) : (
+            <SettingsModal
+              isOpen={true}
+              embedded={true}
+              onClose={() => handleTabChange('quick')}
+              isOnline={isOnline}
+              pendingSyncCount={pendingCount}
+              onSync={handleSync}
+              isSyncing={isSyncing}
+              theme={theme}
             toggleTheme={toggleTheme}
             showBalance={showBalance}
             toggleShowBalance={toggleShowBalance}
             onOpenRawDb={() => setIsRawDbModalOpen(true)}
             onLogout={handleLogout}
-            onInstallPwa={handleInstallPwa}
-            canInstallPwa={!!deferredPrompt}
-            onOpenPendingSync={() => setIsPendingSyncModalOpen(true)}
-          />
+              onInstallPwa={handleInstallPwa}
+              canInstallPwa={!!deferredPrompt}
+              onOpenPendingSync={() => setIsPendingSyncModalOpen(true)}
+            />
+          )
         )}
 
         {/* Tab 8: Mi Perfil y Cuenta de Usuario (Vista Completa Fluida en PC) */}

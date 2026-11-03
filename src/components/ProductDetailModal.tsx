@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
 import { formatCurrency, getProductDisplayPrice, getCurrencyBadgeStyle } from '@/lib/invoice';
-import { formatPhotoUrl, getStoreWhatsappNumber, formatCubanPhone, getUserProductRating, rateStoreProduct, getCurrencySettings } from '@/lib/storage';
+import { formatPhotoUrl, getStoreWhatsappNumber, formatCubanPhone, getUserProductRating, rateStoreProduct, getCurrencySettings, getStoreCustomizationSettings, DEFAULT_PRODUCT_IMAGE } from '@/lib/storage';
 import {
   X,
   MessageCircle,
@@ -145,8 +145,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const handleWhatsAppOrder = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const productSeoLink = `${origin}/producto/${activeProduct.id}`;
+    const storeSettings = getStoreCustomizationSettings();
+    const brandName = (storeSettings.storeName || 'TIENDA').toUpperCase();
 
-    let text = `🛒 *PEDIDO SAMY STORE*\n`;
+    let text = `🛒 *PEDIDO ${brandName}*\n`;
     text += `----------------------------------\n`;
     text += `• 1x *${activeProduct.name}* (Código: #${activeProduct.barcode})\n`;
     text += `----------------------------------\n`;
@@ -165,7 +167,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const handleShareProduct = async () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const productSeoLink = `${origin}/producto/${activeProduct.id}`;
-    const shareText = `🛍️ *${activeProduct.name}*\n💰 Precio: ${formatCurrency(disp.amount, disp.currency, true)} ${disp.currency}\n\n🔗 Ver en Samy Store:\n${productSeoLink}`;
+    const shareText = `🛍️ *${activeProduct.name}*\n💰 Precio: ${formatCurrency(disp.amount, disp.currency, true)} ${disp.currency}\n\n🔗 Ver en Cubasoft ERP:\n${productSeoLink}`;
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
@@ -273,35 +275,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                {!imageError && activeProduct.photoUrl ? (
-                  <img
-                    src={formatPhotoUrl(activeProduct.photoUrl)}
-                    alt={activeProduct.name}
-                    onError={() => setImageError(true)}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
-                  />
-                ) : (
-                  <div style={{
+                <img
+                  src={imageError ? DEFAULT_PRODUCT_IMAGE : formatPhotoUrl(activeProduct.photoUrl)}
+                  alt={activeProduct.name}
+                  onError={() => setImageError(true)}
+                  style={{
                     width: '100%',
                     height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    backgroundColor: '#F8FAFC',
-                    color: '#64748B'
-                  }}>
-                    <ShoppingBag size={52} opacity={0.35} />
-                    <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>
-                      {activeProduct.name}
-                    </span>
-                  </div>
-                )}
+                    objectFit: 'cover'
+                  }}
+                />
 
                 {!activeProduct.isExternal && activeProduct.stock <= 0 && (
                   <div style={{
@@ -373,7 +356,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 padding: '14px 16px'
               }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Precio Samy Store
+                  Precio Cubasoft ERP
                 </span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '1.9rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.03em', lineHeight: 1 }}>
@@ -535,13 +518,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       }}
                     >
                       <div style={{ width: '100%', aspectRatio: '1/1', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#FFFFFF' }}>
-                        {rel.photoUrl ? (
-                          <img src={formatPhotoUrl(rel.photoUrl)} alt={rel.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
-                            <ShoppingBag size={22} />
-                          </div>
-                        )}
+                        <img 
+                          src={formatPhotoUrl(rel.photoUrl)} 
+                          alt={rel.name} 
+                          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
                       </div>
                       <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {rel.name}

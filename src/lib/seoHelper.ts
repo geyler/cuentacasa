@@ -11,8 +11,8 @@ export interface ProductSeoMeta {
 }
 
 export const STORE_SEO_CONFIG = {
-  storeName: 'Samy Store',
-  fullName: 'Samy Store Las Tunas',
+  storeName: 'Cubasoft ERP',
+  fullName: 'Cubasoft ERP',
   systemName: 'Cubasoft ERP',
   developerUrl: 'https://cubasoft.net',
   location: 'Las Tunas, Cuba',
@@ -51,18 +51,18 @@ export function getProductSeoMeta(barcode: string, price: number): ProductSeoMet
 }
 
 /**
- * Common category SEO descriptions for Samy Store (Las Tunas, Cuba)
+ * Common category SEO descriptions for Cubasoft ERP (Las Tunas, Cuba)
  */
 export const CATEGORY_SEO_DESCRIPTIONS: Record<string, string> = {
-  'electrodomésticos': 'Electrodomésticos y equipos para el hogar en Las Tunas. Envíos y entregas rápidas con Samy Store.',
-  'electrodomesticos': 'Electrodomésticos y equipos para el hogar en Las Tunas. Envíos y entregas rápidas con Samy Store.',
+  'electrodomésticos': 'Electrodomésticos y equipos para el hogar en Las Tunas. Envíos y entregas rápidas con Cubasoft ERP.',
+  'electrodomesticos': 'Electrodomésticos y equipos para el hogar en Las Tunas. Envíos y entregas rápidas con Cubasoft ERP.',
   'alimentos': 'Alimentos frescos, víveres y productos de primera necesidad en Las Tunas. Tienda directa y pago en CUP.',
-  'bebidas': 'Refrescos, maltas, jugos y bebidas disponibles en Las Tunas con Samy Store.',
+  'bebidas': 'Refrescos, maltas, jugos y bebidas disponibles en Las Tunas con Cubasoft ERP.',
   'ropa': 'Ropa, calzado y confecciones de alta calidad en Las Tunas. Diseños modernos y precios justos.',
   'calzado': 'Calzado resistente y de moda para todas las edades disponible en Las Tunas.',
-  'hogar': 'Artículos para el hogar, cocina, limpieza y decoración en Samy Store Las Tunas.',
-  'tecnología': 'Teléfonos celulares, accesorios, gadgets y productos tecnológicos en Las Tunas con Samy Store.',
-  'tecnologia': 'Teléfonos celulares, accesorios, gadgets y productos tecnológicos en Las Tunas con Samy Store.',
+  'hogar': 'Artículos para el hogar, cocina, limpieza y decoración en Cubasoft ERP.',
+  'tecnología': 'Teléfonos celulares, accesorios, gadgets y productos tecnológicos en Las Tunas con Cubasoft ERP.',
+  'tecnologia': 'Teléfonos celulares, accesorios, gadgets y productos tecnológicos en Las Tunas con Cubasoft ERP.',
   'limpieza': 'Productos de aseo personal y limpieza del hogar con entrega rápida en Las Tunas.'
 };
 
@@ -71,7 +71,7 @@ export function getCategorySeoDescription(categoryName: string): string {
   if (CATEGORY_SEO_DESCRIPTIONS[key]) {
     return CATEGORY_SEO_DESCRIPTIONS[key];
   }
-  return `Productos de ${categoryName} en Samy Store Las Tunas. Compra online rápida y segura respaldada por Cubasoft ERP.`;
+  return `Productos de ${categoryName} en Cubasoft ERP. Compra online rápida y segura respaldada por Cubasoft ERP.`;
 }
 
 export interface CategoryVisualMeta {

@@ -579,6 +579,32 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
 
             {/* Enlaces Rápidos Derecha (Solo PC) */}
             <div className="desktop-flex" style={{ alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('marketplace-catalog-anchor');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    onResetFilters();
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--brand-primary-accent, #7DD3FC)',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <Layers size={13} />
+                <span>Inventario</span>
+              </button>
+
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.74rem', color: '#CBD5E1', fontWeight: 700 }}>
                 <Truck size={13} style={{ color: 'var(--brand-primary-accent, #7DD3FC)' }} />
                 Envíos a Domicilio
@@ -699,6 +725,38 @@ export const PublicStoreHeaderBar: React.FC<PublicStoreHeaderBarProps> = ({
                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Layers size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
                       Todo el Catálogo
+                    </span>
+                    <ChevronRight size={15} color="#94A3B8" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      const el = document.getElementById('marketplace-catalog-anchor');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      } else {
+                        onResetFilters();
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
+                      color: '#0F172A',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ShoppingBag size={16} style={{ color: 'var(--brand-primary, #1A73E8)' }} />
+                      Inventario de Productos
                     </span>
                     <ChevronRight size={15} color="#94A3B8" />
                   </button>

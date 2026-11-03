@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StoreProduct, StoreSaleItem } from '@/types';
-import { getStoreProducts, getCurrencySettings } from '@/lib/storage';
+import { getStoreProducts, getCurrencySettings, formatPhotoUrl, DEFAULT_PRODUCT_IMAGE } from '@/lib/storage';
 import { formatCurrency } from '@/lib/invoice';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 import { 
@@ -256,11 +256,12 @@ export const QuickProductSearchModal: React.FC<QuickProductSearchModalProps> = (
                       overflow: 'hidden',
                       flexShrink: 0
                     }}>
-                      {prod.photoUrl ? (
-                        <img src={prod.photoUrl} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <Package size={22} color="var(--md-sys-color-primary)" />
-                      )}
+                      <img 
+                        src={formatPhotoUrl(prod.photoUrl)} 
+                        alt={prod.name} 
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
                     </div>
 
                     <div style={{ minWidth: 0, flex: 1 }}>

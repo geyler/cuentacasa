@@ -259,7 +259,7 @@ export async function syncDatabaseWithCloud(force: boolean = false): Promise<{ s
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const authSecret = getMasterPassword() || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_APP_PASSWORD : '') || 'Del1Al9#';
+    const authSecret = getMasterPassword() || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_APP_PASSWORD : '') || '';
     const res = await fetch('/api/sync', {
       method: 'POST',
       headers: {
@@ -484,11 +484,44 @@ export async function syncPublicCatalog(force: boolean = false): Promise<{ succe
     if (data.success && Array.isArray(data.storeProducts)) {
       const db = getRawDatabase();
       const deletedProductIds: string[] = Array.isArray(data.deletedProductIds) ? data.deletedProductIds : [];
-      const publicProducts: StoreProduct[] = data.storeProducts.filter((p: StoreProduct) => !deletedProductIds.includes(p.id));
+      const incomingPublicProducts: StoreProduct[] = data.storeProducts.filter((p: StoreProduct) => !deletedProductIds.includes(p.id));
+
+      const localProductsMap = new Map<string, StoreProduct>();
+      (db.storeProducts || []).forEach(p => {
+        if (p && p.id) localProductsMap.set(p.id, p);
+      });
+
+      // Merge incoming public catalog while strictly preserving local private fields (costPrice, batches, etc.)
+      const mergedProducts: StoreProduct[] = incomingPublicProducts.map(incoming => {
+        const existing = localProductsMap.get(incoming.id) || Array.from(localProductsMap.values()).find(p => p.barcode === incoming.barcode);
+        if (existing) {
+          return {
+            ...incoming,
+            id: existing.id,
+            // Keep true cost price if local had it and public response stripped it to 0
+            costPrice: (existing.costPrice !== undefined && existing.costPrice > 0) ? existing.costPrice : incoming.costPrice,
+            costPriceUSD: (existing.costPriceUSD !== undefined && existing.costPriceUSD > 0) ? existing.costPriceUSD : incoming.costPriceUSD,
+            batches: existing.batches && existing.batches.length > 0 ? existing.batches : incoming.batches,
+            supplierType: existing.supplierType || incoming.supplierType,
+            supplierName: existing.supplierName || incoming.supplierName,
+            secondaryBarcodes: existing.secondaryBarcodes && existing.secondaryBarcodes.length > 0 ? existing.secondaryBarcodes : incoming.secondaryBarcodes,
+            mfgDate: existing.mfgDate || incoming.mfgDate,
+            expDate: existing.expDate || incoming.expDate
+          };
+        }
+        return incoming;
+      });
+
+      // Also preserve any local drafts or unpublished products not in public catalog
+      (db.storeProducts || []).forEach(localP => {
+        if (!localP.published && !deletedProductIds.includes(localP.id) && !mergedProducts.some(m => m.id === localP.id || m.barcode === localP.barcode)) {
+          mergedProducts.push(localP);
+        }
+      });
 
       const updatedDb: RawDatabase = {
         ...db,
-        storeProducts: publicProducts,
+        storeProducts: mergedProducts,
         settings: {
           ...(db.settings || {}),
           ...(data.settings || {}),
@@ -501,7 +534,7 @@ export async function syncPublicCatalog(force: boolean = false): Promise<{ succe
       if (updatedDb.settings) {
         applyGlobalSettingsAndBroadcast(updatedDb.settings);
       }
-      return { success: true, productCount: publicProducts.length };
+      return { success: true, productCount: mergedProducts.length };
     }
   } catch (e) {
     clearTimeout(timeoutId);

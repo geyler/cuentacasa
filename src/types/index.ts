@@ -267,6 +267,13 @@ export interface RawDatabase {
     usdIndexedPricing?: boolean; // Indexar inventario a USD y recalcular CUP dinámicamente según la tasa
     forceShowPricesOnlyCUP?: boolean; // Forzar mostrar y cobrar precios exclusivamente en CUP en la tienda pública
     roundUpCUPToTen?: boolean;   // Redondear importes y precios CUP a múltiplos de 10 (ej. 109 -> 110, 1257 -> 1260)
+    posPaymentMethods?: {
+      cashCUP?: boolean;
+      transferCUP?: boolean;
+      cashUSD?: boolean;
+      fiado?: boolean;
+      split?: boolean;
+    };
     primaryColor?: string;      // Color principal del sistema y tienda (Default: '#1A73E8')
     secondaryColor?: string;    // Color secundario del sistema y tienda (Default: armónico o '#0D9488')
     storeLogoMode?: StoreLogoDisplayMode; // Modo de presentación del logo: 'both' | 'text_only' | 'logo_only' | 'wide_logo'
@@ -278,7 +285,7 @@ export interface RawDatabase {
     storeFaviconDark?: string;  // Favicon para modo oscuro (prefers-color-scheme: dark)
     storeLogoFontId?: string;   // ID del preset tipográfico del logo (e.g. 'cinzel', 'playfair', etc.)
     storeLogoFontFamily?: string; // Declaración CSS de la familia tipográfica del logo
-    storeName?: string;         // Nombre corto de la tienda / sistema (default 'Samy Store')
+    storeName?: string;         // Nombre corto de la tienda / sistema (default 'Cubasoft ERP')
     storeSeoName?: string;      // Nombre largo SEO de la tienda
     storeSeoDescription?: string; // Descripción meta para Google / SEO
     heroBadgeText?: string;     // Texto pre-titular del Hero ("Tienda Online • Las Tunas, Cuba")

@@ -163,7 +163,7 @@ export function formatCurrency(amount: number, currency: string = '$', showBalan
   const val = Number(amount) || 0;
   const formatted = new Intl.NumberFormat('es-ES', {
     useGrouping: 'always',
-    minimumFractionDigits: val % 1 !== 0 ? 2 : 0, 
+    minimumFractionDigits: isUSD ? 2 : (val % 1 !== 0 ? 2 : 0), 
     maximumFractionDigits: 2 
   }).format(val);
   
@@ -240,17 +240,17 @@ export function getCurrencyBadgeStyle(currency?: string) {
     return {
       isUSD: true,
       backgroundColor: 'var(--brand-secondary-light, #F0FDFA)',
-      color: 'var(--brand-secondary-dark, #115E59)',
+      color: '#0D9488', // Verde azulado oscuro / Teal
       border: '1px solid var(--brand-secondary-border, #99F6E4)',
-      badgeText: 'USD$'
+      badgeText: 'USD'
     };
   }
   return {
     isUSD: false,
     backgroundColor: 'var(--brand-primary-light, #EFF6FF)',
-    color: 'var(--brand-primary-dark, #1E3A8A)',
+    color: 'var(--md-sys-color-on-surface, #0F172A)',
     border: '1px solid var(--brand-primary-border, #BFDBFE)',
-    badgeText: 'CUP$'
+    badgeText: 'CUP'
   };
 }
 

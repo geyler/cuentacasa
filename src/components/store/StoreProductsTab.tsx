@@ -4,7 +4,7 @@ import React from 'react';
 import { StoreProduct } from '@/types';
 import { formatCurrency, getProductDisplayPrice } from '@/lib/invoice';
 import { Search, Store, Eye, EyeOff, Edit3, Trash2 } from 'lucide-react';
-import { getCurrencySettings } from '@/lib/storage';
+import { getCurrencySettings, formatPhotoUrl, DEFAULT_PRODUCT_IMAGE } from '@/lib/storage';
 
 interface StoreProductsTabProps {
   products: StoreProduct[];
@@ -45,7 +45,7 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
   return (
     <>
       {/* Search Bar with Input Spotlight */}
-      <div style={{ padding: '4px 0 8px 0' }}>
+      <div id="store-products-catalog" style={{ padding: '4px 0 8px 0', scrollMarginTop: '80px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           
           <div style={{ position: 'relative', flex: '1 1 200px' }}>
@@ -129,11 +129,11 @@ export const StoreProductsTab: React.FC<StoreProductsTabProps> = ({
                   backgroundColor: 'var(--md-sys-color-surface-container-high)'
                 }}>
                   <img 
-                    src={prod.photoUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">TIENDA CASA</text></svg>`} 
+                    src={formatPhotoUrl(prod.photoUrl)} 
                     alt={prod.name}
                     onError={(e) => {
                       e.currentTarget.onerror = null;
-                      e.currentTarget.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none"><rect width="400" height="400" fill="%23F8FAFC"/><rect x="120" y="120" width="160" height="160" rx="24" fill="%23E2E8F0"/><path d="M160 220L190 190L220 220L240 200L260 220" stroke="%2394A3B8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="175" cy="165" r="15" fill="%2394A3B8"/><text x="50%" y="78%" fill="%2364748B" font-size="18" font-family="sans-serif" font-weight="bold" text-anchor="middle">Samy Store</text></svg>`;
+                      e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
                     }}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                   />

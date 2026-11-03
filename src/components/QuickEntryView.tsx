@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useActionFeedback } from '@/components/ActionFeedbackProvider';
 import { getStoreCustomizationSettings, getStoreModulesConfig, StoreModulesConfig } from '@/lib/storage';
+import { StoreBrandDisplay } from '@/components/common/StoreBrandDisplay';
 
 interface QuickEntryViewProps {
   onOpenGasto: () => void;
@@ -40,7 +41,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
   const [isInstalled, setIsInstalled] = React.useState<boolean>(false);
   const [storeName, setStoreName] = React.useState<string>(() => {
-    return getStoreCustomizationSettings().storeName || 'Samy Store';
+    return getStoreCustomizationSettings().storeName || 'Cubasoft';
   });
 
   const [storeModules, setStoreModules] = useState<StoreModulesConfig>(() => getStoreModulesConfig());
@@ -48,7 +49,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
   useEffect(() => {
     const handleCustChange = (e: any) => {
       if (e.detail?.storeName) setStoreName(e.detail.storeName);
-      else setStoreName(getStoreCustomizationSettings().storeName || 'Samy Store');
+      else setStoreName(getStoreCustomizationSettings().storeName || 'Cubasoft');
     };
     const handleModulesChange = (e: any) => {
       setStoreModules(e?.detail || getStoreModulesConfig());
@@ -86,7 +87,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
       }
     } else {
       showActionResult({
-        title: '📱 Instalar App Samy Store',
+        title: `📱 Instalar App ${storeName}`,
         message: '1. En Chrome/Android: Toca los 3 puntos del navegador y elige "Añadir a la pantalla de inicio" o "Instalar aplicación".\n2. En iPhone/Safari: Toca el botón Compartir y elige "Añadir a pantalla de inicio".',
         type: 'info'
       });
@@ -120,7 +121,7 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
             textAlign: 'left'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img src="/images/logo-nav.png" alt="Samy Store" style={{ height: '36px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+              <img src="/brand/cubasoft-logo-square.png" alt={storeName} style={{ height: '36px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
               <div>
                 <h4 style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-on-primary-container)', margin: 0 }}>
                   Instalar App {storeName}
@@ -148,25 +149,16 @@ export const QuickEntryView: React.FC<QuickEntryViewProps> = ({
           </div>
         )}
 
-        {/* App Title Header */}
-        <div>
-          <img
-            src="/images/logo-loading.png"
-            alt={`${storeName} Logo`}
-            style={{
-              height: '104px',
-              width: 'auto',
-              objectFit: 'contain',
-              margin: '0 auto 4px auto',
-              display: 'block'
-            }}
+        {/* App Title Header - Solo el icono cuadrado centrado */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 0 4px 0' }}>
+          <StoreBrandDisplay
+            align="center"
+            size="xl"
+            forceSquareLogo={true}
+            logoOnly={true}
+            imageMaxHeight={84}
+            showSubtitle={false}
           />
-          <h2 className="font-logo-script" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface)', letterSpacing: '-0.01em', lineHeight: 1 }}>
-            {storeName}
-          </h2>
-          <p style={{ fontSize: '0.82rem', color: 'var(--md-sys-color-on-surface-variant)', marginTop: '2px', fontWeight: 600 }}>
-            Administración & POS Tienda
-          </p>
         </div>
 
         {/* Main Action Buttons (Responsive 1-column on mobile, 2x2 grid on PC) */}

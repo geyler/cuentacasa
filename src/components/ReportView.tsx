@@ -379,23 +379,23 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
                   CUP
                 </span>
-                <span className="tabular-nums" style={{ fontSize: '1.18rem', fontWeight: 900, color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
+                <span className="tabular-nums" style={{ fontSize: '1.18rem', fontWeight: 900, color: 'var(--md-sys-color-on-surface, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
                   ${totalPeriodRevenueCUP.toLocaleString()}
                 </span>
               </div>
               <div style={{ height: '1px', backgroundColor: 'currentColor', opacity: 0.08 }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
-                <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#0284C7', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0284C7', display: 'inline-block' }} />
+                <span style={{ fontSize: '0.67rem', fontWeight: 800, color: '#0D9488', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#0D9488', display: 'inline-block' }} />
                   USD
                 </span>
-                <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 900, color: '#0284C7', fontVariantNumeric: 'tabular-nums' }}>
+                <span className="tabular-nums" style={{ fontSize: '1.08rem', fontWeight: 900, color: '#0D9488', fontVariantNumeric: 'tabular-nums' }}>
                   US$ {totalPeriodRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
           ) : (
-            <div style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0 2px 0', color: 'var(--md-sys-color-on-surface)' }}>
+            <div style={{ fontSize: '1.45rem', fontWeight: 900, margin: '6px 0 2px 0', color: currSettings.currencyMode === 'USD' ? '#0D9488' : 'var(--md-sys-color-on-surface, #0F172A)' }}>
               {currSettings.currencyMode === 'USD'
                 ? `US$ ${totalPeriodRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : `$${totalPeriodRevenueCUP.toLocaleString()}`}
@@ -599,32 +599,32 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           </td>
                           <td className="tabular-nums" style={{ padding: '6px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                             {currSettings.currencyMode === 'USD' ? (
-                              <span style={{ color: '#0284C7', fontWeight: 800 }}>
-                                US$ {r.priceUSD.toFixed(2)} USD
+                              <span style={{ color: '#0D9488', fontWeight: 800 }}>
+                                US$ {r.priceUSD.toFixed(2)}
                               </span>
                             ) : currSettings.currencyMode === 'CUP' ? (
-                              <span style={{ color: '#059669', fontWeight: 800 }}>
+                              <span style={{ color: '#0F172A', fontWeight: 800 }}>
                                 ${r.priceCUP.toLocaleString()} CUP
                               </span>
                             ) : (
                               <>
                                 {r.baseCurrency === 'USD' ? (
                                   <>
-                                    <span style={{ color: '#0284C7', fontWeight: 800, display: 'block' }}>
-                                      US$ {r.priceUSD.toFixed(2)} USD
+                                    <span style={{ color: '#0D9488', fontWeight: 800, display: 'block' }}>
+                                      US$ {r.priceUSD.toFixed(2)}
                                     </span>
-                                    <span style={{ fontSize: '0.62rem', color: '#059669', display: 'block' }}>
+                                    <span style={{ fontSize: '0.62rem', color: '#0F172A', display: 'block' }}>
                                       ${r.priceCUP.toLocaleString()} CUP
                                     </span>
                                   </>
                                 ) : (
                                   <>
-                                    <span style={{ color: '#059669', fontWeight: 800, display: 'block' }}>
+                                    <span style={{ color: '#0F172A', fontWeight: 800, display: 'block' }}>
                                       ${r.priceCUP.toLocaleString()} CUP
                                     </span>
                                     {r.priceUSD > 0 && (
-                                      <span style={{ fontSize: '0.62rem', color: '#0284C7', display: 'block' }}>
-                                        US$ {r.priceUSD.toFixed(2)} USD
+                                      <span style={{ fontSize: '0.62rem', color: '#0D9488', display: 'block' }}>
+                                        US$ {r.priceUSD.toFixed(2)}
                                       </span>
                                     )}
                                   </>
@@ -634,20 +634,20 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           </td>
                           <td className="tabular-nums" style={{ padding: '6px 6px', textAlign: 'right', fontWeight: 900, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                             {currSettings.currencyMode === 'USD' ? (
-                              <span style={{ color: r.totalAmountUSD > 0 ? '#0284C7' : '#94A3B8' }}>
-                                US$ {r.totalAmountUSD.toFixed(2)} USD
+                              <span style={{ color: r.totalAmountUSD > 0 ? '#0D9488' : '#94A3B8' }}>
+                                US$ {r.totalAmountUSD.toFixed(2)}
                               </span>
                             ) : currSettings.currencyMode === 'CUP' ? (
-                              <span style={{ color: r.totalAmountCUP > 0 ? '#059669' : '#94A3B8' }}>
+                              <span style={{ color: r.totalAmountCUP > 0 ? '#0F172A' : '#94A3B8' }}>
                                 ${r.totalAmountCUP.toLocaleString()} CUP
                               </span>
                             ) : (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', alignItems: 'flex-end' }}>
-                                <span style={{ color: r.totalAmountCUP > 0 ? '#059669' : '#94A3B8', fontSize: '0.74rem' }}>
+                                <span style={{ color: r.totalAmountCUP > 0 ? '#0F172A' : '#94A3B8', fontSize: '0.74rem' }}>
                                   ${r.totalAmountCUP.toLocaleString()} CUP
                                 </span>
-                                <span style={{ color: r.totalAmountUSD > 0 ? '#0284C7' : '#94A3B8', fontSize: '0.68rem', fontWeight: 800 }}>
-                                  US$ {r.totalAmountUSD.toFixed(2)} USD
+                                <span style={{ color: r.totalAmountUSD > 0 ? '#0D9488' : '#94A3B8', fontSize: '0.68rem', fontWeight: 800 }}>
+                                  US$ {r.totalAmountUSD.toFixed(2)}
                                 </span>
                               </div>
                             )}
@@ -679,20 +679,20 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       <td style={{ padding: '8px 6px' }}></td>
                       <td className="tabular-nums" style={{ padding: '8px 6px', textAlign: 'right', fontSize: '0.82rem', color: '#0F172A', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                         {currSettings.currencyMode === 'USD' ? (
-                          <span style={{ color: '#0284C7' }}>
-                            US$ {totalPeriodRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                          <span style={{ color: '#0D9488', fontWeight: 900 }}>
+                            US$ {totalPeriodRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         ) : currSettings.currencyMode === 'CUP' ? (
-                          <span style={{ color: '#059669' }}>
+                          <span style={{ color: '#0F172A', fontWeight: 900 }}>
                             ${totalPeriodRevenueCUP.toLocaleString()} CUP
                           </span>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
-                            <span style={{ color: '#059669', fontSize: '0.82rem' }}>
+                            <span style={{ color: '#0F172A', fontSize: '0.82rem', fontWeight: 900 }}>
                               ${totalPeriodRevenueCUP.toLocaleString()} CUP
                             </span>
-                            <span style={{ color: '#0284C7', fontSize: '0.75rem', fontWeight: 900 }}>
-                              US$ {totalPeriodRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                            <span style={{ color: '#0D9488', fontSize: '0.75rem', fontWeight: 900 }}>
+                              US$ {totalPeriodRevenueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
                         )}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StoreProduct } from '@/types';
-import { getStoreProducts, INITIAL_SEED_PRODUCTS, formatPhotoUrl, DEFAULT_PRODUCT_IMAGE, getCurrencySettings, getStoreWhatsappNumber, getPrimaryThemeColor, getSecondaryThemeColor } from '@/lib/storage';
+import { getStoreProducts, INITIAL_SEED_PRODUCTS, formatPhotoUrl, DEFAULT_PRODUCT_IMAGE, getCurrencySettings, getStoreWhatsappNumber, getStoreCustomizationSettings, getPrimaryThemeColor, getSecondaryThemeColor } from '@/lib/storage';
 import { applyBrandPaletteToDocument } from '@/lib/themePalette';
 import { syncPublicCatalog } from '@/lib/sync';
 import { formatCurrency, getProductDisplayPrice, getCurrencyBadgeStyle } from '@/lib/invoice';
@@ -99,7 +99,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
             El artículo buscado no se encuentra en el catálogo actual de la tienda.
           </p>
           <Link href="/" className="md-btn md-btn-primary" style={{ padding: '12px 24px', borderRadius: '9999px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <Store size={18} /> Explorar Catálogo de Samy Store
+            <Store size={18} /> Explorar Catálogo de Cubasoft ERP
           </Link>
         </div>
       </div>
@@ -143,7 +143,9 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
 
   const subtotalFormatted = formatCurrency(disp.amount * quantity, disp.currency, true);
 
-  let whatsappMessage = `🛒 *PEDIDO SAMY STORE - LAS TUNAS*\n----------------------------------\n`;
+  const storeSettings = getStoreCustomizationSettings();
+  const brandName = (storeSettings.storeName || 'TIENDA').toUpperCase();
+  let whatsappMessage = `🛒 *PEDIDO ${brandName}*\n----------------------------------\n`;
   whatsappMessage += `Artículo: *${product.name}* (Cod: #${product.barcode || '0000'})\n`;
   whatsappMessage += `Cantidad: *${quantity}u*\n`;
   whatsappMessage += `Precio unitario: ${formatCurrency(disp.amount, disp.currency, true)}\n`;
@@ -554,7 +556,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
                   Productos Relacionados
                 </h3>
                 <p style={{ fontSize: '0.84rem', color: '#64748B', marginTop: '2px' }}>
-                  Artículos que también te podrían interesar en <strong>{product.category || 'Samy Store'}</strong>
+                  Artículos que también te podrían interesar en <strong>{product.category || 'Cubasoft ERP'}</strong>
                 </p>
               </div>
               <Link href="/" style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--md-sys-color-primary)', textDecoration: 'none' }}>
@@ -643,7 +645,7 @@ export function ProductDetailClient({ id, initialProduct }: ProductDetailClientP
       }}>
         <div className="store-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <p style={{ fontSize: '0.82rem', color: '#94A3B8', margin: 0, fontWeight: 600 }}>
-            © {new Date().getFullYear()} <strong style={{ color: '#FFFFFF' }}>Samy Store Las Tunas</strong>.
+            © {new Date().getFullYear()} <strong style={{ color: '#FFFFFF' }}>Cubasoft ERP</strong>.
           </p>
           <Link href="/" style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--brand-primary-accent, #7DD3FC)', textDecoration: 'none' }}>
             Explorar todo el catálogo →

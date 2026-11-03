@@ -31,11 +31,15 @@ function getStorageFile(instanceId: string = 'cuentacasa'): string {
 function validateMasterPasswordServer(inputPass: string, customMasterPass?: string): boolean {
   const trimmed = (inputPass || '').trim();
   if (!trimmed) return false;
-  const envMaster = (process.env.APP_PASSWORD || process.env.NEXT_PUBLIC_APP_PASSWORD || 'Del1Al9#').trim();
-  if (trimmed === envMaster || trimmed === 'Del1Al9#' || trimmed === 'Del1Al9' || trimmed === '1234') {
+  const envMaster = (process.env.APP_PASSWORD || process.env.SYNC_SECRET_KEY || '').trim();
+  if (envMaster && trimmed === envMaster) {
     return true;
   }
   if (customMasterPass && trimmed === customMasterPass.trim()) {
+    return true;
+  }
+  // Contingency fallback only if no master password was ever configured in env or database
+  if (!envMaster && !customMasterPass && trimmed === 'Del1Al9#') {
     return true;
   }
   return false;
@@ -45,17 +49,14 @@ function isAuthorizedSyncRequest(req: NextRequest, body?: any, customMasterPass?
   const authHeader = req.headers.get('authorization') || req.headers.get('x-app-auth') || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
-  const envMaster = (process.env.APP_PASSWORD || process.env.NEXT_PUBLIC_APP_PASSWORD || 'Del1Al9#').trim();
-  const allowed = new Set([
-    envMaster,
-    'Del1Al9#',
-    'Del1Al9',
-    '1234',
-    (process.env.SYNC_SECRET_KEY || '').trim()
-  ].filter(Boolean));
+  const envMaster = (process.env.APP_PASSWORD || process.env.SYNC_SECRET_KEY || '').trim();
+  const allowed = new Set<string>();
+  if (envMaster) allowed.add(envMaster);
+  if (customMasterPass && customMasterPass.trim()) allowed.add(customMasterPass.trim());
 
-  if (customMasterPass) {
-    allowed.add(customMasterPass.trim());
+  // Contingency fallback only if no master password was ever configured in env or database
+  if (allowed.size === 0) {
+    allowed.add('Del1Al9#');
   }
 
   if (token && allowed.has(token)) return true;
@@ -850,8 +851,8 @@ export async function GET(req: NextRequest) {
 
       const publicSettings = {
         currency: currentSettings?.currency || '$',
-        appName: currentSettings?.appName || currentSettings?.storeName || 'Samy Store',
-        storeName: currentSettings?.storeName || currentSettings?.appName || 'Samy Store',
+        appName: currentSettings?.appName || currentSettings?.storeName || 'Cubasoft ERP',
+        storeName: currentSettings?.storeName || currentSettings?.appName || 'Cubasoft ERP',
         storeWhatsappNumber: currentSettings?.storeWhatsappNumber || '',
         currencyMode: currentSettings?.currencyMode || 'BOTH',
         exchangeRateUSD: currentSettings?.exchangeRateUSD || 320,
@@ -864,7 +865,7 @@ export async function GET(req: NextRequest) {
         storeLogoWide: currentSettings?.storeLogoWide || '',
         storeLogoFontId: currentSettings?.storeLogoFontId || 'dancing-script',
         storeLogoFontFamily: currentSettings?.storeLogoFontFamily || "'Dancing Script', 'Pacifico', cursive, sans-serif",
-        storeSeoName: currentSettings?.storeSeoName || currentSettings?.storeName || currentSettings?.appName || 'Samy Store',
+        storeSeoName: currentSettings?.storeSeoName || currentSettings?.storeName || currentSettings?.appName || 'Cubasoft ERP',
         storeSeoDescription: currentSettings?.storeSeoDescription || '',
         heroBadgeText: currentSettings?.heroBadgeText || 'Nueva Colección 2026',
         heroTitle: currentSettings?.heroTitle || 'Estilo que Define tu Presencia',

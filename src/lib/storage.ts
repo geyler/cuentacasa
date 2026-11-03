@@ -110,49 +110,15 @@ export const INITIAL_USERS: AppUser[] = [
   }
 ];
 
-export const DEFAULT_PRODUCT_IMAGE = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFF1F5"/>
-      <stop offset="100%" stop-color="#FCE7F3"/>
-    </linearGradient>
-    <linearGradient id="bag" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#F43F5E"/>
-      <stop offset="100%" stop-color="#DB2777"/>
-    </linearGradient>
-  </defs>
-  <rect width="500" height="500" fill="url(#bg)"/>
-  <circle cx="250" cy="225" r="140" fill="#FFFFFF" fill-opacity="0.85"/>
-  <path d="M195 185 C195 145 220 120 250 120 C280 120 305 145 305 185" stroke="#BE185D" stroke-width="14" stroke-linecap="round" fill="none"/>
-  <rect x="165" y="175" width="170" height="185" rx="26" fill="url(#bag)" />
-  <path d="M250 230 L256 248 L274 254 L256 260 L250 278 L244 260 L226 254 L244 248 Z" fill="#FFFFFF"/>
-  <circle cx="295" cy="220" r="7" fill="#FDE047"/>
-  <circle cx="205" cy="285" r="5" fill="#FFFFFF" fill-opacity="0.8"/>
-  <text x="250" y="415" fill="#9D174D" font-size="28" font-family="'Dancing Script', cursive, sans-serif" font-weight="900" text-anchor="middle">Samy Store</text>
-  <text x="250" y="445" fill="#BE185D" font-size="13" font-family="sans-serif" font-weight="800" letter-spacing="2" text-anchor="middle">PRODUCTO OFICIAL</text>
-</svg>
-`)}`;
-
-export const DEFAULT_CATEGORY_IMAGE = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" fill="none">
-  <defs>
-    <linearGradient id="catbg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FDF2F8"/>
-      <stop offset="100%" stop-color="#FCE7F3"/>
-    </linearGradient>
-  </defs>
-  <rect width="300" height="300" rx="36" fill="url(#catbg)"/>
-  <circle cx="150" cy="135" r="75" fill="#FFFFFF" fill-opacity="0.9"/>
-  <path d="M120 115 C120 90 135 75 150 75 C165 75 180 90 180 115" stroke="#DB2777" stroke-width="8" stroke-linecap="round" fill="none"/>
-  <rect x="105" y="110" width="90" height="100" rx="18" fill="#DB2777"/>
-  <path d="M150 145 L154 156 L165 160 L154 164 L150 175 L146 164 L135 160 L146 156 Z" fill="#FFFFFF"/>
-  <text x="150" y="250" fill="#9D174D" font-size="16" font-family="sans-serif" font-weight="800" text-anchor="middle">Samy Store</text>
-</svg>
-`)}`;
+export const DEFAULT_PRODUCT_IMAGE = '/images/product-placeholder.png';
+export const DEFAULT_CATEGORY_IMAGE = '/images/product-placeholder.png';
 
 export function formatPhotoUrl(url?: string): string {
   if (!url || !url.trim()) return DEFAULT_PRODUCT_IMAGE;
+  // Limpieza de placeholders antiguos de Samy Store / Tienda Casa
+  if (url.includes('Samy Store') || url.includes('SAMY STORE') || url.includes('TIENDA CASA') || url.includes('%23FFF1F5') || url.includes('PRODUCTO%20OFICIAL')) {
+    return DEFAULT_PRODUCT_IMAGE;
+  }
   if (url.startsWith('data:image/svg+xml;utf8,')) {
     const rawSvg = url.slice('data:image/svg+xml;utf8,'.length);
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(rawSvg)}`;
@@ -291,10 +257,19 @@ export function setMasterPassword(password: string): void {
 
 export function validateMasterPassword(inputPass: string): boolean {
   const trimmed = inputPass.trim();
+  if (!trimmed) return false;
   const current = getMasterPassword();
+  if (trimmed === current) return true;
+
   const loggedUser = getLoggedInUser();
-  const userPass = loggedUser?.password?.trim();
-  return trimmed === current || trimmed === 'Del1Al9' || trimmed === '1234' || (!!userPass && trimmed === userPass);
+  if (loggedUser && loggedUser.role === 'propietario') {
+    const allUsers = getAppUsers();
+    const dbOwner = allUsers.find(u => u.id === loggedUser.id || u.username === loggedUser.username);
+    if (dbOwner?.password && verifyPassword(trimmed, dbOwner.password)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // User & Roles Authentication Helpers
@@ -302,7 +277,7 @@ export function getAppUsers(): AppUser[] {
   const db = getRawDatabase();
   let users = (Array.isArray(db.users) && db.users.length > 0) ? db.users : [...INITIAL_USERS];
 
-  // Garantizar que el usuario admin / 1234 (propietario) esté siempre disponible para desarrollo y trabajo local
+  // Garantizar que el usuario admin (propietario) esté siempre disponible para desarrollo y trabajo local
   const adminIdx = users.findIndex(u => u.username.trim().toLowerCase() === 'admin');
   if (adminIdx === -1) {
     const adminUser: AppUser = {
@@ -317,11 +292,11 @@ export function getAppUsers(): AppUser[] {
     users = [adminUser, ...users];
     db.users = users;
     saveRawDatabase(db);
-  } else if (!users[adminIdx].password || users[adminIdx].password !== '1234' || users[adminIdx].role !== 'propietario') {
+  } else if (!users[adminIdx].password || !users[adminIdx].role) {
     users[adminIdx] = {
       ...users[adminIdx],
-      password: '1234',
-      role: 'propietario',
+      password: users[adminIdx].password || '1234',
+      role: users[adminIdx].role || 'propietario',
       updatedAt: Date.now()
     };
     db.users = users;
@@ -440,7 +415,9 @@ export function setLoggedInUser(user: AppUser | null): void {
       sessionStorage.removeItem('cuentacasa_auth');
     }
   } else {
-    const serialized = JSON.stringify(user);
+    // Sanitize user: exclude password before saving in localStorage/sessionStorage
+    const { password: _, ...safeUser } = user;
+    const serialized = JSON.stringify(safeUser);
     setScopedItem('active_user', serialized);
     setScopedItem('auth', 'true');
     if (typeof sessionStorage !== 'undefined') {
@@ -544,7 +521,7 @@ export function clearAllDatabaseRecords(): void {
     settings: {
       currency: '$',
       currencyMode: 'CUP',
-      appName: 'Samy Store',
+      appName: 'Cubasoft ERP',
       autoSync: true,
       masterPassword: 'Del1Al9'
     },
@@ -928,7 +905,7 @@ export function getActiveWhatsappUserId(): string | undefined {
 export function saveStoreWhatsappNumber(phone: string, activeUserId?: string): void {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: false, updatedAt: Date.now() };
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: false, updatedAt: Date.now() };
   }
   db.settings.storeWhatsappNumber = phone.trim();
   db.settings.activeWhatsappUserId = activeUserId;
@@ -1602,6 +1579,14 @@ export function getSavingsFundUSD(): number {
   return db.savingsFundUSD || 0;
 }
 
+export interface POSPaymentMethodsConfig {
+  cashCUP: boolean;
+  transferCUP: boolean;
+  cashUSD: boolean;
+  fiado: boolean;
+  split: boolean;
+}
+
 export interface CurrencySettings {
   currencyMode: CurrencyMode;
   exchangeRateUSD: number; // e.g. 675 CUP per 1 USD
@@ -1611,6 +1596,7 @@ export interface CurrencySettings {
   usdIndexedPricing?: boolean;
   forceShowPricesOnlyCUP?: boolean; // Forzar mostrar y cobrar precios exclusivamente en CUP en la tienda pública
   roundUpCUPToTen?: boolean;   // Redondear importes y precios CUP a múltiplos de 10 (ej. 109 -> 110, 1257 -> 1260)
+  posPaymentMethods?: POSPaymentMethodsConfig;
 }
 
 export function getCurrencySettings(): CurrencySettings {
@@ -1623,14 +1609,21 @@ export function getCurrencySettings(): CurrencySettings {
     lastElToqueSync: db.settings?.lastElToqueSync || 0,
     usdIndexedPricing: db.settings?.usdIndexedPricing !== undefined ? db.settings.usdIndexedPricing : false,
     forceShowPricesOnlyCUP: Boolean(db.settings?.forceShowPricesOnlyCUP),
-    roundUpCUPToTen: Boolean(db.settings?.roundUpCUPToTen)
+    roundUpCUPToTen: Boolean(db.settings?.roundUpCUPToTen),
+    posPaymentMethods: (db.settings as any)?.posPaymentMethods || {
+      cashCUP: true,
+      transferCUP: true,
+      cashUSD: true,
+      fiado: true,
+      split: true
+    }
   };
 }
 
 export function saveCurrencySettings(settings: Partial<CurrencySettings>): CurrencySettings {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
+    db.settings = { currency: 'CUP', appName: 'Cubasoft', autoSync: true, updatedAt: Date.now() };
   }
   if (settings.currencyMode !== undefined) db.settings.currencyMode = settings.currencyMode;
   if (settings.exchangeRateUSD !== undefined) db.settings.exchangeRateUSD = settings.exchangeRateUSD;
@@ -1640,6 +1633,7 @@ export function saveCurrencySettings(settings: Partial<CurrencySettings>): Curre
   if (settings.usdIndexedPricing !== undefined) db.settings.usdIndexedPricing = settings.usdIndexedPricing;
   if (settings.forceShowPricesOnlyCUP !== undefined) db.settings.forceShowPricesOnlyCUP = settings.forceShowPricesOnlyCUP;
   if (settings.roundUpCUPToTen !== undefined) db.settings.roundUpCUPToTen = settings.roundUpCUPToTen;
+  if (settings.posPaymentMethods !== undefined) (db.settings as any).posPaymentMethods = settings.posPaymentMethods;
 
   db.settings.updatedAt = Date.now();
   saveRawDatabase(db);
@@ -1678,7 +1672,7 @@ export async function syncElToqueExchangeRate(): Promise<CurrencySettings> {
 export function switchCurrencyMode(newMode: CurrencyMode): CurrencySettings {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
   }
   db.settings.currencyMode = newMode;
   db.settings.updatedAt = Date.now();
@@ -1752,7 +1746,7 @@ export function savePrimaryThemeColor(hexColor: string, secondaryHexColor?: stri
   const normalized = normalizeHexColor(hexColor, DEFAULT_PRIMARY_COLOR);
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
   }
   db.settings.primaryColor = normalized;
 
@@ -1788,7 +1782,7 @@ export function saveSecondaryThemeColor(secondaryHexColor: string | null): strin
   const primary = getPrimaryThemeColor();
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
   }
 
   let resolvedSec: string;
@@ -1824,48 +1818,52 @@ export function saveSecondaryThemeColor(secondaryHexColor: string | null): strin
 
 export const DEFAULT_STORE_CUSTOMIZATION: StoreCustomizationSettings = {
   logoMode: 'both',
-  logoSquareUrl: '/images/logo-nav.png',
-  logoWideUrl: '',
-  logoDarkSquareUrl: '',
-  logoDarkWideUrl: '',
-  faviconUrl: '/favicon.ico',
-  faviconDarkUrl: '',
+  logoSquareUrl: '/brand/cubasoft-logo-square.png',
+  logoWideUrl: '/brand/cubasoft-logo-wide.png',
+  logoDarkSquareUrl: '/brand/cubasoft-logo-square-dark.png',
+  logoDarkWideUrl: '/brand/cubasoft-logo-wide-dark.png',
+  faviconUrl: '/icons/favicon.png',
+  faviconDarkUrl: '/icons/favicon-dark.png',
   logoFontId: DEFAULT_LOGO_FONT.id,
   logoFontFamily: DEFAULT_LOGO_FONT.family,
-  storeName: 'Samy Store',
-  storeSeoName: 'Samy Store - Tienda Online de Productos y Víveres',
-  storeSeoDescription: 'Tienda de víveres, alimentos y artículos esenciales con existencias reales en almacén y entregas rápidas en Las Tunas, Cuba.',
-  heroBadgeText: 'Tienda Online • Las Tunas, Cuba',
-  heroTitle: 'Todo para tu Hogar, Rápido y sin Complicaciones',
-  heroSubtitle: 'Explora el catálogo completo de Samy Store organizado por categorías con existencias reales en almacén y pedidos directos por WhatsApp con entrega en toda la ciudad.'
+  storeName: 'Cubasoft',
+  storeSeoName: 'Cubasoft - Sistema Contable, POS & Tienda Online',
+  storeSeoDescription: 'Sistema contable, inventario, punto de venta y tienda digital offline respaldado por Cubasoft.',
+  heroBadgeText: 'Sistema POS & Tienda Digital',
+  heroTitle: 'Cubasoft - Gestión y Punto de Venta',
+  heroSubtitle: 'Catálogo de productos organizado por categorías con existencias en tiempo real y pedidos directos por WhatsApp.'
 };
 
 export function getStoreCustomizationSettings(): StoreCustomizationSettings {
   const db = getRawDatabase();
   const s = db.settings;
+  const legacyFallbackLogo = (url?: string) => {
+    if (!url || url === '/images/logo-nav.png') return '/brand/cubasoft-logo-square.png';
+    return url;
+  };
   return {
     logoMode: (s?.storeLogoMode as StoreLogoDisplayMode) || DEFAULT_STORE_CUSTOMIZATION.logoMode,
-    logoSquareUrl: s?.storeLogoSquare !== undefined ? s.storeLogoSquare : DEFAULT_STORE_CUSTOMIZATION.logoSquareUrl,
-    logoWideUrl: s?.storeLogoWide !== undefined ? s.storeLogoWide : DEFAULT_STORE_CUSTOMIZATION.logoWideUrl,
-    logoDarkSquareUrl: s?.storeLogoDarkSquare !== undefined ? s.storeLogoDarkSquare : DEFAULT_STORE_CUSTOMIZATION.logoDarkSquareUrl,
-    logoDarkWideUrl: s?.storeLogoDarkWide !== undefined ? s.storeLogoDarkWide : DEFAULT_STORE_CUSTOMIZATION.logoDarkWideUrl,
-    faviconUrl: s?.storeFavicon !== undefined ? s.storeFavicon : DEFAULT_STORE_CUSTOMIZATION.faviconUrl,
-    faviconDarkUrl: s?.storeFaviconDark !== undefined ? s.storeFaviconDark : DEFAULT_STORE_CUSTOMIZATION.faviconDarkUrl,
+    logoSquareUrl: legacyFallbackLogo(s?.storeLogoSquare !== undefined ? s.storeLogoSquare : DEFAULT_STORE_CUSTOMIZATION.logoSquareUrl),
+    logoWideUrl: s?.storeLogoWide ? s.storeLogoWide : DEFAULT_STORE_CUSTOMIZATION.logoWideUrl,
+    logoDarkSquareUrl: s?.storeLogoDarkSquare ? s.storeLogoDarkSquare : DEFAULT_STORE_CUSTOMIZATION.logoDarkSquareUrl,
+    logoDarkWideUrl: s?.storeLogoDarkWide ? s.storeLogoDarkWide : DEFAULT_STORE_CUSTOMIZATION.logoDarkWideUrl,
+    faviconUrl: s?.storeFavicon ? s.storeFavicon : DEFAULT_STORE_CUSTOMIZATION.faviconUrl,
+    faviconDarkUrl: s?.storeFaviconDark ? s.storeFaviconDark : DEFAULT_STORE_CUSTOMIZATION.faviconDarkUrl,
     logoFontId: s?.storeLogoFontId || DEFAULT_LOGO_FONT.id,
     logoFontFamily: s?.storeLogoFontFamily || DEFAULT_LOGO_FONT.family,
-    storeName: (s?.storeName && s.storeName.trim()) ? s.storeName : (s?.appName && s.appName.trim() ? s.appName : DEFAULT_STORE_CUSTOMIZATION.storeName),
-    storeSeoName: (s?.storeSeoName && s.storeSeoName.trim()) ? s.storeSeoName : DEFAULT_STORE_CUSTOMIZATION.storeSeoName,
-    storeSeoDescription: (s?.storeSeoDescription && s.storeSeoDescription.trim()) ? s.storeSeoDescription : DEFAULT_STORE_CUSTOMIZATION.storeSeoDescription,
+    storeName: (s?.storeName && s.storeName.trim() && s.storeName !== 'Cubasoft ERP' && s.storeName !== 'Samy Store') ? s.storeName : (s?.appName && s.appName.trim() && s.appName !== 'Cubasoft ERP' && s.appName !== 'Samy Store' ? s.appName : DEFAULT_STORE_CUSTOMIZATION.storeName),
+    storeSeoName: (s?.storeSeoName && s.storeSeoName.trim() && !s.storeSeoName.includes('Samy Store') && !s.storeSeoName.includes('Cubasoft')) ? s.storeSeoName : DEFAULT_STORE_CUSTOMIZATION.storeSeoName,
+    storeSeoDescription: (s?.storeSeoDescription && s.storeSeoDescription.trim() && !s.storeSeoDescription.includes('Samy Store') && !s.storeSeoDescription.includes('Cubasoft')) ? s.storeSeoDescription : DEFAULT_STORE_CUSTOMIZATION.storeSeoDescription,
     heroBadgeText: (s?.heroBadgeText && s.heroBadgeText.trim()) ? s.heroBadgeText : DEFAULT_STORE_CUSTOMIZATION.heroBadgeText,
-    heroTitle: (s?.heroTitle && s.heroTitle.trim()) ? s.heroTitle : DEFAULT_STORE_CUSTOMIZATION.heroTitle,
-    heroSubtitle: (s?.heroSubtitle && s.heroSubtitle.trim()) ? s.heroSubtitle : DEFAULT_STORE_CUSTOMIZATION.heroSubtitle
+    heroTitle: (s?.heroTitle && s.heroTitle.trim() && !s.heroTitle.includes('Samy Store') && !s.heroTitle.includes('Cubasoft')) ? s.heroTitle : DEFAULT_STORE_CUSTOMIZATION.heroTitle,
+    heroSubtitle: (s?.heroSubtitle && s.heroSubtitle.trim() && !s.heroSubtitle.includes('Samy Store') && !s.heroSubtitle.includes('Cubasoft')) ? s.heroSubtitle : DEFAULT_STORE_CUSTOMIZATION.heroSubtitle
   };
 }
 
 export function saveStoreCustomizationSettings(settings: Partial<StoreCustomizationSettings>): StoreCustomizationSettings {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
   }
   if (settings.logoMode !== undefined) db.settings.storeLogoMode = settings.logoMode;
   if (settings.logoSquareUrl !== undefined) db.settings.storeLogoSquare = settings.logoSquareUrl;
@@ -1928,7 +1926,7 @@ export function getStoreModulesConfig(): StoreModulesConfig {
 export function saveStoreModulesConfig(modules: Partial<StoreModulesConfig>): StoreModulesConfig {
   const db = getRawDatabase();
   if (!db.settings) {
-    db.settings = { currency: 'CUP', appName: 'Samy Store', autoSync: true, updatedAt: Date.now() };
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
   }
   if (modules.enableFoodTraceability !== undefined) db.settings.enableFoodTraceability = Boolean(modules.enableFoodTraceability);
   if (modules.enableSuppliers !== undefined) db.settings.enableSuppliers = Boolean(modules.enableSuppliers);
@@ -2787,7 +2785,7 @@ export function mergeSyncQRPayload(jsonString: string): MergeSyncResult {
   try {
     rawObj = JSON.parse(jsonString);
   } catch {
-    throw new Error('El código QR escaneado no contiene un formato de sincronización válido de Samy Store.');
+    throw new Error('El código QR escaneado no contiene un formato de sincronización válido de Cubasoft ERP.');
   }
 
   const db = getRawDatabase();
@@ -3120,6 +3118,182 @@ export function deleteCustomerDebt(debtId: string): boolean {
   if (!db.deletedDebtIds.includes(debtId)) db.deletedDebtIds.push(debtId);
   saveRawDatabase(db);
   return true;
+}
+
+// ============================================================================
+// GESTIÓN DE UNIDADES DE MEDIDA CONFIGURABLES
+// ============================================================================
+
+export interface SystemUnitDef {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export const ALL_SYSTEM_UNITS: SystemUnitDef[] = [
+  { id: 'u', name: 'Unidad (u)', description: 'Artículos contables individuales' },
+  { id: 'lb', name: 'Libra (lb)', description: 'Pesaje agrícola y carnes' },
+  { id: 'kg', name: 'Kilogramo (kg)', description: 'Pesaje internacional' },
+  { id: 'g', name: 'Gramo (g)', description: 'Especias, condimentos y precisión' },
+  { id: 'oz', name: 'Onza (oz)', description: 'Líquidos o granos' },
+  { id: 'bolsa', name: 'Bolsa', description: 'Empaquetados cerrados' },
+  { id: 'paquete', name: 'Paquete', description: 'Packs de varios elementos' },
+  { id: 'caja', name: 'Caja', description: 'Cajas completas de mercancía' },
+  { id: 'litro', name: 'Litro (L)', description: 'Bebidas, aceites y líquidos' },
+  { id: 'galón', name: 'Galón', description: 'Pinturas y combustible' },
+  { id: 'saco', name: 'Saco', description: 'Arroz, frijoles y cemento' },
+  { id: 'listero', name: 'Listero', description: 'Pastillas y ferretería' },
+  { id: 'par', name: 'Par', description: 'Calzado, medias y guantes' },
+  { id: 'm', name: 'Metro (m)', description: 'Telas, cables y cuerdas' },
+  { id: 'cm', name: 'Centímetro (cm)', description: 'Mediciones cortas' }
+];
+
+export const DEFAULT_ENABLED_UNITS = ['u', 'lb', 'kg', 'bolsa', 'paquete', 'caja', 'litro'];
+
+export function getEnabledUnits(): string[] {
+  const db = getRawDatabase();
+  const stored = (db.settings as any)?.enabledUnits;
+  if (Array.isArray(stored) && stored.length > 0) {
+    return stored;
+  }
+  return DEFAULT_ENABLED_UNITS;
+}
+
+export function saveEnabledUnits(units: string[]): void {
+  const db = getRawDatabase();
+  if (!db.settings) {
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
+  }
+  const cleanUnits = units.length > 0 ? units : ['u'];
+  (db.settings as any).enabledUnits = cleanUnits;
+  db.settings.updatedAt = Date.now();
+  saveRawDatabase(db);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cuentacasa-units-changed', { detail: cleanUnits }));
+  }
+}
+
+// ============================================================================
+// GESTIÓN DE CATEGORÍAS DEL SISTEMA (CREAR, EDITAR, ELIMINAR CON REASIGNACIÓN)
+// ============================================================================
+
+export function getSystemCategories(): string[] {
+  const db = getRawDatabase();
+  const custom = (db.settings as any)?.customCategories || [];
+  const fromProducts = (db.storeProducts || []).map(p => p.category?.trim()).filter(Boolean);
+  const set = new Set<string>();
+
+  // Valores predeterminados estándar
+  ['Víveres', 'Bebidas', 'Aseo & Hogar', 'Carnes & Embutidos', 'General'].forEach(c => set.add(c));
+  custom.forEach((c: string) => { if (c && c.trim()) set.add(c.trim()); });
+  fromProducts.forEach((c: string) => { if (c && c.trim()) set.add(c.trim()); });
+
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
+
+export function createCategory(newCategoryName: string): boolean {
+  const clean = newCategoryName.trim();
+  if (!clean) return false;
+  const db = getRawDatabase();
+  if (!db.settings) {
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
+  }
+  const custom = (db.settings as any)?.customCategories || [];
+  if (!custom.includes(clean)) {
+    custom.push(clean);
+    (db.settings as any).customCategories = custom;
+    db.settings.updatedAt = Date.now();
+    saveRawDatabase(db);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cuentacasa-categories-changed'));
+    }
+  }
+  return true;
+}
+
+export function renameCategory(oldName: string, newName: string): { success: boolean; affectedCount: number } {
+  const cleanOld = oldName.trim();
+  const cleanNew = newName.trim();
+  if (!cleanOld || !cleanNew || cleanOld === cleanNew) return { success: false, affectedCount: 0 };
+
+  const db = getRawDatabase();
+  let affectedCount = 0;
+
+  // Actualizar productos
+  if (Array.isArray(db.storeProducts)) {
+    db.storeProducts.forEach(prod => {
+      if (prod.category?.trim().toLowerCase() === cleanOld.toLowerCase()) {
+        prod.category = cleanNew;
+        prod.updatedAt = Date.now();
+        affectedCount++;
+      }
+    });
+  }
+
+  // Actualizar lista personalizada
+  const custom: string[] = (db.settings as any)?.customCategories || [];
+  const idx = custom.findIndex(c => c.trim().toLowerCase() === cleanOld.toLowerCase());
+  if (idx !== -1) {
+    custom[idx] = cleanNew;
+  } else {
+    custom.push(cleanNew);
+  }
+  if (!db.settings) {
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
+  }
+  (db.settings as any).customCategories = custom;
+  db.settings.updatedAt = Date.now();
+  saveRawDatabase(db);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cuentacasa-categories-changed'));
+    window.dispatchEvent(new CustomEvent('cuentacasa-db-changed'));
+  }
+
+  return { success: true, affectedCount };
+}
+
+export function deleteCategoryWithReassign(
+  categoryToDelete: string, 
+  targetCategory: string = 'General'
+): { success: boolean; reallocatedCount: number } {
+  const cleanDel = categoryToDelete.trim();
+  const cleanTarget = targetCategory.trim() || 'General';
+  if (!cleanDel) return { success: false, reallocatedCount: 0 };
+
+  const db = getRawDatabase();
+  let reallocatedCount = 0;
+
+  // Reasignar productos que tenían la categoría a eliminar
+  if (Array.isArray(db.storeProducts)) {
+    db.storeProducts.forEach(prod => {
+      if (prod.category?.trim().toLowerCase() === cleanDel.toLowerCase()) {
+        prod.category = cleanTarget;
+        prod.updatedAt = Date.now();
+        reallocatedCount++;
+      }
+    });
+  }
+
+  // Eliminar de customCategories
+  const custom: string[] = (db.settings as any)?.customCategories || [];
+  const filtered = custom.filter(c => c.trim().toLowerCase() !== cleanDel.toLowerCase());
+  if (!filtered.includes(cleanTarget)) {
+    filtered.push(cleanTarget);
+  }
+  if (!db.settings) {
+    db.settings = { currency: 'CUP', appName: 'Cubasoft ERP', autoSync: true, updatedAt: Date.now() };
+  }
+  (db.settings as any).customCategories = filtered;
+  db.settings.updatedAt = Date.now();
+  saveRawDatabase(db);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cuentacasa-categories-changed'));
+    window.dispatchEvent(new CustomEvent('cuentacasa-db-changed'));
+  }
+
+  return { success: true, reallocatedCount };
 }
 
 

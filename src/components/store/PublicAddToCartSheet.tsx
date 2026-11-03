@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { StoreProduct } from '@/types';
-import { formatPhotoUrl } from '@/lib/storage';
+import { formatPhotoUrl, DEFAULT_PRODUCT_IMAGE } from '@/lib/storage';
 import { formatCurrency, getCurrencyBadgeStyle } from '@/lib/invoice';
 import { ShoppingBag, X, Plus, Minus, CheckCircle2 } from 'lucide-react';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
@@ -116,8 +116,12 @@ export const PublicAddToCartSheet: React.FC<PublicAddToCartSheetProps> = ({
                 flexShrink: 0
               }}>
                 <img
-                  src={formatPhotoUrl(productToAddToCart.photoUrl) || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="%23F0F4F8"><rect width="400" height="400" fill="%23E2E8F0"/><circle cx="200" cy="200" r="80" fill="%23CBD5E1"/><text x="50%" y="54%" fill="%2364748B" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">SAMY STORE</text></svg>`}
+                  src={formatPhotoUrl(productToAddToCart.photoUrl)}
                   alt={productToAddToCart.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+                  }}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>

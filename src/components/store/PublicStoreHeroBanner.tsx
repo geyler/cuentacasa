@@ -132,7 +132,7 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
             fontWeight: 500,
             maxWidth: '660px'
           }}>
-            {customization.heroSubtitle || `Explora el catálogo completo de ${customization.storeName || 'Samy Store'} organizado por categorías con existencias reales en almacén y pedidos directos por WhatsApp con entrega en toda la ciudad.`}
+            {customization.heroSubtitle || `Explora el catálogo completo de ${customization.storeName || 'Cubasoft ERP'} organizado por categorías con existencias reales en almacén y pedidos directos por WhatsApp con entrega en toda la ciudad.`}
           </p>
 
           {/* Botones Principales Unificados en la Paleta del Sistema */}
@@ -234,7 +234,7 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
           </div>
         </div>
 
-        {/* Columna Derecha: Tarjeta Visual de Prestigio Samy Store (Equilibra el Hero en PC) */}
+        {/* Columna Derecha: Tarjeta Visual de Prestigio Cubasoft ERP (Equilibra el Hero en PC) */}
         <div className="desktop-only" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{
             backgroundColor: 'rgba(255, 255, 255, 0.12)',
@@ -255,10 +255,11 @@ export const PublicStoreHeroBanner: React.FC<PublicStoreHeroBannerProps> = ({
               customization={customization}
               align="center"
               size="lg"
-              textColor="#FFFFFF"
-              showSubtitle={true}
-              subtitleText="Boutique & Punto de Venta"
-              subtitleColor="rgba(255, 255, 255, 0.9)"
+              variant="dark"
+              forceSquareLogo={true}
+              logoOnly={true}
+              imageMaxHeight={76}
+              showSubtitle={false}
               style={{ marginBottom: '18px' }}
             />
 

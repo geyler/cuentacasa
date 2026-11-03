@@ -21,7 +21,7 @@ import {
   PlayCircle,
   Receipt
 } from 'lucide-react';
-import { getStoreWhatsappNumber } from '@/lib/storage';
+import { getStoreWhatsappNumber, getStoreCustomizationSettings } from '@/lib/storage';
 import { useLockBodyScroll } from '@/lib/useLockBodyScroll';
 
 interface CubasoftInfoModalProps {
@@ -91,7 +91,7 @@ export const CubasoftInfoModal: React.FC<CubasoftInfoModalProps> = ({ isOpen, on
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 900, lineHeight: '1.2', margin: 0 }}>
-                  Cubasoft ERP & Samy Store
+                  Cubasoft ERP & {getStoreCustomizationSettings().storeName || 'Tienda Digital'}
                 </h3>
                 <span style={{
                   fontSize: '0.68rem',
